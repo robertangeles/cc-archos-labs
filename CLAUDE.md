@@ -210,12 +210,14 @@ When a new feature is added, generate:
 3.  End-to-end tests — for full user flows
 4.  Edge cases and failure scenarios
 5.  Penetration tests - for hardening cybersecurity
+6.  UI Tests - use Playwright to view and test UI Changes
 
 Rules:
 
 -   Every new service function needs a unit test
 -   Every new API endpoint needs an integration test and penetration test
 -   Every user-facing feature needs at least one E2E test
+-   Every user-facing feature needs to be tested using Playwright
 -   Test the unhappy path: invalid input, missing auth, rate limits,
     edge cases
 
@@ -362,6 +364,68 @@ Before generating or reviewing any schema:
 
 If a design decision deviates from any rule above, state the deviation
 explicitly and provide a justification before proceeding.
+
+---
+
+## Make Drizzle Not Suffer
+
+**Rule 1 — Never use `select *`. Always specify columns.**
+```typescript
+// Bad
+await db.select().from(diagnosticResults)
+
+// Good
+await db.select({
+  id: diagnosticResults.id,
+  email: diagnosticResults.email,
+  tier: diagnosticResults.tier
+}).from(diagnosticResults)
+```
+
+**Rule 2 — Use `.prepare()` for repeated queries.**
+Prepared statements compile once and execute fast on every subsequent call.
+```typescript
+const getByEmail = db
+  .select()
+  .from(diagnosticResults)
+  .where(eq(diagnosticResults.email, sql.placeholder('email')))
+  .prepare('get_diagnostic_by_email')
+
+await getByEmail.execute({ email: 'user@example.com' })
+```
+
+**Rule 3 — Log and review every generated SQL query in development.**
+Read what Drizzle generates. If it looks wrong — it is wrong. Fix it before production.
+```typescript
+const db = drizzle(pool, {
+  logger: process.env.NODE_ENV === 'development'
+})
+```
+
+**Rule 4 — Use raw SQL for complex queries. Never force analytics/OLAP through the ORM.**
+```typescript
+await db.execute(sql`
+  SELECT
+    tier,
+    COUNT(*) as count,
+    AVG(score) as avg_score
+  FROM diagnostic_results
+  WHERE created_at > NOW() - INTERVAL '30 days'
+  GROUP BY tier
+`)
+```
+
+**Rule 5 — Always use connection pooling. Never open raw connections.**
+```typescript
+import { Pool } from 'pg'
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000
+})
+```
 
 ------------------------------------------------------------------------
 
