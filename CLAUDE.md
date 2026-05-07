@@ -127,7 +127,7 @@ Archos Labs sits in the gap.
 
 #### Tech Stack
 
--   **Framework:** Next.js 15 — App Router — TypeScript
+-   **Framework:** Next.js 16 — App Router — TypeScript
 -   **Styling:** Tailwind CSS
 -   **AI:** OpenRouter API
 -   **Deployment:** Render
