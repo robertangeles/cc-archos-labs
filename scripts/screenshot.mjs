@@ -14,6 +14,8 @@ import { dirname } from "node:path";
 // --dpi=N         : set deviceScaleFactor (default 1; image dimensions multiply by N)
 // --click=<sel>   : click the given CSS selector after page load, before capture
 //                   (use to expose hover/menu state before screenshotting)
+// --cookie=k=v    : set a cookie before navigation. Use multiple --cookie flags
+//                   to set more than one. (Use to capture authenticated routes.)
 
 const flags = process.argv.filter((a) => a.startsWith("--"));
 const positional = process.argv.slice(2).filter((a) => !a.startsWith("--"));
@@ -28,6 +30,15 @@ const dpiFlag = flags.find((f) => f.startsWith("--dpi="));
 const deviceScaleFactor = dpiFlag ? Number(dpiFlag.split("=")[1]) : 1;
 const clickFlag = flags.find((f) => f.startsWith("--click="));
 const clickSelector = clickFlag ? clickFlag.slice("--click=".length) : null;
+const cookieFlags = flags.filter((f) => f.startsWith("--cookie="));
+const cookies = cookieFlags
+  .map((f) => f.slice("--cookie=".length))
+  .map((kv) => {
+    const eq = kv.indexOf("=");
+    if (eq < 0) return null;
+    return { name: kv.slice(0, eq), value: kv.slice(eq + 1) };
+  })
+  .filter((c) => c !== null);
 
 const widthPx = width * deviceScaleFactor;
 const heightPx = height * deviceScaleFactor;
@@ -50,6 +61,21 @@ const context = await browser.newContext({
   viewport: { width, height },
   deviceScaleFactor,
 });
+if (cookies.length > 0) {
+  const u = new URL(url);
+  await context.addCookies(
+    cookies.map((c) => ({
+      name: c.name,
+      value: c.value,
+      domain: u.hostname,
+      path: "/",
+      httpOnly: false,
+      secure: u.protocol === "https:",
+      sameSite: "Lax",
+    })),
+  );
+}
+
 const page = await context.newPage();
 await page.goto(url, { waitUntil: "networkidle" });
 
