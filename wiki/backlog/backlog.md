@@ -2,8 +2,8 @@
 title: Archos Labs HQ — Build Backlog
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-07
-related: [[index]], [[log]]
+updated: 2026-05-08
+related: [[index]], [[log]], [[2026-05-08-phase2-ceo-review]]
 ---
 
 Prioritised build list for the Archos Labs HQ at archoslabs.xyz. Ordered by what unblocks revenue and reduces risk, not by what is most fun to build.
@@ -50,19 +50,45 @@ The pieces that turn a stranger into a paid consulting conversation. Home page a
 
 ---
 
-## Phase 2 — Lead Gen (Executive AI Diagnostic)
+## Phase 2 — Lead Gen (AI Readiness Assessment)
 
-The medium-term tool-led pipeline. Higher complexity, deferred until Phase 1 is converting.
+**Supersedes the previous stub (items 14–20).** Now driven by the v1.0 product spec (28pp PDF, 2026-05-08) and the CEO review decision recorded in [[2026-05-08-phase2-ceo-review]]. Built **in parallel** with Phase 1 per Rob's sequencing call.
 
-14. **Diagnostic content design** — questions, clusters, scoring rubric, tier definitions. Authored as data (not code), reviewable independently of the build. Verify: content sign-off from Rob before any code is written.
-15. **Diagnostic UI (`/tools/executive-ai-diagnostic`)** — multi-step form, progress indicator, free-text "context" field per question. Mobile-first, instant feedback, no page reloads. Verify: full flow completable on mobile in under 5 minutes.
-16. **Diagnostic scoring (`lib/diagnostic.ts`)** — pure scoring logic, no LLM call. Unit tested. Returns tier + score + cluster breakdown. Verify: unit tests cover each tier boundary and edge case (all-A, all-D, mixed).
-17. **LLM client (`lib/model.ts`)** — OpenRouter via the Anthropic-compatible interface (per CLAUDE.md tech stack), API key in env var, error handling, no client-side calls. Verify: a live API call in dev returns a structured response; key never appears in any client bundle.
-18. **Report generation (`POST /api/diagnostic`)** — wires UI → scoring → LLM → structured report (snapshot, risks, recommendations, urgency). Rate-limited, never logs answers, returns plain-language errors. Verify: integration test with a fixture answer set returns the documented response shape; pen-test for prompt injection on the free-text fields.
-19. **Diagnostic results page** — formatted report. Specific, not generic. Worth sharing. CTA to book a paid follow-up call. Verify: one real report end-to-end, reviewed by Rob, judged "specific enough to share unprompted".
-20. **Lead capture on completion** — diagnostic results gated by email entry (or shown then offered to email). Stores lead with consent. Verify: lead lands in destination (email/DB), GDPR-aware consent text in place.
+**Mode:** HOLD SCOPE on the spec's product surface. Three surgical reductions:
+- Drop sector benchmark bars (fake numeric data is a credibility hole; replace with verdict statement only)
+- Replace 8-second silent wait with staged progress UI
+- Server-side Puppeteer PDF instead of `window.print()` print-stylesheet
 
-**Phase 2 ships when:** a cold visitor can complete the diagnostic, receive a specific report, and convert to a paid call request without a human in the loop.
+**Stack alignment with CLAUDE.md (overrides spec):** Neon + Drizzle (not Supabase), Resend with magic-link auth (not Supabase Auth), `claude-sonnet-4-6` (not the deprecated `claude-sonnet-4-20250514`), snake_case singular tables with FK indexes, 2NF strict.
+
+**Other deviations from spec:** single Claude call returning structured JSON `{verdict, narrative, action_plan}` instead of three concurrent calls (lower cost, no incoherence risk, simpler retry logic).
+
+### 5-week sequencing
+
+14. **Diagnostic content authored as data** — All 12 base questions + 7 branch questions + scoring weights + risk flag rules + tier definitions in a single TypeScript module (`lib/diagnostic/content.ts`), reviewable as data not code. Verify: Rob reads end-to-end and signs off; question IDs match the spec.
+15. **DB schema (Neon + Drizzle)** — `assessment_session`, `report_output`, `lead` tables per CLAUDE.md naming standards (snake_case singular, `id uuid pk`, FK indexes, 2NF, `created_at`/`updated_at` on every table). Migration in `drizzle/`. Verify: `drizzle-kit push` succeeds against a Neon dev branch; `pnpm tsc` clean.
+16. **Assessment UI (`/tools/ai-readiness`)** — Single-page application, one question at a time, large tap-target answer cards (not radios), branch logic per spec, progress bar, no auth gate yet. Framer Motion for question transitions (<150ms). Verify: full flow completable on mobile (390px) in under 7 minutes; all branch combinations reachable.
+17. **Scoring engine (`lib/diagnostic/scoring.ts`)** — Pure functions: score each answer 0–3, compute domain scores (Data Foundation 50% / Program Readiness 30% / Org Reality 20%), derive tier (Critical / Emerging / Developing / Advanced), evaluate risk flag rules. Unit tested. Verify: tests cover tier boundaries, all-best/all-worst paths, every branch question, every risk flag rule from spec §5.3.
+18. **LLM client (`lib/model.ts`)** — Single Claude call (collapsed from spec's three) returning structured JSON `{verdict, narrative, action_plan[]}`. Anthropic SDK with prompt caching on system prompt. Retries with exponential backoff. Fallback to deterministic template report on persistent failure. Never logs answer content. Verify: live API call returns valid JSON shape; intentional API failure produces fallback report; key never in client bundle.
+19. **Report generation (`POST /api/diagnostic/generate`)** — Wires answers → scoring → single Claude call → DB write. Rate limited (100/IP/hour per CLAUDE.md). Returns session ID. Verify: integration test for happy path + 429 on rate limit + fallback path on simulated Claude failure; pen-test for prompt injection on registration free-text fields.
+20. **Magic-link auth (Resend)** — Email-based magic-link sign-in. No passwords, no Supabase Auth. Token TTL 15 minutes, single-use, signed JWT in httpOnly cookie. Verify: link arrives, click signs user in, second click on same link 401s; token cannot be replayed.
+21. **Registration gate UX** — Full-screen overlay AFTER final question. Report blurred behind via `backdrop-filter`. Fields: first/last name, work email (validated), job title, organisation, phone (optional). Magic link sent on submit; account created; gate dismisses on token verify. Staged progress copy ("Reviewing your answers..." → "Drafting your report..." → "Almost ready...") replaces 8-second silent wait. Verify: gate cannot be bypassed via URL manipulation; report only renders for owning session.
+22. **Report page (`/tools/ai-readiness/report/[session-id]`)** — Verdict header, risk flags (max 3, severity-ordered), domain score cards (NO benchmark bars per CEO reduction), Claude narrative (400–500 words), priority actions (3–5, sequenced), CTA block adapting tone to Q12 urgency. SSR. Owner-only via session check. Verify: skeptical-CDO review of one real report passes "would I forward this to my CFO" test.
+23. **Server-side PDF (Puppeteer)** — Renders the report page to PDF via headless Chromium. 6-page structure per spec §8.2 (cover + executive summary + analysis + actions + about). Verify: PDF download works in Chrome/Safari/Firefox; printed output matches on-screen rendering for visible content; under 3s generation time.
+24. **Lead webhook (Notion or Airtable — Rob picks)** — On registration, write lead record (name, email, org, title, sector, role_type, maturity_stage, urgency_flag, score, tier) to destination. `urgency_flag = 'mandate'` triggers `is_priority = true`. Verify: real registration produces a row Rob sees in his destination within 60 seconds.
+25. **Return-visitor portal + retake + share tokens** — `/tools/ai-readiness` for a logged-in user shows previous report with a "Retake" button (disabled until 30 days from last). Comparison view across reports. Share-token generation (7-day TTL, `noindex` headers, single-use revocable). Verify: returning user sees their report; retake disabled before 30 days; share token works once then 410s.
+
+### Week-by-week mapping
+
+| Week | Items | Outcome |
+| --- | --- | --- |
+| W1 | 14, 15 | Content as data + DB schema migrated to Neon |
+| W2 | 16, 17 | Working assessment UI + scoring engine (no LLM, no auth) |
+| W3 | 18, 19 | Single Claude call wired with retries + fallback; static report renders |
+| W4 | 20, 21, 22 | Magic-link auth + registration gate + owned report page |
+| W5 | 23, 24, 25 | PDF + CRM webhook + return-visitor portal + share tokens |
+
+**Phase 2 ships when:** a cold visitor can complete the assessment, register, receive a specific Claude-generated report, download it as PDF, and convert to a paid consulting call — without human in the loop. Lead lands in CRM. Return visitor sees previous report.
 
 ---
 
@@ -86,11 +112,13 @@ The medium-term tool-led pipeline. Higher complexity, deferred until Phase 1 is 
 
 ## What's deliberately not on this list
 
-- Auth — no logged-in users in scope yet.
-- Admin panel — no need until there is content/config to manage.
+- Admin panel — deferred per [[2026-05-08-admin-deferred]] until Phase 2 ships and there's content to manage.
 - Internationalisation — single-language launch.
 - Custom CMS — content lives in code or markdown until volume demands otherwise.
-- Multiple tools — only the Executive AI Diagnostic is in scope. The platform is structured for more, not built for more.
+- Multiple tools — only the AI Readiness Assessment is in scope at Phase 2. The platform is structured for more, not built for more.
+- Multi-Claude-call architecture — the spec's three concurrent calls collapsed to one structured-JSON call (cost, latency, coherence).
+- Sector benchmark bars — fake numeric data on a credibility-driven tool. Replace with verdict statement only at MVP. Earn back when there are 100+ real submissions to derive actual benchmarks.
+- Supabase — replaced with Neon + Drizzle + Resend magic-link per CLAUDE.md standards.
 
 ---
 

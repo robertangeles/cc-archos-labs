@@ -3,8 +3,10 @@ title: Brand foundation — typography and colour tokens
 category: decision
 created: 2026-05-07
 updated: 2026-05-07
-related: [[backlog]], [[index]]
+related: [[2026-05-07-linear-redesign]], [[backlog]], [[index]]
 ---
+
+> **Superseded 2026-05-07** by [[2026-05-07-linear-redesign]]. The editorial direction documented below was replaced by a Linear.app-style dark theme: Inter only (Source Serif 4 dropped), `#0F0F0F` canvas, `#3B82F6` accent, 8pt grid. This page is kept as historical record of the editorial direction we explored first.
 
 Adopted Source Serif 4 (heads) + Inter (body) with monochrome editorial palette accented by ink blue. Tokens defined via Tailwind v4 `@theme` in `app/globals.css`; fonts loaded via `next/font/google` in `app/layout.tsx`.
 

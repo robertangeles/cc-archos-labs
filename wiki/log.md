@@ -8,6 +8,44 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-08 — Session restart: screenshot harness fixed + Phase 0a/1 committed in chunks
+
+- Previous session ended with "image exceeds 2000px many-image limit". Root cause: `scripts/screenshot.mjs` ran at `deviceScaleFactor: 2` with `fullPage: true` — a 1280-wide viewport doubled to 2560px output and tall pages stretched height past the limit too. Fixed by lowering defaults to 1× DPI and viewport-only, with `--full` and `--dpi=N` overrides for when screenshots aren't being attached. Warns at runtime if the configured output would exceed the limit.
+- Found ~12 files of work uncommitted on `main` since `d22c16a` (brand foundation). Committed in 5 logical chunks (no push yet, awaiting Rob's confirmation per CLAUDE.md):
+  - `cc23ab0` Layout shell + Linear-style home page (Phase 0a items 2–3)
+  - `f1237bc` Privacy + terms pages (Phase 1.A)
+  - `d6cd825` Contact form + API + Resend (Phase 1.B) — POST /api/contact with Zod, hourly rate limit, honeypot, plain-text email body. Adds `resend`, `zod`, `kill-port`, `dev:fresh` script.
+  - `a84d3a6` Screenshot harness fix
+  - (this commit) Wiki: 6 new decisions, 1 lessons-learned, backlog rewrite, brand-foundation supersession banner
+- **Flagged for next session (pre-existing risks, not introduced this session):**
+  - Nav links to `/tools`, `/consulting`, `/modelling-room` will 404 — those pages don't exist yet. Sendable URL claim from last session was Home-only. Either (a) build placeholder pages, (b) trim nav to Home + Contact until pages exist, or (c) make them anchors on Home.
+  - `lib/resend.ts:10–14` throws at module load if `RESEND_API_KEY` or `RESEND_FROM_EMAIL` is missing. `pnpm build` will fail without those env vars set. Safer pattern: lazy validation inside the send call. Defer until Render deploy when we know what env actually looks like in CI.
+- **Next:** Phase 1.C (basic SEO/meta + sitemap + robots) is the cleanest unblocker before Phase 0 item 4 (Render deploy) — meta has to be right before pushing the URL anywhere.
+
+## 2026-05-08 — Phase 2 spec received + CEO review + Phase 1/2 sequenced in parallel
+
+- Rob delivered the AI Readiness Assessment Product Spec v1.0 (28 pages). Lead-generation engine that converts executives into qualified leads for the $3,000 AUD AI Readiness Assessment consulting engagement.
+- Ran CEO-mode review of the spec via `/plan-ceo-review`. Surfaced and challenged 8 premises (three Claude calls, Supabase, print-stylesheet PDF, hard registration gate, 8-second silent wait, fake benchmark bars, 4–6 week build vs revenue deadline, old model id).
+- Rob picked **HOLD SCOPE** on the product surface with three surgical reductions accepted: drop benchmark bars, staged progress UI, server-side Puppeteer PDF (replacing `window.print()`).
+- Rob clarified that "follow our standards" applied to all of CLAUDE.md, not just the data model naming. Stack swapped from Supabase to Neon + Drizzle + Resend magic-link auth. Single Claude call collapsed from spec's three.
+- Phase 1 and Phase 2 build **in parallel**. Phase 1 (~1 week: contact form + SEO + privacy/terms) ships first to unblock revenue; Phase 2 builds alongside (~5 weeks).
+- Decision recorded: `wiki/decisions/2026-05-08-phase2-ceo-review.md`.
+- Backlog `wiki/backlog/backlog.md` Phase 2 stub (items 14–20) replaced with detailed 5-week sequencing (items 14–25). Verify criteria per CLAUDE.md on every item. Mode, reductions, and stack alignment documented inline.
+- Earlier today: admin space request (login/register + user manager + integrations panel for OAuth/Cloudinary/DB connection string) reviewed and **deferred** entirely. Cathedral-of-user-management for one user; integrations panel conflated env-var bootstrap with runtime DB config; no revenue tie. Trigger to revisit: when Phase 2 ships and there are leads/content to manage. Decision recorded: `wiki/decisions/2026-05-08-admin-deferred.md`.
+- Hero/footer logo wired earlier in session (700×700 source PNG at `public/images/logo.png`, 36×36 in header and footer). Favicon source saved at `app/icon.png`. Old Next.js scaffold favicon still in place — not yet removed.
+- TodoWrite set up to track Phase 1.A → Phase 2.W5 build sequence.
+- **Next:** start coding. Phase 1.A (Privacy + Terms pages) is the cleanest first step — pure code, no new dependencies, unblocks contact form's data-collection requirement.
+
+## 2026-05-07 — Linear-quality redesign (supersedes editorial direction)
+
+- Rob asked for Linear.app-quality home page with full spec: dark `#0F0F0F` canvas, `#3B82F6` accent, Inter only (Source Serif 4 dropped), 8pt grid, 1080px max width, 128px section padding, sticky transparent header that gains backdrop blur on scroll, radial gradient on hero, "fail" word in accent.
+- Replaced colour tokens (paper→canvas, ink→fg, added surface), removed serif font token, removed Source Serif 4 from `app/layout.tsx`, rewrote header (now `'use client'` with scroll-state), simplified footer to single line, fully rewrote `app/page.tsx` with extracted constants for services/lists/CTA classes.
+- New decision recorded: `wiki/decisions/2026-05-07-linear-redesign.md`. Three Phase 0a decisions (brand foundation, layout shell, home page) marked superseded with banners; their copy and structure carry forward, only styling replaced.
+- **Bug during session:** Tailwind v4 + Turbopack didn't compile new utility names (`bg-canvas`, `text-fg`) on hot-reload. Body rendered with transparent bg + black text. Diagnosed via `curl` of the served `.css` chunk + `grep` for utility names. Fix: re-save `globals.css` (one comment is enough). Recorded as lesson: `wiki/lessons-learned/2026-05-07-tailwind-v4-new-utilities.md`.
+- Verified at desktop (1280x800) and mobile (390x844). Computed body bg `rgb(15,15,15)`, text `rgb(245,245,245)`, h1 64/36px Inter — matches spec exactly. `pnpm tsc --noEmit` clean.
+- **Side-fix:** dropped pricing from the home before the redesign, then again confirmed pricing absence in the new design. Hero headline kept ("Most AI programs fail before the model arrives.") with "fail" now rendered in accent blue per spec.
+- **Next:** Phase 0 item 4 (Render deploy + DNS to archoslabs.xyz) once Rob signs off on the redesign.
+
 ## 2026-05-07 — Phase 0 item 1 complete: brand foundation
 
 - Built brand foundation per Rob's brand decisions (editorial serif + clean sans; monochrome editorial with ink blue accent).
