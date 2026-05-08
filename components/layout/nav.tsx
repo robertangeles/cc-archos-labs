@@ -2,9 +2,8 @@ import Link from "next/link";
 
 const links = [
   { href: "/", label: "Home" },
-  { href: "/tools", label: "Tools" },
-  { href: "/consulting", label: "Consulting" },
-  { href: "/modelling-room", label: "Modelling Room" },
+  { href: "/contact", label: "Contact" },
+  { href: "/ai-readiness-assessment", label: "AI Readiness Assessment" },
 ];
 
 export function Nav() {
