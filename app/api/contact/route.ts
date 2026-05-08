@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getMailer } from "../../../lib/smtp";
+import { getResend } from "../../../lib/resend";
 import { rateLimit, clientIpFromRequest } from "../../../lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -81,17 +81,17 @@ export async function POST(request: Request) {
   ].join("\n");
 
   try {
-    const { transporter, from } = getMailer();
-    const info = await transporter.sendMail({
-      from: `Archos Labs <${from}>`,
+    const { resend, from } = getResend();
+    const result = await resend.emails.send({
+      from,
       to: recipient,
       replyTo: email,
       subject: `Archos Labs enquiry — ${name} (${organisation})`,
       text,
     });
 
-    if (!info.messageId) {
-      console.error("SMTP send returned no message ID");
+    if (result.error) {
+      console.error("Resend send failed:", result.error);
       return Response.json(
         {
           ok: false,

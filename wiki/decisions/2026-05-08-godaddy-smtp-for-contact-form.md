@@ -1,10 +1,14 @@
 ---
-title: GoDaddy SMTP for the contact form (Resend stays for Phase 2)
+title: GoDaddy SMTP for the contact form (FAILED — superseded same day)
 category: decision
 created: 2026-05-08
 updated: 2026-05-08
-related: [[2026-05-08-render-postgres-over-neon]], [[backlog]], [[index]]
+related: [[2026-05-08-resend-with-external-recipient]], [[2026-05-08-render-postgres-over-neon]], [[backlog]], [[index]]
 ---
+
+> **REVERTED 2026-05-08 same day.** This decision did not work in production. GoDaddy's cPanel infrastructure blocks Render's outbound IPs at the firewall level — the customer-friendly `mail.archoslabs.xyz` hostname resolves to the same IP (`68.178.226.214`) as the per-account cPanel server, so neither hostname is reachable from Render. Locally everything worked because the developer's home IP wasn't blocked. **DO NOT REPEAT.** Superseded by [[2026-05-08-resend-with-external-recipient]].
+>
+> **Lesson:** "local works" is not evidence that "production works" when the firewall is keyed on source IP. Test from the production runtime's perspective (Render Shell, deploy + curl from Render container, or at minimum reason about whether the firewall behavior is IP-keyed) **before** committing a refactor that depends on outbound network reachability.
 
 Replaced Resend with GoDaddy's outbound SMTP for `POST /api/contact`. Resend stays installed for Phase 2 (magic-link auth, assessment report emails to external prospects).
 

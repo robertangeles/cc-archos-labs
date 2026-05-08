@@ -3,7 +3,7 @@ title: Wiki Index
 category: synthesis
 created: 2026-05-07
 updated: 2026-05-08
-related: [[backlog]], [[2026-05-08-godaddy-smtp-for-contact-form]], [[2026-05-08-render-postgres-over-neon]], [[2026-05-08-phase2-ceo-review]], [[2026-05-08-admin-deferred]], [[2026-05-07-linear-redesign]], [[2026-05-07-brand-foundation]], [[2026-05-07-layout-shell]], [[2026-05-07-home-page]], [[2026-05-07-turbopack-root]], [[2026-05-07-tailwind-v4-new-utilities]]
+related: [[backlog]], [[2026-05-08-resend-with-external-recipient]], [[2026-05-08-godaddy-smtp-for-contact-form]], [[2026-05-08-render-postgres-over-neon]], [[2026-05-08-phase2-ceo-review]], [[2026-05-08-admin-deferred]], [[2026-05-07-linear-redesign]], [[2026-05-07-brand-foundation]], [[2026-05-07-layout-shell]], [[2026-05-07-home-page]], [[2026-05-07-turbopack-root]], [[2026-05-07-tailwind-v4-new-utilities]]
 ---
 
 Master catalog of all wiki pages. Read this at the start of every session.
@@ -15,7 +15,8 @@ _(none yet)_
 _(none yet)_
 
 ## decisions
-- [GoDaddy SMTP for the contact form](decisions/2026-05-08-godaddy-smtp-for-contact-form.md) — Resend silently dropped by GoDaddy's anti-spoofing for self-domain mail; switched contact form to GoDaddy SMTP, kept Resend for Phase 2 outbound to external prospects
+- [Resend with an external recipient mailbox for the contact form](decisions/2026-05-08-resend-with-external-recipient.md) — current contact-form path; Resend → Outlook/Gmail (never a GoDaddy-cPanel mailbox)
+- [GoDaddy SMTP for the contact form](decisions/2026-05-08-godaddy-smtp-for-contact-form.md) — _FAILED, superseded same day_; Render's outbound IPs are blocked by GoDaddy's cPanel firewall
 - [Render Postgres over Neon for database hosting](decisions/2026-05-08-render-postgres-over-neon.md) — single-provider simplicity at deploy-setup; supersedes the Neon choice from the Phase 2 CEO review
 - [Phase 2 (AI Readiness Assessment) — CEO review decisions](decisions/2026-05-08-phase2-ceo-review.md) — HOLD SCOPE on the spec; surgical reductions (drop benchmarks, staged progress UI, Puppeteer PDF); stack swapped from Supabase to Render Postgres + Drizzle + Resend (DB provider revised same day — see entry above)
 - [Admin space — deferred](decisions/2026-05-08-admin-deferred.md) — defer admin entirely until Phase 2 ships and there's content/leads to manage; env vars + platform dashboards cover everything until then
