@@ -1,14 +1,25 @@
 @import "tailwindcss";
 
+/* Linear-quality dark theme. Tokens generate Tailwind utilities by name. */
 @theme {
-  --color-ink: #0a0a0a;
-  --color-paper: #fafaf9;
-  --color-accent: #0f1f4d;
-  --color-muted: #6b6b6b;
-  --color-rule: #e5e5e5;
+  --color-canvas: #0f0f0f;
+  --color-surface: #18181b;
+  --color-fg: #f5f5f5;
+  --color-muted: #a1a1aa;
+  --color-accent: #3b82f6;
+  --color-accent-hover: #2563eb;
+  --color-rule: #27272a;
 }
 
 @theme inline {
-  --font-serif: var(--font-source-serif), Georgia, "Times New Roman", serif;
   --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --default-transition-duration: 150ms;
+  --default-transition-timing-function: ease;
+}
+
+@layer base {
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }

@@ -1,12 +1,8 @@
 import type { Metadata } from "next";
-import { Source_Serif_4, Inter } from "next/font/google";
+import { Inter } from "next/font/google";
+import { Header } from "../components/layout/header";
+import { Footer } from "../components/layout/footer";
 import "./globals.css";
-
-const sourceSerif = Source_Serif_4({
-  variable: "--font-source-serif",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 const inter = Inter({
   variable: "--font-inter",
@@ -26,12 +22,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${sourceSerif.variable} ${inter.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-paper text-ink font-sans">
-        {children}
+    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col bg-canvas text-fg font-sans">
+        <Header />
+        <div className="flex-1 flex flex-col">{children}</div>
+        <Footer />
       </body>
     </html>
   );
