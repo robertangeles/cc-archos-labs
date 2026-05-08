@@ -10,8 +10,10 @@ import { dirname } from "node:path";
 // Override via CLI:
 //   node scripts/screenshot.mjs <url> <out> <width> <height> [--full] [--dpi=N]
 //
-// --full  : capture the full scrollable page (height may exceed 2000px)
-// --dpi=N : set deviceScaleFactor (default 1; image dimensions multiply by N)
+// --full          : capture the full scrollable page (height may exceed 2000px)
+// --dpi=N         : set deviceScaleFactor (default 1; image dimensions multiply by N)
+// --click=<sel>   : click the given CSS selector after page load, before capture
+//                   (use to expose hover/menu state before screenshotting)
 
 const flags = process.argv.filter((a) => a.startsWith("--"));
 const positional = process.argv.slice(2).filter((a) => !a.startsWith("--"));
@@ -24,6 +26,8 @@ const height = Number(positional[3] ?? 800);
 const fullPage = flags.includes("--full");
 const dpiFlag = flags.find((f) => f.startsWith("--dpi="));
 const deviceScaleFactor = dpiFlag ? Number(dpiFlag.split("=")[1]) : 1;
+const clickFlag = flags.find((f) => f.startsWith("--click="));
+const clickSelector = clickFlag ? clickFlag.slice("--click=".length) : null;
 
 const widthPx = width * deviceScaleFactor;
 const heightPx = height * deviceScaleFactor;
@@ -48,6 +52,12 @@ const context = await browser.newContext({
 });
 const page = await context.newPage();
 await page.goto(url, { waitUntil: "networkidle" });
+
+if (clickSelector) {
+  await page.click(clickSelector);
+  // Wait for transitions/animations to settle before capture.
+  await page.waitForTimeout(200);
+}
 
 const computed = await page.evaluate(() => {
   const pick = (sel, props) => {
