@@ -99,12 +99,6 @@ export default function TermsPage() {
           property. Anything published on this site about our consulting is
           marketing, not contract.
         </p>
-        <p className="mt-4 text-base leading-[1.7] text-muted">
-          Indicative pricing referenced elsewhere (day rates, fixed-price
-          assessments) is current at time of publication and subject to
-          change. The price quoted in your written agreement is the price that
-          binds us.
-        </p>
 
         <h2 className="mt-16 text-2xl font-semibold tracking-[-0.01em] text-fg">
           Intellectual property

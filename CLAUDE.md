@@ -641,6 +641,7 @@ beautiful. A user won't be delighted by something they don't trust.
 - Error messages must be plain human language — never expose technical errors or exceptions.
 - When in doubt, remove. Complexity is the enemy of trust.
 - Outputs must look worth sharing — not worth closing.
+- No prices, day rates, or dollar amounts for our services on the site. Pricing happens in conversation, not on a marketing page. Engagements are quoted in written agreements after a call — never anchored on a public page.
 - Ask: What would a top 0.1% creative director think?
 
 ## The Test

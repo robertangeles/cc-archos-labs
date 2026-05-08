@@ -62,8 +62,7 @@ export default function AIReadinessAssessmentPage() {
           The full Assessment is a two-week paid consulting engagement. We map
           your data, governance, and AI surface area against what&rsquo;s
           viable and deliver a written assessment you can take to your CFO or
-          your board. Fixed price{" "}
-          <span className="text-fg">$3,000 AUD</span>. No retainer. No upsell.
+          your board.
         </p>
 
         <Link
