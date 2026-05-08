@@ -5,8 +5,12 @@ import { SESSION_COOKIE, verifySession } from "./lib/auth";
 // session JWT. The login pages/routes are explicitly excluded so users
 // can reach them. UI routes redirect to /admin/login on failure;
 // API routes return 401 JSON.
+//
+// File-name convention: Next.js 16 renamed middleware.ts to proxy.ts
+// (and the function from `middleware` to `proxy`). Same Edge runtime,
+// same matcher config — only the names changed.
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   // Allow the login page and login API through without auth
