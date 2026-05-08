@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { resend, RESEND_FROM } from "../../../lib/resend";
+import { getResend } from "../../../lib/resend";
 import { rateLimit, clientIpFromRequest } from "../../../lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -81,8 +81,9 @@ export async function POST(request: Request) {
   ].join("\n");
 
   try {
+    const { resend, from } = getResend();
     const result = await resend.emails.send({
-      from: RESEND_FROM,
+      from,
       to: recipient,
       replyTo: email,
       subject: `Archos Labs enquiry — ${name} (${organisation})`,
