@@ -59,14 +59,14 @@ The pieces that turn a stranger into a paid consulting conversation. Home page a
 - Replace 8-second silent wait with staged progress UI
 - Server-side Puppeteer PDF instead of `window.print()` print-stylesheet
 
-**Stack alignment with CLAUDE.md (overrides spec):** Neon + Drizzle (not Supabase), Resend with magic-link auth (not Supabase Auth), `claude-sonnet-4-6` (not the deprecated `claude-sonnet-4-20250514`), snake_case singular tables with FK indexes, 2NF strict.
+**Stack alignment with CLAUDE.md (overrides spec):** Render Postgres + Drizzle (not Supabase — see [[2026-05-08-render-postgres-over-neon]] for why Render Postgres over Neon), Resend with magic-link auth (not Supabase Auth), `claude-sonnet-4-6` (not the deprecated `claude-sonnet-4-20250514`), snake_case singular tables with FK indexes, 2NF strict.
 
 **Other deviations from spec:** single Claude call returning structured JSON `{verdict, narrative, action_plan}` instead of three concurrent calls (lower cost, no incoherence risk, simpler retry logic).
 
 ### 5-week sequencing
 
 14. **Diagnostic content authored as data** — All 12 base questions + 7 branch questions + scoring weights + risk flag rules + tier definitions in a single TypeScript module (`lib/diagnostic/content.ts`), reviewable as data not code. Verify: Rob reads end-to-end and signs off; question IDs match the spec.
-15. **DB schema (Neon + Drizzle)** — `assessment_session`, `report_output`, `lead` tables per CLAUDE.md naming standards (snake_case singular, `id uuid pk`, FK indexes, 2NF, `created_at`/`updated_at` on every table). Migration in `drizzle/`. Verify: `drizzle-kit push` succeeds against a Neon dev branch; `pnpm tsc` clean.
+15. **DB schema (Render Postgres + Drizzle)** — `assessment_session`, `report_output`, `lead` tables per CLAUDE.md naming standards (snake_case singular, `id uuid pk`, FK indexes, 2NF, `created_at`/`updated_at` on every table). Migration in `drizzle/`. Verify: `drizzle-kit push` succeeds against the Render Postgres dev DB; `pnpm tsc` clean.
 16. **Assessment UI (`/tools/ai-readiness`)** — Single-page application, one question at a time, large tap-target answer cards (not radios), branch logic per spec, progress bar, no auth gate yet. Framer Motion for question transitions (<150ms). Verify: full flow completable on mobile (390px) in under 7 minutes; all branch combinations reachable.
 17. **Scoring engine (`lib/diagnostic/scoring.ts`)** — Pure functions: score each answer 0–3, compute domain scores (Data Foundation 50% / Program Readiness 30% / Org Reality 20%), derive tier (Critical / Emerging / Developing / Advanced), evaluate risk flag rules. Unit tested. Verify: tests cover tier boundaries, all-best/all-worst paths, every branch question, every risk flag rule from spec §5.3.
 18. **LLM client (`lib/model.ts`)** — Single Claude call (collapsed from spec's three) returning structured JSON `{verdict, narrative, action_plan[]}`. Anthropic SDK with prompt caching on system prompt. Retries with exponential backoff. Fallback to deterministic template report on persistent failure. Never logs answer content. Verify: live API call returns valid JSON shape; intentional API failure produces fallback report; key never in client bundle.
@@ -82,7 +82,7 @@ The pieces that turn a stranger into a paid consulting conversation. Home page a
 
 | Week | Items | Outcome |
 | --- | --- | --- |
-| W1 | 14, 15 | Content as data + DB schema migrated to Neon |
+| W1 | 14, 15 | Content as data + DB schema migrated to Render Postgres |
 | W2 | 16, 17 | Working assessment UI + scoring engine (no LLM, no auth) |
 | W3 | 18, 19 | Single Claude call wired with retries + fallback; static report renders |
 | W4 | 20, 21, 22 | Magic-link auth + registration gate + owned report page |
@@ -118,7 +118,7 @@ The pieces that turn a stranger into a paid consulting conversation. Home page a
 - Multiple tools — only the AI Readiness Assessment is in scope at Phase 2. The platform is structured for more, not built for more.
 - Multi-Claude-call architecture — the spec's three concurrent calls collapsed to one structured-JSON call (cost, latency, coherence).
 - Sector benchmark bars — fake numeric data on a credibility-driven tool. Replace with verdict statement only at MVP. Earn back when there are 100+ real submissions to derive actual benchmarks.
-- Supabase — replaced with Neon + Drizzle + Resend magic-link per CLAUDE.md standards.
+- Supabase — replaced with Render Postgres + Drizzle + Resend magic-link per CLAUDE.md standards (see [[2026-05-08-render-postgres-over-neon]] for the later Neon → Render Postgres swap).
 
 ---
 

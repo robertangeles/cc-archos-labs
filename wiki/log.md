@@ -22,6 +22,15 @@ Append-only log of sessions. Newest entry at the top.
   - `lib/resend.ts:10–14` throws at module load if `RESEND_API_KEY` or `RESEND_FROM_EMAIL` is missing. `pnpm build` will fail without those env vars set. Safer pattern: lazy validation inside the send call. Defer until Render deploy when we know what env actually looks like in CI.
 - **Next:** Phase 1.C (basic SEO/meta + sitemap + robots) is the cleanest unblocker before Phase 0 item 4 (Render deploy) — meta has to be right before pushing the URL anywhere.
 
+## 2026-05-08 — Nav cleanup, no-prices rule, deploy prep
+
+- Trimmed nav to **Home / Contact / Tools** with Tools as a non-link parent dropdown (single child today: AI Readiness Assessment). Mobile dropdown anchors left of the button so it doesn't overflow the 390px viewport; sm+ anchors right. Verified at desktop and mobile, open and closed states. Commit `2ea0a86`.
+- Built `/ai-readiness-assessment` landing page (commit `099d3b1`) — disambiguates the free Phase 2 diagnostic ("launching soon") from the two-week paid consulting engagement, with Book-a-call CTA → `/contact`. Initially included `Fixed price $3,000 AUD`; Rob pushed back. Removed the line from the page and the orphan pricing-disclaimer paragraph from `/terms`. Added a CLAUDE.md UI/UX rule: no prices, day rates, or dollar amounts for our services on the site. Saved as feedback memory `feedback_no_prices_on_site.md`. Commit `daec1e0`.
+- Refactored `lib/resend.ts` from a top-level-throwing module into a `getResend()` getter that resolves env vars lazily on first call (commit `695a031`). Required for Render's first build before env vars are wired up.
+- Extended `scripts/screenshot.mjs` with a `--click=<selector>` flag so the verification harness can trigger interactive UI (toggle menus, expand sections) before capture. Used to verify the Tools dropdown.
+- **DB provider switched from Neon to Render Postgres** for single-provider operational simplicity. Decision recorded: `wiki/decisions/2026-05-08-render-postgres-over-neon.md`. CLAUDE.md, .env.example, phase2-ceo-review, backlog, and privacy page all updated. Phase 2 CEO review preserved as historical record (Neon was the documented choice at that decision point); a banner at the top links to the new decision.
+- **Next:** push the queued commits to `origin/main`, then walk through Render Web Service + Render Postgres provisioning together (DNS to archoslabs.xyz follows). Phase 1.C SEO/meta after the deploy is live — Slack/LinkedIn cache OG on first share, so it just needs to be right before the URL goes anywhere public.
+
 ## 2026-05-08 — Phase 2 spec received + CEO review + Phase 1/2 sequenced in parallel
 
 - Rob delivered the AI Readiness Assessment Product Spec v1.0 (28 pages). Lead-generation engine that converts executives into qualified leads for the $3,000 AUD AI Readiness Assessment consulting engagement.

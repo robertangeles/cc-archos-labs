@@ -135,7 +135,7 @@ Archos Labs sits in the gap.
 -   **Package Manager:** pnpm
 
 #### Future Stack (add when needed)
--   **Database:** PostgreSQL — Neon (serverless) — Drizzle ORM
+-   **Database:** PostgreSQL — Render Postgres — Drizzle ORM
 -   **Auth:** Clerk or NextAuth
 -   **Email:** Resend
 
@@ -587,7 +587,7 @@ Location:
 
     drizzle/        ← Migration files managed by drizzle-kit
 
-The project uses **Drizzle ORM** with **PostgreSQL via Neon** (serverless).
+The project uses **Drizzle ORM** with **PostgreSQL on Render** (managed Postgres, same provider as the web service).
 There is no `models/` folder. Database entities are defined as Drizzle
 table schemas in `lib/db/schema.ts`. Migrations are managed via
 `drizzle-kit`.

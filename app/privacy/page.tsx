@@ -96,11 +96,8 @@ export default function PrivacyPage() {
             name, email, or organisation.
           </li>
           <li>
-            <span className="text-fg">Neon</span> — hosts the database where
-            your assessment, report, and account live.
-          </li>
-          <li>
-            <span className="text-fg">Render</span> — hosts the website itself.
+            <span className="text-fg">Render</span> — hosts the website and
+            the database where your assessment, report, and account live.
             Sees the same server logs we do.
           </li>
           <li>

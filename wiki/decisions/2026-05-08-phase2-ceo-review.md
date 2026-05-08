@@ -6,6 +6,8 @@ updated: 2026-05-08
 related: [[backlog]], [[index]], [[2026-05-08-admin-deferred]]
 ---
 
+> **Update 2026-05-08 (later same day):** DB provider was changed from Neon to Render Postgres for single-provider operational simplicity. See [[2026-05-08-render-postgres-over-neon]]. The stack table below has been updated; the historical "Stack swap to project standards" rationale (premise challenge #2) is preserved as written — at the time of that decision, CLAUDE.md did mandate Neon.
+
 CEO-mode review of the AI Readiness Assessment Product Spec v1.0 (28pp PDF, supplied 2026-05-08). The spec defines the lead-generation engine that converts executives into qualified leads for the $3,000 AUD AI Readiness Assessment consulting engagement. This decision page records what was held, what was reduced, and the stack alignment to project standards.
 
 ## Mode
@@ -48,7 +50,7 @@ CEO-mode review of the AI Readiness Assessment Product Spec v1.0 (28pp PDF, supp
 | Frontend | Next.js 16 App Router, Tailwind v4, Framer Motion |
 | Backend | Next.js API routes |
 | AI | Anthropic SDK directly (`claude-sonnet-4-6`), prompt caching on system prompt, single call returning structured JSON |
-| DB | Neon (serverless Postgres), Drizzle ORM, migrations via drizzle-kit |
+| DB | Render Postgres, Drizzle ORM, migrations via drizzle-kit (changed from Neon — see [[2026-05-08-render-postgres-over-neon]]) |
 | Auth | Magic-link via Resend, JWT in httpOnly cookie, 15-minute token TTL, single-use |
 | Email | Resend (transactional report email + magic links) |
 | PDF | Puppeteer server-side |
