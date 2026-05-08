@@ -24,7 +24,16 @@ This protection runs separate from DMARC and is not configurable on basic GoDadd
 
 ## What we did
 
-Send via GoDaddy's own outbound SMTP (`smtpout.secureserver.net:465`) authenticated with the mailbox's own credentials. Mail from GoDaddy's own IPs to a GoDaddy-hosted mailbox is intra-network and bypasses every external-relay filter. Implementation: `lib/smtp.ts` with `nodemailer` + lazy env-var validation; route `app/api/contact/route.ts` calls `getMailer()` instead of the Resend client.
+Send via the GoDaddy cPanel mail server, authenticated with the mailbox's own credentials. Mail from GoDaddy's own infrastructure to a GoDaddy-hosted mailbox is intra-network and bypasses every external-relay filter.
+
+**Connection config:**
+- `SMTP_HOST=mail.archoslabs.xyz` — the customer-friendly hostname. Tried two alternatives first that didn't work:
+  - `sg2plzcpnl493903.prod.sin2.secureserver.net` (the per-account cPanel hostname): connects from laptop, but blocked by GoDaddy's IP firewall when called from Render's Singapore data center → `ETIMEDOUT`
+  - `smtpout.secureserver.net` (the general transactional relay): no firewall, but rejects credentials with `535 Authentication Failed` because the relay is for GoDaddy Workspace Email / Microsoft 365 plans, not cPanel mailboxes
+- `SMTP_PORT=587` (STARTTLS). Port 465 (SSL) hit a TLS protocol mismatch on this server (`tls_validate_record_header: wrong version number` during the DATA phase) — known nodemailer-vs-cPanel-port-465 quirk. 587 with explicit STARTTLS works cleanly.
+- `SMTP_TLS_SERVERNAME=sg2plzcpnl493903.prod.sin2.secureserver.net` — the cPanel server's TLS cert is a wildcard for `*.prod.sin2.secureserver.net`, not for `mail.archoslabs.xyz`. Setting `tls.servername` makes nodemailer validate the cert against the name it actually covers, so we keep TLS hostname verification on while connecting via the customer alias.
+
+Implementation: `lib/smtp.ts` with `nodemailer` + lazy env-var validation + cached transporter; route `app/api/contact/route.ts` calls `getMailer()` instead of the Resend client.
 
 ## Why Resend stays installed
 

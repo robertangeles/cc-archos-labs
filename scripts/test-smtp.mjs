@@ -26,6 +26,9 @@ console.log(`SMTP config: ${host}:${port} as ${user}`);
 console.log(`Recipient:   ${recipient}`);
 console.log("");
 
+const servername = process.env.SMTP_TLS_SERVERNAME;
+const insecure = process.env.SMTP_TLS_INSECURE === "1";
+
 const transporter = nodemailer.createTransport({
   host,
   port,
@@ -35,7 +38,22 @@ const transporter = nodemailer.createTransport({
   // concurrent and throttles aggressively (421 Too many concurrent SMTP
   // connections). Skip verify; auth errors will surface in sendMail.
   pool: false,
+  ...(servername || insecure
+    ? {
+        tls: {
+          ...(servername ? { servername } : {}),
+          ...(insecure ? { rejectUnauthorized: false } : {}),
+        },
+      }
+    : {}),
 });
+
+if (servername) {
+  console.log(`(TLS servername override: ${servername})`);
+}
+if (insecure) {
+  console.warn("(TLS hostname verification DISABLED — debug only)");
+}
 
 console.log("Sending test email...");
 const sentAt = new Date().toISOString();

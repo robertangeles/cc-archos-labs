@@ -16,11 +16,16 @@ import nodemailer, { type Transporter } from "nodemailer";
 let cachedTransporter: Transporter | null = null;
 
 export function getMailer(): { transporter: Transporter; from: string } {
-  const host = process.env.SMTP_HOST ?? "smtpout.secureserver.net";
-  const port = Number(process.env.SMTP_PORT ?? 465);
+  const host = process.env.SMTP_HOST ?? "mail.archoslabs.xyz";
+  const port = Number(process.env.SMTP_PORT ?? 587);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
   const from = process.env.SMTP_FROM ?? user;
+  // When connecting via the customer-friendly mail.<domain> hostname,
+  // the TLS cert lives on the underlying cPanel server (e.g.
+  // sg2plzcpnl493903.prod.sin2.secureserver.net). Set servername so
+  // nodemailer validates the cert against the name it actually covers.
+  const servername = process.env.SMTP_TLS_SERVERNAME;
 
   if (!user) {
     throw new Error(
@@ -39,6 +44,7 @@ export function getMailer(): { transporter: Transporter; from: string } {
       port,
       secure: port === 465,
       auth: { user, pass },
+      ...(servername ? { tls: { servername } } : {}),
     });
   }
 
