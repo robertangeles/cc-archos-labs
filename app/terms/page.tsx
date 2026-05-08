@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
+import { buildPageMetadata } from "../../lib/site-config";
 
-export const metadata: Metadata = {
-  title: "Terms — Archos Labs",
-  description:
-    "Plain-language terms for using archoslabs.xyz, the AI Readiness Assessment, and the Archos Labs consulting offer.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata({
+    title: "Terms",
+    description:
+      "Plain-language terms for using archoslabs.xyz, the AI Readiness Assessment, and the Archos Labs consulting offer.",
+    path: "/terms",
+  });
+}
 
 const lastUpdated = "2026-05-08";
 

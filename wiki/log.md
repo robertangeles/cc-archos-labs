@@ -8,6 +8,35 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-08 — Phase 1.C built via minimal admin section + AIEO assets
+
+Long session. Final state: Phase 0a fully shipped (`https://archoslabs.xyz` live, custom domain, valid SSL, contact form delivers to Outlook), and Phase 1.C SEO/AIEO complete via a minimal admin instead of env-var config (Rob's call).
+
+**Contact form path** (covered in last session entry): tried Resend → @archoslabs.xyz mailbox (silently dropped by GoDaddy anti-spoofing), GoDaddy SMTP via cPanel hostname (Render IPs blocked at firewall), GoDaddy SMTP via mail.archoslabs.xyz alias (same IP, same firewall block). Settled on Resend with `CONTACT_RECIPIENT_EMAIL=trebor.selegna@outlook.com`. Decision recorded: `wiki/decisions/2026-05-08-resend-with-external-recipient.md`. Burned ~45 minutes on the dead-end GoDaddy SMTP path; lesson saved as `feedback_test_from_production_perspective.md` memory.
+
+**DNS to Render** (last session): A record at apex `archoslabs.xyz → 216.24.57.1`, CNAME `www → cc-archos-labs.onrender.com`. Verified, SSL provisioned. archoslabs.xyz live.
+
+**Phase 1.C — Admin section + AIEO** (this session):
+
+- Reviewed spresso (cc-spresso-data-studio) for reusable patterns. Took: key-value settings table, `SiteSettingsPage` UI shape, JWT-cookie auth middleware. Skipped: 16 other settings pages, multi-user/roles, OAuth providers.
+- **Drizzle setup**: `lib/db/{schema,index}.ts`, `drizzle.config.ts`, `site_setting` table (UUID PK, key text unique, jsonb value). Render Postgres uses `ssl: 'require'`. **`drizzle-kit push` hangs at "Pulling schema from database"** against Render Postgres (multiple SSL configs tried — all hang). Bypassed via `drizzle-kit generate` + custom `scripts/db-apply.mjs` that applies generated SQL through the working `postgres-js` connection. Idempotent via `__drizzle_applied` metadata table. Lesson recorded: `wiki/lessons-learned/2026-05-08-drizzle-kit-push-hangs-on-render.md`.
+- **Auth**: `lib/auth.ts` (Edge-safe JWT sign/verify via jose, constant-time password compare), `lib/auth-server.ts` (server-only cookie helpers), `middleware.ts` (gates `/admin/**` and `/api/admin/**`), login + logout API routes, rate-limited (10/IP/hour). `ADMIN_PASSWORD` + `AUTH_SECRET` env vars.
+- **Admin UI**: `/admin/login` (single password field), `/admin/site` (8-field SEO form: siteName, tagline, description, founderName, founderLinkedinUrl, ogImageUrl, twitterHandle, linkedinUrl). Load on mount, save on submit with optimistic feedback. Sign-out button.
+- **Settings API**: `app/api/admin/settings/site/route.ts` (GET returns row or defaults; PUT Zod-validated upsert).
+- **Site-config layer**: `lib/site-config.ts` with `getSiteSettings()` (React `cache()` for per-request dedup, falls back to defaults on DB error) and `buildPageMetadata({title, description, path})` helper used by every page.
+- **Per-page metadata wired**: layout + privacy + terms + contact + ai-readiness-assessment all use `buildPageMetadata`. Title template, full openGraph + twitter blocks, canonical URLs, all driven from admin row.
+- **AIEO assets**: `app/sitemap.ts`, `app/robots.ts` (disallows /admin), `public/llms.txt` (llmstxt.org-style for AI crawlers), `app/opengraph-image.tsx` (programmatic 1200×630 OG card via Next.js `ImageResponse`).
+- **JSON-LD**: Organization + WebSite schemas in `app/layout.tsx`, derived from settings.
+- **Decisions**: `wiki/decisions/2026-05-08-minimal-admin-for-seo.md` (new) and `wiki/decisions/2026-05-08-admin-deferred.md` (banner: partially superseded for SEO slice; full multi-user admin still deferred).
+
+End-to-end verification (local): login → GET /api/admin/settings/site → PUT round-trip persists; sitemap/robots/llms.txt/opengraph-image all 200; homepage HTML has full OG/Twitter meta + 2 JSON-LD scripts.
+
+**For Rob when he returns**:
+1. Add to Render env: `ADMIN_PASSWORD` (strong value, NOT the dev value `archos-admin-dev-pw`) and `AUTH_SECRET` (32-byte random base64; use `openssl rand -base64 32` or PowerShell helper in .env.example)
+2. Run `pnpm db:migrate` against the Render Postgres (uses External Database URL from .env.local) to create the `site_setting` table on production. Already created against the same DB during local testing — should be a no-op on prod.
+3. Confirm OK to push (10 commits + ~30 new files). Per pre-launch sprint exception, direct-to-main.
+4. After push: visit `https://archoslabs.xyz/admin/login`, sign in with the production `ADMIN_PASSWORD`, edit site settings, save, verify by reloading public pages (metadata reflects).
+
 ## 2026-05-08 — Session restart: screenshot harness fixed + Phase 0a/1 committed in chunks
 
 - Previous session ended with "image exceeds 2000px many-image limit". Root cause: `scripts/screenshot.mjs` ran at `deviceScaleFactor: 2` with `fullPage: true` — a 1280-wide viewport doubled to 2560px output and tall pages stretched height past the limit too. Fixed by lowering defaults to 1× DPI and viewport-only, with `--full` and `--dpi=N` overrides for when screenshots aren't being attached. Warns at runtime if the configured output would exceed the limit.

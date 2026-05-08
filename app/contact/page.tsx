@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import { ContactForm } from "../../components/contact/contact-form";
+import { buildPageMetadata } from "../../lib/site-config";
 
-export const metadata: Metadata = {
-  title: "Contact — Archos Labs",
-  description:
-    "Tell us what you're working on. We respond within one business day. No pitch, no qualification gauntlet.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata({
+    title: "Contact",
+    description:
+      "Tell us what you're working on. We respond within one business day. No pitch, no qualification gauntlet.",
+    path: "/contact",
+  });
+}
 
 export default function ContactPage() {
   return (

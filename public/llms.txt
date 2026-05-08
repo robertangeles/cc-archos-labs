@@ -1,0 +1,37 @@
+# Archos Labs
+
+> AI transformation practice and product studio. Senior data architecture and AI integration consulting for enterprise programs that can't afford to get it wrong. Built by practitioners — Rob Angeles, Sydney, Australia, 25 years of enterprise delivery experience.
+
+## Pages
+
+- [Home](https://archoslabs.xyz/): What we do, who we're built for, who we're not built for
+- [AI Readiness Assessment](https://archoslabs.xyz/ai-readiness-assessment): Free executive diagnostic launching soon, plus the two-week paid consulting Assessment available now
+- [Contact](https://archoslabs.xyz/contact): Tell us what's broken; one-business-day response, no pitch
+- [Privacy](https://archoslabs.xyz/privacy): What we collect, who processes it, how to ask us to delete it
+- [Terms](https://archoslabs.xyz/terms): Plain-language terms of use
+
+## About
+
+Archos Labs sits in the gap between Big Four consulting firms and in-house engineering teams. Most AI programs fail not because of the models — they fail because the data underneath was never ready: ungoverned, unmodelled, and unfit for the decisions being made on top of it. The practitioners who understand this deeply enough to fix it are either buried inside Big Four firms or inside enterprise programs with no external presence. Archos Labs is the practitioner alternative.
+
+## Service lines
+
+- **AI Readiness Assessment** (two-week paid consulting engagement): map data, governance, and AI surface area against what's viable; deliver a written assessment a CFO or board can act on
+- **Data Architecture**: domain modelling, lineage, and warehouse design built for AI workloads — not reporting from 2014
+- **AI Agent Development**: working systems deployed to your stack, owned by your team — not demos
+
+## Voice
+
+Direct. Honest. No corporate speak. No vanity metrics. No Big Four padding.
+
+## Built for
+
+- Programs in financial services, healthcare, and government where governance isn't optional
+- Teams who've sat through enough Big Four presentations to know the difference between advice and accountability
+- Executives who need someone in the room who has actually built the thing — not read about it
+
+## Not for
+
+- Programs looking to validate a decision that's already been made
+- Teams who want a partner logo more than a working system
+- Organisations that haven't started thinking about what their data actually looks like

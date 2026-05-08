@@ -1,10 +1,12 @@
 ---
-title: Admin space — deferred
+title: Admin space — deferred (PARTIALLY SUPERSEDED)
 category: decision
 created: 2026-05-08
 updated: 2026-05-08
-related: [[backlog]], [[index]], [[2026-05-08-phase2-ceo-review]]
+related: [[backlog]], [[index]], [[2026-05-08-phase2-ceo-review]], [[2026-05-08-minimal-admin-for-seo]]
 ---
+
+> **Update 2026-05-08 (later same day):** A minimal admin scope was built for Phase 1.C SEO config — single admin user, password-gated, one settings table. See [[2026-05-08-minimal-admin-for-seo]]. The "cathedral" critique below still holds; what shipped is intentionally the opposite (one user, one form, one DB row). The full multi-user / role-management / integrations admin remains deferred to Phase 2 or beyond.
 
 Rob proposed building an admin space with login/register, a "User Manager" ("the cathedral of user management"), and an Integrations panel for Google OAuth, Cloudinary, and DB connection strings. CEO-mode review surfaced three structural problems with the request and Rob accepted the recommendation to defer entirely.
 

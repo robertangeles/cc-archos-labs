@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
+import { buildPageMetadata } from "../../lib/site-config";
 
-export const metadata: Metadata = {
-  title: "Privacy — Archos Labs",
-  description:
-    "What we collect, what we do with it, who we share it with, and how to ask us to delete it. Plain language.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata({
+    title: "Privacy",
+    description:
+      "What we collect, what we do with it, who we share it with, and how to ask us to delete it. Plain language.",
+    path: "/privacy",
+  });
+}
 
 const lastUpdated = "2026-05-08";
 

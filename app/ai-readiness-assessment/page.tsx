@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { buildPageMetadata } from "../../lib/site-config";
 
-export const metadata: Metadata = {
-  title: "AI Readiness Assessment — Archos Labs",
-  description:
-    "A free executive diagnostic scoring your AI program across data foundation, program readiness, and organisational reality. Practitioner report in your inbox.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata({
+    title: "AI Readiness Assessment",
+    description:
+      "A free executive diagnostic scoring your AI program across data foundation, program readiness, and organisational reality. Practitioner report in your inbox.",
+    path: "/ai-readiness-assessment",
+  });
+}
 
 export default function AIReadinessAssessmentPage() {
   return (
