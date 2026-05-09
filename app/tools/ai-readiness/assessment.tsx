@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { getQuestion } from "../../../lib/diagnostic/content";
 import {
@@ -10,31 +11,36 @@ import {
   getProgress,
   type SessionAnswers,
 } from "../../../lib/diagnostic/flow";
-import {
-  evaluateSession,
-  type SessionResult,
-} from "../../../lib/diagnostic/scoring";
 import type { AnswerCode } from "../../../lib/diagnostic/types";
 import { WelcomeScreen } from "./welcome-screen";
 import { QuestionCard } from "./question-card";
 import { ProgressBar } from "./progress-bar";
-import { ResultDebug } from "./result-debug";
+import { SubmittingScreen } from "./submitting-screen";
+import { ErrorScreen } from "./error-screen";
 
-// Single-page assessment per spec §2.2. State machine has three phases:
-//   welcome → questions → complete
-// Answers persist to localStorage so a refresh mid-flight resumes
-// where the user left off. Server has no state for the assessment
-// itself in W2; W3 adds the assessment_session DB write at completion
-// and W4 adds the registration gate between complete and report.
+// Single-page assessment per spec §2.2. State machine has four phases
+// after initial welcome:
+//
+//   welcome → questions → submitting → (redirect to /report/[id])
+//                                    ↘ error → (retry → submitting)
+//
+// Persistence:
+//   - Answers persist to localStorage so a refresh mid-flight resumes
+//     where the user left off.
+//   - On successful POST to /api/diagnostic/generate the local state
+//     is cleared and the user is redirected to the server-rendered
+//     report page. The DB session row + report row become the source
+//     of truth from that point.
 
 const STORAGE_KEY = "archos-assessment-v1";
 
-type Phase = "welcome" | "questions" | "complete";
+type Phase = "welcome" | "questions" | "submitting" | "error";
 
 interface SessionState {
   phase: Phase;
   answers: SessionAnswers;
   currentQuestionId: string | null;
+  errorMessage?: string;
 }
 
 const INITIAL_STATE: SessionState = {
@@ -49,7 +55,6 @@ function loadState(): SessionState {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return INITIAL_STATE;
     const parsed = JSON.parse(raw) as Partial<SessionState>;
-    // Validate shape — never trust localStorage to be well-formed.
     if (
       typeof parsed === "object" &&
       parsed !== null &&
@@ -57,14 +62,25 @@ function loadState(): SessionState {
       typeof parsed.answers === "object" &&
       parsed.answers !== null
     ) {
+      // Never restore the transient `submitting` phase on load — if a
+      // refresh happened while a request was in flight, fall back to
+      // the questions phase positioned on the last unanswered question
+      // (or to error so the user can retry).
+      const phase = (parsed.phase as Phase) === "submitting"
+        ? "error"
+        : (parsed.phase as Phase);
       return {
-        phase: parsed.phase as Phase,
+        phase,
         answers: parsed.answers,
         currentQuestionId: parsed.currentQuestionId ?? null,
+        errorMessage:
+          phase === "error"
+            ? "We weren't able to finish generating your report. Please try again."
+            : undefined,
       };
     }
   } catch {
-    // Bad JSON / parse error — start fresh
+    // ignore parse errors — fall through to fresh state
   }
   return INITIAL_STATE;
 }
@@ -74,7 +90,7 @@ function persistState(state: SessionState) {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
-    // Quota exceeded / private browsing — fail soft
+    // quota / privacy mode — fail soft
   }
 }
 
@@ -88,11 +104,9 @@ function clearState() {
 }
 
 export function Assessment() {
-  // Render the welcome screen on SSR + initial paint. Hydrate from
-  // localStorage in an effect so a returning user resumes their
-  // session. Brief flicker on resume is acceptable.
   const [state, setState] = useState<SessionState>(INITIAL_STATE);
   const [hydrated, setHydrated] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     setState(loadState());
@@ -119,12 +133,66 @@ export function Assessment() {
         [questionId]: code,
       };
       const nextId = getNextQuestionId(newAnswers, questionId);
+      if (nextId === null) {
+        // Last answer — transition to submitting and fire the request.
+        // We deliberately update local state synchronously then submit
+        // out-of-band so the UI swaps to the staged-progress screen
+        // immediately.
+        void submit(newAnswers);
+        return {
+          phase: "submitting",
+          answers: newAnswers,
+          currentQuestionId: null,
+        };
+      }
       return {
-        phase: nextId ? "questions" : "complete",
+        phase: "questions",
         answers: newAnswers,
         currentQuestionId: nextId,
       };
     });
+  }
+
+  async function submit(answers: SessionAnswers) {
+    try {
+      const res = await fetch("/api/diagnostic/generate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ answers }),
+      });
+      const json = (await res.json().catch(() => null)) as
+        | { ok: boolean; sessionId?: string; error?: string }
+        | null;
+
+      if (res.ok && json?.ok && json.sessionId) {
+        clearState();
+        router.push(`/tools/ai-readiness/report/${json.sessionId}`);
+        return;
+      }
+
+      setState((prev) => ({
+        ...prev,
+        phase: "error",
+        errorMessage:
+          json?.error ?? "We couldn't generate your report. Please try again.",
+      }));
+    } catch {
+      setState((prev) => ({
+        ...prev,
+        phase: "error",
+        errorMessage: "Network error. Please try again.",
+      }));
+    }
+  }
+
+  function retrySubmit() {
+    if (Object.keys(state.answers).length === 0) {
+      // No answers to retry with — return to welcome
+      setState(INITIAL_STATE);
+      return;
+    }
+    setState((prev) => ({ ...prev, phase: "submitting", errorMessage: undefined }));
+    void submit(state.answers);
   }
 
   function reset() {
@@ -132,19 +200,20 @@ export function Assessment() {
     setState(INITIAL_STATE);
   }
 
-  // Welcome phase — also covers the SSR + pre-hydration render
+  // Pre-hydration / welcome
   if (!hydrated || state.phase === "welcome") {
     return <WelcomeScreen onBegin={begin} />;
   }
 
-  // Complete phase — debug view; W3 replaces with the Claude report
-  if (state.phase === "complete") {
-    const result: SessionResult = evaluateSession(state.answers);
+  if (state.phase === "submitting") {
+    return <SubmittingScreen />;
+  }
+
+  if (state.phase === "error") {
     return (
-      <ResultDebug
-        result={result}
-        answers={state.answers as Record<string, AnswerCode>}
-        onReset={reset}
+      <ErrorScreen
+        message={state.errorMessage ?? "Something went wrong."}
+        onRetry={retrySubmit}
       />
     );
   }
@@ -155,8 +224,8 @@ export function Assessment() {
     : null;
 
   if (!currentQuestion || !state.currentQuestionId) {
-    // Defensive — stale state pointing at a question that doesn't
-    // exist in the resolved flow. Reset rather than crash.
+    // Stale state pointing at a question that doesn't exist in the
+    // current flow. Reset rather than crash.
     reset();
     return <WelcomeScreen onBegin={begin} />;
   }
@@ -181,7 +250,7 @@ export function Assessment() {
   );
 }
 
-// Re-export for the route to silence "unused" warnings if computeFlow
-// types ever change. No runtime impact.
+// Re-exports kept for tooling (none currently consume these from this
+// file but keeping the surface stable in case test scripts move).
 export type { SessionAnswers };
 export { computeFlow };
