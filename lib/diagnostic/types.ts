@@ -47,6 +47,11 @@ export const TIERS: readonly Tier[] = [
 
 export interface TierBoundary {
   tier: Tier;
+  // Public-facing label per spec §5.2 (e.g. "Foundation Risk",
+  // "Structurally Exposed", "Program-Ready", "Scale-Ready"). Distinct
+  // from `tier` so the internal code stays stable while marketing copy
+  // can iterate.
+  label: string;
   // Inclusive lower / upper bound on the 0–100 weighted total.
   min: number;
   max: number;
@@ -56,9 +61,11 @@ export interface TierBoundary {
 // Questions — 12 base + 7 branch per spec §3
 // ----------------------------------------------------------------------------
 
-// Per the spec's answer-card UI: 4-option select-one. Codes are stable
-// across versions so historical answers stay readable if wording changes.
-export type AnswerCode = "A" | "B" | "C" | "D";
+// Per the spec's answer-card UI: select-one. Most questions have 4
+// options (A–D); a few (Q1 industry, Q9a/b/c barriers, Q12 urgency)
+// have 5 (A–E). Codes are stable across versions so historical
+// answers stay readable if wording changes.
+export type AnswerCode = "A" | "B" | "C" | "D" | "E";
 
 export interface AnswerOption {
   code: AnswerCode;
