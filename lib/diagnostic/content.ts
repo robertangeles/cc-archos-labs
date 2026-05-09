@@ -1,5 +1,6 @@
 import type {
   DomainWeights,
+  PriorityTrigger,
   Question,
   RiskFlagRule,
   TierBoundary,
@@ -125,7 +126,9 @@ export const QUESTIONS: Question[] = [
       {
         code: "D",
         label: "We are scaling AI but hitting unexpected walls",
-        score: 3,
+        // Scored 1 not 3 — this is a high-urgency lead signal, but
+        // urgency ≠ readiness. Hitting walls means real pain at scale.
+        score: 1,
       },
     ],
   },
@@ -207,7 +210,15 @@ export const QUESTIONS: Question[] = [
         label: "Not yet, but it is a risk we are aware of",
         score: 2,
       },
-      { code: "D", label: "No — data has not been an issue for us", score: 3 },
+      {
+        code: "D",
+        label: "No — data has not been an issue for us",
+        // Scored 2 not 3 — confidence not yet earned. Q6b (triggered by
+        // this answer) does the actual differentiation between earned
+        // confidence (Q6b=A) and false confidence based on analytics
+        // capability (Q6b=D).
+        score: 2,
+      },
     ],
   },
 
@@ -303,7 +314,10 @@ export const QUESTIONS: Question[] = [
       {
         code: "C",
         label: "Aspirational — we have the documents but not the behaviour",
-        score: 1,
+        // Scored 0 not 1 — "documents without behaviour" is governance
+        // theatre. Distinct from Documented (score 1, "policies exist
+        // but rarely enforced") which has at least the policy layer.
+        score: 0,
       },
       {
         code: "D",
@@ -537,7 +551,11 @@ export const QUESTIONS: Question[] = [
       {
         code: "B",
         label: "Board or regulatory mandate — we have been directed to act",
-        score: 3,
+        // Scored 2 not 3 — board pressure is the highest LEAD-priority
+        // signal (see PRIORITY_TRIGGERS) but a mandate doesn't make the
+        // org more AI-ready. The CRM tag captures the urgency
+        // separately from the score.
+        score: 2,
       },
       {
         code: "C",
@@ -609,6 +627,26 @@ export const RISK_FLAG_RULES: RiskFlagRule[] = [
     body: "Data governance exists on paper but is not enforced in practice.",
     severity: "medium",
     trigger: [{ questionId: "q8", answer: "C" }],
+  },
+];
+
+// ----------------------------------------------------------------------------
+// Priority triggers — set lead.is_priority=true regardless of final tier
+// ----------------------------------------------------------------------------
+//
+// Independent of the readiness score. Captures answers that warrant
+// immediate sales outreach even when the org's overall readiness is
+// strong (a board-mandated program with a high readiness tier is still
+// a hot lead because of timeline pressure on the buyer side). The W2
+// scoring engine reads this list, evaluates against session answers,
+// and sets lead.is_priority = true on the CRM webhook payload.
+
+export const PRIORITY_TRIGGERS: PriorityTrigger[] = [
+  {
+    questionId: "q12",
+    answer: "B",
+    reason:
+      "Board or regulatory mandate — buyer is under board / regulator timeline pressure regardless of org maturity. Highest-priority outreach.",
   },
 ];
 

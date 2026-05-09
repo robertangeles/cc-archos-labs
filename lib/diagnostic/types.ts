@@ -145,6 +145,23 @@ export interface RiskFlag {
 }
 
 // ----------------------------------------------------------------------------
+// Priority triggers — set lead.is_priority=true on the CRM webhook
+// ----------------------------------------------------------------------------
+
+// Independent of the readiness score and tier. Some answers indicate
+// the lead deserves immediate outreach regardless of how mature the
+// org is — e.g. a board mandate creates time pressure on the buyer
+// even if the rest of the diagnostic shows them well-prepared.
+export interface PriorityTrigger {
+  // The question + answer combination that fires the trigger.
+  questionId: string;
+  answer: AnswerCode;
+  // Human-readable explanation shown in /admin/diagnostic + logged
+  // when the trigger fires for a session.
+  reason: string;
+}
+
+// ----------------------------------------------------------------------------
 // Computed score shape — output of the scoring engine
 // ----------------------------------------------------------------------------
 
