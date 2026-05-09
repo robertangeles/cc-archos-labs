@@ -9,7 +9,7 @@ const TOPLEVEL = [
 ];
 
 const TOOLS = [
-  { href: "/ai-readiness-assessment", label: "AI Readiness Assessment" },
+  { href: "/tools/ai-readiness", label: "AI Readiness Assessment" },
 ];
 
 function ToolsMenu() {
