@@ -12,9 +12,10 @@ Master catalog of all wiki pages. Read this at the start of every session.
 _(none yet)_
 
 ## concepts
-_(none yet)_
+- [AI Readiness Assessment — Scoring Logic](concepts/diagnostic-scoring-logic.md) — full per-option scoring matrix, branch + replacement logic, tier boundaries, risk flag rules, priority triggers, persona test results
 
 ## decisions
+- [Diagnostic per-option scoring calibration calls](decisions/2026-05-09-diagnostic-scoring-calls.md) — four scoring deviations from default option-order on Q3, Q6, Q8, Q12 + introduction of PRIORITY_TRIGGERS for orthogonal CRM tagging
 - [Minimal admin for SEO config](decisions/2026-05-08-minimal-admin-for-seo.md) — single-user admin (password + JWT cookie), one site_setting table, drives all SEO/brand metadata; partially supersedes admin-deferred for SEO slice
 - [Resend with an external recipient mailbox for the contact form](decisions/2026-05-08-resend-with-external-recipient.md) — current contact-form path; Resend → Outlook/Gmail (never a GoDaddy-cPanel mailbox)
 - [GoDaddy SMTP for the contact form](decisions/2026-05-08-godaddy-smtp-for-contact-form.md) — _FAILED, superseded same day_; Render's outbound IPs are blocked by GoDaddy's cPanel firewall

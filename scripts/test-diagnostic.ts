@@ -157,6 +157,91 @@ section("Path 4: No-issue path (Q6=D triggers Q6b confidence test)");
 
 // ----------------------------------------------------------------------------
 
+// ============================================================================
+// PERSONA TESTS — realistic answer profiles that simulate target users
+// ============================================================================
+//
+// Run after the assertion-based tests. Surface scores, tier, flags,
+// priority for plausible respondents so we can read the engine's
+// actual judgment rather than only happy-path / all-worst extremes.
+
+function persona(label: string, answers: Record<string, string>) {
+  console.log(`\n=== ${label} ===`);
+  const flow = computeFlow(answers as never);
+  const result = evaluateSession(answers as never);
+  console.log(`  flow (${flow.length}q): ${flow.join(" -> ")}`);
+  console.log(
+    `  total: ${result.score.total}  tier: ${result.tier.tier} (${result.tier.label})`,
+  );
+  console.log(
+    `  domains: DF=${result.score.data_foundation.percent}% (${result.score.data_foundation.raw}/${result.score.data_foundation.max})  PR=${result.score.program_readiness.percent}% (${result.score.program_readiness.raw}/${result.score.program_readiness.max})  OR=${result.score.org_reality.percent}% (${result.score.org_reality.raw}/${result.score.org_reality.max})`,
+  );
+  console.log(
+    `  flags: ${result.riskFlags.length === 0 ? "(none)" : result.riskFlags.map((f) => `${f.severity}:${f.code}`).join(", ")}`,
+  );
+  console.log(
+    `  priority: ${result.isPriority}${result.isPriority ? ` (${result.priorityReasons[0]})` : ""}`,
+  );
+  return result;
+}
+
+persona(
+  "Persona A: Government modernisation director (board-mandated, mid-maturity)",
+  {
+    q1: "C", // Government
+    q2: "A", // Owns budget
+    q3: "B", // Pilots but no production -> Q9 replaced by Q9a
+    q4: "C", // Reconstruct lineage in weeks
+    q5: "B", // Two or three sources of truth
+    q6: "B", // Yes contributing
+    q7: "B", // Reconstruct explainability with effort
+    q8: "B", // Documented governance
+    q9a: "A", // Self-aware: data not in state
+    q10: "B", // Steering committee
+    q11: "C", // Months
+    q12: "B", // Board mandate -> PRIORITY
+  },
+);
+
+persona(
+  "Persona B: Financial services CDO post-failure (multiple flags expected)",
+  {
+    q1: "A", // FS
+    q2: "B", // Influencer
+    q3: "C", // Production not scaling -> Q9 fires
+    q4: "D", // No lineage -> no_data_lineage flag
+    q5: "D", // Don't know sources
+    q6: "A", // Primary failure -> Q6a fires
+    q6a: "D", // Still not understood -> prior_failure_unexplained
+    q7: "D", // Nobody owns -> no_explainability_owner
+    q8: "C", // Aspirational -> governance_aspirational
+    q9: "C", // Quietly shelved -> Q9c fires
+    q9c: "E", // Never documented -> shelved_no_postmortem
+    q10: "C", // IT/data team
+    q11: "D", // Never been done cleanly
+    q12: "C", // Cost reduction
+  },
+);
+
+persona(
+  "Persona C: Mature tech co at scale (scaling-walls cohort, no flags)",
+  {
+    q1: "E", // Other
+    q2: "A", // Owns budget
+    q3: "D", // Scaling but hitting walls -> Q9 replaced by Q9b
+    q4: "A", // Documented lineage
+    q5: "A", // Single source
+    q6: "C", // Aware of risk
+    q7: "A", // Explainability tooling
+    q8: "A", // Active governance
+    q9b: "E", // Cost exceeds value
+    q10: "A", // Named exec
+    q11: "A", // Days
+    q12: "A", // Competitive pressure
+  },
+);
+
+// ============================================================================
 section("Path 5: Mid-flight (Q3 not yet answered) — flow should not include Q9 family yet");
 {
   const answers = {
