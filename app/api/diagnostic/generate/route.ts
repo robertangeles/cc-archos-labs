@@ -4,6 +4,8 @@ import {
   rateLimit,
   clientIpFromRequest,
 } from "../../../../lib/rate-limit";
+import { signLeadSession } from "../../../../lib/auth-lead";
+import { setLeadSessionCookie } from "../../../../lib/auth-server";
 
 export const runtime = "nodejs";
 
@@ -23,8 +25,22 @@ const AnswersSchema = z
     message: "No answers supplied",
   });
 
+const LeadSchema = z.object({
+  firstName: z.string().trim().min(1, "First name is required").max(120),
+  lastName: z.string().trim().min(1, "Last name is required").max(120),
+  email: z.email({ error: "Enter a valid work email" }).max(254),
+  jobTitle: z.string().trim().min(1, "Job title is required").max(200),
+  organisation: z
+    .string()
+    .trim()
+    .min(1, "Organisation is required")
+    .max(200),
+  phone: z.string().trim().max(50).optional(),
+});
+
 const RequestSchema = z.object({
   answers: AnswersSchema,
+  lead: LeadSchema,
 });
 
 export async function POST(request: Request) {
@@ -76,9 +92,16 @@ export async function POST(request: Request) {
   try {
     const result = await generateReport({
       answers: parsed.data.answers,
+      lead: parsed.data.lead,
       ipAddress: ip,
       userAgent: request.headers.get("user-agent") ?? undefined,
     });
+
+    // Set lead session cookie so the report page can verify ownership.
+    // 30-day TTL per lib/auth-lead.ts.
+    const token = await signLeadSession(result.leadId);
+    await setLeadSessionCookie(token);
+
     return Response.json({ ok: true, sessionId: result.sessionId });
   } catch (err) {
     console.error("Diagnostic generate crash:", err);

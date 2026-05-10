@@ -1,7 +1,7 @@
 import "server-only";
 import { eq } from "drizzle-orm";
 import { getDb } from "../db";
-import { assessmentSession, reportOutput } from "../db/schema";
+import { assessmentSession, lead, reportOutput } from "../db/schema";
 import { generateStructured } from "../claude";
 import { TIER_BOUNDARIES } from "./content";
 import { evaluateSession, evaluatePriorityTriggers } from "./scoring";
@@ -12,6 +12,16 @@ import {
 } from "./report-types";
 import type { SessionAnswers } from "./flow";
 import type { SessionResult } from "./scoring";
+
+// Lead registration data per spec §7.2. Phone optional.
+export interface LeadRegistrationInput {
+  firstName: string;
+  lastName: string;
+  email: string;
+  jobTitle: string;
+  organisation: string;
+  phone?: string;
+}
 
 // AI Readiness Assessment report orchestrator. Boundary between the
 // pure stateless scoring engine + LLM transport (lib/claude.ts) and
@@ -32,6 +42,7 @@ const MAX_OUTPUT_TOKENS = 2000;
 
 export interface GenerateReportInput {
   answers: SessionAnswers;
+  lead: LeadRegistrationInput;
   ipAddress?: string;
   userAgent?: string;
 }
@@ -39,6 +50,7 @@ export interface GenerateReportInput {
 export interface GenerateReportResult {
   sessionId: string;
   reportId: string;
+  leadId: string;
 }
 
 export async function generateReport(
@@ -62,15 +74,54 @@ export async function generateReport(
   }
   const reportContent: ReportContent = llmResult.data;
 
-  // 3. Persist. Two sequential inserts (assessment_session then
-  //    report_output). If the second fails we have an orphan session
-  //    row with no report — acceptable for W3, fixed in W4 polish via
-  //    a Drizzle transaction wrapper.
+  // 3. Persist. Three sequential inserts/upserts:
+  //    a. lead — upsert by email so returning users reuse one row
+  //    b. assessment_session — links to lead via lead_id
+  //    c. report_output — links to session, unique constraint enforced
+  //
+  //    If any step after lead-upsert fails, we have an orphan lead or
+  //    session. Acceptable for W4 Pass 1; W5 polish wraps in a
+  //    transaction once Drizzle's transaction surface is ergonomic.
   const db = getDb();
+
+  // Upsert lead by email. Subsequent visits update name/title/org if
+  // changed. is_priority is derived from the new session and OR'd —
+  // once a lead is flagged priority, they stay priority across
+  // future visits (don't downgrade if they later answer Q12 differently).
+  const [leadRow] = await db
+    .insert(lead)
+    .values({
+      email: input.lead.email.toLowerCase(),
+      firstName: input.lead.firstName,
+      lastName: input.lead.lastName,
+      jobTitle: input.lead.jobTitle,
+      organisation: input.lead.organisation,
+      phone: input.lead.phone,
+      isPriority: result.isPriority,
+    })
+    .onConflictDoUpdate({
+      target: lead.email,
+      set: {
+        firstName: input.lead.firstName,
+        lastName: input.lead.lastName,
+        jobTitle: input.lead.jobTitle,
+        organisation: input.lead.organisation,
+        phone: input.lead.phone,
+        // Sticky: priority flag never downgrades.
+        ...(result.isPriority ? { isPriority: true } : {}),
+        updatedAt: new Date(),
+      },
+    })
+    .returning({ id: lead.id });
+
+  if (!leadRow) {
+    throw new Error("Upsert into lead returned no row");
+  }
 
   const [session] = await db
     .insert(assessmentSession)
     .values({
+      leadId: leadRow.id,
       answers: input.answers as Record<string, string>,
       scores: result.score,
       tier: result.tier.tier,
@@ -104,7 +155,11 @@ export async function generateReport(
     throw new Error("Insert into report_output returned no row");
   }
 
-  return { sessionId: session.id, reportId: report.id };
+  return {
+    sessionId: session.id,
+    reportId: report.id,
+    leadId: leadRow.id,
+  };
 }
 
 // ----------------------------------------------------------------------------
@@ -113,6 +168,9 @@ export async function generateReport(
 
 export interface LoadedReport {
   sessionId: string;
+  // The lead that owns this report. Used by the report page to enforce
+  // owner-only access (cookie's leadId must match this).
+  leadId: string | null;
   result: SessionResult;
   content: ReportContent;
   generatedAt: Date;
@@ -131,6 +189,7 @@ export async function loadReport(
   const rows = await db
     .select({
       sessionId: assessmentSession.id,
+      leadId: assessmentSession.leadId,
       answers: assessmentSession.answers,
       scores: assessmentSession.scores,
       tier: assessmentSession.tier,
@@ -172,6 +231,7 @@ export async function loadReport(
 
   return {
     sessionId: row.sessionId,
+    leadId: row.leadId,
     result,
     content: {
       verdict: row.verdict,

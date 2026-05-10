@@ -15,31 +15,44 @@ import type { AnswerCode } from "../../../lib/diagnostic/types";
 import { WelcomeScreen } from "./welcome-screen";
 import { QuestionCard } from "./question-card";
 import { ProgressBar } from "./progress-bar";
-import { SubmittingScreen } from "./submitting-screen";
 import { ErrorScreen } from "./error-screen";
+import { RegistrationGate, type LeadInput } from "./registration-gate";
 
-// Single-page assessment per spec §2.2. State machine has four phases
-// after initial welcome:
+// Single-page assessment per spec §2.2 + §7.
 //
-//   welcome → questions → submitting → (redirect to /report/[id])
-//                                    ↘ error → (retry → submitting)
+// State machine:
+//
+//   welcome → questions → registration → (redirect to /report/[id])
+//                                       ↘ stays on registration with
+//                                          errorMessage on API failure
+//                              ↗
+//                           catastrophic fetch error → error
 //
 // Persistence:
 //   - Answers persist to localStorage so a refresh mid-flight resumes
 //     where the user left off.
+//   - Registration form values are NOT persisted — the form remains
+//     mounted during the API call so a retry preserves them in
+//     React state. A page refresh during submit returns the user to
+//     the registration phase fresh.
 //   - On successful POST to /api/diagnostic/generate the local state
 //     is cleared and the user is redirected to the server-rendered
-//     report page. The DB session row + report row become the source
-//     of truth from that point.
+//     report page. The DB session row + report row + lead row become
+//     the source of truth from that point.
 
 const STORAGE_KEY = "archos-assessment-v1";
 
-type Phase = "welcome" | "questions" | "submitting" | "error";
+type Phase = "welcome" | "questions" | "registration" | "error";
 
 interface SessionState {
   phase: Phase;
   answers: SessionAnswers;
   currentQuestionId: string | null;
+  /** True while the registration POST is in flight. */
+  registrationSubmitting?: boolean;
+  /** Surfaced inline in the registration gate on API failure. */
+  registrationError?: string;
+  /** Surfaced on the full-screen ErrorScreen for catastrophic failures. */
   errorMessage?: string;
 }
 
@@ -62,21 +75,12 @@ function loadState(): SessionState {
       typeof parsed.answers === "object" &&
       parsed.answers !== null
     ) {
-      // Never restore the transient `submitting` phase on load — if a
-      // refresh happened while a request was in flight, fall back to
-      // the questions phase positioned on the last unanswered question
-      // (or to error so the user can retry).
-      const phase = (parsed.phase as Phase) === "submitting"
-        ? "error"
-        : (parsed.phase as Phase);
+      // If a refresh happened while a registration submit was in flight,
+      // resume on the registration phase clean (no submitting flag).
       return {
-        phase,
+        phase: parsed.phase as Phase,
         answers: parsed.answers,
         currentQuestionId: parsed.currentQuestionId ?? null,
-        errorMessage:
-          phase === "error"
-            ? "We weren't able to finish generating your report. Please try again."
-            : undefined,
       };
     }
   } catch {
@@ -88,7 +92,13 @@ function loadState(): SessionState {
 function persistState(state: SessionState) {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    // Only persist the durable shape — don't write the transient
+    // submitting/error flags to storage.
+    const { phase, answers, currentQuestionId } = state;
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ phase, answers, currentQuestionId }),
+    );
   } catch {
     // quota / privacy mode — fail soft
   }
@@ -134,13 +144,9 @@ export function Assessment() {
       };
       const nextId = getNextQuestionId(newAnswers, questionId);
       if (nextId === null) {
-        // Last answer — transition to submitting and fire the request.
-        // We deliberately update local state synchronously then submit
-        // out-of-band so the UI swaps to the staged-progress screen
-        // immediately.
-        void submit(newAnswers);
+        // Final answer — show registration gate (don't fire API yet).
         return {
-          phase: "submitting",
+          phase: "registration",
           answers: newAnswers,
           currentQuestionId: null,
         };
@@ -153,12 +159,18 @@ export function Assessment() {
     });
   }
 
-  async function submit(answers: SessionAnswers) {
+  async function onRegistrationSubmit(lead: LeadInput) {
+    setState((prev) => ({
+      ...prev,
+      registrationSubmitting: true,
+      registrationError: undefined,
+    }));
+
     try {
       const res = await fetch("/api/diagnostic/generate", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ answers }),
+        body: JSON.stringify({ answers: state.answers, lead }),
       });
       const json = (await res.json().catch(() => null)) as
         | { ok: boolean; sessionId?: string; error?: string }
@@ -170,29 +182,20 @@ export function Assessment() {
         return;
       }
 
+      // Inline error on the gate — keep form mounted so values persist
       setState((prev) => ({
         ...prev,
-        phase: "error",
-        errorMessage:
+        registrationSubmitting: false,
+        registrationError:
           json?.error ?? "We couldn't generate your report. Please try again.",
       }));
     } catch {
       setState((prev) => ({
         ...prev,
-        phase: "error",
-        errorMessage: "Network error. Please try again.",
+        registrationSubmitting: false,
+        registrationError: "Network error. Please try again.",
       }));
     }
-  }
-
-  function retrySubmit() {
-    if (Object.keys(state.answers).length === 0) {
-      // No answers to retry with — return to welcome
-      setState(INITIAL_STATE);
-      return;
-    }
-    setState((prev) => ({ ...prev, phase: "submitting", errorMessage: undefined }));
-    void submit(state.answers);
   }
 
   function reset() {
@@ -205,15 +208,21 @@ export function Assessment() {
     return <WelcomeScreen onBegin={begin} />;
   }
 
-  if (state.phase === "submitting") {
-    return <SubmittingScreen />;
-  }
-
   if (state.phase === "error") {
     return (
       <ErrorScreen
         message={state.errorMessage ?? "Something went wrong."}
-        onRetry={retrySubmit}
+        onRetry={reset}
+      />
+    );
+  }
+
+  if (state.phase === "registration") {
+    return (
+      <RegistrationGate
+        onSubmit={onRegistrationSubmit}
+        submitting={state.registrationSubmitting ?? false}
+        errorMessage={state.registrationError}
       />
     );
   }
@@ -224,8 +233,7 @@ export function Assessment() {
     : null;
 
   if (!currentQuestion || !state.currentQuestionId) {
-    // Stale state pointing at a question that doesn't exist in the
-    // current flow. Reset rather than crash.
+    // Stale state — reset rather than crash.
     reset();
     return <WelcomeScreen onBegin={begin} />;
   }
@@ -250,7 +258,6 @@ export function Assessment() {
   );
 }
 
-// Re-exports kept for tooling (none currently consume these from this
-// file but keeping the surface stable in case test scripts move).
+// Re-exports for tooling — kept stable in case test scripts move.
 export type { SessionAnswers };
 export { computeFlow };
