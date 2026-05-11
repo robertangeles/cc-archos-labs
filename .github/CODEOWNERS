@@ -1,0 +1,6 @@
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Every PR auto-requests review from Rob. Add per-path overrides below
+# if/when a teammate owns a specific area.
+
+* @robertangeles

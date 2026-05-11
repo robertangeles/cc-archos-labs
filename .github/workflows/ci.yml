@@ -42,5 +42,8 @@ jobs:
       - name: Typecheck
         run: pnpm tsc
 
+      - name: Test
+        run: pnpm test
+
       - name: Build
         run: pnpm build

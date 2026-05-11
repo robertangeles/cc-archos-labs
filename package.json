@@ -9,6 +9,9 @@
     "start": "next start",
     "lint": "eslint",
     "tsc": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepare": "husky",
     "db:generate": "node --env-file=.env.local --no-warnings ./node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "node --env-file=.env.local scripts/db-apply.mjs",
     "db:studio": "node --env-file=.env.local --no-warnings ./node_modules/drizzle-kit/bin.cjs studio"
@@ -34,8 +37,14 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.5",
+    "husky": "^9.1.7",
     "kill-port": "^2.0.1",
+    "lint-staged": "^17.0.4",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.5"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,mjs}": "eslint --fix"
   }
 }
