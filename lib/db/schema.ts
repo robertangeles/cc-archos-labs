@@ -178,11 +178,65 @@ export type ReportOutput = typeof reportOutput.$inferSelect;
 export type NewReportOutput = typeof reportOutput.$inferInsert;
 
 // ============================================================================
+// magic_link_token — Phase 2 W4 Pass 2
+// ============================================================================
+// One row per sign-in link issued for a returning lead. Raw token never
+// stored — we hash with sha256 and only the digest is persisted. The
+// link in the email carries the raw token; the verify endpoint hashes
+// the incoming token and looks up the row.
+//
+// Lifecycle:
+//   created → consumed (single use, `consumed_at` set)
+//             OR expired (`expires_at` passes; row stays for audit then
+//             swept later)
+//
+// CASCADE delete on lead_id so removing a lead cleans up their tokens.
+
+export const magicLinkToken = pgTable(
+  "magic_link_token",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    leadId: uuid("lead_id")
+      .notNull()
+      .references(() => lead.id, { onDelete: "cascade" }),
+    // sha256 hex of the raw token. unique() so a colliding hash (any
+    // shape) is treated as a write conflict, not a duplicate row.
+    tokenHash: text("token_hash").notNull().unique(),
+    // now() + 15 minutes at mint time. The verify endpoint refuses
+    // tokens past their expiry regardless of consumed_at.
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    // Set on first successful verify. Replay returns expired.
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // FK lookup: list a lead's recent links (rate-limit decisions, audit).
+    leadIdx: index("magic_link_token_lead_id_idx").on(table.leadId),
+  }),
+);
+
+export type MagicLinkToken = typeof magicLinkToken.$inferSelect;
+export type NewMagicLinkToken = typeof magicLinkToken.$inferInsert;
+
+// ============================================================================
 // Relations — for typed Drizzle joins (db.query.assessmentSession.findFirst({ with: { lead } }))
 // ============================================================================
 
 export const leadRelations = relations(lead, ({ many }) => ({
   sessions: many(assessmentSession),
+  magicLinkTokens: many(magicLinkToken),
+}));
+
+export const magicLinkTokenRelations = relations(magicLinkToken, ({ one }) => ({
+  lead: one(lead, {
+    fields: [magicLinkToken.leadId],
+    references: [lead.id],
+  }),
 }));
 
 export const assessmentSessionRelations = relations(
