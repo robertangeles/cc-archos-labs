@@ -9,7 +9,6 @@ import {
   BLOCK_LABELS,
   DOMAIN_LABELS,
   isBranchQuestion,
-  type AnswerCode,
   type Question,
   type QuestionBlock,
   type RiskSeverity,

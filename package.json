@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "tsc": "tsc --noEmit",
     "db:generate": "node --env-file=.env.local --no-warnings ./node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "node --env-file=.env.local scripts/db-apply.mjs",
     "db:studio": "node --env-file=.env.local --no-warnings ./node_modules/drizzle-kit/bin.cjs studio"

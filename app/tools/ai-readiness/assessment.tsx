@@ -119,6 +119,12 @@ export function Assessment() {
   const router = useRouter();
 
   useEffect(() => {
+    // SSR-safe localStorage hydration: this is a client component but
+    // Next.js still renders it on the server, so localStorage isn't
+    // available at first render. Effect runs only on the client after
+    // mount. React 19's set-state-in-effect rule flags this — for
+    // genuine external-state hydration the pattern is correct.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setState(loadState());
     setHydrated(true);
   }, []);

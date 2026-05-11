@@ -57,9 +57,13 @@ export function RegistrationGate({ onSubmit, submitting, errorMessage }: Props) 
   const [stage, setStage] = useState(0);
 
   // Reset + advance stage messages while submitting. When submitting
-  // ends (success or error), reset to first stage.
+  // ends (success or error), reset to first stage. The setStage(0)
+  // path syncs local UI state to the parent's submitting prop —
+  // React 19's set-state-in-effect rule flags this but the pattern is
+  // correct for reacting to external prop changes.
   useEffect(() => {
     if (!submitting) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStage(0);
       return;
     }

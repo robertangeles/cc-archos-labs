@@ -7,7 +7,6 @@ import {
 } from "./content";
 import {
   DOMAINS,
-  type AnswerCode,
   type Domain,
   type DomainScore,
   type RiskFlag,

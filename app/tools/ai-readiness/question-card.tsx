@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   BLOCK_LABELS,
@@ -28,13 +28,6 @@ export function QuestionCard({
   onAnswer: (code: AnswerCode) => void;
 }) {
   const [selected, setSelected] = useState<AnswerCode | null>(null);
-
-  // Reset local selection state when the question changes (the parent
-  // unmounts and re-mounts via AnimatePresence + key, so this only
-  // runs on the first render of each question).
-  useEffect(() => {
-    setSelected(null);
-  }, [question.id]);
 
   function handleSelect(code: AnswerCode) {
     if (selected !== null) return;
