@@ -6,7 +6,7 @@
 // fall through to Next.js's default of 3000 (forbidden by CLAUDE.md).
 
 import killPort from "kill-port";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 
 const port = Number(process.env.PORT);
 if (!Number.isInteger(port) || port <= 0 || port > 65535) {
@@ -15,6 +15,11 @@ if (!Number.isInteger(port) || port <= 0 || port > 65535) {
   );
   process.exit(1);
 }
+
+// Pre-flight: nudge if local main is behind origin/main. Non-blocking.
+spawnSync(process.execPath, ["scripts/_check-main-sync.mjs", "--dev"], {
+  stdio: "inherit",
+});
 
 try {
   await killPort(port);
