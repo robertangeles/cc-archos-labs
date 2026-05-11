@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node --env-file-if-exists=.env.local node_modules/next/dist/bin/next dev",
+    "dev": "node --env-file-if-exists=.env.local scripts/dev.mjs",
     "dev:fresh": "node --env-file-if-exists=.env.local scripts/dev-fresh.mjs",
     "build": "next build",
     "start": "next start",
