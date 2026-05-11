@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 
 // Cycle the submit-button label through staged messages while the
@@ -140,6 +141,16 @@ export function RegistrationGate({ onSubmit, submitting, errorMessage }: Props) 
             Create a free account to unlock it — no credit card, no pitch
             call, no obligation. Your report is generated once and stored
             securely; you can return to it any time.
+          </p>
+          <p className="mt-3 text-sm leading-[1.6] text-muted">
+            Already done this?{" "}
+            <Link
+              href="/sign-in"
+              className="text-accent underline decoration-accent/40 underline-offset-4 hover:decoration-accent"
+            >
+              Sign in instead
+            </Link>
+            .
           </p>
 
           <form
