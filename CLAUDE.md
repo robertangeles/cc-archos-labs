@@ -890,19 +890,10 @@ If a feature introduces security and privacy risk, Claude must:
 
 `main` is the trunk. Every push auto-deploys via Render. CI must pass.
 
-## Pre-launch sprint exception (active 2026-05-08 → Phase 0a ship)
-
-Until `archoslabs.xyz` is live on Render with DNS pointed (Phase 0 item 4),
-solo + no-CI workflow ships **direct to `main`** for non-trivial changes too.
-The "non-trivial → feature branch" rule below is suspended for the pre-launch
-sprint because: (a) no CI to gate, (b) no second developer to review, (c)
-Render auto-deploys from `main` only — feature branch + PR + merge would add
-2–3 manual steps with zero benefit. Deviation sanctioned by Rob 2026-05-08.
-
-**Re-engage the feature-branch rule when:** Phase 0a ships AND CI is wired
-up (Phase 0 items 5–7). At that point, all subsequent non-trivial work goes
-on a feature branch, CI gates the merge, and `main` becomes append-only via
-PR.
+**Pre-launch sprint exception ended 2026-05-11.** Phase 0a shipped + CI is
+wired + branch protection is active. All non-trivial work goes through a
+feature branch + PR + CI from now on. See `CONTRIBUTING.md` for the
+day-to-day workflow.
 
 ## Rules
 

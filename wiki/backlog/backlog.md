@@ -2,7 +2,7 @@
 title: Archos Labs HQ — Build Backlog
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-08
+updated: 2026-05-11
 related: [[index]], [[log]], [[2026-05-08-phase2-ceo-review]]
 ---
 
@@ -107,6 +107,30 @@ The pieces that turn a stranger into a paid consulting conversation. Home page a
 - **Wiki updates** before any feature is marked complete (CLAUDE.md `wiki/` mandate).
 - **Lessons learned** entries for any non-obvious bug fix or architectural decision.
 - **No DB** until a feature genuinely requires persistence — defer until lead capture or diagnostic submissions need it. When added, follow CLAUDE.md Database Design Standards (2NF, indexed FKs, naming conventions).
+
+---
+
+## IP-sensitive content → DB-backed Settings (added 2026-05-11)
+
+**Trigger:** Repo flipping to public on 2026-05-11 to unlock free GitHub rulesets (branch protection). Anything sensitive must move out of source.
+
+**What's IP-sensitive in the repo today:**
+- `lib/diagnostic/prompts.ts` — Claude system prompt + user-prompt template. Practitioner voice, forbidden words, tone-by-tier matrix. Core IP for the report quality.
+- `lib/diagnostic/content.ts` — `QUESTIONS` array (19 questions with hand-tuned option labels + descriptions), per-option scores with calibration deviations, `RISK_FLAG_RULES`, `PRIORITY_TRIGGERS`, `TIER_BOUNDARIES`, `DOMAIN_WEIGHTS`. Hand-calibrated through persona testing — replicable but expensive to recreate.
+- `wiki/concepts/diagnostic-scoring-logic.md` — full scoring matrix in plain English. Explains the IP above more clearly than the code does.
+- `wiki/decisions/2026-05-09-diagnostic-scoring-calls.md` — the calibration rationale.
+
+**Per `feedback_config_tier_hierarchy.md` memory:** anything that may change in future = DB-backed Settings. Prompts will change as we learn what reports work; questions and scoring values will be retuned. Both belong in Settings, not source.
+
+**Sequenced backlog:**
+
+26. **Move Claude system prompt to Settings** — extend `site_setting` (or new `prompt_template` table — decide at design) so `lib/diagnostic/prompts.ts` reads from DB at request time. Versioned via `prompt_version` already stored on `report_output`. Add Content & Copy admin tab to edit it. Verify: edit in admin → next report generation uses new prompt → `prompt_version` increments → old reports still resolve via stored version metadata.
+
+27. **Move diagnostic content to DB** — questions, options, per-option scores, branch rules, risk flag rules, priority triggers, tier boundaries, domain weights. Probably needs new tables (`diagnostic_question`, `diagnostic_option`, etc.) because the shape is richer than a single JSONB blob. Edits surface in the admin Content & Copy tab. Verify: edit a question text in admin → assessment page reflects on next request → scoring still passes the existing persona tests (smoke regression: run `scripts/test-diagnostic.ts` against DB-loaded content).
+
+28. **Relocate sensitive wiki to a private location** — `wiki/concepts/diagnostic-scoring-logic.md` and `wiki/decisions/2026-05-09-diagnostic-scoring-calls.md` either move to a `private-notes/` directory that's gitignored and synced via personal channel, OR get rewritten as high-level overviews with the calibrated values redacted. Decide which when 26/27 land.
+
+**Priority:** After W4 Pass 2 (magic-link, revenue path) but before any third-party (contractors, partners) gets repo access beyond the current second dev. Treat as Phase 2.5 hardening. Items 26 and 27 can be split — prompt move is smaller and higher value (it's actively tuned); content move is larger.
 
 ---
 
