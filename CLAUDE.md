@@ -976,10 +976,10 @@ All steps must pass. No exceptions.
 
 # Local Development Ports
 
-- Next.js dev server: 3007 (local only)
-- Render uses PORT environment variable in production
-- Never hardcode port 3007 in production code
-- Never default to port 3000
+- Local dev port comes from `PORT` in `.env.local`. Default is `3007` (per `.env.example`). Bump per-project so two repos can run side-by-side.
+- `pnpm dev` and `pnpm dev:fresh` load `.env.local` via Node's `--env-file-if-exists` flag before starting Next.js — no hardcoded port in scripts.
+- Render injects `PORT` into the production runtime environment; `next start` reads it. Never hardcode a port in production code.
+- Never default to port 3000.
 
 ------------------------------------------------------------------------
 
