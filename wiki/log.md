@@ -2,11 +2,27 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-11
 related:
 ---
 
 Append-only log of sessions. Newest entry at the top.
+
+## 2026-05-11 — Phase 2 W4 Pass 1 verified end-to-end
+
+W4 Pass 1 (registration gate + lead session JWT + owner-only report access) was already implemented at start of session — commit `c0ef2d3` sat on local main unpushed pending manual verification. This session walked the four-test plan against local dev + Render Postgres.
+
+**Tests** (all pass):
+- Test 1 — happy path: full assessment → registration POST → redirect to report. Pass.
+- Test 2 — form validation: empty fields blocked by HTML `required`; malformed email rejected with 400 from Zod-validated `/api/diagnostic/generate`; form values persist across error. Pass.
+- Test 3 — owner-only access (security-critical): a logged-in user with one report cannot view another user's report URL; an incognito visitor with no cookie cannot view any report. Both return 404 (not 401, to avoid revealing existence). Pass.
+- Test 4 — returning lead upsert: same email registered twice produces one `lead` row with `updated_at > created_at` plus two `assessment_session` rows. Verified via new `scripts/check-lead.mjs` helper (one-off DB introspection by email; Rob had no SQL client). Pass.
+
+**Wiki**: created `wiki/concepts/lead-session-and-owner-only-reports.md` — documents the two-cookie / one-secret model (admin 24h vs lead 30d, both signed with `AUTH_SECRET`, never overlap), the lead upsert-by-email pattern, sticky `is_priority`, the 404-not-401 ownership check rationale, and what W4 Pass 1 explicitly does NOT include (magic-link sign-in for return visitors lands in Pass 2).
+
+**Helper added**: `scripts/check-lead.mjs` — `node --env-file=.env.local scripts/check-lead.mjs <email>` prints the lead row(s) and all linked assessment sessions. One-off introspection tool; pattern matches `scripts/test-db.mjs`.
+
+End state: c0ef2d3 verified, wiki updated, ready to push to `origin/main`. W4 Pass 2 (magic-link auth for return visitors) is next.
 
 ## 2026-05-08 — Phase 1.C built via minimal admin section + AIEO assets
 

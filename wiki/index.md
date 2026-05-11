@@ -2,8 +2,8 @@
 title: Wiki Index
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-08
-related: [[backlog]], [[2026-05-08-minimal-admin-for-seo]], [[2026-05-08-resend-with-external-recipient]], [[2026-05-08-godaddy-smtp-for-contact-form]], [[2026-05-08-render-postgres-over-neon]], [[2026-05-08-phase2-ceo-review]], [[2026-05-08-admin-deferred]], [[2026-05-07-linear-redesign]], [[2026-05-07-brand-foundation]], [[2026-05-07-layout-shell]], [[2026-05-07-home-page]], [[2026-05-07-turbopack-root]], [[2026-05-07-tailwind-v4-new-utilities]], [[2026-05-08-drizzle-kit-push-hangs-on-render]]
+updated: 2026-05-11
+related: [[backlog]], [[lead-session-and-owner-only-reports]], [[2026-05-08-minimal-admin-for-seo]], [[2026-05-08-resend-with-external-recipient]], [[2026-05-08-godaddy-smtp-for-contact-form]], [[2026-05-08-render-postgres-over-neon]], [[2026-05-08-phase2-ceo-review]], [[2026-05-08-admin-deferred]], [[2026-05-07-linear-redesign]], [[2026-05-07-brand-foundation]], [[2026-05-07-layout-shell]], [[2026-05-07-home-page]], [[2026-05-07-turbopack-root]], [[2026-05-07-tailwind-v4-new-utilities]], [[2026-05-08-drizzle-kit-push-hangs-on-render]]
 ---
 
 Master catalog of all wiki pages. Read this at the start of every session.
@@ -13,6 +13,7 @@ _(none yet)_
 
 ## concepts
 - [AI Readiness Assessment — Scoring Logic](concepts/diagnostic-scoring-logic.md) — full per-option scoring matrix, branch + replacement logic, tier boundaries, risk flag rules, priority triggers, persona test results
+- [Lead session model and owner-only report access](concepts/lead-session-and-owner-only-reports.md) — two cookies one secret, lead upsert by email, sticky priority, why owner-mismatch returns 404 not 401
 
 ## decisions
 - [Diagnostic per-option scoring calibration calls](decisions/2026-05-09-diagnostic-scoring-calls.md) — four scoring deviations from default option-order on Q3, Q6, Q8, Q12 + introduction of PRIORITY_TRIGGERS for orthogonal CRM tagging
