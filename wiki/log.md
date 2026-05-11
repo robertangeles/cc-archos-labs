@@ -2,11 +2,29 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-11
+updated: 2026-05-12
 related:
 ---
 
 Append-only log of sessions. Newest entry at the top.
+
+## 2026-05-12 — Phase 2 W4 Pass 2 shipped (magic-link sign-in)
+
+Closes the revenue-critical return-visitor gap. A lead who clears cookies / switches device / comes back next month can now recover access to their report without re-running the assessment.
+
+**Flow**: `/sign-in` form → POST `/api/auth/lead/request` (rate-limited 10/IP/hr + 3/email/15min, always returns generic OK to defeat enumeration) → email via Resend → user clicks → GET `/api/auth/lead/verify?token=…` → atomic consume (single conditional UPDATE on `consumed_at IS NULL AND expires_at > now`) → fresh `archos_lead_session` cookie → 302 to most-recent completed report.
+
+**Schema**: new `magic_link_token` table. Stores `sha256(token)` only — raw token lives in the email link, never in the DB. TTL 15 min. One-time use enforced at the SQL level. `lead_id` FK with CASCADE delete.
+
+**Library**: `lib/magic-link.ts` (mint + consume), `lib/email-templates.ts` (single-CTA HTML + plain-text fallback, escaped inputs).
+
+**UI**: `/sign-in` (email input, calm copy, back-link to assessment for first-timers), `/sign-in/check-email` (says the same thing whether email matched or not), passive "Already done this? Sign in instead" nudge above the registration-gate form.
+
+**Manual test plan run end-to-end** (all 6 pass): nudge visible, happy path, replay → expired_link, no enumeration on fake emails, per-email rate limit (3/15min), tampered URLs → expected error codes.
+
+**Out of scope (deferred to W5)**: lead-side logout, "your reports" listing page for leads with multiple completed sessions, cookie rotation on read, automated tests covering the DB-touching consume path.
+
+**Process notes**: this was the third feature PR through the new branch-protection gate (PRs #1 #2 #3 set up the gate + dogfooded it; #4 is the first revenue-path feature through it). Workflow holds — feature branch → CI → bypass-merge → main → Render auto-deploy.
 
 ## 2026-05-11 — Phase 2 W4 Pass 1 verified end-to-end
 
