@@ -8,6 +8,10 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-12 — Backlog: added Phase 1.E (Book a Call) items 29 + 30; claimed Lane B
+
+Added Phase 1.E section to `wiki/backlog/backlog.md` covering Book-a-Call's Lane B (Google Calendar + Claude integrations) as item 29 and Lane C (slot math + scheduler) as item 30. Lane A foundations already shipped in PR #8 + PR #10; backlog now reflects what's planned next. Item 29 claimed for Rob today per the CONTRIBUTING.md "Backlog-claim convention" (the `[Rob, 2026-05-12]` tag). PR that ships item 29 will strip the claim line.
+
 ## 2026-05-12 — Phase 1.E Book-a-Call Lane A foundations + incident
 
 **Shipped (PR #8, squash-merged to main as `ba3943a`):** Drizzle schema for 5 new tables (`consultant`, `consultant_blackout`, `booking_request`, `scheduled_job`, `cron_heartbeat`) and four new `lib/` modules — `booking-crypto.ts` (AES-256-GCM for Google refresh tokens, D6a), `jwt-magic-link.ts` (cancel + reschedule magic links for the booking flow, D3c, distinct from W4 Pass 2's `lib/magic-link.ts`), `errors/booking.ts` (`BookingError` base + 14 named subclasses, §18.4), `redact.ts` (PII redaction for logs, D8b). 36 new tests; full suite green (43 total). Migration `0003_superb_marvel_zombies.sql` sits on top of W4 Pass 2's `0002_exotic_toad.sql`. `.env.example` documents the new `BOOKING_ENCRYPTION_KEY` var.

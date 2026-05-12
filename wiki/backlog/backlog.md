@@ -2,7 +2,7 @@
 title: Archos Labs HQ — Build Backlog
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-11
+updated: 2026-05-12
 related: [[index]], [[log]], [[2026-05-08-phase2-ceo-review]]
 ---
 
@@ -131,6 +131,16 @@ The pieces that turn a stranger into a paid consulting conversation. Home page a
 28. **Relocate sensitive wiki to a private location** — `wiki/concepts/diagnostic-scoring-logic.md` and `wiki/decisions/2026-05-09-diagnostic-scoring-calls.md` either move to a `private-notes/` directory that's gitignored and synced via personal channel, OR get rewritten as high-level overviews with the calibrated values redacted. Decide which when 26/27 land.
 
 **Priority:** After W4 Pass 2 (magic-link, revenue path) but before any third-party (contractors, partners) gets repo access beyond the current second dev. Treat as Phase 2.5 hardening. Items 26 and 27 can be split — prompt move is smaller and higher value (it's actively tuned); content move is larger.
+
+---
+
+## Phase 1.E — Book a Call (replaces mailto: CTAs) — added 2026-05-12
+
+Per the CEO + design + eng plan review locked 2026-05-12, the home page's `mailto:` CTAs are being replaced with a self-serve calendar booking flow that creates Google Meet invites and feeds an AI-augmented pre-call pipeline (AI follow-up question on the intake, AI pre-call brief to Rob 1h before, AI-matched blog posts in the confirmation email, scheduled reminders + no-show recovery). Lane A foundations (schema for 5 new tables, AES-GCM crypto, JWT magic links, error hierarchy, redaction, 10 UI primitives, 6 email templates) shipped in PR #8 + PR #10. Full plan + design spec + eng review at `~/.claude/plans/before-we-start-can-indexed-riddle.md` (external; not in repo).
+
+29. **Lane B — Google Calendar + Claude integrations** [Rob, 2026-05-12] — `lib/google-oauth.ts` (one-time admin grant + token exchange + refresh), `lib/google-calendar.ts` (freebusy + events.insert + events.delete + reactive token refresh with 5-min skew + 60s freebusy cache per §18 inline fix), `lib/claude-booking.ts` (three prompts: conversational intake follow-up D4a, pre-call brief D3a, blog-post matching D3d). Three LLM eval suites per CEO §6 with ground-truth fixtures. Verify: live freebusy call against Rob's calendar returns expected window; eval suites pass at the baseline thresholds; tampered tokens raise `CryptoError` per existing booking-crypto tests; 401 → reactive refresh → retry works under simulated expiry.
+
+30. **Lane C — Calendar slot math + scheduler** — `lib/calendar.ts` (pure functions: working hours, blackouts, freebusy filter, buffer, min-notice, advance-days, DST-spring + DST-fall handling), `lib/scheduler.ts` (queue dispatcher with `FOR UPDATE SKIP LOCKED` per D19, batch=10 with `Promise.all` for Claude-bearing kinds per §18 inline fix, idempotency_key on every Resend send per §18.8). Reuses the `scheduled_job` table from Lane A and the email templates from `lib/booking-emails.ts`. Verify: slot-math unit tests cover DST in both directions; two concurrent `dequeueJobs(10)` against 5 pending rows return disjoint subsets; max-retry exhaustion fires the consultant alert email.
 
 ---
 
