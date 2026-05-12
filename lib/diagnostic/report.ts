@@ -5,7 +5,8 @@ import { assessmentSession, lead, reportOutput } from "../db/schema";
 import { generateStructured } from "../claude";
 import { TIER_BOUNDARIES } from "./content";
 import { evaluateSession, evaluatePriorityTriggers } from "./scoring";
-import { SYSTEM_PROMPT, buildUserPrompt } from "./prompts";
+import { buildUserPrompt } from "./prompts";
+import { getDiagnosticPrompt } from "./prompt-config";
 import {
   isValidReportContent,
   type ReportContent,
@@ -29,8 +30,6 @@ export interface LeadRegistrationInput {
 //
 // generateReport(): scoring → Claude (via OpenRouter) → DB write
 // loadReport():     DB read by session id → ready-to-render shape
-
-const PROMPT_VERSION = "v1";
 
 // Caps Claude's response length. 2000 tokens covers a 500-word
 // narrative + verdict + 5-action plan with comfortable headroom.
@@ -63,10 +62,14 @@ export async function generateReport(
   // 1. Score the answers (pure)
   const result = evaluateSession(input.answers);
 
-  // 2. Build prompts and call Claude via OpenRouter
+  // 2. Build prompts and call Claude via OpenRouter. The system prompt
+  //    loads from the DB (admin-editable) — IP-sensitive practitioner
+  //    voice doesn't live in source. Fallback to a generic shell if no
+  //    row exists (see prompt-config-shared.ts).
+  const { systemPrompt, version: promptVersion } = await getDiagnosticPrompt();
   const userPrompt = buildUserPrompt({ answers: input.answers, result });
   const llmResult = await generateStructured<unknown>({
-    systemPrompt: SYSTEM_PROMPT,
+    systemPrompt,
     userMessage: userPrompt,
     maxTokens: MAX_OUTPUT_TOKENS,
   });
@@ -149,7 +152,7 @@ export async function generateReport(
       narrative: reportContent.narrative,
       actionPlan: reportContent.action_plan,
       modelId: llmResult.modelId,
-      promptVersion: PROMPT_VERSION,
+      promptVersion,
       inputTokens: llmResult.inputTokens,
       outputTokens: llmResult.outputTokens,
     })
