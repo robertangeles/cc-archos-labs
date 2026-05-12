@@ -8,6 +8,18 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-12 — Phase 1.E Book-a-Call Lane A foundations + incident
+
+**Shipped (PR #8, squash-merged to main as `ba3943a`):** Drizzle schema for 5 new tables (`consultant`, `consultant_blackout`, `booking_request`, `scheduled_job`, `cron_heartbeat`) and four new `lib/` modules — `booking-crypto.ts` (AES-256-GCM for Google refresh tokens, D6a), `jwt-magic-link.ts` (cancel + reschedule magic links for the booking flow, D3c, distinct from W4 Pass 2's `lib/magic-link.ts`), `errors/booking.ts` (`BookingError` base + 14 named subclasses, §18.4), `redact.ts` (PII redaction for logs, D8b). 36 new tests; full suite green (43 total). Migration `0003_superb_marvel_zombies.sql` sits on top of W4 Pass 2's `0002_exotic_toad.sql`. `.env.example` documents the new `BOOKING_ENCRYPTION_KEY` var.
+
+**Incident during the session:** mid-flow audit claimed `magic_link_token` was orphaned schema drift based on grep of the feature branch's working tree. The table was actually load-bearing for W4 Pass 2, which had merged to main and deployed to Render after the feature branch was created. Wrote a cleanup migration that dropped the table + 3 rows of W4 Pass 2 test data. Caught when opening the PR — the resulting merge conflict in `drizzle/meta/_journal.json` and `0002_snapshot.json` surfaced the divergence. Restored the table by re-running the `CREATE TABLE` statements from `origin/main:drizzle/0002_exotic_toad.sql` against Render, marked `0002_exotic_toad.sql` as applied in `__drizzle_applied`. Discarded the bad cleanup commit, rebased the foundations commit onto current main, force-pushed. The 3 dropped rows are recoverable only from Render's automated DB backups if those exist; otherwise gone (likely dev test data — verify if needed).
+
+**Lessons-learned written:** [Schema drift claims need an origin/main check, not just the working tree](lessons-learned/2026-05-12-schema-drift-needs-origin-main-check.md). Rule: before declaring code unreferenced or schema orphaned, `git fetch && git log HEAD..origin/main --oneline` to see what merged after you branched off, and `git grep <symbol> origin/main` to search across branches, not just the working tree. Destructive operations against shared state need this check *before* the command, not after.
+
+**Decisions captured in plan file (external, at `~/.claude/plans/...`):** D18 — confirmation email moves into `scheduled_job` queue for retry uniformity. D19 — cron handler dequeues with `FOR UPDATE SKIP LOCKED` to prevent overlap-driven duplicate sends.
+
+**Next:** Lane A A5 (UI primitives in `components/ui/`) + A6 (email templates in `lib/emails/`). After that, Lane B (Google Calendar + Claude integrations).
+
 ## 2026-05-12 — Phase 2 W4 Pass 2 shipped (magic-link sign-in)
 
 Closes the revenue-critical return-visitor gap. A lead who clears cookies / switches device / comes back next month can now recover access to their report without re-running the assessment.

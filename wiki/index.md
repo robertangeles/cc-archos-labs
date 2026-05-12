@@ -33,6 +33,7 @@ _(none yet)_
 _(none yet)_
 
 ## lessons-learned
+- [Schema drift claims need an origin/main check, not just the working tree](lessons-learned/2026-05-12-schema-drift-needs-origin-main-check.md) — fetch + diff against origin/main before declaring code or tables unreferenced; a feature-branch grep doesn't see what merged to main after you branched off
 - [drizzle-kit push hangs on Render Postgres](lessons-learned/2026-05-08-drizzle-kit-push-hangs-on-render.md) — bypass push; use `drizzle-kit generate` + a `postgres-js` SQL applier
 - [Turbopack workspace root must be set explicitly on Next.js 16](lessons-learned/2026-05-07-turbopack-root.md) — set `turbopack.root` in `next.config.ts` from day one when project lives inside a shared parent dir
 - [Tailwind v4 dev server doesn't always compile new utility names on hot-reload](lessons-learned/2026-05-07-tailwind-v4-new-utilities.md) — re-save `globals.css` after introducing new `--color-*` tokens; values hot-reload, names don't
