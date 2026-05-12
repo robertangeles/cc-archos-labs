@@ -14,6 +14,7 @@
     "prepare": "husky",
     "wip": "node scripts/wip.mjs",
     "new-branch": "node scripts/new-branch.mjs",
+    "sync-branch": "node scripts/sync-branch.mjs",
     "migration-safety": "node scripts/_check-migration-safety.mjs",
     "db:generate": "node --env-file=.env.local --no-warnings ./node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "node --env-file=.env.local scripts/db-apply.mjs",
