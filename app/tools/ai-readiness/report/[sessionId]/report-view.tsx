@@ -10,7 +10,9 @@ import {
   type RiskSeverity,
 } from "../../../../../lib/diagnostic/types";
 import type { LoadedReport } from "../../../../../lib/diagnostic/report";
+import type { ShareTokenSummary } from "../../../../../lib/share-tokens";
 import { PrintButton } from "./print-button";
+import { ShareControls } from "./share-controls";
 
 // Six-section report layout per spec §6.
 //
@@ -34,7 +36,21 @@ const sevLabels: Record<RiskSeverity, string> = {
   medium: "Risk",
 };
 
-export function ReportView({ report }: { report: LoadedReport }) {
+export interface ReportViewProps {
+  report: LoadedReport;
+  /** Controls owner-only chrome (ShareControls) and shared-view banners.
+   *  Defaults to "owner" so the existing owner page works unchanged. */
+  viewMode?: "owner" | "shared";
+  /** Active share tokens for this report. Only consumed when
+   *  viewMode === "owner". Required there; ignored in "shared" mode. */
+  shareTokens?: ShareTokenSummary[];
+}
+
+export function ReportView({
+  report,
+  viewMode = "owner",
+  shareTokens = [],
+}: ReportViewProps) {
   const { result, content, recipient } = report;
 
   // Claude returns the narrative as one string with \n\n between
@@ -54,6 +70,7 @@ export function ReportView({ report }: { report: LoadedReport }) {
 
   return (
     <main className="flex flex-1 flex-col bg-canvas">
+      {viewMode === "shared" ? <SharedReportBanner /> : null}
       {/* ====================================================================
           Section 1 — Verdict / cover
           On screen: a tight summary header.
@@ -252,6 +269,18 @@ export function ReportView({ report }: { report: LoadedReport }) {
       </section>
 
       {/* ====================================================================
+          Owner share controls — only rendered for the owner view, not
+          the public /share/[token] view. Print-hidden via the
+          component's own class.
+          ==================================================================== */}
+      {viewMode === "owner" ? (
+        <ShareControls
+          sessionId={report.sessionId}
+          initialTokens={shareTokens}
+        />
+      ) : null}
+
+      {/* ====================================================================
           Section 6 — Next-step CTA
           ==================================================================== */}
       <section className="px-6 py-16 md:px-12 md:py-20 print:break-before-page print:py-0 print:pt-12">
@@ -291,6 +320,26 @@ export function ReportView({ report }: { report: LoadedReport }) {
         </div>
       </section>
     </main>
+  );
+}
+
+// Banner shown above the verdict on the public /share/[token] view so
+// the recipient understands this is a forwarded report (not signed-in).
+// Hidden on print so the PDF stays clean.
+function SharedReportBanner() {
+  return (
+    <div className="border-b border-rule bg-surface px-6 py-4 print:hidden md:px-12">
+      <div className="mx-auto flex w-full max-w-[840px] flex-wrap items-center gap-x-4 gap-y-2">
+        <span className="text-[11px] font-medium uppercase tracking-[0.1em] text-accent">
+          Shared report
+        </span>
+        <span className="text-sm leading-[1.55] text-muted">
+          You&rsquo;re viewing this report via a shared link. The link
+          expires after 7 days and can be revoked at any time by the
+          report owner.
+        </span>
+      </div>
+    </div>
   );
 }
 

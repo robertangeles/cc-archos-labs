@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { loadReport } from "../../../../../lib/diagnostic/report";
+import { listSessionShareTokens } from "../../../../../lib/share-tokens";
 import { getLeadFromCookies } from "../../../../../lib/auth-server";
 import { ReportView } from "./report-view";
 
@@ -62,5 +63,15 @@ export default async function ReportPage({
     notFound();
   }
 
-  return <ReportView report={report} />;
+  // Load the active share tokens so the owner's ShareControls can
+  // render existing links. Empty for first-time visitors to the page.
+  const shareTokens = await listSessionShareTokens(sessionId);
+
+  return (
+    <ReportView
+      report={report}
+      viewMode="owner"
+      shareTokens={shareTokens}
+    />
+  );
 }

@@ -226,6 +226,63 @@ export type MagicLinkToken = typeof magicLinkToken.$inferSelect;
 export type NewMagicLinkToken = typeof magicLinkToken.$inferInsert;
 
 // ============================================================================
+// share_token — Phase 2 C-2 (shareable report URLs)
+// ============================================================================
+// Lets a lead generate a public URL for a specific report so they can
+// forward it to a CFO / board / collaborator without that recipient
+// having to register or sign in. Raw token never stored — we hash with
+// sha256 and only the digest is persisted. The link in the share URL
+// carries the raw token.
+//
+// Properties (locked in 2026-05-13 user decision):
+//   - 7-day TTL from mint time.
+//   - "One consume, re-views OK" — consumed_at is stamped on first
+//     view for audit, but subsequent visits still render until
+//     expires_at OR revoked_at fires.
+//   - Many active tokens per report supported — owner can mint
+//     independent links for different recipients, each revocable.
+//
+// CASCADE delete on assessment_session_id so removing a session
+// cleans up its tokens.
+
+export const shareToken = pgTable(
+  "share_token",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    assessmentSessionId: uuid("assessment_session_id")
+      .notNull()
+      .references(() => assessmentSession.id, { onDelete: "cascade" }),
+    // sha256 hex of the raw token. unique() so any hash collision
+    // (vanishingly rare) is treated as a write conflict.
+    tokenHash: text("token_hash").notNull().unique(),
+    // now() + 7 days at mint time. Verify refuses past expiry.
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    // Stamped on first successful view. Subsequent views still render
+    // until expires_at OR revoked_at — see the discussion above.
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    // Set when the owner clicks "Revoke" on a token. Verify treats
+    // revoked tokens as not-found.
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // FK lookup: list tokens for a report (owner UI), or cascade
+    // cleanup when a session is purged.
+    sessionIdx: index("share_token_assessment_session_id_idx").on(
+      table.assessmentSessionId,
+    ),
+  }),
+);
+
+export type ShareToken = typeof shareToken.$inferSelect;
+export type NewShareToken = typeof shareToken.$inferInsert;
+
+// ============================================================================
 // Relations — for typed Drizzle joins (db.query.assessmentSession.findFirst({ with: { lead } }))
 // ============================================================================
 
