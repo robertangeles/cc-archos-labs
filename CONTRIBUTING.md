@@ -49,6 +49,21 @@ Then:
 
 Keep branches short-lived. If a branch is open more than two days, something is probably wrong with the scope.
 
+## Automated sync nudges
+
+Two background checks watch for stale-branch problems:
+
+- **`pnpm dev` / `pnpm dev:fresh`** — at startup, fetches `origin/main` and prints a one-line warning if your local `main` is behind. Doesn't block. Cheap fetch (~200ms).
+- **`git push`** — Husky `pre-push` hook fetches `origin/main` and warns if your feature branch hasn't been rebased onto the latest. Doesn't block — branch protection on `main` is the real gate.
+
+Both checks exit silently when you're in sync. They're nudges, not guards. If you see a warning, rebase before continuing:
+
+```powershell
+git fetch origin
+git rebase origin/main
+git push --force-with-lease   # if you'd already pushed the branch
+```
+
 ## Local checks before opening a PR
 
 ```bash

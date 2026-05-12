@@ -1,0 +1,1 @@
+node scripts/_check-main-sync.mjs --prepush
