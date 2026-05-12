@@ -23,3 +23,42 @@
     -moz-osx-font-smoothing: grayscale;
   }
 }
+
+/* ----------------------------------------------------------------------------
+   Print stylesheet — used by the "Download PDF" button on the AI Readiness
+   report and by anyone hitting Ctrl/Cmd-P on a Report page.
+   Approach:
+   - Override the Tailwind theme tokens for print so any utility that resolves
+     to var(--color-*) (e.g. bg-canvas, text-fg) renders in a light palette
+     without per-element print: variants. Tailwind v4 compiles @theme tokens
+     to CSS custom properties, so a @media print override cascades.
+   - Force a white body background to defeat browser "print backgrounds" off
+     by default — risk-flag callouts and surface cards still need contrast.
+   - Reasonable page margins for a desk-printed report.
+   ---------------------------------------------------------------------------- */
+@media print {
+  :root {
+    --color-canvas: #ffffff;
+    --color-surface: #f8f8f6;
+    --color-fg: #0f0f0f;
+    --color-muted: #525252;
+    --color-rule: #d4d4d8;
+    --color-accent: #1e40af;
+    --color-accent-hover: #1e3a8a;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #0f0f0f !important;
+  }
+
+  @page {
+    margin: 0.75in;
+  }
+
+  /* Force colors-as-styled to print, including backgrounds for callouts. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

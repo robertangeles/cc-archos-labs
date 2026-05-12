@@ -176,6 +176,16 @@ export interface LoadedReport {
   // The lead that owns this report. Used by the report page to enforce
   // owner-only access (cookie's leadId must match this).
   leadId: string | null;
+  // Recipient details — surfaced for the printable cover page so the PDF
+  // reads as "Prepared for [Name], [Job title], [Organisation]". Null only
+  // when the session predates registration (W3-era reports — should not
+  // happen after W4 Pass 1 enforcement).
+  recipient: {
+    firstName: string;
+    lastName: string;
+    jobTitle: string | null;
+    organisation: string | null;
+  } | null;
   result: SessionResult;
   content: ReportContent;
   generatedAt: Date;
@@ -203,12 +213,17 @@ export async function loadReport(
       narrative: reportOutput.narrative,
       actionPlan: reportOutput.actionPlan,
       generatedAt: reportOutput.generatedAt,
+      leadFirstName: lead.firstName,
+      leadLastName: lead.lastName,
+      leadJobTitle: lead.jobTitle,
+      leadOrganisation: lead.organisation,
     })
     .from(assessmentSession)
     .innerJoin(
       reportOutput,
       eq(reportOutput.assessmentSessionId, assessmentSession.id),
     )
+    .leftJoin(lead, eq(lead.id, assessmentSession.leadId))
     .where(eq(assessmentSession.id, sessionId))
     .limit(1);
 
@@ -234,9 +249,20 @@ export async function loadReport(
     priorityReasons: priority.reasons,
   };
 
+  const recipient: LoadedReport["recipient"] =
+    row.leadFirstName && row.leadLastName
+      ? {
+          firstName: row.leadFirstName,
+          lastName: row.leadLastName,
+          jobTitle: row.leadJobTitle,
+          organisation: row.leadOrganisation,
+        }
+      : null;
+
   return {
     sessionId: row.sessionId,
     leadId: row.leadId,
+    recipient,
     result,
     content: {
       verdict: row.verdict,
