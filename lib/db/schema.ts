@@ -6,7 +6,9 @@ import {
   uuid,
   boolean,
   integer,
+  numeric,
   index,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -257,5 +259,337 @@ export const reportOutputRelations = relations(reportOutput, ({ one }) => ({
   session: one(assessmentSession, {
     fields: [reportOutput.assessmentSessionId],
     references: [assessmentSession.id],
+  }),
+}));
+
+// ============================================================================
+// consultant — Book-a-Call
+// ============================================================================
+// One row per person who takes calls. v1 hardcodes to a single consultant
+// (Rob), but the schema is multi-consultant ready (D5b). Holds the
+// per-consultant config that the slot generator and email pipeline read
+// from: working hours, timezone, blackouts (via FK), Google OAuth refresh
+// token (encrypted via AES-GCM, see lib/booking-crypto.ts).
+
+export const consultant = pgTable("consultant", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  // Sender display name on emails (e.g. "Rob at Archos Labs").
+  displayName: text("display_name").notNull(),
+  // Sender email + alert routing destination. Unique per consultant.
+  email: text("email").notNull().unique(),
+  // IANA tz string (e.g. 'Asia/Manila'). Slot generation is anchored to
+  // this tz; the prospect's tz is captured separately on each booking.
+  timezone: text("timezone").notNull().default("Asia/Manila"),
+  // Slot length and buffer between bookings, both in minutes.
+  slotMinutes: integer("slot_minutes").notNull().default(30),
+  slotBufferMinutes: integer("slot_buffer_minutes").notNull().default(15),
+  // How far ahead bookings are allowed.
+  advanceDays: integer("advance_days").notNull().default(14),
+  // How close to "now" bookings are allowed.
+  minNoticeHours: integer("min_notice_hours").notNull().default(24),
+  // {"mon": [9, 17], "tue": [9, 17], ...} — start/end hour pairs per
+  // weekday. Missing day = unavailable. Application validates shape (Zod).
+  workingHoursJson: jsonb("working_hours_json").notNull().default({}),
+  // AES-GCM ciphertext of the Google refresh token (D6a). NULL until Rob
+  // completes the /admin/connect-google OAuth grant. See
+  // lib/booking-crypto.ts for the encryption helper.
+  googleRefreshTokenEncrypted: text("google_refresh_token_encrypted"),
+  // Usually 'primary' — Rob's main Google calendar. NULL until OAuth done.
+  googleCalendarId: text("google_calendar_id"),
+  // 'pending' | 'ok' | 'stale'. Flipped to 'stale' when refresh fails;
+  // emits an alert to the consultant's email and disables new bookings.
+  googleStatus: text("google_status").notNull().default("pending"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type Consultant = typeof consultant.$inferSelect;
+export type NewConsultant = typeof consultant.$inferInsert;
+
+// ============================================================================
+// consultant_blackout — Book-a-Call
+// ============================================================================
+// Date ranges where a consultant is unavailable regardless of
+// working_hours_json. Vacation, focus weeks, conference travel. The slot
+// generator subtracts these from the candidate slot list.
+
+export const consultantBlackout = pgTable(
+  "consultant_blackout",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    consultantId: uuid("consultant_id")
+      .notNull()
+      .references(() => consultant.id, { onDelete: "cascade" }),
+    startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+    endAt: timestamp("end_at", { withTimezone: true }).notNull(),
+    // Free-text label shown in admin UI ("Conference", "Vacation").
+    reason: text("reason"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Composite index serves the slot-generator query:
+    // "blackouts for consultant X overlapping date range Y..Z".
+    consultantStartIdx: index("consultant_blackout_consultant_id_start_at_idx")
+      .on(table.consultantId, table.startAt),
+  }),
+);
+
+export type ConsultantBlackout = typeof consultantBlackout.$inferSelect;
+export type NewConsultantBlackout = typeof consultantBlackout.$inferInsert;
+
+// ============================================================================
+// booking_request — Book-a-Call
+// ============================================================================
+// One row per booking attempt that landed (validation passed, slot
+// reserved). status transitions: confirmed -> (cancelled | rescheduled_from
+// | completed | no_show). pending_calendar_sync is a transient state for
+// bookings where Google Calendar event creation failed and async retry is
+// queued. All timestamps stored UTC; prospect_timezone is preserved for
+// email rendering and audit.
+
+export const bookingRequest = pgTable(
+  "booking_request",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    consultantId: uuid("consultant_id")
+      .notNull()
+      .references(() => consultant.id),
+    // Prospect identity. NOT unique on email — same prospect may book
+    // multiple times across the year. Idempotency is enforced via the
+    // idempotency_key column instead.
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    organisation: text("organisation"),
+    position: text("position"),
+    // Free-text "why are you booking" answer the prospect typed first.
+    reasonInitial: text("reason_initial").notNull(),
+    // [{question: string, answer: string}] — Claude's 2-turn follow-up
+    // (D4a). Empty array if conversational intake fell back to static.
+    reasonFollowups: jsonb("reason_followups").notNull().default([]),
+    // UTC. Application converts to prospect_timezone for rendering.
+    slotStart: timestamp("slot_start", { withTimezone: true }).notNull(),
+    slotEnd: timestamp("slot_end", { withTimezone: true }).notNull(),
+    // IANA tz the prospect saw when picking the slot. Used to render
+    // emails in their tz, and for analytics.
+    prospectTimezone: text("prospect_timezone").notNull(),
+    // confirmed | cancelled | completed | no_show | rescheduled_from |
+    // pending_calendar_sync. State machine documented in plan §5.3.
+    status: text("status").notNull().default("confirmed"),
+    // Google Calendar event id + Meet link. NULL during the
+    // pending_calendar_sync window before async retry succeeds.
+    googleEventId: text("google_event_id"),
+    meetUrl: text("meet_url"),
+    // UTM + referrer captured from the URL at booking time (D4c).
+    utmSource: text("utm_source"),
+    utmMedium: text("utm_medium"),
+    utmCampaign: text("utm_campaign"),
+    utmContent: text("utm_content"),
+    utmTerm: text("utm_term"),
+    referrer: text("referrer"),
+    // Any other attribution fields the marketing team adds later (gclid,
+    // fbclid, etc.). Schema-flexible escape hatch.
+    attributionExtras: jsonb("attribution_extras").notNull().default({}),
+    // JWT IDs for the cancel + reschedule magic links. We store the jti
+    // so single-use enforcement can revoke them on consume.
+    rescheduleJti: text("reschedule_jti"),
+    cancelJti: text("cancel_jti"),
+    // Timestamps marking when each pipeline email fired. NULL = not yet.
+    // The cron job uses these to dedupe and to avoid sending late
+    // reminders for bookings made < N hours before the slot.
+    precallBriefSentAt: timestamp("precall_brief_sent_at", {
+      withTimezone: true,
+    }),
+    reminder24hSentAt: timestamp("reminder_24h_sent_at", {
+      withTimezone: true,
+    }),
+    reminder1hSentAt: timestamp("reminder_1h_sent_at", { withTimezone: true }),
+    postcallFollowupSentAt: timestamp("postcall_followup_sent_at", {
+      withTimezone: true,
+    }),
+    noshowRecoverySentAt: timestamp("noshow_recovery_sent_at", {
+      withTimezone: true,
+    }),
+    // Self-FK for reschedule chains: when this booking is rescheduled,
+    // status becomes 'rescheduled_from' and this column points to the new
+    // booking_request row. NULL on the current/live booking.
+    rescheduledToId: uuid("rescheduled_to_id").references(
+      (): AnyPgColumn => bookingRequest.id,
+      { onDelete: "set null" },
+    ),
+    // Hash of (email + slot_start + 5-min bucket). Server checks this
+    // before insert to dedupe rapid double-submits. UNIQUE constraint
+    // makes the dedup race-safe — DB rejects the duplicate insert.
+    // Dedup only matches rows where status='confirmed' (see route logic);
+    // a cancelled booking shouldn't block a legitimate rebook.
+    idempotencyKey: text("idempotency_key").notNull().unique(),
+    // Running total of Claude API spend attributable to this booking
+    // (conversational intake + pre-call brief + blog matching). Summed
+    // monthly for the budget alert at 80% / 100% of cap.
+    claudeCostUsdTotal: numeric("claude_cost_usd_total", {
+      precision: 10,
+      scale: 6,
+    })
+      .notNull()
+      .default("0"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Primary query: "all bookings for consultant X around date Y" —
+    // used by the slot generator's conflict check and admin list view.
+    consultantSlotIdx: index("booking_request_consultant_id_slot_start_idx")
+      .on(table.consultantId, table.slotStart),
+    // Admin / analytics: "find all bookings by this email".
+    emailIdx: index("booking_request_email_idx").on(table.email),
+    // Admin list filter: "all upcoming confirmed" / "all no-show".
+    statusIdx: index("booking_request_status_idx").on(table.status),
+  }),
+);
+
+export type BookingRequest = typeof bookingRequest.$inferSelect;
+export type NewBookingRequest = typeof bookingRequest.$inferInsert;
+
+// ============================================================================
+// scheduled_job — Book-a-Call
+// ============================================================================
+// Outbox queue for every email this system fires after booking creation.
+// confirmation goes here too (D18) so a Resend hiccup at booking time is
+// transparently retried. The cron handler at /api/cron/process-scheduled
+// dequeues with FOR UPDATE SKIP LOCKED (D19) to prevent overlapping runs
+// from double-sending. Status transitions: pending -> processing ->
+// (sent | failed). Jobs that fail attempts_max times land status='failed'
+// and emit an [ALERT] email to the consultant.
+
+export const scheduledJob = pgTable(
+  "scheduled_job",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // confirmation | reminder_24h | reminder_1h | precall_brief |
+    // postcall_followup | noshow_recovery. Each maps to a Resend template
+    // and a generator function (some need Claude, some are static).
+    kind: text("kind").notNull(),
+    bookingId: uuid("booking_id")
+      .notNull()
+      .references(() => bookingRequest.id, { onDelete: "cascade" }),
+    // UTC. Cron picks up rows where status='pending' AND due_at <= now().
+    dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
+    // pending | processing | sent | failed | skipped. 'skipped' is for
+    // jobs that became irrelevant (e.g. 1h reminder for a booking made
+    // 30 min before slot — no time to send).
+    status: text("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    lastAttemptedAt: timestamp("last_attempted_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    // Cron run id holding the lock + safety expiry. With FOR UPDATE SKIP
+    // LOCKED the row-level lock auto-releases on tx commit, but these
+    // fields give observability and let a stale-lock sweeper recover from
+    // mid-run crashes (P2 TODO from eng review §18.8).
+    lockedBy: text("locked_by"),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+    // Per-job Claude API spend (NULL for pure email jobs that don't call
+    // Claude). Summed into booking_request.claude_cost_usd_total.
+    claudeCostUsd: numeric("claude_cost_usd", { precision: 10, scale: 6 }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Cron poller's primary query — "give me pending jobs whose due_at
+    // has passed". Covers the FOR UPDATE SKIP LOCKED dequeue.
+    statusDueIdx: index("scheduled_job_status_due_at_idx").on(
+      table.status,
+      table.dueAt,
+    ),
+    // FK index — required by CLAUDE.md DB standards.
+    bookingIdx: index("scheduled_job_booking_id_idx").on(table.bookingId),
+  }),
+);
+
+export type ScheduledJob = typeof scheduledJob.$inferSelect;
+export type NewScheduledJob = typeof scheduledJob.$inferInsert;
+
+// ============================================================================
+// cron_heartbeat — Book-a-Call
+// ============================================================================
+// Single row, updated on every successful cron run. /api/health/cron
+// reads last_run_at and returns it as JSON; UptimeRobot pings the route
+// every 5 min and alerts if the value goes stale (>10 min). The PK is
+// the literal string 'singleton' to make accidental multi-row inserts a
+// constraint violation rather than silent data corruption.
+
+export const cronHeartbeat = pgTable("cron_heartbeat", {
+  id: text("id").primaryKey(), // always 'singleton'
+  lastRunAt: timestamp("last_run_at", { withTimezone: true }).notNull(),
+  lastRunJobsProcessed: integer("last_run_jobs_processed")
+    .notNull()
+    .default(0),
+  lastRunJobsFailed: integer("last_run_jobs_failed").notNull().default(0),
+  // Run duration is useful for the "cron overflow" metric in §18.6 —
+  // when this approaches 5 min we either chunk batches harder or bump
+  // cron frequency.
+  lastRunDurationMs: integer("last_run_duration_ms"),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type CronHeartbeat = typeof cronHeartbeat.$inferSelect;
+export type NewCronHeartbeat = typeof cronHeartbeat.$inferInsert;
+
+// ============================================================================
+// Relations — Book-a-Call
+// ============================================================================
+
+export const consultantRelations = relations(consultant, ({ many }) => ({
+  bookings: many(bookingRequest),
+  blackouts: many(consultantBlackout),
+}));
+
+export const consultantBlackoutRelations = relations(
+  consultantBlackout,
+  ({ one }) => ({
+    consultant: one(consultant, {
+      fields: [consultantBlackout.consultantId],
+      references: [consultant.id],
+    }),
+  }),
+);
+
+export const bookingRequestRelations = relations(
+  bookingRequest,
+  ({ one, many }) => ({
+    consultant: one(consultant, {
+      fields: [bookingRequest.consultantId],
+      references: [consultant.id],
+    }),
+    scheduledJobs: many(scheduledJob),
+    rescheduledTo: one(bookingRequest, {
+      fields: [bookingRequest.rescheduledToId],
+      references: [bookingRequest.id],
+      relationName: "reschedule_chain",
+    }),
+  }),
+);
+
+export const scheduledJobRelations = relations(scheduledJob, ({ one }) => ({
+  booking: one(bookingRequest, {
+    fields: [scheduledJob.bookingId],
+    references: [bookingRequest.id],
   }),
 }));
