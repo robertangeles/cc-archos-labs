@@ -2,11 +2,21 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-12
+updated: 2026-05-13
 related:
 ---
 
 Append-only log of sessions. Newest entry at the top.
+
+## 2026-05-13 — D-28: redacted scoring-logic + calibration-calls wiki pages
+
+Closes the D track (IP-sensitive content out of public repo). Both `wiki/concepts/diagnostic-scoring-logic.md` and `wiki/decisions/2026-05-09-diagnostic-scoring-calls.md` rewritten as architecture/discipline overviews — the engine pipeline, branch resolution mechanism, domain/tier/risk-flag/priority-trigger concepts are still documented, but the specific per-option scoring matrix, calibrated values, four specific score changes, and three persona test results are no longer in the public wiki. Original full content is recoverable from any commit before today via `pnpm extract-content`.
+
+Picked Option A (rewrite) over Option B (gitignored `private-notes/`) given Dev2 is paused — Option A's "no sync to maintain" wins without a second machine to sync to, and the calibration rationale can be recovered from git when needed.
+
+Pre-redaction verification: `grep` for both file slugs across the repo (excluding wiki) returned only one hit — `CLAUDE.md:923`, an example branch-name string, not a real reference. Confirmed zero runtime impact. The assessment, scoring, reports, admin UI all unaffected. The two wiki pages were narrative-only.
+
+Backlog items 26–28 all now marked shipped. The D-track is done.
 
 ## 2026-05-12 — Backlog: added Phase 1.E (Book a Call) items 29 + 30; claimed Lane B
 

@@ -2,7 +2,7 @@
 title: Wiki Index
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-12
+updated: 2026-05-13
 related: [[backlog]], [[lead-session-and-owner-only-reports]], [[magic-link-sign-in]], [[2026-05-08-minimal-admin-for-seo]], [[2026-05-08-resend-with-external-recipient]], [[2026-05-08-godaddy-smtp-for-contact-form]], [[2026-05-08-render-postgres-over-neon]], [[2026-05-08-phase2-ceo-review]], [[2026-05-08-admin-deferred]], [[2026-05-07-linear-redesign]], [[2026-05-07-brand-foundation]], [[2026-05-07-layout-shell]], [[2026-05-07-home-page]], [[2026-05-07-turbopack-root]], [[2026-05-07-tailwind-v4-new-utilities]], [[2026-05-08-drizzle-kit-push-hangs-on-render]]
 ---
 
@@ -12,12 +12,12 @@ Master catalog of all wiki pages. Read this at the start of every session.
 _(none yet)_
 
 ## concepts
-- [AI Readiness Assessment — Scoring Logic](concepts/diagnostic-scoring-logic.md) — full per-option scoring matrix, branch + replacement logic, tier boundaries, risk flag rules, priority triggers, persona test results
+- [AI Readiness Assessment — Scoring Logic](concepts/diagnostic-scoring-logic.md) — engine architecture: pipeline, branch resolution, domain weighting, tier derivation, risk flags, priority triggers; calibrated values live in /admin/diagnostic
 - [Lead session model and owner-only report access](concepts/lead-session-and-owner-only-reports.md) — two cookies one secret, lead upsert by email, sticky priority, why owner-mismatch returns 404 not 401
 - [Magic-link sign-in for return visitors](concepts/magic-link-sign-in.md) — sha256-stored tokens, atomic single-UPDATE consume, no enumeration on any surface, latest-report-wins on verify
 
 ## decisions
-- [Diagnostic per-option scoring calibration calls](decisions/2026-05-09-diagnostic-scoring-calls.md) — four scoring deviations from default option-order on Q3, Q6, Q8, Q12 + introduction of PRIORITY_TRIGGERS for orthogonal CRM tagging
+- [Diagnostic per-option scoring calibration (overview)](decisions/2026-05-09-diagnostic-scoring-calls.md) — meta-discipline for calibration deviations: four classes of deviation + score-vs-trigger separation pattern; specific values live in /admin/diagnostic
 - [Minimal admin for SEO config](decisions/2026-05-08-minimal-admin-for-seo.md) — single-user admin (password + JWT cookie), one site_setting table, drives all SEO/brand metadata; partially supersedes admin-deferred for SEO slice
 - [Resend with an external recipient mailbox for the contact form](decisions/2026-05-08-resend-with-external-recipient.md) — current contact-form path; Resend → Outlook/Gmail (never a GoDaddy-cPanel mailbox)
 - [GoDaddy SMTP for the contact form](decisions/2026-05-08-godaddy-smtp-for-contact-form.md) — _FAILED, superseded same day_; Render's outbound IPs are blocked by GoDaddy's cPanel firewall

@@ -2,7 +2,7 @@
 title: Archos Labs HQ — Build Backlog
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-12
+updated: 2026-05-13
 related: [[index]], [[log]], [[2026-05-08-phase2-ceo-review]]
 ---
 
@@ -124,11 +124,11 @@ The pieces that turn a stranger into a paid consulting conversation. Home page a
 
 **Sequenced backlog:**
 
-26. **Move Claude system prompt to Settings** — extend `site_setting` (or new `prompt_template` table — decide at design) so `lib/diagnostic/prompts.ts` reads from DB at request time. Versioned via `prompt_version` already stored on `report_output`. Add Content & Copy admin tab to edit it. Verify: edit in admin → next report generation uses new prompt → `prompt_version` increments → old reports still resolve via stored version metadata.
+26. **Move Claude system prompt to Settings** — ✅ shipped 2026-05-12 (PR #9). Source has a generic fallback; real prompt lives in `site_setting` key `'diagnostic_prompt'`, edited via `/admin/prompts`. Stamped onto each `report_output.prompt_version`.
 
-27. **Move diagnostic content to DB** — questions, options, per-option scores, branch rules, risk flag rules, priority triggers, tier boundaries, domain weights. Probably needs new tables (`diagnostic_question`, `diagnostic_option`, etc.) because the shape is richer than a single JSONB blob. Edits surface in the admin Content & Copy tab. Verify: edit a question text in admin → assessment page reflects on next request → scoring still passes the existing persona tests (smoke regression: run `scripts/test-diagnostic.ts` against DB-loaded content).
+27. **Move diagnostic content to DB** — ✅ shipped 2026-05-12 (PR #12). Source has a placeholder fallback; real content lives in `site_setting` key `'diagnostic_content'`, edited via `/admin/diagnostic`. `getDiagnosticContent()` per-request loader; scoring engine refactored to take content as a parameter. `pnpm extract-content` recovers historical content from git history for seeding.
 
-28. **Relocate sensitive wiki to a private location** — `wiki/concepts/diagnostic-scoring-logic.md` and `wiki/decisions/2026-05-09-diagnostic-scoring-calls.md` either move to a `private-notes/` directory that's gitignored and synced via personal channel, OR get rewritten as high-level overviews with the calibrated values redacted. Decide which when 26/27 land.
+28. **Relocate sensitive wiki to a private location** — ✅ shipped 2026-05-13. Chose Option A (rewrite as overview). Both `wiki/concepts/diagnostic-scoring-logic.md` and `wiki/decisions/2026-05-09-diagnostic-scoring-calls.md` are now architecture/discipline overviews; specific values + persona test results redacted out of public docs. Full original content recoverable from git history before this date via `pnpm extract-content <commit>`.
 
 **Priority:** After W4 Pass 2 (magic-link, revenue path) but before any third-party (contractors, partners) gets repo access beyond the current second dev. Treat as Phase 2.5 hardening. Items 26 and 27 can be split — prompt move is smaller and higher value (it's actively tuned); content move is larger.
 
