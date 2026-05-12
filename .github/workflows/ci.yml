@@ -21,6 +21,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Need full history so the migration-safety scanner can diff
+          # against origin/main to find migrations added on this branch.
+          fetch-depth: 0
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -35,6 +39,12 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # Fast-fail before the heavier steps. Reads GITHUB_EVENT_PATH for
+      # the 'migration-destructive' label so manually-overridden PRs
+      # pass without re-running the workflow.
+      - name: Migration safety check
+        run: node scripts/_check-migration-safety.mjs --ci
 
       - name: Lint
         run: pnpm lint
