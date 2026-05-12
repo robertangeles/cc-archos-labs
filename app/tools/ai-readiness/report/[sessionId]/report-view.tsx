@@ -10,6 +10,7 @@ import {
   type RiskSeverity,
 } from "../../../../../lib/diagnostic/types";
 import type { LoadedReport } from "../../../../../lib/diagnostic/report";
+import { PrintButton } from "./print-button";
 
 // Six-section report layout per spec §6.
 //
@@ -50,9 +51,12 @@ export function ReportView({ report }: { report: LoadedReport }) {
           ==================================================================== */}
       <section className="border-b border-rule px-6 py-16 md:px-12 md:py-24">
         <div className="mx-auto w-full max-w-[840px]">
-          <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-accent">
-            AI Readiness Assessment
-          </p>
+          <div className="flex items-start justify-between gap-x-6">
+            <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-accent">
+              AI Readiness Assessment
+            </p>
+            <PrintButton />
+          </div>
           <div className="mt-8 flex flex-col gap-y-2 md:flex-row md:items-baseline md:gap-x-10 md:gap-y-0">
             <p className="font-mono text-[80px] font-semibold leading-none tracking-[-0.04em] text-fg md:text-[140px]">
               {result.score.total}
@@ -87,7 +91,7 @@ export function ReportView({ report }: { report: LoadedReport }) {
               {result.riskFlags.map((f) => (
                 <li
                   key={f.code}
-                  className={`rounded-md border px-5 py-4 ${sevColours[f.severity]}`}
+                  className={`rounded-md border px-5 py-4 print:break-inside-avoid ${sevColours[f.severity]}`}
                 >
                   <p className="font-mono text-[11px] uppercase tracking-[0.1em]">
                     {sevLabels[f.severity]}
@@ -125,7 +129,7 @@ export function ReportView({ report }: { report: LoadedReport }) {
               return (
                 <div
                   key={key}
-                  className="rounded-md border border-rule bg-surface px-5 py-5"
+                  className="rounded-md border border-rule bg-surface px-5 py-5 print:break-inside-avoid"
                 >
                   <p className="text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
                     {DOMAIN_LABELS[key]}
@@ -210,7 +214,7 @@ export function ReportView({ report }: { report: LoadedReport }) {
 
 function ActionRow({ action, index }: { action: ActionItem; index: number }) {
   return (
-    <li className="flex gap-x-5 rounded-md border border-rule bg-surface px-5 py-5 md:gap-x-7 md:px-6 md:py-6">
+    <li className="flex gap-x-5 rounded-md border border-rule bg-surface px-5 py-5 print:break-inside-avoid md:gap-x-7 md:px-6 md:py-6">
       <span className="font-mono text-base font-semibold text-accent">
         {String(index).padStart(2, "0")}
       </span>

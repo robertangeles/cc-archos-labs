@@ -16,7 +16,7 @@ export function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-50 transition-colors duration-150 ${
+      className={`sticky top-0 z-50 transition-colors duration-150 print:hidden ${
         scrolled
           ? "border-b border-rule bg-canvas/80 backdrop-blur-md"
           : "border-b border-transparent bg-transparent"
