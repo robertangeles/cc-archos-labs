@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { LeadSignOutButton } from "./lead-sign-out-button";
 
 const TOPLEVEL = [
   { href: "/", label: "Home" },
@@ -11,6 +12,31 @@ const TOPLEVEL = [
 const TOOLS = [
   { href: "/tools/ai-readiness", label: "AI Readiness Assessment" },
 ];
+
+export interface NavLeadProps {
+  firstName: string;
+}
+
+function AuthControl({ lead }: { lead: NavLeadProps | null }) {
+  if (!lead) {
+    return (
+      <Link
+        href="/sign-in"
+        className="transition-colors duration-150 hover:text-fg"
+      >
+        Sign in
+      </Link>
+    );
+  }
+  return (
+    <span className="flex items-center gap-x-3">
+      <span className="hidden text-muted/80 sm:inline">
+        Hi, {lead.firstName}
+      </span>
+      <LeadSignOutButton />
+    </span>
+  );
+}
 
 function ToolsMenu() {
   const [open, setOpen] = useState(false);
@@ -83,7 +109,7 @@ function ToolsMenu() {
   );
 }
 
-export function Nav() {
+export function Nav({ lead }: { lead: NavLeadProps | null }) {
   return (
     <nav className="flex items-center gap-x-5 text-sm text-muted sm:gap-x-7">
       {TOPLEVEL.map(({ href, label }) => (
@@ -96,6 +122,7 @@ export function Nav() {
         </Link>
       ))}
       <ToolsMenu />
+      <AuthControl lead={lead} />
     </nav>
   );
 }

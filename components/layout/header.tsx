@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Nav } from "./nav";
+import { Nav, type NavLeadProps } from "./nav";
 
-export function Header() {
+export function Header({ lead }: { lead: NavLeadProps | null }) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export function Header() {
           />
           Archos Labs
         </Link>
-        <Nav />
+        <Nav lead={lead} />
       </div>
     </header>
   );
