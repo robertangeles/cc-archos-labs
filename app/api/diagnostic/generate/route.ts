@@ -6,6 +6,7 @@ import {
 } from "../../../../lib/rate-limit";
 import { signLeadSession } from "../../../../lib/auth-lead";
 import { setLeadSessionCookie } from "../../../../lib/auth-server";
+import { sendLeadNotification } from "../../../../lib/lead-notification";
 
 export const runtime = "nodejs";
 
@@ -101,6 +102,26 @@ export async function POST(request: Request) {
     // 30-day TTL per lib/auth-lead.ts.
     const token = await signLeadSession(result.leadId);
     await setLeadSessionCookie(token);
+
+    // Fire the internal "you've got a new lead" notification. Awaited
+    // so a transient send error gets logged before we return, but
+    // sendLeadNotification swallows its own errors — a failed send
+    // never breaks the user flow.
+    await sendLeadNotification({
+      firstName: parsed.data.lead.firstName,
+      lastName: parsed.data.lead.lastName,
+      email: parsed.data.lead.email.toLowerCase(),
+      jobTitle: parsed.data.lead.jobTitle,
+      organisation: parsed.data.lead.organisation,
+      phone: parsed.data.lead.phone,
+      tier: result.result.tier.tier,
+      tierLabel: result.result.tier.label,
+      totalScore: result.result.score.total,
+      isPriority: result.result.isPriority,
+      priorityReasons: result.result.priorityReasons,
+      sessionId: result.sessionId,
+      origin: new URL(request.url).origin,
+    });
 
     return Response.json({ ok: true, sessionId: result.sessionId });
   } catch (err) {
