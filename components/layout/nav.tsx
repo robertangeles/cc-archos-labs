@@ -28,13 +28,79 @@ function AuthControl({ lead }: { lead: NavLeadProps | null }) {
       </Link>
     );
   }
+  return <ProfileMenu firstName={lead.firstName} />;
+}
+
+function ProfileMenu({ firstName }: { firstName: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   return (
-    <span className="flex items-center gap-x-3">
-      <span className="hidden text-muted/80 sm:inline">
-        Hi, {lead.firstName}
-      </span>
-      <LeadSignOutButton />
-    </span>
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="flex items-center gap-x-1 transition-colors duration-150 hover:text-fg"
+      >
+        Profile
+        <svg
+          aria-hidden
+          width="10"
+          height="10"
+          viewBox="0 0 12 12"
+          className={`transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+        >
+          <path
+            d="M2 4l4 4 4-4"
+            stroke="currentColor"
+            fill="none"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      {open ? (
+        <div
+          role="menu"
+          className="absolute right-0 z-50 mt-3 w-max min-w-[200px] max-w-[calc(100vw-3rem)] rounded-md border border-rule bg-surface p-2 shadow-2xl"
+        >
+          {/* Identity row — non-interactive label so the user knows
+              which account they're signed in as. Stays at the top so
+              future menu items (Account, Settings) read below it. */}
+          <p className="px-3 py-2 text-[11px] uppercase tracking-[0.08em] text-muted/70">
+            Signed in as
+          </p>
+          <p className="px-3 pb-2 text-sm font-medium text-fg">
+            {firstName}
+          </p>
+          <div className="my-1 border-t border-rule" />
+          {/* Future profile menu items slot in here. When the profile
+              page exists, add a "Your account" Link above Sign out. */}
+          <LeadSignOutButton />
+        </div>
+      ) : null}
+    </div>
   );
 }
 

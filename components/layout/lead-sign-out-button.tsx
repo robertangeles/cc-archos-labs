@@ -2,8 +2,9 @@
 
 import { useRouter } from "next/navigation";
 
-// "Sign out" button in the site header for return visitors signed in
-// via magic-link or registration. Mirrors app/admin/(authed)/
+// "Sign out" menu item rendered inside the header Profile dropdown.
+// Lives as its own component because it's the only client-side
+// mutation in the header tree. Mirrors app/admin/(authed)/
 // sign-out-button.tsx for the admin session.
 
 export function LeadSignOutButton() {
@@ -20,8 +21,9 @@ export function LeadSignOutButton() {
   return (
     <button
       type="button"
+      role="menuitem"
       onClick={onLogout}
-      className="transition-colors duration-150 hover:text-fg"
+      className="block w-full rounded px-3 py-2 text-left text-sm text-muted transition-colors duration-150 hover:bg-canvas hover:text-fg"
     >
       Sign out
     </button>
