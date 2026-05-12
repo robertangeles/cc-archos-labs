@@ -1,321 +1,293 @@
-import {
-  DOMAIN_WEIGHTS,
-  QUESTIONS,
-  RISK_FLAG_RULES,
-  TIER_BOUNDARIES,
-  getQuestion,
-} from "../../../../lib/diagnostic/content";
-import {
-  BLOCK_LABELS,
-  DOMAIN_LABELS,
-  isBranchQuestion,
-  type Question,
-  type QuestionBlock,
-  type RiskSeverity,
-} from "../../../../lib/diagnostic/types";
+"use client";
 
-// Read-only review of the AI Readiness Assessment v1.0 spec encoding.
-// Source of truth: lib/diagnostic/content.ts. Edit the file directly and
-// redeploy; this view re-renders from the new data on the next request.
+import { useEffect, useState } from "react";
+import {
+  DIAGNOSTIC_CONTENT_FALLBACK,
+  DiagnosticContentSchema,
+  type DiagnosticContent,
+} from "../../../../lib/diagnostic/content-config-shared";
+
+// Admin editor for the AI Readiness Assessment content blob — questions,
+// scoring values, risk-flag rules, priority triggers, tier boundaries,
+// domain weights. One JSON textarea: paste the full DiagnosticContent
+// JSON, hit save. Source ships a placeholder fallback only; real
+// practitioner-calibrated content lives here in the DB (D-27).
 //
-// Audience: the operator (Rob) checking that questions, scores, branch
-// triggers, tier boundaries, and risk flag rules match the spec before
-// the W2 scoring engine and UI build on top of these values.
+// The MVP intentionally skips per-question structured editing — every
+// real edit happens by hand against the spec, and JSON copy/paste is
+// the fastest reviewable workflow.
 
-const sevColours: Record<RiskSeverity, string> = {
-  critical: "text-[#f87171] border-[#f87171]/30 bg-[#f87171]/5",
-  high: "text-[#fb923c] border-[#fb923c]/30 bg-[#fb923c]/5",
-  medium: "text-[#fbbf24] border-[#fbbf24]/30 bg-[#fbbf24]/5",
-};
+type LoadStatus =
+  | { kind: "loading" }
+  | { kind: "ready"; isFallback: boolean }
+  | { kind: "load-error"; message: string };
 
-const scoreColours: Record<number, string> = {
-  3: "text-accent",
-  2: "text-fg",
-  1: "text-muted",
-  0: "text-[#f87171]",
-};
+type SaveStatus =
+  | { kind: "idle" }
+  | { kind: "saving" }
+  | { kind: "saved" }
+  | { kind: "error"; message: string };
 
-function questionsByBlock(block: QuestionBlock): Question[] {
-  return QUESTIONS.filter((q) => q.block === block);
-}
+const inputClass =
+  "w-full rounded-md border border-rule bg-canvas px-4 py-3 text-base text-fg placeholder:text-muted/60 transition-all duration-150 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/40";
 
-function maxScoreFor(q: Question): number {
-  return Math.max(...q.options.map((o) => o.score));
-}
+const labelClass =
+  "text-[13px] font-medium uppercase tracking-[0.08em] text-muted";
 
 export default function AdminDiagnosticPage() {
-  const baseCount = QUESTIONS.filter((q) => !isBranchQuestion(q)).length;
-  const branchCount = QUESTIONS.filter(isBranchQuestion).length;
+  const [jsonText, setJsonText] = useState<string>(
+    JSON.stringify(DIAGNOSTIC_CONTENT_FALLBACK, null, 2),
+  );
+  const [parsed, setParsed] = useState<DiagnosticContent | null>(
+    DIAGNOSTIC_CONTENT_FALLBACK,
+  );
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [load, setLoad] = useState<LoadStatus>({ kind: "loading" });
+  const [save, setSave] = useState<SaveStatus>({ kind: "idle" });
+
+  // Initial load
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/settings/diagnostic-content");
+        const json = (await res.json().catch(() => null)) as
+          | {
+              ok: boolean;
+              data?: DiagnosticContent;
+              error?: string;
+              isFallback?: boolean;
+            }
+          | null;
+        if (cancelled) return;
+        if (res.ok && json?.ok && json.data) {
+          setJsonText(JSON.stringify(json.data, null, 2));
+          setParsed(json.data);
+          setLoad({ kind: "ready", isFallback: !!json.isFallback });
+        } else {
+          setLoad({
+            kind: "load-error",
+            message: json?.error ?? "Could not load content.",
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          setLoad({ kind: "load-error", message: "Network error." });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Re-validate on every edit so the user sees the parse error live
+  // (e.g. trailing commas, wrong types). The save action also
+  // validates server-side as the source of truth.
+  function onJsonChange(next: string) {
+    setJsonText(next);
+    try {
+      const raw = JSON.parse(next);
+      const result = DiagnosticContentSchema.safeParse(raw);
+      if (!result.success) {
+        const first = result.error.issues[0];
+        setValidationError(
+          `${first?.path.join(".") || "field"}: ${first?.message ?? "Invalid value."}`,
+        );
+        setParsed(null);
+      } else {
+        setValidationError(null);
+        setParsed(result.data);
+      }
+    } catch (err) {
+      setValidationError(
+        `JSON parse error: ${err instanceof Error ? err.message : "unknown"}`,
+      );
+      setParsed(null);
+    }
+  }
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (save.kind === "saving") return;
+    if (!parsed) {
+      setSave({ kind: "error", message: validationError ?? "Invalid JSON." });
+      return;
+    }
+    setSave({ kind: "saving" });
+    try {
+      const res = await fetch("/api/admin/settings/diagnostic-content", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(parsed),
+      });
+      const json = (await res.json().catch(() => null)) as
+        | { ok: boolean; data?: DiagnosticContent; error?: string }
+        | null;
+      if (res.ok && json?.ok) {
+        setSave({ kind: "saved" });
+        setLoad({ kind: "ready", isFallback: false });
+        setTimeout(() => setSave({ kind: "idle" }), 2500);
+        return;
+      }
+      setSave({
+        kind: "error",
+        message: json?.error ?? "Could not save.",
+      });
+    } catch {
+      setSave({ kind: "error", message: "Network error." });
+    }
+  }
 
   return (
-    <section className="flex flex-col gap-y-16">
-      {/* ============================================================ */}
-      {/* Header + summary stats                                          */}
-      {/* ============================================================ */}
-      <div>
-        <h1 className="text-3xl font-semibold leading-[1.1] tracking-[-0.02em] text-fg md:text-[40px]">
-          Diagnostic Content
-        </h1>
-        <p className="mt-4 max-w-[720px] text-base leading-[1.7] text-muted">
-          Read-only view of the AI Readiness Assessment v1.0 spec
-          encoding. Source of truth lives in{" "}
-          <code className="rounded bg-surface px-1.5 py-0.5 text-[13px] text-fg">
-            lib/diagnostic/content.ts
-          </code>
-          . Edit there + redeploy to update.
-        </p>
+    <section>
+      <h1 className="text-3xl font-semibold leading-[1.1] tracking-[-0.02em] text-fg md:text-[40px]">
+        Diagnostic Content
+      </h1>
+      <p className="mt-4 max-w-[720px] text-base leading-[1.7] text-muted">
+        The full content blob for the AI Readiness Assessment — questions,
+        per-option scores, branch wiring, risk-flag rules, priority
+        triggers, tier boundaries, domain weights. Edit as JSON. Changes
+        apply on the next assessment + report generation. Each save
+        re-evaluates priority on prior reports against the new triggers
+        when the report page is re-loaded.
+      </p>
 
-        <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
-          <Stat label="Base questions" value={baseCount} />
-          <Stat label="Branch questions" value={branchCount} />
-          <Stat label="Risk flag rules" value={RISK_FLAG_RULES.length} />
-          <Stat label="Tiers" value={TIER_BOUNDARIES.length} />
-        </div>
-      </div>
-
-      {/* ============================================================ */}
-      {/* Domain weights                                                  */}
-      {/* ============================================================ */}
-      <div>
-        <h2 className="text-xl font-semibold tracking-[-0.01em] text-fg">
-          Domain weights
-        </h2>
-        <p className="mt-2 text-sm leading-[1.6] text-muted">
-          Per spec §5.1. Weighted total = Σ (domain percent × weight).
+      {load.kind === "loading" ? (
+        <p className="mt-12 text-sm text-muted">Loading…</p>
+      ) : load.kind === "load-error" ? (
+        <p role="alert" className="mt-12 text-sm text-[#f87171]">
+          {load.message}
         </p>
-        <div className="mt-4 grid grid-cols-3 gap-4">
-          {(
-            Object.entries(DOMAIN_WEIGHTS) as Array<
-              [keyof typeof DOMAIN_WEIGHTS, number]
-            >
-          ).map(([domain, weight]) => (
-            <div
-              key={domain}
-              className="rounded-md border border-rule bg-surface px-4 py-3"
-            >
-              <p className="text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
-                {DOMAIN_LABELS[domain]}
+      ) : (
+        <>
+          {load.kind === "ready" && load.isFallback ? (
+            <div className="mt-8 rounded-md border border-[#fbbf24]/40 bg-[#fbbf24]/5 px-5 py-4">
+              <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-[#fbbf24]">
+                Fallback content active
               </p>
-              <p className="mt-1 text-2xl font-semibold text-fg">
-                {Math.round(weight * 100)}%
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ============================================================ */}
-      {/* Tier boundaries                                                 */}
-      {/* ============================================================ */}
-      <div>
-        <h2 className="text-xl font-semibold tracking-[-0.01em] text-fg">
-          Tier boundaries
-        </h2>
-        <p className="mt-2 text-sm leading-[1.6] text-muted">
-          Per spec §5.2. Inclusive ranges on the 0–100 weighted total.
-        </p>
-        <div className="mt-4 overflow-hidden rounded-md border border-rule">
-          <table className="w-full text-sm">
-            <thead className="bg-surface">
-              <tr className="text-left text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
-                <th className="px-4 py-2.5">Range</th>
-                <th className="px-4 py-2.5">Tier</th>
-                <th className="px-4 py-2.5">Public label</th>
-              </tr>
-            </thead>
-            <tbody>
-              {TIER_BOUNDARIES.map((t) => (
-                <tr
-                  key={t.tier}
-                  className="border-t border-rule text-fg"
-                >
-                  <td className="px-4 py-2.5 font-mono text-muted">
-                    {t.min}–{t.max}
-                  </td>
-                  <td className="px-4 py-2.5">{t.tier}</td>
-                  <td className="px-4 py-2.5 text-muted">{t.label}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* ============================================================ */}
-      {/* Questions, grouped by block                                     */}
-      {/* ============================================================ */}
-      {([1, 2, 3] as QuestionBlock[]).map((block) => {
-        const blockQs = questionsByBlock(block);
-        return (
-          <div key={block}>
-            <h2 className="text-xl font-semibold tracking-[-0.01em] text-fg">
-              Block {block} — {BLOCK_LABELS[block]}
-            </h2>
-            <p className="mt-2 text-sm leading-[1.6] text-muted">
-              {blockQs.length} question{blockQs.length === 1 ? "" : "s"} in
-              this block (
-              {blockQs.filter(isBranchQuestion).length} branch).
-            </p>
-            <div className="mt-6 flex flex-col gap-y-6">
-              {blockQs.map((q) => (
-                <QuestionCard key={q.id} question={q} />
-              ))}
-            </div>
-          </div>
-        );
-      })}
-
-      {/* ============================================================ */}
-      {/* Risk flag rules                                                 */}
-      {/* ============================================================ */}
-      <div>
-        <h2 className="text-xl font-semibold tracking-[-0.01em] text-fg">
-          Risk flag rules
-        </h2>
-        <p className="mt-2 text-sm leading-[1.6] text-muted">
-          Per spec §5.3. Up to three flags surface per session;
-          severity-ordered. Earlier rules in this list break ties when
-          severities are equal.
-        </p>
-        <div className="mt-4 flex flex-col gap-y-3">
-          {RISK_FLAG_RULES.map((r) => (
-            <div
-              key={r.code}
-              className={`rounded-md border px-4 py-3 ${sevColours[r.severity]}`}
-            >
-              <div className="flex items-baseline justify-between gap-x-4">
-                <p className="text-sm font-semibold">
-                  {r.title}
-                </p>
-                <span className="font-mono text-[11px] uppercase tracking-[0.1em]">
-                  {r.severity}
-                </span>
-              </div>
               <p className="mt-2 text-sm leading-[1.6] text-fg/90">
-                {r.body}
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-1.5 font-mono text-[11px] text-muted">
-                <span className="text-muted/70">Triggers when:</span>
-                {r.trigger.map((t, i) => {
-                  const answers = Array.isArray(t.answer)
-                    ? t.answer.join("/")
-                    : t.answer;
-                  return (
-                    <span key={i}>
-                      {i > 0 ? <span className="mx-1 text-muted/50">AND</span> : null}
-                      <span className="rounded border border-rule bg-canvas px-1.5 py-0.5">
-                        {t.questionId} = {answers}
-                      </span>
-                    </span>
-                  );
-                })}
-              </div>
-              <p className="mt-2 font-mono text-[11px] text-muted/60">
-                code: {r.code}
+                No admin content is configured. The public assessment is
+                rendering the placeholder fallback (one question, no
+                scoring rules) and will look broken to visitors. Paste
+                the real content blob below and save.
               </p>
             </div>
-          ))}
-        </div>
-      </div>
+          ) : null}
+
+          {parsed ? <Summary content={parsed} /> : null}
+
+          <form onSubmit={onSubmit} className="mt-10 flex flex-col gap-y-6">
+            <label className="flex flex-col gap-y-2">
+              <span className={labelClass}>Version label</span>
+              <input
+                type="text"
+                value={parsed?.version ?? ""}
+                onChange={(e) => {
+                  if (!parsed) return;
+                  const next = { ...parsed, version: e.target.value };
+                  setParsed(next);
+                  setJsonText(JSON.stringify(next, null, 2));
+                }}
+                placeholder="e.g. v1-spec-2026-05"
+                disabled={!parsed}
+                className={inputClass}
+              />
+              <span className="text-xs leading-[1.5] text-muted">
+                Free-form. Bump on any meaningful content edit so you can
+                correlate report quality with content revisions.
+              </span>
+            </label>
+
+            <label className="flex flex-col gap-y-2">
+              <span className={labelClass}>Content JSON</span>
+              <textarea
+                value={jsonText}
+                onChange={(e) => onJsonChange(e.target.value)}
+                rows={36}
+                className={`${inputClass} resize-y font-mono text-[12px] leading-[1.55]`}
+                spellCheck={false}
+              />
+              <span className="text-xs leading-[1.5] text-muted">
+                Full DiagnosticContent shape. See
+                <code className="ml-1 rounded bg-surface px-1.5 py-0.5 font-mono text-[11px] text-fg/80">
+                  lib/diagnostic/content-config-shared.ts
+                </code>{" "}
+                for the Zod schema.
+              </span>
+            </label>
+
+            {validationError ? (
+              <p
+                role="alert"
+                className="rounded-md border border-[#f87171]/40 bg-[#f87171]/5 px-4 py-3 text-sm leading-[1.6] text-[#f87171]"
+              >
+                {validationError}
+              </p>
+            ) : null}
+
+            {save.kind === "error" ? (
+              <p role="alert" className="text-sm leading-[1.6] text-[#f87171]">
+                {save.message}
+              </p>
+            ) : null}
+
+            <div className="flex items-center justify-between gap-x-4 border-t border-rule pt-6">
+              <p
+                className={`text-sm leading-[1.6] transition-colors duration-150 ${
+                  save.kind === "saved" ? "text-accent" : "text-muted"
+                }`}
+              >
+                {save.kind === "saved"
+                  ? "Saved. Live on next assessment / report request."
+                  : "Changes apply on next request."}
+              </p>
+              <button
+                type="submit"
+                disabled={save.kind === "saving" || !parsed}
+                className="inline-flex items-center rounded-md bg-accent px-7 py-3 text-base font-medium text-white transition-colors duration-150 hover:bg-accent-hover disabled:opacity-60"
+              >
+                {save.kind === "saving"
+                  ? "Saving…"
+                  : save.kind === "saved"
+                    ? "Saved"
+                    : "Save content"}
+              </button>
+            </div>
+          </form>
+        </>
+      )}
     </section>
   );
 }
 
-// ============================================================================
-// Sub-components
-// ============================================================================
-
-function Stat({ label, value }: { label: string; value: number | string }) {
-  return (
-    <div className="rounded-md border border-rule bg-surface px-4 py-3">
-      <p className="text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
-        {label}
-      </p>
-      <p className="mt-1 text-2xl font-semibold text-fg">{value}</p>
-    </div>
-  );
-}
-
-function QuestionCard({ question }: { question: Question }) {
-  const branchParent = question.branch
-    ? getQuestion(question.branch.parentQuestionId)
-    : null;
+// Live summary stats for the parsed JSON — quick sanity check that the
+// paste landed shape-correctly before saving.
+function Summary({ content }: { content: DiagnosticContent }) {
+  const stats = [
+    { label: "Version", value: content.version },
+    { label: "Questions", value: String(content.questions.length) },
+    { label: "Risk flag rules", value: String(content.riskFlagRules.length) },
+    {
+      label: "Priority triggers",
+      value: String(content.priorityTriggers.length),
+    },
+    { label: "Tier boundaries", value: String(content.tierBoundaries.length) },
+  ];
 
   return (
-    <div className="rounded-md border border-rule bg-surface/40 px-5 py-5">
-      {/* Header row: ID, domain, type chip */}
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="font-mono text-sm font-semibold text-accent">
-          {question.id.toUpperCase()}
-        </span>
-        <span className="text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
-          {DOMAIN_LABELS[question.domain]}
-        </span>
-        {isBranchQuestion(question) ? (
-          <span className="rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.1em] text-accent">
-            Branch
-          </span>
-        ) : null}
-      </div>
-
-      {/* Question text */}
-      <p className="mt-3 text-base font-medium leading-[1.5] text-fg">
-        {question.text}
-      </p>
-
-      {/* Branch trigger detail */}
-      {question.branch ? (
-        <p className="mt-2 font-mono text-[11px] leading-[1.5] text-muted">
-          Triggered when{" "}
-          <span className="rounded border border-rule bg-canvas px-1 text-fg/90">
-            {question.branch.parentQuestionId}
-          </span>{" "}
-          = {question.branch.triggerAnswers.join(" or ")}
-          {branchParent ? (
-            <span className="text-muted/60">
-              {" "}
-              ({branchParent.text.slice(0, 60)}…)
-            </span>
-          ) : null}
-        </p>
-      ) : null}
-
-      {/* Options table */}
-      <div className="mt-4 flex flex-col">
-        {question.options.map((opt, i) => (
-          <div
-            key={opt.code}
-            className={`flex items-center gap-x-4 px-3 py-2 ${
-              i > 0 ? "border-t border-rule/50" : ""
-            }`}
-          >
-            <span className="font-mono text-xs font-semibold text-muted">
-              {opt.code}
-            </span>
-            <span className="flex-1 text-sm leading-[1.5] text-fg/90">
-              {opt.label}
-            </span>
-            <span
-              className={`font-mono text-xs font-semibold ${scoreColours[opt.score]}`}
-            >
-              {opt.score}
-            </span>
-          </div>
-        ))}
-        <div className="mt-2 px-3 text-right font-mono text-[11px] text-muted/70">
-          max {maxScoreFor(question)} · domain {DOMAIN_LABELS[question.domain]}
+    <dl className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-5">
+      {stats.map((s) => (
+        <div
+          key={s.label}
+          className="rounded-md border border-rule bg-surface px-4 py-3"
+        >
+          <dt className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted">
+            {s.label}
+          </dt>
+          <dd className="mt-1 text-sm font-semibold text-fg">{s.value}</dd>
         </div>
-      </div>
-
-      {/* Intent commentary (practitioner notes) */}
-      {question.intent ? (
-        <details className="mt-4 cursor-pointer text-sm">
-          <summary className="text-[11px] font-medium uppercase tracking-[0.1em] text-muted hover:text-fg">
-            Intent
-          </summary>
-          <p className="mt-2 leading-[1.6] text-muted">{question.intent}</p>
-        </details>
-      ) : null}
-    </div>
+      ))}
+    </dl>
   );
 }
