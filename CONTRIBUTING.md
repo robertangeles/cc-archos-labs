@@ -38,6 +38,16 @@ pnpm new-branch feature/<short-name>   # branches from latest origin/main in one
 
 `pnpm new-branch` refuses to run if your working tree is dirty, fetches `origin`, fast-forwards `main`, and creates the branch — all in one step. If you skip this and branch from a stale local `main`, GitHub's "Require branches to be up to date" rule will block the merge later.
 
+## Catching up an open branch when main moved
+
+If the other dev (or you) merged something to `main` while your branch was already open, your branch is now stale. GitHub flags it as "out-of-date with the base branch" and refuses the merge. One command resolves it:
+
+```bash
+pnpm sync-branch     # fetch + rebase your branch onto origin/main + push --force-with-lease
+```
+
+`pnpm sync-branch` refuses if the working tree is dirty or you're on `main`. If the rebase produces a conflict, it leaves the rebase in progress for you to resolve manually (`git rebase --continue` after fixing, or `git rebase --abort` to bail out) and run again. If the branch hasn't been pushed yet, it skips the push and reminds you of the upstream-set command.
+
 ## Workflow
 
 `main` is protected. You cannot push directly. Every change goes through a PR.
@@ -132,12 +142,20 @@ CI runs the same four. If they pass locally, the PR should go green. Pre-commit 
 
 ## First-deploy admin seeding
 
-After cloning to a fresh database, two admin rows need to be seeded once:
+After cloning to a fresh database, three admin rows need to be seeded once:
 
 1. **`/admin/site`** — SEO & Brand defaults (already covered by the existing admin work).
 2. **`/admin/prompts`** — the diagnostic system prompt. Until this row is set, the AI Readiness Assessment generates reports using a deliberately-generic fallback prompt — the practitioner-voice prompt is not in source (it's IP). Ask Rob for the latest prompt and paste it into the admin page, save.
+3. **`/admin/diagnostic`** — the diagnostic content (questions, scoring, risk flag rules, priority triggers, tier boundaries, domain weights). Until this row is set, the assessment renders a single placeholder question. To recover the original from git history:
 
-If you see "Fallback prompt active" on the prompts page, the row hasn't been seeded yet.
+```bash
+pnpm extract-content                       # default: from commit dcd6652, stdout
+pnpm extract-content dcd6652 out.json      # write to file for review/paste
+```
+
+The script materialises a detached git worktree at the historic commit, evaluates the source `lib/diagnostic/content.ts` via Node's built-in TypeScript support, and emits a `DiagnosticContent`-shaped JSON blob. Paste the output into `/admin/diagnostic` and save.
+
+If you see "Fallback prompt active" or "Fallback content active" banners on the corresponding admin pages, that row hasn't been seeded yet.
 
 ## Code rules to know
 
