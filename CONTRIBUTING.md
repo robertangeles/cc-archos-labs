@@ -75,6 +75,15 @@ pnpm build    # Next.js production build
 
 CI runs the same four. If they pass locally, the PR should go green. Pre-commit (Husky + lint-staged) only fixes lint on staged files — it doesn't run the full suite, so you still want the four commands above before pushing.
 
+## First-deploy admin seeding
+
+After cloning to a fresh database, two admin rows need to be seeded once:
+
+1. **`/admin/site`** — SEO & Brand defaults (already covered by the existing admin work).
+2. **`/admin/prompts`** — the diagnostic system prompt. Until this row is set, the AI Readiness Assessment generates reports using a deliberately-generic fallback prompt — the practitioner-voice prompt is not in source (it's IP). Ask Rob for the latest prompt and paste it into the admin page, save.
+
+If you see "Fallback prompt active" on the prompts page, the row hasn't been seeded yet.
+
 ## Code rules to know
 
 The full ruleset is in `CLAUDE.md`. The ones you'll trip over first:

@@ -16,6 +16,7 @@ type Tab = {
 const tabs: Tab[] = [
   { href: "/admin/site", label: "SEO & Brand" },
   { href: "/admin/diagnostic", label: "Diagnostic Content" },
+  { href: "/admin/prompts", label: "Diagnostic Prompt" },
   // Future tabs (kept here as comments — uncomment + create the page when ready):
   // { href: "/admin/profile", label: "Profile", comingSoon: true },
   // { href: "/admin/email", label: "Email Templates", comingSoon: true },
