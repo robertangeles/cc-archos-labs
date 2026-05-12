@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Header } from "../components/layout/header";
 import { Footer } from "../components/layout/footer";
+import { getSignedInLead } from "../lib/lead-display";
 import {
   buildPageMetadata,
   getSiteSettings,
@@ -28,6 +29,11 @@ export default async function RootLayout({
 }>) {
   const settings = await getSiteSettings();
   const siteUrl = getSiteUrl();
+  // Read the lead session (if any) once at the root so the Header can
+  // render the right auth state. cache() dedupes within the request, so
+  // any descendant server component that calls getSignedInLead() reuses
+  // this DB hit.
+  const signedInLead = await getSignedInLead();
 
   // JSON-LD for AI assistants + Google Knowledge Panel. Organization +
   // Person (founder) schemas — clear, factual, machine-readable. Updated
@@ -73,7 +79,11 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
-        <Header />
+        <Header
+          lead={
+            signedInLead ? { firstName: signedInLead.firstName } : null
+          }
+        />
         <div className="flex-1 flex flex-col">{children}</div>
         <Footer />
       </body>
