@@ -1,5 +1,5 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "../db";
 import { assessmentSession, lead, reportOutput } from "../db/schema";
 import { generateStructured } from "../claude";
@@ -292,5 +292,130 @@ export async function loadReport(
       action_plan: row.actionPlan as ReportContent["action_plan"],
     },
     generatedAt: row.generatedAt,
+  };
+}
+
+// ----------------------------------------------------------------------------
+// loadLeadPortalData — what /tools/ai-readiness shows to a return visitor
+// ----------------------------------------------------------------------------
+
+// Days between assessments before "Retake" unlocks. Stored here (not in
+// content/admin) because it's UX policy, not diagnostic IP — the same
+// number applies whether the diagnostic has 12 questions or 30. Move to
+// site_setting if/when it needs to be admin-tunable.
+const RETAKE_INTERVAL_DAYS = 30;
+const RETAKE_INTERVAL_MS = RETAKE_INTERVAL_DAYS * 24 * 60 * 60 * 1000;
+
+export interface LeadReportSummary {
+  sessionId: string;
+  /** Tier name as stored on assessment_session (Critical/Emerging/...). */
+  tier: string;
+  /** Tier label resolved against the current content's tierBoundaries. */
+  tierLabel: string;
+  totalScore: number;
+  completedAt: Date;
+}
+
+export interface LeadPortalData {
+  leadId: string;
+  firstName: string;
+  lastName: string;
+  organisation: string | null;
+  /** Completed sessions newest-first. Empty if the lead has no completed
+   *  sessions (e.g. they registered via magic-link sign-in but never
+   *  completed an assessment — edge case, but defended). */
+  reports: LeadReportSummary[];
+  /** True if the lead can start a new assessment now. */
+  retakeAllowed: boolean;
+  /** When retake unlocks. Null if retake is already allowed. */
+  retakeUnlocksAt: Date | null;
+}
+
+export async function loadLeadPortalData(
+  leadId: string,
+): Promise<LeadPortalData | null> {
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      leadId,
+    )
+  ) {
+    return null;
+  }
+
+  const db = getDb();
+
+  const leadRows = await db
+    .select({
+      id: lead.id,
+      firstName: lead.firstName,
+      lastName: lead.lastName,
+      organisation: lead.organisation,
+    })
+    .from(lead)
+    .where(eq(lead.id, leadId))
+    .limit(1);
+
+  if (leadRows.length === 0) return null;
+  const l = leadRows[0];
+
+  const sessionRows = await db
+    .select({
+      sessionId: assessmentSession.id,
+      tier: assessmentSession.tier,
+      scores: assessmentSession.scores,
+      completedAt: assessmentSession.completedAt,
+    })
+    .from(assessmentSession)
+    .innerJoin(
+      reportOutput,
+      eq(reportOutput.assessmentSessionId, assessmentSession.id),
+    )
+    .where(
+      and(
+        eq(assessmentSession.leadId, leadId),
+        eq(assessmentSession.status, "completed"),
+      ),
+    )
+    .orderBy(desc(assessmentSession.completedAt));
+
+  // Resolve tier labels via the current content. If admin has edited
+  // tier labels since a session completed, the portal shows the
+  // *current* labels — same approach as loadReport.
+  const content = await getDiagnosticContent();
+
+  const reports: LeadReportSummary[] = sessionRows
+    .filter((r) => r.completedAt !== null)
+    .map((r) => {
+      const scores = (r.scores ?? {}) as SessionResult["score"];
+      const tierLabel =
+        content.tierBoundaries.find((t) => t.tier === r.tier)?.label ??
+        r.tier ??
+        "Unknown";
+      return {
+        sessionId: r.sessionId,
+        tier: r.tier ?? "Unknown",
+        tierLabel,
+        totalScore: typeof scores.total === "number" ? scores.total : 0,
+        completedAt: r.completedAt as Date,
+      };
+    });
+
+  // Retake cooldown: 30 days from the most recent completion.
+  const latestAt = reports[0]?.completedAt ?? null;
+  const retakeAllowed =
+    latestAt === null || Date.now() - latestAt.getTime() >= RETAKE_INTERVAL_MS;
+  const retakeUnlocksAt =
+    retakeAllowed || latestAt === null
+      ? null
+      : new Date(latestAt.getTime() + RETAKE_INTERVAL_MS);
+
+  return {
+    leadId: l.id,
+    firstName: l.firstName,
+    lastName: l.lastName,
+    organisation: l.organisation,
+    reports,
+    retakeAllowed,
+    retakeUnlocksAt,
   };
 }
