@@ -51,6 +51,10 @@ export interface GenerateReportResult {
   sessionId: string;
   reportId: string;
   leadId: string;
+  /** Scoring + tier + risk flags + priority — surfaced so route-layer
+   *  side effects (e.g. lead notification email) don't have to re-run
+   *  evaluateSession. */
+  result: SessionResult;
 }
 
 export async function generateReport(
@@ -159,6 +163,7 @@ export async function generateReport(
     sessionId: session.id,
     reportId: report.id,
     leadId: leadRow.id,
+    result,
   };
 }
 
