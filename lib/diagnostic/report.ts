@@ -3,10 +3,10 @@ import { eq } from "drizzle-orm";
 import { getDb } from "../db";
 import { assessmentSession, lead, reportOutput } from "../db/schema";
 import { generateStructured } from "../claude";
-import { TIER_BOUNDARIES } from "./content";
 import { evaluateSession, evaluatePriorityTriggers } from "./scoring";
 import { buildUserPrompt } from "./prompts";
 import { getDiagnosticPrompt } from "./prompt-config";
+import { getDiagnosticContent } from "./content-config";
 import {
   isValidReportContent,
   type ReportContent,
@@ -59,15 +59,25 @@ export interface GenerateReportResult {
 export async function generateReport(
   input: GenerateReportInput,
 ): Promise<GenerateReportResult> {
+  // Load admin-editable diagnostic content (questions / scoring / risk
+  // flags / priority triggers / tier boundaries / domain weights) once.
+  // Source has a placeholder fallback only; real content lives in the
+  // site_setting row keyed 'diagnostic_content' (D-27).
+  const content = await getDiagnosticContent();
+
   // 1. Score the answers (pure)
-  const result = evaluateSession(input.answers);
+  const result = evaluateSession(input.answers, content);
 
   // 2. Build prompts and call Claude via OpenRouter. The system prompt
   //    loads from the DB (admin-editable) — IP-sensitive practitioner
   //    voice doesn't live in source. Fallback to a generic shell if no
   //    row exists (see prompt-config-shared.ts).
   const { systemPrompt, version: promptVersion } = await getDiagnosticPrompt();
-  const userPrompt = buildUserPrompt({ answers: input.answers, result });
+  const userPrompt = buildUserPrompt({
+    answers: input.answers,
+    result,
+    content,
+  });
   const llmResult = await generateStructured<unknown>({
     systemPrompt,
     userMessage: userPrompt,
@@ -233,16 +243,25 @@ export async function loadReport(
   if (rows.length === 0) return null;
   const row = rows[0];
 
+  // Load the current diagnostic content so we can re-derive tier
+  // metadata (label) and re-evaluate priority triggers against the
+  // stored answers. If the admin row has been edited since the session
+  // was completed, the report still renders against the *current*
+  // content for label/priority resolution — score/tier in the DB stay
+  // authoritative for the score numerals shown.
+  const content = await getDiagnosticContent();
+
   // Re-derive tier metadata (label) from the stored tier name.
   const tierBoundary =
-    TIER_BOUNDARIES.find((t) => t.tier === row.tier) ?? TIER_BOUNDARIES[0];
+    content.tierBoundaries.find((t) => t.tier === row.tier) ??
+    content.tierBoundaries[0];
 
   // Re-evaluate priority from the persisted answers — cheaper than
-  // adding a column to assessment_session, and the rule list lives
-  // alongside the questions in lib/diagnostic/content.ts so the result
-  // is deterministic.
+  // adding a column to assessment_session, and the priority list lives
+  // in the diagnostic content blob so the result is deterministic
+  // against the loaded content.
   const answers = (row.answers ?? {}) as SessionAnswers;
-  const priority = evaluatePriorityTriggers(answers);
+  const priority = evaluatePriorityTriggers(answers, content);
 
   const result: SessionResult = {
     score: row.scores as SessionResult["score"],

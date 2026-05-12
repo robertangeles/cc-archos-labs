@@ -1,11 +1,4 @@
 import {
-  DOMAIN_WEIGHTS,
-  PRIORITY_TRIGGERS,
-  RISK_FLAG_RULES,
-  TIER_BOUNDARIES,
-  getQuestion,
-} from "./content";
-import {
   DOMAINS,
   type Domain,
   type DomainScore,
@@ -15,11 +8,15 @@ import {
   type TierBoundary,
 } from "./types";
 import type { SessionAnswers } from "./flow";
+import type { DiagnosticContent } from "./content-config-shared";
 
 // AI Readiness Assessment scoring engine. Pure functions, no I/O,
-// fully deterministic — every input maps to exactly one output. The
-// W2 SPA renders results from these. The W3 LLM client passes results
-// + answers to Claude for narrative generation.
+// fully deterministic — every input maps to exactly one output.
+//
+// Each function takes a `DiagnosticContent` parameter so callers can
+// pass real DB-loaded content (server) or a test fixture. Source of
+// truth for the live content is the admin row at site_setting
+// key='diagnostic_content' (D-27); see lib/diagnostic/content-config.ts.
 
 // ----------------------------------------------------------------------------
 // Score a session — per-domain raw/max/percent + weighted total
@@ -28,7 +25,7 @@ import type { SessionAnswers } from "./flow";
 // Strategy:
 //   1. Walk every (questionId → answerCode) pair the user gave.
 //   2. Look up the question (skip silently if it's an unknown ID — the
-//      content file is the single source of truth and stale IDs from a
+//      content blob is the single source of truth and stale IDs from a
 //      cached frontend should fail soft, not crash the report).
 //   3. Add the chosen option's score to that question's domain. Track
 //      `max` separately by adding the highest-scoring option for that
@@ -37,18 +34,23 @@ import type { SessionAnswers } from "./flow";
 //      asked, not the static maximum (branches change which questions
 //      get asked).
 //   4. Convert per-domain raw/max into a 0–100 percent.
-//   5. Weight via DOMAIN_WEIGHTS (50 / 30 / 20) for the final 0–100.
+//   5. Weight via content.domainWeights (e.g. 50/30/20) for the final 0–100.
 
-export function scoreSession(answers: SessionAnswers): SessionScore {
+export function scoreSession(
+  answers: SessionAnswers,
+  content: DiagnosticContent,
+): SessionScore {
   const acc: Record<Domain, { raw: number; max: number }> = {
     data_foundation: { raw: 0, max: 0 },
     program_readiness: { raw: 0, max: 0 },
     org_reality: { raw: 0, max: 0 },
   };
 
+  const questionsById = buildQuestionsById(content);
+
   for (const [questionId, answerCode] of Object.entries(answers)) {
     if (!answerCode) continue;
-    const question = getQuestion(questionId);
+    const question = questionsById[questionId];
     if (!question) continue;
     const option = question.options.find((o) => o.code === answerCode);
     if (!option) continue;
@@ -63,9 +65,9 @@ export function scoreSession(answers: SessionAnswers): SessionScore {
   const org_reality = toDomainScore(acc.org_reality);
 
   const total = Math.round(
-    data_foundation.percent * DOMAIN_WEIGHTS.data_foundation +
-      program_readiness.percent * DOMAIN_WEIGHTS.program_readiness +
-      org_reality.percent * DOMAIN_WEIGHTS.org_reality,
+    data_foundation.percent * content.domainWeights.data_foundation +
+      program_readiness.percent * content.domainWeights.program_readiness +
+      org_reality.percent * content.domainWeights.org_reality,
   );
 
   return { data_foundation, program_readiness, org_reality, total };
@@ -80,14 +82,17 @@ function toDomainScore(d: { raw: number; max: number }): DomainScore {
 // Derive tier from weighted total
 // ----------------------------------------------------------------------------
 
-export function deriveTier(score: number): TierBoundary {
-  for (const t of TIER_BOUNDARIES) {
+export function deriveTier(
+  score: number,
+  content: DiagnosticContent,
+): TierBoundary {
+  for (const t of content.tierBoundaries) {
     if (score >= t.min && score <= t.max) return t;
   }
   // Defensive fallback — should never hit if boundaries cover 0–100.
   // If a score lands outside (e.g. clamped wrong), default to the most
   // conservative (highest-risk) tier rather than incorrectly upgrade.
-  return TIER_BOUNDARIES[0];
+  return content.tierBoundaries[0];
 }
 
 // ----------------------------------------------------------------------------
@@ -100,10 +105,13 @@ const SEVERITY_ORDER: Record<RiskSeverity, number> = {
   medium: 2,
 };
 
-export function evaluateRiskFlags(answers: SessionAnswers): RiskFlag[] {
+export function evaluateRiskFlags(
+  answers: SessionAnswers,
+  content: DiagnosticContent,
+): RiskFlag[] {
   const matched: RiskFlag[] = [];
 
-  for (const rule of RISK_FLAG_RULES) {
+  for (const rule of content.riskFlagRules) {
     const allConditionsMatch = rule.trigger.every((cond) => {
       const actual = answers[cond.questionId];
       if (actual === undefined) return false;
@@ -121,8 +129,8 @@ export function evaluateRiskFlags(answers: SessionAnswers): RiskFlag[] {
     }
   }
 
-  // Sort by severity (critical first), then preserve content.ts order
-  // for ties via stable sort. Slice to spec's max-3-per-report cap.
+  // Sort by severity (critical first), then preserve content order for
+  // ties via stable sort. Slice to spec's max-3-per-report cap.
   matched.sort(
     (a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity],
   );
@@ -133,13 +141,16 @@ export function evaluateRiskFlags(answers: SessionAnswers): RiskFlag[] {
 // Evaluate priority triggers — does this session warrant CRM is_priority?
 // ----------------------------------------------------------------------------
 
-export function evaluatePriorityTriggers(answers: SessionAnswers): {
+export function evaluatePriorityTriggers(
+  answers: SessionAnswers,
+  content: DiagnosticContent,
+): {
   isPriority: boolean;
   reasons: string[];
 } {
   const reasons: string[] = [];
 
-  for (const trigger of PRIORITY_TRIGGERS) {
+  for (const trigger of content.priorityTriggers) {
     if (answers[trigger.questionId] === trigger.answer) {
       reasons.push(trigger.reason);
     }
@@ -160,11 +171,14 @@ export interface SessionResult {
   priorityReasons: string[];
 }
 
-export function evaluateSession(answers: SessionAnswers): SessionResult {
-  const score = scoreSession(answers);
-  const tier = deriveTier(score.total);
-  const riskFlags = evaluateRiskFlags(answers);
-  const { isPriority, reasons } = evaluatePriorityTriggers(answers);
+export function evaluateSession(
+  answers: SessionAnswers,
+  content: DiagnosticContent,
+): SessionResult {
+  const score = scoreSession(answers, content);
+  const tier = deriveTier(score.total, content);
+  const riskFlags = evaluateRiskFlags(answers, content);
+  const { isPriority, reasons } = evaluatePriorityTriggers(answers, content);
   return {
     score,
     tier,
@@ -176,3 +190,18 @@ export function evaluateSession(answers: SessionAnswers): SessionResult {
 
 // Re-export for callers that want it in one place.
 export { DOMAINS };
+
+// ----------------------------------------------------------------------------
+// Internal — build the id→question lookup once per scoring call. The
+// content blob is small (under 20 questions) so we don't memoise across
+// calls; callers that hit hot paths can wrap getDiagnosticContent in
+// React cache() (which they already do).
+// ----------------------------------------------------------------------------
+
+function buildQuestionsById(content: DiagnosticContent) {
+  const out: Record<string, DiagnosticContent["questions"][number]> = {};
+  for (const q of content.questions) {
+    out[q.id] = q;
+  }
+  return out;
+}
