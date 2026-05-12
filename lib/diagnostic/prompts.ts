@@ -1,7 +1,7 @@
-import { getQuestion } from "./content";
-import { DOMAIN_LABELS } from "./types";
+import { DOMAIN_LABELS, type Question } from "./types";
 import type { SessionAnswers } from "./flow";
 import type { SessionResult } from "./scoring";
+import type { DiagnosticContent } from "./content-config-shared";
 
 // AI Readiness Assessment Claude prompt design.
 //
@@ -24,13 +24,17 @@ import type { SessionResult } from "./scoring";
 export function buildUserPrompt({
   answers,
   result,
+  content,
 }: {
   answers: SessionAnswers;
   result: SessionResult;
+  content: DiagnosticContent;
 }): string {
+  const questionsById = buildQuestionsById(content);
+
   // Sector + role for context framing
-  const sectorOption = lookupAnswerLabel(answers, "q1");
-  const roleOption = lookupAnswerLabel(answers, "q2");
+  const sectorOption = lookupAnswerLabel(answers, "q1", questionsById);
+  const roleOption = lookupAnswerLabel(answers, "q2", questionsById);
 
   // Full answer dump — Claude needs to reference the executive's
   // specific language, so we include question text + selected option
@@ -38,7 +42,7 @@ export function buildUserPrompt({
   const answerLines: string[] = [];
   for (const [questionId, code] of Object.entries(answers)) {
     if (!code) continue;
-    const question = getQuestion(questionId);
+    const question = questionsById[questionId];
     if (!question) continue;
     const option = question.options.find((o) => o.code === code);
     if (!option) continue;
@@ -65,7 +69,7 @@ export function buildUserPrompt({
 ASSESSMENT ANSWERS
 ${answerLines.join("\n")}
 
-DOMAIN SCORES (0–100 per domain, weighted 50/30/20 to total)
+DOMAIN SCORES (0–100 per domain, weighted ${weightingDescription(content)} to total)
 - ${DOMAIN_LABELS.data_foundation}: ${result.score.data_foundation.percent}% (raw ${result.score.data_foundation.raw}/${result.score.data_foundation.max})
 - ${DOMAIN_LABELS.program_readiness}: ${result.score.program_readiness.percent}% (raw ${result.score.program_readiness.raw}/${result.score.program_readiness.max})
 - ${DOMAIN_LABELS.org_reality}: ${result.score.org_reality.percent}% (raw ${result.score.org_reality.raw}/${result.score.org_reality.max})
@@ -84,11 +88,30 @@ Write the report for this executive. Respond ONLY with the JSON object specified
 function lookupAnswerLabel(
   answers: SessionAnswers,
   questionId: string,
+  questionsById: Record<string, Question>,
 ): string {
   const code = answers[questionId];
   if (!code) return "(not answered)";
-  const question = getQuestion(questionId);
+  const question = questionsById[questionId];
   if (!question) return "(unknown question)";
   const option = question.options.find((o) => o.code === code);
   return option?.label ?? `(unknown answer: ${code})`;
+}
+
+function buildQuestionsById(
+  content: DiagnosticContent,
+): Record<string, Question> {
+  const out: Record<string, Question> = {};
+  for (const q of content.questions) {
+    out[q.id] = q;
+  }
+  return out;
+}
+
+// Human-readable rendering of the domain weights for the Claude prompt
+// (e.g. "50/30/20"). Falls back gracefully if the weights don't sum
+// nicely to 100 — content is admin-editable so weird values are possible.
+function weightingDescription(content: DiagnosticContent): string {
+  const pct = (n: number) => Math.round(n * 100);
+  return `${pct(content.domainWeights.data_foundation)}/${pct(content.domainWeights.program_readiness)}/${pct(content.domainWeights.org_reality)}`;
 }

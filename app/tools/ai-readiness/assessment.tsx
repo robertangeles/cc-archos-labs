@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
-import { getQuestion } from "../../../lib/diagnostic/content";
 import {
   computeFlow,
   getInitialQuestionId,
@@ -11,7 +10,8 @@ import {
   getProgress,
   type SessionAnswers,
 } from "../../../lib/diagnostic/flow";
-import type { AnswerCode } from "../../../lib/diagnostic/types";
+import type { AnswerCode, Question } from "../../../lib/diagnostic/types";
+import type { DiagnosticContent } from "../../../lib/diagnostic/content-config-shared";
 import { WelcomeScreen } from "./welcome-screen";
 import { QuestionCard } from "./question-card";
 import { ProgressBar } from "./progress-bar";
@@ -113,10 +113,19 @@ function clearState() {
   }
 }
 
-export function Assessment() {
+export function Assessment({ content }: { content: DiagnosticContent }) {
   const [state, setState] = useState<SessionState>(INITIAL_STATE);
   const [hydrated, setHydrated] = useState(false);
   const router = useRouter();
+
+  // Build an id→question map once per render. Content is server-loaded
+  // and stable across the SPA's lifetime.
+  const questionsById = useMemo(() => {
+    const out: Record<string, Question> = {};
+    for (const q of content.questions) out[q.id] = q;
+    return out;
+  }, [content]);
+  const getQuestion = (id: string): Question | undefined => questionsById[id];
 
   useEffect(() => {
     // SSR-safe localStorage hydration: this is a client component but
