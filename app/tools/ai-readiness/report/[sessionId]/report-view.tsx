@@ -100,7 +100,11 @@ export function ReportView({
             <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-accent print:text-[11px]">
               AI Readiness Assessment
             </p>
-            <PrintButton />
+            <PrintButton
+              sessionId={
+                viewMode === "owner" ? report.sessionId : undefined
+              }
+            />
           </div>
           <div className="mt-8 flex flex-col gap-y-2 md:flex-row md:items-baseline md:gap-x-10 md:gap-y-0">
             <p className="font-mono text-[80px] font-semibold leading-none tracking-[-0.04em] text-fg md:text-[140px] print:text-[120px]">
