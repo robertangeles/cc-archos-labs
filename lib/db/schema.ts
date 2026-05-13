@@ -283,6 +283,48 @@ export type ShareToken = typeof shareToken.$inferSelect;
 export type NewShareToken = typeof shareToken.$inferInsert;
 
 // ============================================================================
+// integration_secret_audit — Phase 2.5 integration-config rotation log
+// ============================================================================
+// Audit trail for the /admin/integrations Settings page. One row per admin
+// mutation of an integration secret or config value. Captures key_name +
+// operation + actor + timestamp. Crucially, NEVER stores the value itself
+// — that would defeat encryption-at-rest. Reads from this table answer
+// "who changed which secret, when?" for incident reconstruction.
+//
+// No updated_at column: audit rows are immutable. Append-only by contract.
+
+export const integrationSecretAudit = pgTable(
+  "integration_secret_audit",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Field name in the IntegrationConfig (e.g. 'resend_api_key',
+    // 'admin_password', 'contact_recipient_email'). Snake-case to match
+    // the DB convention; the loader translates to camelCase types.
+    keyName: text("key_name").notNull(),
+    // One of: 'created' (first migration), 'updated' (admin edit),
+    // 'revealed' (admin viewed plaintext), 'rotated_master_key'
+    // (the master-key UI flow re-encrypted this field).
+    operation: text("operation").notNull(),
+    // The admin identity that performed the action. Admin auth today is
+    // password-only with no user record, so this is the literal 'admin'.
+    // When multi-admin lands, becomes a FK to admin_user.id.
+    actor: text("actor").notNull().default("admin"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // Serves: "show change history for this secret" admin views.
+    index("integration_secret_audit_key_name_idx").on(table.keyName),
+    // Serves: "show all recent mutations across all keys" reverse-chrono view.
+    index("integration_secret_audit_created_at_idx").on(table.createdAt),
+  ],
+);
+
+export type IntegrationSecretAudit = typeof integrationSecretAudit.$inferSelect;
+export type NewIntegrationSecretAudit = typeof integrationSecretAudit.$inferInsert;
+
+// ============================================================================
 // Relations — for typed Drizzle joins (db.query.assessmentSession.findFirst({ with: { lead } }))
 // ============================================================================
 

@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { signSession, verifyAdminPassword } from "../../../../lib/auth";
+import { signSession } from "../../../../lib/auth";
+import { verifyAdminPassword } from "../../../../lib/admin-password";
 import { setSessionCookie } from "../../../../lib/auth-server";
 import { rateLimit, clientIpFromRequest } from "../../../../lib/rate-limit";
 
@@ -49,9 +50,10 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!verifyAdminPassword(parsed.data.password)) {
+  if (!(await verifyAdminPassword(parsed.data.password))) {
     // Generic message — don't reveal whether the password matched a known
-    // value or whether the env var was misconfigured.
+    // value or whether the integration config is misconfigured. The real
+    // failure mode (DB unreachable, wrong key, no migration) is in the logs.
     return Response.json(
       { ok: false, error: "Incorrect password." },
       { status: 401 },
