@@ -15,6 +15,7 @@ _(none yet)_
 - [AI Readiness Assessment — Scoring Logic](concepts/diagnostic-scoring-logic.md) — engine architecture: pipeline, branch resolution, domain weighting, tier derivation, risk flags, priority triggers; calibrated values live in /admin/diagnostic
 - [Lead session model and owner-only report access](concepts/lead-session-and-owner-only-reports.md) — two cookies one secret, lead upsert by email, sticky priority, why owner-mismatch returns 404 not 401
 - [Magic-link sign-in for return visitors](concepts/magic-link-sign-in.md) — sha256-stored tokens, atomic single-UPDATE consume, no enumeration on any surface, latest-report-wins on verify
+- [Share tokens for the AI Readiness report](concepts/share-tokens.md) — 7-day TTL public URLs, one-consume-stamp/re-views-OK semantics, many-active-per-report, atomic verify via COALESCE on consumed_at
 
 ## decisions
 - [Diagnostic per-option scoring calibration (overview)](decisions/2026-05-09-diagnostic-scoring-calls.md) — meta-discipline for calibration deviations: four classes of deviation + score-vs-trigger separation pattern; specific values live in /admin/diagnostic
@@ -33,6 +34,7 @@ _(none yet)_
 _(none yet)_
 
 ## lessons-learned
+- [Puppeteer-on-Render setup needs three things, not one](lessons-learned/2026-05-13-puppeteer-on-render.md) — build command must run `npx puppeteer browsers install chrome`; cache path must be project-local via `PUPPETEER_CACHE_DIR`; navigation target must use `NEXT_PUBLIC_SITE_URL`, not `request.url`
 - [Schema drift claims need an origin/main check, not just the working tree](lessons-learned/2026-05-12-schema-drift-needs-origin-main-check.md) — fetch + diff against origin/main before declaring code or tables unreferenced; a feature-branch grep doesn't see what merged to main after you branched off
 - [drizzle-kit push hangs on Render Postgres](lessons-learned/2026-05-08-drizzle-kit-push-hangs-on-render.md) — bypass push; use `drizzle-kit generate` + a `postgres-js` SQL applier
 - [Turbopack workspace root must be set explicitly on Next.js 16](lessons-learned/2026-05-07-turbopack-root.md) — set `turbopack.root` in `next.config.ts` from day one when project lives inside a shared parent dir

@@ -8,6 +8,38 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-13 — Phase 2 shipped end-to-end + prod hardened
+
+Long session. Eight feature PRs + one fix PR all landed today, closing the D → C → B sequence and the immediate launch checklist.
+
+**D-27 (PR #12)** — diagnostic content (questions, scoring, risk-flag rules, priority triggers, tier boundaries, domain weights) moved out of `lib/diagnostic/content.ts` into the admin row at `site_setting` key `'diagnostic_content'`. Scoring engine refactored to take `DiagnosticContent` as a parameter (no module-level state). New `/admin/diagnostic` editor with raw-JSON paste + Zod validation. Source now ships a single placeholder question as the fallback.
+
+**D-28 (PR #15)** — both IP-sensitive wiki pages (`wiki/concepts/diagnostic-scoring-logic.md` + `wiki/decisions/2026-05-09-diagnostic-scoring-calls.md`) rewritten as architecture/discipline overviews. Specific per-option scores, persona test results, and the four specific calibration changes no longer in public docs. Full content recoverable from git history via `pnpm extract-content` if needed.
+
+**C-1 (PR #16)** — return-visitor portal at `/tools/ai-readiness`. Signed-in leads see their reports + a "Run again" CTA gated by a 30-day cooldown. New visitors and `?retake=1` still see the assessment SPA. New `loadLeadPortalData()` joins assessment_session + report_output filtered by lead.
+
+**Auth header (PR #17)** — `Sign in` link in the nav when signed out; `Profile` dropdown with "Signed in as [Name]" + Sign out when signed in. `getSignedInLead()` server helper with React `cache()` per-request dedupe. New `POST /api/auth/lead/logout`. Designed to scale: future profile menu items slot in under the Profile dropdown.
+
+**C-2 (PR #18)** — share tokens. Owner generates 7-day public URLs to forward to CFO/board. Many active tokens per report, each independently revocable. `consumed_at` audit stamp on first view, re-views OK within TTL. New `share_token` table with sha256-hashed tokens. New `share-controls.tsx` client component. Public `/tools/ai-readiness/share/[token]` view with `noindex` metadata. Design concept page: `wiki/concepts/share-tokens.md`.
+
+**B (PR #19)** — server-side Puppeteer PDF on the report page. Owner-only — share-token recipients still use `window.print()`. Five iterations of polish (light theme, page numbers, 3-col domain breakdown, natural pagination, content alignment). PDF output is genuinely executive-ready.
+
+**B prod-fix (PR #20)** — `request.url` on Render reports `https://localhost:10000` (X-Forwarded-Proto from edge, but internal speaks HTTP). PDF route switched to navigate via `NEXT_PUBLIC_SITE_URL` instead.
+
+**Launch checklist**:
+- `/admin/diagnostic` seeded with the real v1.0 content via `pnpm extract-content dcd6652 content.json`. Verified locally + prod (shared DB).
+- Render env vars audited and completed: `AUTH_SECRET` was missing initially → admin login 500'd → fixed. Then `PUPPETEER_CACHE_DIR` added for the PDF endpoint.
+- Render build command updated: `pnpm install --frozen-lockfile && npx puppeteer browsers install chrome && pnpm build`.
+
+**Three sequential Puppeteer-on-Render failures** documented in `wiki/lessons-learned/2026-05-13-puppeteer-on-render.md`:
+1. Chromium binary missing (Render's `pnpm install` skips build scripts) → build command append.
+2. Cache path mismatch between build and runtime → `PUPPETEER_CACHE_DIR=/opt/render/project/src/.cache/puppeteer`.
+3. Navigation URL using internal hostname → use `NEXT_PUBLIC_SITE_URL`.
+
+The third one was where the CLAUDE.md debugging protocol (Confirmed / Evidence / Root cause / Fix / Verify with) earned its keep. Two speculative iterations failed; one protocol-driven diagnosis nailed it.
+
+**End state**: D track closed, C track closed, B track closed, launch checklist passes. The AI Readiness Assessment is end-to-end functional on `archoslabs.xyz` with shareable PDFs.
+
 ## 2026-05-13 — D-28: redacted scoring-logic + calibration-calls wiki pages
 
 Closes the D track (IP-sensitive content out of public repo). Both `wiki/concepts/diagnostic-scoring-logic.md` and `wiki/decisions/2026-05-09-diagnostic-scoring-calls.md` rewritten as architecture/discipline overviews — the engine pipeline, branch resolution mechanism, domain/tier/risk-flag/priority-trigger concepts are still documented, but the specific per-option scoring matrix, calibrated values, four specific score changes, and three persona test results are no longer in the public wiki. Original full content is recoverable from any commit before today via `pnpm extract-content`.
