@@ -27,32 +27,47 @@ export function buildMagicLinkEmail(input: MagicLinkEmailInput): RenderedEmail {
 
   const text =
     `Hi ${firstNameSafe},\n\n` +
-    `Use the link below to open your AI Readiness Assessment report. ` +
+    `Here's the link to your AI Readiness Assessment. ` +
     `The link expires in ${expires} minutes and can only be used once.\n\n` +
     `${url}\n\n` +
-    `If you didn't request this, you can safely ignore the email — ` +
-    `your account stays secure.\n\n` +
-    `— Archos Labs\n` +
+    `If you didn't request this email, you can safely ignore it — ` +
+    `no one can access your account without this link.\n\n` +
+    `— Rob Angeles\n` +
+    `Archos Labs\n\n` +
     `Built by practitioners. For programs that can't afford to get it wrong.\n` +
     `archoslabs.xyz`;
 
   // HTML is the polished render; text above stays the source of truth.
-  // Layout decisions:
-  //   - 560px wide so it reads like a document, not a popup card.
-  //   - Logo + wordmark masthead OUTSIDE the card so the brand still
-  //     reads when the email client blocks images (the wordmark text
-  //     stands alone). The image is reinforcement, not the primary mark.
-  //   - #1e40af accent (the "serious" Archos blue used in the PDF) —
-  //     #3b82f6 reads as developer-SaaS; #1e40af reads as senior advisor.
-  //   - color-scheme:light suppresses auto-inversion in Apple Mail /
-  //     iOS dark mode, which otherwise turns the warm off-white canvas
-  //     into a muddy near-black and washes out the accent.
-  //   - Preheader hidden text controls inbox preview so it doesn't
-  //     read whatever the first visible line of body content happens
-  //     to be.
-  //   - Tagline in the footer reinforces the practitioner positioning
-  //     — the recipient is engaging with us, so a brand line earns its
-  //     place here in a way it doesn't on a noisy marketing footer.
+  //
+  // Why this is the way it is (v2 — exec-grade rendering):
+  //
+  // - Bulletproof button. Outlook desktop strips display:inline-block +
+  //   background on `<a>`, and Outlook.com web strips background on
+  //   styled anchors entirely. v1 rendered as a plain text link in both.
+  //   v2 uses the standard table+VML pattern: a `<td bgcolor>` wraps the
+  //   `<a>` so the colour survives even when the anchor is reduced to
+  //   text, and `<v:roundrect>` inside an `<!--[if mso]>` block draws a
+  //   real button for Outlook desktop's Word rendering engine.
+  // - Table-row spacing, not div padding. Stacked `<div>`s with
+  //   padding-top collapse in some clients (the v1 screenshot showed
+  //   "Hi Rob, Use the link below" running together). Putting each
+  //   block in its own `<tr><td>` preserves the gaps reliably.
+  // - 4px brand stripe at the top of the card. A small "this was
+  //   crafted on purpose" device — costs nothing and an exec scanning
+  //   their inbox registers it without registering why.
+  // - Signature from Rob inside the card. The practitioner brand says
+  //   the work is done by a person, not an agency. A faceless
+  //   "— Archos Labs" signature contradicts that. Goes inside the card
+  //   so it reads as part of the letter, not a footer.
+  // - Tagline footer outside the card. Brand reinforcement, separated
+  //   from the personal sign-off so the two don't fight.
+  // - `mso-line-height-rule:exactly` on the brand stripe so the 4px row
+  //   doesn't expand to font-size + leading on Outlook desktop.
+  // - Logo + wordmark masthead outside the card. The wordmark stands
+  //   alone if the client blocks images.
+  // - color-scheme:light hints at preferred rendering. Outlook web /
+  //   Gmail dark mode still override, but Apple Mail + Apple Mail dark
+  //   mode respect it.
   const html = `<!doctype html>
 <html lang="en">
 <head>
@@ -61,6 +76,25 @@ export function buildMagicLinkEmail(input: MagicLinkEmailInput): RenderedEmail {
 <meta name="color-scheme" content="light">
 <meta name="supported-color-schemes" content="light">
 <title>Your Archos Labs sign-in link</title>
+<style>
+  /* Outlook.com web dark mode: the engine rewrites #ffffff text to a
+     dark colour after inline styles resolve, so a plain
+     style="color:#fff !important" on the button loses. [data-ogsc]
+     and [data-ogsb] are Outlook-web-specific attribute hooks applied
+     AFTER dark-mode transformation, so anything keyed on them wins. */
+  [data-ogsc] .cta-button,
+  [data-ogsc] .cta-button-text {
+    color: #ffffff !important;
+  }
+  [data-ogsb] .cta-button-cell {
+    background-color: #1e40af !important;
+  }
+</style>
+<!--[if mso]>
+<style>
+* { font-family: 'Segoe UI', Helvetica, Arial, sans-serif !important; }
+</style>
+<![endif]-->
 </head>
 <body style="margin:0;padding:0;background:#f8f8f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#0f0f0f;-webkit-font-smoothing:antialiased;">
   <div style="display:none;visibility:hidden;mso-hide:all;font-size:1px;color:#f8f8f6;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
@@ -71,13 +105,13 @@ export function buildMagicLinkEmail(input: MagicLinkEmailInput): RenderedEmail {
       <td align="center" style="padding:40px 16px 32px 16px;">
         <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;">
           <tr>
-            <td style="padding-bottom:28px;">
+            <td style="padding-bottom:24px;">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td valign="middle" style="padding-right:10px;">
-                    <img src="https://archoslabs.xyz/images/logo.png" alt="" width="28" height="28" style="display:block;width:28px;height:28px;border:0;outline:none;text-decoration:none;">
+                  <td valign="middle" style="padding-right:14px;">
+                    <img src="https://archoslabs.xyz/images/logo.png" alt="" width="56" height="56" style="display:block;width:56px;height:56px;border:0;outline:none;text-decoration:none;">
                   </td>
-                  <td valign="middle" style="font-size:15px;font-weight:600;letter-spacing:-0.005em;color:#0f0f0f;line-height:1;">
+                  <td valign="middle" style="font-size:30px;font-weight:600;letter-spacing:-0.015em;color:#0f0f0f;line-height:1;">
                     Archos Labs
                   </td>
                 </tr>
@@ -87,37 +121,64 @@ export function buildMagicLinkEmail(input: MagicLinkEmailInput): RenderedEmail {
         </table>
         <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;background:#ffffff;border:1px solid #e5e5e3;border-radius:10px;">
           <tr>
-            <td style="padding:40px 44px 36px 44px;">
-              <div style="font-size:24px;line-height:1.25;font-weight:600;letter-spacing:-0.02em;color:#0f0f0f;">
-                Open your report
-              </div>
-              <div style="padding-top:20px;font-size:15px;line-height:1.6;color:#1f1f1f;">
-                Hi ${escapeHtml(firstNameSafe)},
-              </div>
-              <div style="padding-top:12px;font-size:15px;line-height:1.6;color:#1f1f1f;">
-                Use the link below to open your AI Readiness Assessment report. The link expires in ${expires} minutes and can only be used once.
-              </div>
-              <div style="padding:28px 0 4px 0;">
-                <a href="${escapeAttr(url)}" style="display:inline-block;background:#1e40af;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-size:15px;font-weight:500;letter-spacing:-0.005em;line-height:1;">
-                  Open my report
-                </a>
-              </div>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:32px;border-top:1px solid #ececea;">
+            <td bgcolor="#1e40af" height="4" style="background:#1e40af;height:4px;line-height:4px;font-size:0;mso-line-height-rule:exactly;border-top-left-radius:10px;border-top-right-radius:10px;">&nbsp;</td>
+          </tr>
+          <tr>
+            <td style="padding:36px 44px 0 44px;font-size:24px;line-height:1.25;font-weight:600;letter-spacing:-0.02em;color:#0f0f0f;">
+              Open your report
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 44px 0 44px;font-size:15px;line-height:1.6;color:#1f1f1f;">
+              Hi ${escapeHtml(firstNameSafe)},
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:12px 44px 0 44px;font-size:15px;line-height:1.6;color:#1f1f1f;">
+              Here's the link to your AI Readiness Assessment. The link expires in ${expires} minutes and can only be used once.
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px 44px 0 44px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td style="padding-top:20px;font-size:13px;line-height:1.6;color:#6b6b6b;">
-                    If you didn't request this email, you can safely ignore it — your account stays secure.
+                  <td class="cta-button-cell" bgcolor="#1e40af" style="background-color:#1e40af;border-radius:8px;mso-padding-alt:0;">
+                    <!--[if mso]>
+                    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escapeAttr(url)}" style="height:46px;v-text-anchor:middle;width:200px;" arcsize="18%" stroke="f" fillcolor="#1e40af">
+                      <w:anchorlock/>
+                      <center style="color:#ffffff;font-family:'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;">Open my report</center>
+                    </v:roundrect>
+                    <![endif]-->
+                    <!--[if !mso]><!-->
+                    <a class="cta-button" href="${escapeAttr(url)}" style="display:inline-block;background:#1e40af;color:#ffffff !important;text-decoration:none;padding:14px 28px;border-radius:8px;font-size:15px;font-weight:500;letter-spacing:-0.005em;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;line-height:1;">
+                      <span class="cta-button-text" style="color:#ffffff !important;mso-color-alt:#ffffff;">Open my report</span>
+                    </a>
+                    <!--<![endif]-->
                   </td>
                 </tr>
               </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px 44px 0 44px;">
+              <div style="border-top:1px solid #ececea;font-size:0;line-height:0;">&nbsp;</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 44px 0 44px;font-size:13px;line-height:1.6;color:#6b6b6b;">
+              If you didn't request this email, you can safely ignore it — no one can access your account without this link.
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 44px 36px 44px;font-size:14px;line-height:1.5;color:#0f0f0f;">
+              <div style="font-weight:500;">— Rob Angeles</div>
+              <div style="color:#6b6b6b;font-size:13px;padding-top:2px;">Archos Labs</div>
             </td>
           </tr>
         </table>
         <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;padding-top:24px;">
           <tr>
             <td align="center" style="font-size:12px;line-height:1.7;color:#8a8a88;text-align:center;">
-              <div style="color:#0f0f0f;font-weight:600;letter-spacing:-0.005em;font-size:13px;padding-bottom:4px;">
-                Archos Labs
-              </div>
               <div>
                 Built by practitioners. For programs that can't afford to get it wrong.
               </div>
