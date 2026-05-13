@@ -202,7 +202,7 @@ export function ReportView({
           <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-muted">
             Domain breakdown
           </p>
-          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="mt-5 grid grid-cols-1 gap-3 print:grid-cols-3 print:gap-2 md:grid-cols-3">
             {(
               [
                 "data_foundation",
@@ -238,15 +238,17 @@ export function ReportView({
 
       {/* ====================================================================
           Section 4 — Practitioner analysis
-          Starts on its own page in print so the long-form narrative
-          isn't visually broken by the score dashboard above it.
+          Flows after the score dashboard in print (no forced page
+          break) so the document doesn't trail off with empty pages.
+          The browser's natural break logic + the break-inside-avoid
+          on cards keeps things readable.
           ==================================================================== */}
-      <section className="border-b border-rule px-6 py-16 md:px-12 md:py-20 print:break-before-page print:py-0 print:pt-8">
+      <section className="border-b border-rule px-6 py-16 md:px-12 md:py-20 print:py-6">
         <div className="mx-auto w-full max-w-[680px]">
           <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-muted">
             Practitioner analysis
           </p>
-          <div className="mt-8 flex flex-col gap-y-6 text-[18px] leading-[1.65] text-fg/90 print:mt-6 print:gap-y-4 print:text-[13px] print:leading-[1.65]">
+          <div className="mt-8 flex flex-col gap-y-6 text-[18px] leading-[1.65] text-fg/90 print:mt-4 print:gap-y-3 print:text-[12.5px] print:leading-[1.6]">
             {paragraphs.map((p, i) => (
               <p key={i}>{p}</p>
             ))}
@@ -256,10 +258,10 @@ export function ReportView({
 
       {/* ====================================================================
           Section 5 — Priority action sequence
-          Forced to a fresh page in print — actions are the artifact
-          executives forward, so they get clean real estate.
+          Flows naturally in print after the narrative. ActionRow has
+          break-inside-avoid so individual actions don't split mid-card.
           ==================================================================== */}
-      <section className="border-b border-rule px-6 py-12 md:px-12 md:py-16 print:break-before-page print:py-0 print:pt-8">
+      <section className="border-b border-rule px-6 py-12 md:px-12 md:py-16 print:py-6">
         <div className="mx-auto w-full max-w-[840px]">
           <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-muted">
             Priority action sequence
@@ -286,8 +288,12 @@ export function ReportView({
 
       {/* ====================================================================
           Section 6 — Next-step CTA
+          Flows naturally — break-inside-avoid on the inner card keeps
+          the CTA together; if it can't fit on the current page it
+          bumps to the next, but we don't force a break that would
+          leave dead space.
           ==================================================================== */}
-      <section className="px-6 py-16 md:px-12 md:py-20 print:break-before-page print:py-0 print:pt-12">
+      <section className="px-6 py-16 md:px-12 md:py-20 print:py-8">
         <div className="mx-auto w-full max-w-[840px] rounded-md border border-accent/30 bg-accent/5 px-6 py-8 md:px-10 md:py-10 print:break-inside-avoid">
           <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-accent">
             Next step

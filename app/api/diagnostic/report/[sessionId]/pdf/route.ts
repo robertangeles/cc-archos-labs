@@ -99,8 +99,16 @@ export async function GET(
       timeout: PDF_TIMEOUT_MS,
     });
 
+    // Force print-media emulation so the @media print rules in
+    // globals.css apply (light theme tokens, page-break controls,
+    // print-color-adjust). page.pdf() is documented as implicit-print
+    // but in practice some CSS-variable resolution doesn't re-fire
+    // unless we emulate explicitly.
+    await page.emulateMediaType("print");
+
     // Pull the print-rendered PDF. Margins match the @page rule in
     // globals.css so the on-screen-when-printing layout is preserved.
+    // displayHeaderFooter adds page numbers in the bottom margin.
     const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
@@ -110,6 +118,31 @@ export async function GET(
         bottom: "0.75in",
         left: "0.75in",
       },
+      displayHeaderFooter: true,
+      // Empty header — we don't want browser default date/URL.
+      headerTemplate: "<div></div>",
+      // Centered "page / total" footer. Skipped on the first page
+      // (cover) so the cover stays clean; this is what Chromium does
+      // when the footer template starts with the .pageNumber selector
+      // and the page is page 1 of N — actually Chromium always
+      // renders header/footer, so we keep page numbers on every page
+      // including the cover. Acceptable trade-off vs the alternative
+      // of no page numbers at all.
+      footerTemplate: `
+        <div style="
+          font-size: 9px;
+          color: #6b6b6b;
+          width: 100%;
+          padding: 0 0.75in;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        ">
+          <span>Archos Labs · Confidential</span>
+          <span><span class="pageNumber"></span> / <span class="totalPages"></span></span>
+        </div>
+      `,
       preferCSSPageSize: false,
     });
 
