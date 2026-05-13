@@ -79,13 +79,17 @@ export async function verifyShareToken(
   //   - matches by hash
   //   - rejects expired or revoked tokens via the WHERE clause
   //   - COALESCE stamps consumed_at only when it was NULL (preserves
-  //     the original first-consume timestamp on subsequent visits)
+  //     the original first-consume timestamp on subsequent visits).
+  //     Uses Postgres NOW() rather than a JS Date interpolated into
+  //     the raw sql tag — interpolating a JS Date directly fails with
+  //     ERR_INVALID_ARG_TYPE in postgres-js because the raw bind path
+  //     doesn't serialise Date the way Drizzle's high-level set() does.
   //   - returns the session id so the caller can render the report
   const now = new Date();
   const rows = await db
     .update(shareToken)
     .set({
-      consumedAt: sql`COALESCE(${shareToken.consumedAt}, ${now})`,
+      consumedAt: sql`COALESCE(${shareToken.consumedAt}, NOW())`,
       updatedAt: now,
     })
     .where(
