@@ -67,9 +67,18 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
+  // On Render, request.url reports the internal binding
+  // (https://localhost:10000 — Render forwards X-Forwarded-Proto: https
+  // but the internal server only speaks HTTP). Using that as the
+  // navigation target makes Puppeteer attempt a TLS handshake against
+  // an HTTP socket → net::ERR_SSL_PROTOCOL_ERROR. Use the public site
+  // URL instead so Puppeteer goes back through Render's edge cleanly.
   const requestUrl = new URL(request.url);
-  const reportUrl = `${requestUrl.origin}/tools/ai-readiness/report/${sessionId}`;
-  const isHttps = requestUrl.protocol === "https:";
+  const publicOrigin =
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() || requestUrl.origin;
+  const reportUrl = `${publicOrigin}/tools/ai-readiness/report/${sessionId}`;
+  const cookieUrl = new URL(publicOrigin);
+  const isHttps = cookieUrl.protocol === "https:";
 
   let browser: Awaited<ReturnType<typeof puppeteer.launch>> | null = null;
   try {
@@ -89,11 +98,12 @@ export async function GET(
     await page.emulateMediaType("print");
 
     // Set the lead session cookie so the report page authorises this
-    // self-call. Cookie domain has to match what Puppeteer navigates to.
+    // self-call. Cookie domain must match what Puppeteer navigates to,
+    // which is publicOrigin (NEXT_PUBLIC_SITE_URL on Render).
     await page.setCookie({
       name: LEAD_SESSION_COOKIE,
       value: leadCookieValue,
-      domain: requestUrl.hostname,
+      domain: cookieUrl.hostname,
       path: "/",
       httpOnly: true,
       secure: isHttps,
