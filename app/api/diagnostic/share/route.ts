@@ -8,6 +8,7 @@ import {
   clientIpFromRequest,
   rateLimit,
 } from "../../../../lib/rate-limit";
+import { getPublicOrigin } from "../../../../lib/public-origin";
 
 export const runtime = "nodejs";
 
@@ -84,7 +85,7 @@ export async function POST(request: Request) {
 
   try {
     const minted = await mintShareToken(parsed.data.sessionId);
-    const origin = new URL(request.url).origin;
+    const origin = getPublicOrigin(request);
     const url = `${origin}/tools/ai-readiness/share/${encodeURIComponent(minted.rawToken)}`;
     return Response.json({
       ok: true,

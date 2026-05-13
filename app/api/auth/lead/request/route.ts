@@ -9,6 +9,7 @@ import {
   clientIpFromRequest,
   rateLimit,
 } from "../../../../../lib/rate-limit";
+import { getPublicOrigin } from "../../../../../lib/public-origin";
 
 export const runtime = "nodejs";
 
@@ -111,7 +112,7 @@ export async function POST(request: Request) {
   // account exists.
   try {
     const minted = await mintMagicLinkToken(targetLead.id);
-    const origin = new URL(request.url).origin;
+    const origin = getPublicOrigin(request);
     const magicLinkUrl = `${origin}/api/auth/lead/verify?token=${encodeURIComponent(
       minted.rawToken,
     )}`;

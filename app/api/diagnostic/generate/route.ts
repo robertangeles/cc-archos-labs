@@ -7,6 +7,7 @@ import {
 import { signLeadSession } from "../../../../lib/auth-lead";
 import { setLeadSessionCookie } from "../../../../lib/auth-server";
 import { sendLeadNotification } from "../../../../lib/lead-notification";
+import { getPublicOrigin } from "../../../../lib/public-origin";
 
 export const runtime = "nodejs";
 
@@ -120,7 +121,7 @@ export async function POST(request: Request) {
       isPriority: result.result.isPriority,
       priorityReasons: result.result.priorityReasons,
       sessionId: result.sessionId,
-      origin: new URL(request.url).origin,
+      origin: getPublicOrigin(request),
     });
 
     return Response.json({ ok: true, sessionId: result.sessionId });

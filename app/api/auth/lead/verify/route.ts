@@ -8,6 +8,7 @@ import {
   clientIpFromRequest,
   rateLimit,
 } from "../../../../../lib/rate-limit";
+import { getPublicOrigin } from "../../../../../lib/public-origin";
 
 export const runtime = "nodejs";
 
@@ -75,6 +76,6 @@ export async function GET(request: Request) {
 }
 
 function redirectTo(request: Request, path: string): Response {
-  const url = new URL(path, new URL(request.url).origin);
+  const url = new URL(path, getPublicOrigin(request));
   return Response.redirect(url, 302);
 }
