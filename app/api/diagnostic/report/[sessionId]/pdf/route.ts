@@ -82,6 +82,12 @@ export async function GET(
 
     const page = await browser.newPage();
 
+    // Switch to print media BEFORE navigation so the page loads with
+    // the @media print rules already active. Doing this post-goto
+    // leaves React hydrated with screen styles that the pdf() pass
+    // doesn't always re-resolve.
+    await page.emulateMediaType("print");
+
     // Set the lead session cookie so the report page authorises this
     // self-call. Cookie domain has to match what Puppeteer navigates to.
     await page.setCookie({
@@ -99,12 +105,14 @@ export async function GET(
       timeout: PDF_TIMEOUT_MS,
     });
 
-    // Force print-media emulation so the @media print rules in
-    // globals.css apply (light theme tokens, page-break controls,
-    // print-color-adjust). page.pdf() is documented as implicit-print
-    // but in practice some CSS-variable resolution doesn't re-fire
-    // unless we emulate explicitly.
-    await page.emulateMediaType("print");
+    // Force light theme via a class on <html>. Chromium's print media
+    // emulation has been unreliable in recent Puppeteer versions, so
+    // we don't rely on @media print firing for the pdf() call. The
+    // .pdf-mode class overrides the Tailwind theme tokens (set in
+    // globals.css) so bg-canvas, text-fg, etc. all resolve to light.
+    await page.evaluate(() => {
+      document.documentElement.classList.add("pdf-mode");
+    });
 
     // Pull the print-rendered PDF. Margins match the @page rule in
     // globals.css so the on-screen-when-printing layout is preserved.
