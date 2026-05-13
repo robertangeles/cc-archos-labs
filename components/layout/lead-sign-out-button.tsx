@@ -12,9 +12,13 @@ export function LeadSignOutButton() {
 
   async function onLogout() {
     await fetch("/api/auth/lead/logout", { method: "POST" });
-    // Refresh in place so the header re-renders without the signed-in
-    // state. Don't redirect — the user might be mid-flow on a page
-    // that's still useful (e.g. /tools/ai-readiness assessment SPA).
+    // Navigate to home then refresh. Sign out from an owner-only page
+    // (report, portal with signed-in state) would leave the user on a
+    // URL that now 404s with the cookie gone — visually ambiguous
+    // because the URL bar doesn't change. Home is always a safe
+    // landing: works signed-in or signed-out, header re-renders to
+    // show "Sign in" again.
+    router.replace("/");
     router.refresh();
   }
 
