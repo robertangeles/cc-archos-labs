@@ -5,6 +5,7 @@ import { getDb } from "../../../../../../lib/db";
 import { assessmentSession } from "../../../../../../lib/db/schema";
 import { getLeadFromCookies } from "../../../../../../lib/auth-server";
 import { LEAD_SESSION_COOKIE } from "../../../../../../lib/auth-lead";
+import { getPublicOrigin } from "../../../../../../lib/public-origin";
 
 export const runtime = "nodejs";
 
@@ -67,15 +68,9 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
-  // On Render, request.url reports the internal binding
-  // (https://localhost:10000 — Render forwards X-Forwarded-Proto: https
-  // but the internal server only speaks HTTP). Using that as the
-  // navigation target makes Puppeteer attempt a TLS handshake against
-  // an HTTP socket → net::ERR_SSL_PROTOCOL_ERROR. Use the public site
-  // URL instead so Puppeteer goes back through Render's edge cleanly.
-  const requestUrl = new URL(request.url);
-  const publicOrigin =
-    process.env.NEXT_PUBLIC_SITE_URL?.trim() || requestUrl.origin;
+  // Use the publicly-reachable origin (NEXT_PUBLIC_SITE_URL on Render,
+  // request.url on local). See lib/public-origin.ts for the why.
+  const publicOrigin = getPublicOrigin(request);
   const reportUrl = `${publicOrigin}/tools/ai-readiness/report/${sessionId}`;
   const cookieUrl = new URL(publicOrigin);
   const isHttps = cookieUrl.protocol === "https:";
