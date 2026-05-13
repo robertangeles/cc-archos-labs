@@ -8,6 +8,30 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-13 — Post-launch prod fixes + magic-link email redesign
+
+Session continued after the initial "Phase 2 shipped end-to-end" entry below. Six more PRs landed today, all driven by what surfaced on the live prod surface.
+
+**PR #21 (wiki)** — `wiki/lessons-learned/2026-05-13-puppeteer-on-render.md` written up after the three-attempt Puppeteer-on-Render debug from the morning. Documents the build-command / cache-path / navigation-target trio.
+
+**PR #22 (`getPublicOrigin` helper)** — same `request.url` → `https://localhost:10000` bug class as PR #20 surfaced in four more places (share-mint route, magic-link request route, magic-link verify redirect, lead-notification email-link). Extracted `lib/public-origin.ts` and replaced `new URL(request.url).origin` everywhere it emitted a publicly-reachable URL. Pattern is now: any route that returns a URL to the user (email link, redirect target, JSON response) MUST go through `getPublicOrigin(request)`, not `request.url`.
+
+**PR #23 (share-token verify 500)** — `ERR_INVALID_ARG_TYPE: Received an instance of Date` from `lib/share-tokens.ts` `verifyShareToken`. Root cause: `sql\`COALESCE(${shareToken.consumedAt}, ${now})\`` — Drizzle's raw `sql\`...\`` tag binds the JS `Date` directly to a `postgres-js` parameter, but `postgres-js`'s raw-parameter path doesn't serialise `Date`. Drizzle's high-level `.set()` does. Fix: use Postgres `NOW()` in the raw tag instead of a JS Date. Rule recorded inline in `lib/share-tokens.ts`.
+
+**PR #24 (sign-out redirects home)** — `LeadSignOutButton` was calling `router.refresh()` only. Signing out from `/tools/ai-readiness/report/<id>` left the user on a URL that now 404s with the cookie gone, with no URL-bar change to signal what happened. Fixed: `router.replace("/")` + `router.refresh()`.
+
+**PR #25 (magic-link email v1)** — structural redesign of `buildMagicLinkEmail()`. Logo + wordmark masthead, `#1e40af` accent (matched to the PDF light-mode palette), 560px width, branded footer with tagline. v1 looked correct in the Playwright preview.
+
+**PR #26 (magic-link email v2)** — live test in user's Outlook web dark mode showed v1's `<a>`-styled button rendered as a plain text link with dark text on the blue background. v2 introduces the bulletproof button pattern (`<td bgcolor>` + `<v:roundrect>` for Outlook desktop + `[data-ogsc]` overrides for Outlook web dark mode), table-row spacing instead of div padding, personal sign-off from Rob inside the card, doubled masthead size (28px → 56px logo, 15px → 30px wordmark), and confident copy. Verified on prod in Outlook web.
+
+**Wiki updates from this session**:
+- New lesson: `wiki/lessons-learned/2026-05-13-email-buttons-need-the-bulletproof-pattern.md` — why a plain `<a>` button is not enough, and the three-layer fix.
+- New concept: `wiki/concepts/transactional-email-rendering.md` — full pattern reference for future email templates (booking confirmations, etc.). Includes copy/brand decisions (personal sign-off, confident copy, palette) alongside the technical patterns.
+
+**Key learning** — Playwright screenshots of rendered HTML confirm structure but not client-specific rendering. For transactional email, deploy + verify in the actual target client (Outlook web dark mode being the binding constraint for the exec audience) is non-negotiable. Recorded in the lesson page.
+
+**Open from prior plan, still pending**: lead-notification email polish (internal, low priority), `render.yaml` codification (optional), unpause Dev2.
+
 ## 2026-05-13 — Phase 2 shipped end-to-end + prod hardened
 
 Long session. Eight feature PRs + one fix PR all landed today, closing the D → C → B sequence and the immediate launch checklist.
