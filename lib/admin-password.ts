@@ -1,36 +1,47 @@
 import "server-only";
 import { timingSafeEqual } from "./auth";
+import { getIntegrationConfig } from "./integration-config";
 
 // Admin password verification — node-only.
 //
-// This file is the destination for verifyAdminPassword after the
-// lib/auth.ts split. The split is structural now (this PR A); the
-// behaviour is still env-rooted, matching today's production. PR B
-// changes the body to read from getIntegrationConfig() once the DB-
-// backed loader is verified and the migration has run.
+// Lives in its own file because lib/auth.ts is imported by proxy.ts
+// (Edge runtime), and Edge cannot do DB I/O. getIntegrationConfig()
+// pulls in Postgres + node:crypto via lib/booking-crypto.ts, neither
+// of which is Edge-safe. Splitting the password check off keeps
+// lib/auth.ts safe to import from middleware.
 //
-// Why split now even though behaviour is unchanged: lib/auth.ts is
-// imported by proxy.ts (Edge runtime). The future PR B implementation
-// will pull in node:crypto + Postgres via getIntegrationConfig() —
-// neither is Edge-safe. Doing the split here lets PR B be a one-file
-// body change instead of a cross-cutting refactor.
-//
-// Callers: app/api/admin/login/route.ts only. Runs in nodejs runtime
-// (verified in the route file's `export const runtime`).
+// Callers: app/api/admin/login/route.ts only. Runs in nodejs runtime.
 
 /**
  * Compares the input against the configured admin password using
  * constant-time comparison so length and content don't leak through
  * timing. Returns true on match, false on mismatch or missing config.
  *
- * Currently reads from process.env.ADMIN_PASSWORD (PR A — inert change).
- * PR B switches the body to (await getIntegrationConfig()).adminPassword.
- * The async signature is permanent so PR B doesn't change call sites.
+ * Reads from the DB-backed integration_secrets row via
+ * getIntegrationConfig(). During the 7-day grace window
+ * (INTEGRATION_FALLBACK_ENABLED=true) the loader falls back to
+ * process.env.ADMIN_PASSWORD if the DB row is empty — keeping admin
+ * sign-in working during the cutover.
+ *
+ * Fails closed on any error from the loader: a DB outage or wrong
+ * master key locks out the legitimate admin briefly rather than
+ * granting access. The real failure mode (DB down, decrypt failed,
+ * etc.) lands in the logs for the admin to investigate via Render's
+ * log viewer.
  */
 export async function verifyAdminPassword(input: string): Promise<boolean> {
-  const expected = process.env.ADMIN_PASSWORD;
+  let expected: string;
+  try {
+    const config = await getIntegrationConfig();
+    expected = config.adminPassword;
+  } catch (err) {
+    console.error("verifyAdminPassword: getIntegrationConfig failed:", err);
+    return false;
+  }
+
   if (!expected || expected.length < 8) {
-    // Fail closed — never grant access if no password is configured.
+    // Defensive: schema enforces min(8), but if a future migration
+    // ever lands with an empty string we don't want to grant access.
     return false;
   }
   return timingSafeEqual(input, expected);

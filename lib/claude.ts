@@ -1,37 +1,36 @@
 import "server-only";
+import { getIntegrationConfig } from "./integration-config";
 
 // Server-only LLM client. Talks to OpenRouter's OpenAI-compatible
-// chat-completions endpoint with model id "anthropic/claude-sonnet-4-6".
-// OpenRouter proxies requests to Anthropic + handles billing under a
-// single key — see https://openrouter.ai/docs.
+// chat-completions endpoint. The provider-agnostic field names
+// (llmApiKey, llmModelId) in integration-config let us swap providers
+// later without changing this file's contract.
 //
-// Lazy validation: throws on first call if OPENROUTER_API_KEY is
-// missing, so module import never crashes a build.
-//
-// Naming kept as `lib/claude.ts` for clarity: every call still goes
-// to a Claude model. The transport is OpenRouter, not the Anthropic
-// SDK.
+// Naming kept as `lib/claude.ts` for clarity: every call today still
+// goes to a Claude model. The transport is OpenRouter, not the
+// Anthropic SDK.
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-// OpenRouter model id format: "<provider>/<model>". The
-// claude-sonnet-4-6 mapping is "anthropic/claude-sonnet-4-6" — override
-// via CLAUDE_MODEL_ID env var if a different revision is preferred.
+// OpenRouter model id format: "<provider>/<model>". claude-sonnet-4-6
+// maps to "anthropic/claude-sonnet-4-6". Override via the llmModelId
+// field in /admin/integrations if a different revision is preferred.
 export const DEFAULT_MODEL_ID = "anthropic/claude-sonnet-4-6";
 
-function getModelId(override?: string): string {
-  return override ?? process.env.CLAUDE_MODEL_ID ?? DEFAULT_MODEL_ID;
-}
-
-function getApiKey(): string {
-  const key = process.env.OPENROUTER_API_KEY;
-  if (!key) {
+async function resolveLlmConfig(override?: string): Promise<{
+  apiKey: string;
+  modelId: string;
+}> {
+  const config = await getIntegrationConfig();
+  if (!config.llmApiKey) {
     throw new Error(
-      "OPENROUTER_API_KEY is not set. Add it to .env.local (see .env.example) " +
-        "or to the Render service env vars in production.",
+      "LLM API key missing from integration config — run pnpm migrate-integration-secrets or set OPENROUTER_API_KEY in env during the grace window.",
     );
   }
-  return key;
+  return {
+    apiKey: config.llmApiKey,
+    modelId: override ?? config.llmModelId ?? DEFAULT_MODEL_ID,
+  };
 }
 
 // ----------------------------------------------------------------------------
@@ -83,8 +82,7 @@ interface OpenRouterChatResponse {
 export async function generateStructured<T>(
   args: GenerateStructuredArgs,
 ): Promise<GenerateStructuredResult<T>> {
-  const apiKey = getApiKey();
-  const modelId = getModelId(args.modelId);
+  const { apiKey, modelId } = await resolveLlmConfig(args.modelId);
 
   const response = await fetch(OPENROUTER_URL, {
     method: "POST",

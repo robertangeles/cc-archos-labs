@@ -1,5 +1,6 @@
 import "server-only";
 import { getResend } from "./resend";
+import { getIntegrationConfig } from "./integration-config";
 import {
   buildLeadNotificationEmail,
   type LeadNotificationEmailInput,
@@ -25,10 +26,20 @@ export interface SendLeadNotificationInput
 export async function sendLeadNotification(
   input: SendLeadNotificationInput,
 ): Promise<void> {
-  const recipient = process.env.CONTACT_RECIPIENT_EMAIL;
+  let recipient: string;
+  try {
+    const config = await getIntegrationConfig();
+    recipient = config.contactRecipientEmail;
+  } catch (err) {
+    console.error(
+      "[lead-notification] integration config unreachable; skipping send:",
+      err,
+    );
+    return;
+  }
   if (!recipient) {
     console.warn(
-      "[lead-notification] CONTACT_RECIPIENT_EMAIL not set; skipping send.",
+      "[lead-notification] contactRecipientEmail empty; skipping send.",
     );
     return;
   }
@@ -50,7 +61,7 @@ export async function sendLeadNotification(
       reportUrl,
     });
 
-    const { resend, from } = getResend();
+    const { resend, from } = await getResend();
     await resend.emails.send({
       from,
       to: recipient,

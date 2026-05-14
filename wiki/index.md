@@ -18,6 +18,7 @@ _(none yet)_
 - [Share tokens for the AI Readiness report](concepts/share-tokens.md) — 7-day TTL public URLs, one-consume-stamp/re-views-OK semantics, many-active-per-report, atomic verify via COALESCE on consumed_at
 - [Transactional email rendering — patterns and brand decisions](concepts/transactional-email-rendering.md) — bulletproof button (table + VML + [data-ogsc]), table-row spacing, masthead-outside-card, personal sign-off, palette matched to PDF light-mode tokens
 - [Integration config — DB-backed secrets with env-rooted master key](concepts/integration-config.md) — AES-256-GCM per-field encryption in `site_setting`, fail-closed loader, module-level cache, env-fallback grace window, master-key rotation
+- [Integration config — DB-backed secrets with env-rooted master key](concepts/integration-config.md) — AES-256-GCM per-field encryption in `site_setting`, fail-closed loader, module-level cache, env-fallback grace window, master-key rotation
 
 ## decisions
 - [Diagnostic per-option scoring calibration (overview)](decisions/2026-05-09-diagnostic-scoring-calls.md) — meta-discipline for calibration deviations: four classes of deviation + score-vs-trigger separation pattern; specific values live in /admin/diagnostic
@@ -45,6 +46,11 @@ _(none yet)_
 
 ## raw-index
 _(none yet)_
+
+## runbooks
+- [Rotate the master encryption key](runbooks/rotate-master-key.md) — UI + CLI paths, half-fail recovery, post-compromise rotation of underlying secrets
+- [Reset the admin password](runbooks/reset-admin-password.md) — local-laptop CLI path, no-checkout psql path, master-key-also-lost recovery
+- [Remove env vars from Render dashboard after migrating to DB](runbooks/env-removal-checklist.md) — pre-flight checks, one-at-a-time removal procedure, 7-day cutover finalisation
 
 ## backlog
 - [Archos Labs HQ — Build Backlog](backlog/backlog.md) — prioritised build list, ordered by what unblocks revenue and reduces risk

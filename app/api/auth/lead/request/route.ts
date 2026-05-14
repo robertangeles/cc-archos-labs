@@ -125,7 +125,7 @@ export async function POST(request: Request) {
       ),
     });
 
-    const { resend, from } = getResend();
+    const { resend, from } = await getResend();
     await resend.emails.send({
       from,
       to: normalisedEmail,

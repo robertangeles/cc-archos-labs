@@ -466,6 +466,43 @@ function camelToSnake(input: string): string {
   return input.replace(/[A-Z]/g, (m) => `_${m.toLowerCase()}`);
 }
 
+/**
+ * Produce a redacted display string for a secret value. Shows 8 bullets
+ * + last 4 chars so the admin can visually distinguish "did I rotate
+ * this key?" without exposing the secret. Short secrets (< 5 chars)
+ * fully redact.
+ */
+export function redactSecret(plaintext: string): string {
+  if (!plaintext) return "";
+  if (plaintext.length <= 4) return "•".repeat(plaintext.length);
+  return `••••••••${plaintext.slice(-4)}`;
+}
+
+/**
+ * Admin-safe view of the integration config: secrets are redacted to
+ * `••••••••3a72` form, config fields pass through. Used by the GET
+ * /api/admin/integrations endpoint so the page can render without
+ * ever shipping plaintext secrets to the client.
+ */
+export async function getIntegrationConfigRedacted(): Promise<{
+  adminPassword: string;
+  resendApiKey: string;
+  llmApiKey: string;
+  contactRecipientEmail: string;
+  resendFromEmail: string;
+  llmModelId: string | null;
+}> {
+  const config = await getIntegrationConfig();
+  return {
+    adminPassword: redactSecret(config.adminPassword),
+    resendApiKey: redactSecret(config.resendApiKey),
+    llmApiKey: redactSecret(config.llmApiKey),
+    contactRecipientEmail: config.contactRecipientEmail,
+    resendFromEmail: config.resendFromEmail,
+    llmModelId: config.llmModelId,
+  };
+}
+
 // ----------------------------------------------------------------------------
 // Test-only exports
 // ----------------------------------------------------------------------------
