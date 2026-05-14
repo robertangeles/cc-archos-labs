@@ -49,7 +49,9 @@ export async function verifySession(
 }
 
 // Constant-time string comparison so password validation doesn't leak
-// length or content via timing differences.
+// length or content via timing differences. Re-exported for use by
+// lib/admin-password.ts (Node-only) which compares against the DB-
+// backed admin password from integration-config.
 export function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let result = 0;
@@ -59,11 +61,8 @@ export function timingSafeEqual(a: string, b: string): boolean {
   return result === 0;
 }
 
-export function verifyAdminPassword(input: string): boolean {
-  const expected = process.env.ADMIN_PASSWORD;
-  if (!expected || expected.length < 8) {
-    // Fail closed — never grant access if no password is configured.
-    return false;
-  }
-  return timingSafeEqual(input, expected);
-}
+// NOTE: verifyAdminPassword used to live here and read process.env.
+// It moved to lib/admin-password.ts when ADMIN_PASSWORD migrated into
+// the DB-backed integration_secrets row. This file must stay Edge-safe
+// because proxy.ts (Next.js middleware, Edge runtime) imports it for
+// verifySession. The DB-touching password check cannot live here.

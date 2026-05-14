@@ -17,6 +17,9 @@
     "sync-branch": "node scripts/sync-branch.mjs",
     "migration-safety": "node scripts/_check-migration-safety.mjs",
     "extract-content": "node scripts/extract-content.mjs",
+    "migrate-integration-secrets": "node --env-file=.env.local scripts/migrate-integration-secrets.mjs",
+    "rotate-master-key": "node --env-file=.env.local scripts/rotate-master-key.mjs",
+    "reset-admin-password": "node --env-file=.env.local scripts/reset-admin-password.mjs",
     "db:generate": "node --env-file=.env.local --no-warnings ./node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "node --env-file=.env.local scripts/db-apply.mjs",
     "db:studio": "node --env-file=.env.local --no-warnings ./node_modules/drizzle-kit/bin.cjs studio"
