@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getResend } from "../../../lib/resend";
+import { getIntegrationConfig } from "../../../lib/integration-config";
 import { rateLimit, clientIpFromRequest } from "../../../lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -58,8 +59,7 @@ export async function POST(request: Request) {
     return Response.json({ ok: true });
   }
 
-  const recipient =
-    process.env.CONTACT_RECIPIENT_EMAIL ?? "rob.angeles@archoslabs.xyz";
+  const recipient = await getContactRecipient();
 
   const { name, email, organisation, message } = parsed.data;
 
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
   ].join("\n");
 
   try {
-    const { resend, from } = getResend();
+    const { resend, from } = await getResend();
     const result = await resend.emails.send({
       from,
       to: recipient,
@@ -112,4 +112,22 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+}
+
+// Resolves the email address that receives contact-form submissions.
+// Reads from the DB-backed integration_secrets row (or env fallback
+// during the grace window). Falls back to a hardcoded address only if
+// the loader is unreachable AND no env value is set — last-resort
+// defense so a misconfiguration doesn't black-hole a real enquiry.
+async function getContactRecipient(): Promise<string> {
+  try {
+    const config = await getIntegrationConfig();
+    if (config.contactRecipientEmail) return config.contactRecipientEmail;
+  } catch (err) {
+    console.error(
+      "[contact] integration config unreachable, falling back:",
+      err,
+    );
+  }
+  return process.env.CONTACT_RECIPIENT_EMAIL ?? "rob.angeles@archoslabs.xyz";
 }
