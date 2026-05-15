@@ -8,6 +8,62 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-15 — Site-wide design refresh (Linear-themed, five-PR pipeline)
+
+DESIGN.md (PR #32, committed 2026-05-15) became the canonical brand spec for the HQ. Walked every user-facing surface against it and shipped a five-PR pipeline. Each PR is independently reviewable + mergeable; the user smoke-tested on prod between merges so any visual drift surfaced immediately and never compounded across PRs.
+
+**PR #34 — D1 (color tokens + accent swap to Linear lavender)**
+
+Rebuilt `app/globals.css` `@theme` from 7 tokens → 22 tokens. The headline visual change is `accent #3b82f6` (Tailwind blue) → `primary #5e6ad2` (Linear lavender) on every CTA, focus ring, link emphasis, and brand mark site-wide. Other token-level changes: canvas `#0f0f0f → #010102` (deeper black with faint blue tint), surface → surface-1..4 ladder, fg → ink hierarchy, rule → hairline scale, new semantic-success / brand-secure / inverse-canvas tokens.
+
+Sweep across 30+ TSX/TS files renamed every Tailwind utility (`bg-accent` → `bg-primary`, `text-fg` → `text-ink`, `bg-surface` → `bg-surface-1`, `border-rule` → `border-hairline`). Transactional surfaces (email + PDF) updated to lavender too — `lib/email-templates.ts` (`#1e40af` → `#5e6ad2`), `lib/booking-emails.ts` ACCENT constant, `app/opengraph-image.tsx` accent dot, `.pdf-mode` + `@media print` overrides. Print path kept light-themed (correct for transactional) but accent now lavender for brand consistency.
+
+Follow-up commit on the same PR: hero radial gradient `rgba(59,130,246,0.12)` → `rgba(94,106,210,0.12)` so the ambient glow behind the heading matches the new primary.
+
+**PR #35 — D2 (13-token typography scale + high-frequency drift fixes)**
+
+Added DESIGN.md's 13 type tokens to globals.css. Tailwind v4 generates `text-display-xl` / `text-headline` / `text-eyebrow` / `text-button` etc. — each bundles size + line-height + letter-spacing + font-weight in one class. The eyebrow's `+0.4px` positive tracking is deliberate per spec (taxonomy marker, in contrast to the negative-tracked display sizes).
+
+`components/ui/pill.tsx` + `components/ui/button.tsx` updated to use the new tokens — cascades to every usage site. High-frequency drift fixed on home (`app/page.tsx`): hero h1 mobile bumped 36→40px, section heading 36→40px, button label 16→14px, eyebrow tracking ~1px → 0.4px, body leading 1.7 → 1.5. Secondary heroes (contact, privacy, terms, ai-readiness-assessment) → `text-display-md md:text-display-lg`. Admin h1s → `text-headline md:text-display-md`.
+
+Deliberately skipped: question-card + report-view verdict headings (deeper in flow, smaller drift) — accepted as a "later iteration" tightening to keep the PR scope honest.
+
+**PR #36 — D3 (decorative accent cleanup + surface ladder)**
+
+The headline change of the whole pass. After D1, lavender was working correctly on intentional CTAs but bleeding into decorative roles — eyebrow pills, progress bars, success callouts, list-item bullets, date-cell selection dots, skeleton placeholders. Per DESIGN.md, primary lavender appears ONLY on brand mark, primary CTA, focus ring, link emphasis — never decoratively. Moved 24 ambiguous uses to neutral surface / ink / semantic tokens:
+- `Pill` + home hero eyebrow → `border-hairline-strong text-ink-subtle` (was `border-primary text-primary`)
+- 8 secondary-page inline eyebrows → `uppercase text-eyebrow text-ink-subtle`
+- `BlueDot` → `ListBullet` with `bg-ink-subtle`
+- Service card hover → `hover:border-hairline-strong`
+- Progress bar fills (assessment + report) → `bg-ink`; tracks → `bg-hairline/60`
+- Registration-gate skeleton placeholder → `bg-surface-2`
+- `day-cell` today-marked dot → `bg-ink`
+- Admin "Saved" badges (3 sites) → `text-semantic-success` (first real use of the token added in D1)
+- Contact-form success callout → `border-semantic-success/40 bg-semantic-success/5 text-semantic-success`
+
+Surface ladder also got attention: dialog modals + admin integrations modals + admin tab active state escalated from `surface-1` to `surface-2` (selection / lift = surface-2 per spec elevation table).
+
+Stale hardcoded rgba in `question-card.tsx` shadow (`rgba(59,130,246,0.4)` left over from before D1) bumped to lavender `rgba(94,106,210,0.4)`.
+
+**PR #37 — D4 (semantic colors: hardcoded hex → tokens)**
+
+Replaced 17+ inline `text-[#f87171]` / `border-[#fbbf24]/40` / `bg-[#fb923c]/5` / `text-red-400` patterns with the token utilities that D1 already added to globals.css. No visual change — pure tokenisation. After this PR, every color in the codebase is a CSS variable under DESIGN.md authority. Future palette edit is a one-file change.
+
+**PR #38 — D5 (font swap Inter → Geist Sans + Geist Mono)**
+
+Optional follow-up. DESIGN.md §347 lists both Inter and Geist Sans as viable free substitutes for Linear's proprietary faces; Geist's geometric construction (notably display sizes 40/56/80px) reads closer to Linear's voice. Swap via `next/font/google` (same self-hosted-at-build-time setup as Inter), plus added `--font-mono: var(--font-geist-mono)` to `@theme inline` so the existing `font-mono` utility (used by admin integrations audit log + admin JSON editors) picks up Geist Mono automatically.
+
+OpenGraph image kept Inter (next/og uses its own renderer-internal font handling); email + booking-emails kept the system font stack (email clients can't reliably load custom fonts).
+
+**Key learning** — staged multi-PR pipeline was the right call for a design refactor of this scope. The visual feedback loop between each PR caught issues that would have compounded in a single mega-PR: D3 fixed "decorative lavender bleed" that only became obvious AFTER D1 swapped the hue; D4's tokenisation was safe to do last because it's no-visual-regression by design. The user's "merge → smoke-test → next PR" cadence kept blast radius small.
+
+**Recurring quirk** — Tailwind v4 dev-server hot-reload doesn't always pick up new `@theme` token NAMES (values hot-reload fine). Touching `globals.css` after introducing new tokens forces a recompile. Already documented in `wiki/lessons-learned/2026-05-07-tailwind-v4-new-utilities.md`; the same pattern bit us once in D1 and once in D2 before remembering to touch.
+
+**Wiki updates from this session**:
+- New concept: `wiki/concepts/design-system.md` — implementation reference for the token architecture (what lives in globals.css, how it relates to DESIGN.md, the @theme namespacing model, transactional-surface overrides). Companion to DESIGN.md (which is the spec).
+
+**Open after this pass**: PR C (~2026-05-22, flip INTEGRATION_FALLBACK_ENABLED=false + remove env-fallback code), Phase 1.E Lane B (book-a-call — the only lead-facing flow that doesn't self-serve today).
+
 ## 2026-05-13 — Post-launch prod fixes + magic-link email redesign
 
 Session continued after the initial "Phase 2 shipped end-to-end" entry below. Six more PRs landed today, all driven by what surfaced on the live prod surface.
