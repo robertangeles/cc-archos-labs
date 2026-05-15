@@ -70,8 +70,9 @@ export async function generateReport(
 
   // 2. Build prompts and call Claude via OpenRouter. The system prompt
   //    loads from the DB (admin-editable) — IP-sensitive practitioner
-  //    voice doesn't live in source. Fallback to a generic shell if no
-  //    row exists (see prompt-config-shared.ts).
+  //    voice doesn't live in source. Throws with a clear error if the
+  //    prompt isn't seeded yet (no silent fallback — the report would
+  //    be generic and embarrassing).
   const { systemPrompt, version: promptVersion } = await getDiagnosticPrompt();
   const userPrompt = buildUserPrompt({
     answers: input.answers,

@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "../../../../../lib/db";
 import { siteSetting } from "../../../../../lib/db/schema";
 import {
-  DIAGNOSTIC_PROMPT_FALLBACK,
+  DIAGNOSTIC_PROMPT_STARTER,
   DiagnosticPromptSchema,
 } from "../../../../../lib/diagnostic/prompt-config-shared";
 import { SITE_SETTING_KEY } from "../../../../../lib/diagnostic/prompt-config";
@@ -27,7 +27,7 @@ export async function GET() {
     if (rows.length === 0) {
       return Response.json({
         ok: true,
-        data: DIAGNOSTIC_PROMPT_FALLBACK,
+        data: DIAGNOSTIC_PROMPT_STARTER,
         updatedAt: null,
         isFallback: true,
       });
@@ -36,7 +36,7 @@ export async function GET() {
     const parsed = DiagnosticPromptSchema.safeParse(rows[0].value);
     return Response.json({
       ok: true,
-      data: parsed.success ? parsed.data : DIAGNOSTIC_PROMPT_FALLBACK,
+      data: parsed.success ? parsed.data : DIAGNOSTIC_PROMPT_STARTER,
       updatedAt: rows[0].updatedAt,
       isFallback: !parsed.success,
     });
