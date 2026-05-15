@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import { Header } from "../components/layout/header";
 import { Footer } from "../components/layout/footer";
 import { getSignedInLead } from "../lib/lead-display";
@@ -10,8 +10,18 @@ import {
 } from "../lib/site-config";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+// Geist Sans + Geist Mono — DESIGN.md §347 lists Geist Sans as a viable
+// substitute for Linear's proprietary display/text faces, and Geist Mono
+// approximates Linear Mono. Both load via next/font/google so they're
+// self-hosted at build time (no FOIT, no third-party request at runtime).
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
   subsets: ["latin"],
   display: "swap",
 });
@@ -69,7 +79,7 @@ export default async function RootLayout({
   };
 
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-canvas text-ink font-sans">
         <script
           type="application/ld+json"

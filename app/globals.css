@@ -58,8 +58,9 @@
   /* Typography scale — DESIGN.md §31-109.
      Each token bundles size + line-height + letter-spacing + font-weight,
      so `text-display-xl` applies all four at once. Family is the global
-     --font-sans (Inter) per DESIGN.md §347 — Linear Display is proprietary
-     and Inter is the closest free substitute.
+     --font-sans (Geist Sans) — DESIGN.md §347 lists Linear Display as
+     proprietary and Geist Sans as a viable free substitute that's closer
+     to Linear's voice than Inter on display sizes.
 
      Per the spec: aggressive negative tracking on display sizes (-3px at
      80px ≈ 4% of size), single voice from display to body, eyebrow uses
@@ -132,7 +133,8 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
   --default-transition-duration: 150ms;
   --default-transition-timing-function: ease;
 }
@@ -237,6 +239,7 @@ html.pdf-mode {
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
 }
+
 
 
 
