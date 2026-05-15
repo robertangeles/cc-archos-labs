@@ -64,7 +64,7 @@ export function QuestionCard({
                 disabled={selected !== null}
                 className={`group flex items-start gap-x-5 rounded-lg border px-5 py-4 text-left transition-all duration-150 md:px-6 md:py-5 ${
                   isSelected
-                    ? "border-primary bg-primary/10 shadow-[0_0_0_1px_rgba(59,130,246,0.4)]"
+                    ? "border-primary bg-primary/10 shadow-[0_0_0_1px_rgba(94,106,210,0.4)]"
                     : isLocked
                       ? "border-hairline/60 bg-surface-1/40 opacity-60"
                       : "border-hairline bg-surface-1 hover:border-primary/50 hover:bg-surface-1/80"

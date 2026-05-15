@@ -46,11 +46,14 @@ const sectionHeadingClass = "text-display-md text-ink";
 
 const bodyTextClass = "text-body text-ink-subtle";
 
-function BlueDot() {
+// Neutral bullet point next to "Built for" / "Not for" list items.
+// Per DESIGN.md, primary lavender stays reserved for CTAs, focus
+// rings, link emphasis, and the brand mark — never decorative dots.
+function ListBullet() {
   return (
     <span
       aria-hidden
-      className="mt-[10px] h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
+      className="mt-[10px] h-1.5 w-1.5 shrink-0 rounded-full bg-ink-subtle"
     />
   );
 }
@@ -66,7 +69,7 @@ export default function Home() {
           style={{ backgroundImage: HERO_GRADIENT }}
         />
         <div className="mx-auto flex max-w-[1080px] flex-col items-center px-6 pt-32 pb-12 text-center md:px-12">
-          <span className="inline-block rounded-full border border-primary px-3 py-1 uppercase text-eyebrow text-primary">
+          <span className="inline-block rounded-full border border-hairline-strong px-3 py-1 uppercase text-eyebrow text-ink-subtle">
             AI Transformation Practice
           </span>
           <h1 className="mt-8 text-display-md text-ink md:text-display-xl">
@@ -98,7 +101,7 @@ export default function Home() {
             {SERVICES.map((service) => (
               <article
                 key={service.name}
-                className="flex h-full flex-col justify-start rounded-lg border border-hairline p-10 transition-colors duration-150 hover:border-primary"
+                className="flex h-full flex-col justify-start rounded-lg border border-hairline p-10 transition-colors duration-150 hover:border-hairline-strong"
               >
                 <h3 className="min-h-[3.25rem] text-card-title text-ink">
                   {service.name}
@@ -128,7 +131,7 @@ export default function Home() {
                     key={item}
                     className="flex gap-x-3 text-body text-ink-subtle"
                   >
-                    <BlueDot />
+                    <ListBullet />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -142,7 +145,7 @@ export default function Home() {
                     key={item}
                     className="flex gap-x-3 text-body text-ink-subtle"
                   >
-                    <BlueDot />
+                    <ListBullet />
                     <span>{item}</span>
                   </li>
                 ))}

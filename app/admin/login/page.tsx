@@ -58,7 +58,7 @@ export default function AdminLoginPage() {
   return (
     <main className="flex flex-1 flex-col bg-canvas">
       <section className="mx-auto w-full max-w-[420px] px-6 pt-32 pb-32 md:px-12">
-        <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-primary">
+        <p className="uppercase text-eyebrow text-ink-subtle">
           Admin
         </p>
         <h1 className="mt-4 text-3xl font-semibold leading-[1.1] tracking-[-0.02em] text-ink md:text-4xl">

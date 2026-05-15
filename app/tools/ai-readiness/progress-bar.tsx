@@ -25,9 +25,9 @@ export function ProgressBar({
             {index + 1} of {total}
           </span>
         </div>
-        <div className="mt-3 h-[3px] w-full overflow-hidden rounded-full bg-rule/60">
+        <div className="mt-3 h-[3px] w-full overflow-hidden rounded-full bg-hairline/60">
           <motion.div
-            className="h-full rounded-full bg-primary"
+            className="h-full rounded-full bg-ink"
             initial={false}
             animate={{ width: `${percent}%` }}
             transition={{ duration: 0.3, ease: "easeOut" }}

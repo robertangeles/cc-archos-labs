@@ -223,9 +223,9 @@ export function ReportView({
                     {ds.percent}
                     <span className="text-xl text-ink-subtle">%</span>
                   </p>
-                  <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-rule/60">
+                  <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-hairline/60">
                     <div
-                      className="h-full rounded-full bg-primary"
+                      className="h-full rounded-full bg-ink"
                       style={{ width: `${ds.percent}%` }}
                     />
                   </div>
@@ -295,7 +295,7 @@ export function ReportView({
           ==================================================================== */}
       <section className="px-6 py-16 md:px-12 md:py-20 print:py-8">
         <div className="mx-auto w-full max-w-[840px] rounded-md border border-primary/30 bg-primary/5 px-6 py-8 md:px-10 md:py-10 print:break-inside-avoid">
-          <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-primary">
+          <p className="uppercase text-eyebrow text-ink-subtle">
             Next step
           </p>
           <h2 className="mt-3 text-2xl font-semibold leading-[1.2] tracking-[-0.01em] text-ink md:text-[32px] print:text-[24px]">

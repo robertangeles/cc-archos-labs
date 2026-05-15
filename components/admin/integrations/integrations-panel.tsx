@@ -622,7 +622,7 @@ function RevealAuthModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-canvas/80 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-lg border border-hairline bg-surface-1 p-6 shadow-2xl">
+      <div className="w-full max-w-md rounded-lg border border-hairline bg-surface-2 p-6 shadow-2xl">
         <h3 className="text-base font-semibold text-ink">
           Confirm your password
         </h3>
@@ -706,7 +706,7 @@ function RotateMasterKeyModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-canvas/80 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-xl rounded-lg border border-hairline bg-surface-1 p-6 shadow-2xl">
+      <div className="w-full max-w-xl rounded-lg border border-hairline bg-surface-2 p-6 shadow-2xl">
         <h3 className="text-base font-semibold text-ink">
           Rotate master encryption key
         </h3>

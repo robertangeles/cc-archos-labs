@@ -16,7 +16,7 @@ export function WelcomeScreen({ onBegin }: { onBegin: () => void }) {
       className="flex flex-1 flex-col bg-canvas px-6 py-24 md:px-12 md:py-32"
     >
       <div className="mx-auto flex w-full max-w-[680px] flex-col">
-        <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-primary">
+        <p className="uppercase text-eyebrow text-ink-subtle">
           AI Readiness Assessment
         </p>
         <h1 className="mt-4 text-4xl font-semibold leading-[1.05] tracking-[-0.03em] text-ink md:text-[64px]">

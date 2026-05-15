@@ -236,7 +236,7 @@ export default function AdminDiagnosticPage() {
             <div className="flex items-center justify-between gap-x-4 border-t border-hairline pt-6">
               <p
                 className={`text-sm leading-[1.6] transition-colors duration-150 ${
-                  save.kind === "saved" ? "text-primary" : "text-ink-subtle"
+                  save.kind === "saved" ? "text-semantic-success" : "text-ink-subtle"
                 }`}
               >
                 {save.kind === "saved"
