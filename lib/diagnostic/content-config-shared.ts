@@ -137,35 +137,45 @@ const PLACEHOLDER_OPTIONS: ReadonlyArray<{
   { code: "D", label: "Placeholder option D (lowest)", score: 0 },
 ];
 
-const FALLBACK_QUESTION: Question = {
+// Starter template — UI-only. The admin form pre-populates with this
+// shape on first use (or after the row is deleted) so the admin has
+// a structurally-valid JSON to edit instead of an empty textarea
+// that fails Zod on save. This is NEVER used as a runtime fallback;
+// lib/diagnostic/content-config.ts throws if no real content is seeded.
+//
+// One placeholder question, sensible tier boundaries + domain weights.
+// Public on the repo — deliberately generic so no IP leaks. The real
+// practitioner-calibrated content is admin-seeded per CONTRIBUTING.md.
+
+const STARTER_QUESTION: Question = {
   id: "q1",
   block: 1,
   domain: "org_reality",
   text:
-    "Fallback diagnostic content is active — the real questions live in /admin/diagnostic. Pick any option to dismiss.",
+    "Replace this with your real question. Paste the full DiagnosticContent JSON into /admin/diagnostic.",
   intent:
-    "Placeholder rendered when no admin row for diagnostic_content exists.",
+    "Starter template — never served at runtime; the loader throws if no admin row exists.",
   options: PLACEHOLDER_OPTIONS.map((o) => ({ ...o })),
 };
 
-const FALLBACK_TIER_BOUNDARIES: TierBoundary[] = [
+const STARTER_TIER_BOUNDARIES: TierBoundary[] = [
   { tier: "Critical", label: "Critical", min: 0, max: 25 },
   { tier: "Emerging", label: "Emerging", min: 26, max: 50 },
   { tier: "Developing", label: "Developing", min: 51, max: 75 },
   { tier: "Advanced", label: "Advanced", min: 76, max: 100 },
 ];
 
-const FALLBACK_DOMAIN_WEIGHTS: DomainWeights = {
+const STARTER_DOMAIN_WEIGHTS: DomainWeights = {
   data_foundation: 0.5,
   program_readiness: 0.3,
   org_reality: 0.2,
 };
 
-export const DIAGNOSTIC_CONTENT_FALLBACK: DiagnosticContent = {
-  version: "fallback-v0",
-  questions: [FALLBACK_QUESTION],
+export const DIAGNOSTIC_CONTENT_STARTER: DiagnosticContent = {
+  version: "starter-v0",
+  questions: [STARTER_QUESTION],
   riskFlagRules: [] as RiskFlagRule[],
   priorityTriggers: [] as PriorityTrigger[],
-  tierBoundaries: FALLBACK_TIER_BOUNDARIES,
-  domainWeights: FALLBACK_DOMAIN_WEIGHTS,
+  tierBoundaries: STARTER_TIER_BOUNDARIES,
+  domainWeights: STARTER_DOMAIN_WEIGHTS,
 };

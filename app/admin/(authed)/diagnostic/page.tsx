@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
-  DIAGNOSTIC_CONTENT_FALLBACK,
+  DIAGNOSTIC_CONTENT_STARTER,
   DiagnosticContentSchema,
   type DiagnosticContent,
 } from "../../../../lib/diagnostic/content-config-shared";
@@ -36,10 +36,10 @@ const labelClass =
 
 export default function AdminDiagnosticPage() {
   const [jsonText, setJsonText] = useState<string>(
-    JSON.stringify(DIAGNOSTIC_CONTENT_FALLBACK, null, 2),
+    JSON.stringify(DIAGNOSTIC_CONTENT_STARTER, null, 2),
   );
   const [parsed, setParsed] = useState<DiagnosticContent | null>(
-    DIAGNOSTIC_CONTENT_FALLBACK,
+    DIAGNOSTIC_CONTENT_STARTER,
   );
   const [validationError, setValidationError] = useState<string | null>(null);
   const [load, setLoad] = useState<LoadStatus>({ kind: "loading" });
@@ -164,13 +164,14 @@ export default function AdminDiagnosticPage() {
           {load.kind === "ready" && load.isFallback ? (
             <div className="mt-8 rounded-md border border-[#fbbf24]/40 bg-[#fbbf24]/5 px-5 py-4">
               <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-[#fbbf24]">
-                Fallback content active
+                No content configured
               </p>
               <p className="mt-2 text-sm leading-[1.6] text-fg/90">
-                No admin content is configured. The public assessment is
-                rendering the placeholder fallback (one question, no
-                scoring rules) and will look broken to visitors. Paste
-                the real content blob below and save.
+                No admin content is saved yet — the JSON below is a
+                starter template. <strong>The public assessment will
+                throw a 500 error</strong> until you replace this with
+                the real practitioner-calibrated content and save.
+                Paste the real blob below and click Save.
               </p>
             </div>
           ) : null}

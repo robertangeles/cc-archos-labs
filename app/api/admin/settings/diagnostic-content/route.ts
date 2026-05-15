@@ -2,16 +2,17 @@ import { eq } from "drizzle-orm";
 import { getDb } from "../../../../../lib/db";
 import { siteSetting } from "../../../../../lib/db/schema";
 import {
-  DIAGNOSTIC_CONTENT_FALLBACK,
+  DIAGNOSTIC_CONTENT_STARTER,
   DiagnosticContentSchema,
 } from "../../../../../lib/diagnostic/content-config-shared";
 import { SITE_SETTING_KEY } from "../../../../../lib/diagnostic/content-config";
 
 export const runtime = "nodejs";
 
-// GET — current diagnostic content + version, or the source fallback
+// GET — current diagnostic content + version, or the starter template
 // if no admin row exists. Includes `isFallback` so the admin UI can
-// show a "fallback active" banner.
+// show a "no content configured yet" banner (the loader will throw
+// at runtime if this is the live state).
 // PUT — full replace of the row (upsert). Mirrors the prompt-config
 // route from D-26.
 //
@@ -30,7 +31,7 @@ export async function GET() {
     if (rows.length === 0) {
       return Response.json({
         ok: true,
-        data: DIAGNOSTIC_CONTENT_FALLBACK,
+        data: DIAGNOSTIC_CONTENT_STARTER,
         updatedAt: null,
         isFallback: true,
       });
@@ -39,7 +40,7 @@ export async function GET() {
     const parsed = DiagnosticContentSchema.safeParse(rows[0].value);
     return Response.json({
       ok: true,
-      data: parsed.success ? parsed.data : DIAGNOSTIC_CONTENT_FALLBACK,
+      data: parsed.success ? parsed.data : DIAGNOSTIC_CONTENT_STARTER,
       updatedAt: rows[0].updatedAt,
       isFallback: !parsed.success,
     });
