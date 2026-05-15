@@ -37,7 +37,7 @@ function redirectToAdmin(
   status: "connected" | "denied" | "state_mismatch" | "no_code" | "error",
   detail?: string,
 ): NextResponse {
-  const url = new URL("/admin/google", base);
+  const url = new URL("/admin/integrations/google-calendar", base);
   url.searchParams.set("status", status);
   if (detail) url.searchParams.set("detail", detail.slice(0, 200));
   const response = NextResponse.redirect(url);

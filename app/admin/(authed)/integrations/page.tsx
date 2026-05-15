@@ -1,31 +1,59 @@
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { getDb } from "../../../../lib/db";
-import { integrationSecretAudit } from "../../../../lib/db/schema";
 import {
-  getIntegrationConfigRedacted,
-} from "../../../../lib/integration-config";
-import { IntegrationsPanel } from "../../../../components/admin/integrations/integrations-panel";
+  consultant,
+  integrationSecretAudit,
+} from "../../../../lib/db/schema";
+import { getIntegrationConfigRedacted } from "../../../../lib/integration-config";
+import { IntegrationsGrid } from "../../../../components/admin/integrations/integrations-grid";
+import { AuditLog } from "../../../../components/admin/integrations/integrations-panel";
 
-// /admin/integrations — read-edit-rotate Settings page for the
-// DB-backed integration_secrets row. Server-side renders the initial
-// redacted view + recent audit log, then hands off to the client
-// panel for interactive edits.
+// /admin/integrations — index page. Renders a cards grid (one per
+// integration) showing status at a glance. Each card drills down to
+// /admin/integrations/[slug] for the full config + connect / disconnect
+// controls.
+//
+// Pattern: Stripe Dashboard / Vercel integrations. Scales past the
+// 5-section threshold where the old single-page accordion fell apart.
 //
 // Gated by proxy.ts (admin session required).
 
 export const dynamic = "force-dynamic";
 
 export default async function IntegrationsAdminPage() {
-  let initialConfig: Awaited<ReturnType<typeof getIntegrationConfigRedacted>> | null = null;
+  let initialConfig: Awaited<
+    ReturnType<typeof getIntegrationConfigRedacted>
+  > | null = null;
   let initialError: string | null = null;
   try {
     initialConfig = await getIntegrationConfigRedacted();
   } catch (err) {
     console.error("[admin/integrations page] config load failed:", err);
     initialError =
-      err instanceof Error
-        ? err.message
-        : "Integration config is unreadable.";
+      err instanceof Error ? err.message : "Integration config is unreadable.";
+  }
+
+  // Google Calendar status — read from the consultant row keyed by the
+  // contactRecipientEmail config value. The grid card surfaces this
+  // status without drilling down.
+  let googleStatus: "pending" | "ok" | "stale" | "not_configured" =
+    "not_configured";
+  if (initialConfig) {
+    try {
+      const db = getDb();
+      const rows = await db
+        .select({ googleStatus: consultant.googleStatus })
+        .from(consultant)
+        .where(eq(consultant.email, initialConfig.contactRecipientEmail))
+        .limit(1);
+      if (rows[0]) {
+        googleStatus = rows[0].googleStatus as typeof googleStatus;
+      } else {
+        googleStatus = "pending";
+      }
+    } catch (err) {
+      console.error("[admin/integrations page] consultant lookup failed:", err);
+    }
   }
 
   let initialAudit: Array<{
@@ -59,13 +87,14 @@ export default async function IntegrationsAdminPage() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">
-          Integrations
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-ink-subtle">
-          API keys, credentials, and integration configuration. Secrets are
-          encrypted at rest with the master key in <code className="rounded bg-surface-1 px-1 py-0.5 text-xs">BOOKING_ENCRYPTION_KEY</code>.
-          Edits take effect on the next request after save.
+        <h1 className="text-headline text-ink">Integrations</h1>
+        <p className="mt-2 max-w-2xl text-body-sm text-ink-subtle">
+          API keys, credentials, and third-party connections. Secrets are
+          encrypted at rest with the master key in{" "}
+          <code className="rounded bg-surface-1 px-1 py-0.5 text-xs">
+            BOOKING_ENCRYPTION_KEY
+          </code>
+          . Edits take effect on the next request after save.
         </p>
       </header>
 
@@ -84,11 +113,13 @@ export default async function IntegrationsAdminPage() {
           </p>
         </div>
       ) : initialConfig ? (
-        <IntegrationsPanel
-          initialConfig={initialConfig}
-          initialAudit={initialAudit}
+        <IntegrationsGrid
+          config={initialConfig}
+          googleStatus={googleStatus}
         />
       ) : null}
+
+      <AuditLog rows={initialAudit} />
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 // Shape that mirrors getIntegrationConfigRedacted() — secrets are
 // pre-redacted server-side. Client never holds plaintext secrets
 // except in the brief reveal window (transient state, never persisted).
-interface RedactedConfig {
+export interface RedactedConfig {
   adminPassword: string;
   resendApiKey: string;
   llmApiKey: string;
@@ -18,7 +18,7 @@ interface RedactedConfig {
   googleOauthClientSecret: string;
 }
 
-interface AuditRow {
+export interface AuditRow {
   id: string;
   keyName: string;
   operation: string;
@@ -73,15 +73,36 @@ const buttonClass =
 const primaryButtonClass =
   "rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50";
 
+// Which integration's detail page we're rendering. The index lives in a
+// separate IntegrationsGrid component; this panel always renders the
+// fields for exactly one integration.
+export type IntegrationSlug =
+  | "email"
+  | "ai-model"
+  | "authentication"
+  | "google-calendar";
+
+// Google-specific extras passed in only when view === 'google-calendar'.
+// Coming from the page server component which reads the consultant row.
+export interface GoogleConnectInfo {
+  status: "pending" | "ok" | "stale" | "not_configured";
+  consultantEmail: string | null;
+  displayName: string | null;
+  banner?:
+    | { tone: "success" | "error"; title: string; detail?: string }
+    | null;
+}
+
 export function IntegrationsPanel({
+  view,
   initialConfig,
-  initialAudit,
+  googleConnect,
 }: {
+  view: IntegrationSlug;
   initialConfig: RedactedConfig;
-  initialAudit: AuditRow[];
+  googleConnect?: GoogleConnectInfo;
 }) {
   const [config, setConfig] = useState<RedactedConfig>(initialConfig);
-  const [audit, setAudit] = useState<AuditRow[]>(initialAudit);
 
   // Per-field edit state. null = not editing; string = current draft value.
   const [editing, setEditing] = useState<
@@ -168,24 +189,14 @@ export function IntegrationsPanel({
       setTimeout(() => {
         setSaveStatus((s) => ({ ...s, [field]: { kind: "idle" } }));
       }, 2000);
-      // Refresh audit log so the new row appears.
-      void refreshAudit();
+      // Audit log lives on the index page now — next navigation
+      // will fetch fresh rows. No in-page refresh needed.
     } catch (err) {
       console.error("save failed:", err);
       setSaveStatus((s) => ({
         ...s,
         [field]: { kind: "error", message: "Network error." },
       }));
-    }
-  }
-
-  async function refreshAudit() {
-    try {
-      const resp = await fetch("/api/admin/integrations");
-      const body = await resp.json();
-      if (body.ok) setAudit(body.audit);
-    } catch {
-      // best-effort — stale audit log isn't worth surfacing an error
     }
   }
 
@@ -231,7 +242,6 @@ export function IntegrationsPanel({
       [field]: { value: body.value, expiresAt: Date.now() + 30_000 },
     }));
     setRevealAuthFor(null);
-    void refreshAudit();
   }
 
   function handleHide(field: FieldKey) {
@@ -270,158 +280,186 @@ export function IntegrationsPanel({
 
   return (
     <div className="space-y-10">
-      <Section title="Resend (email)">
-        <ConfigField
-          field="resendApiKey"
-          label="API key"
-          config={config}
-          editing={editing}
-          revealed={revealed}
-          saveStatus={saveStatus[`resendApiKey`]}
-          onEdit={(v) => setEditing((e) => ({ ...e, resendApiKey: v }))}
-          onSave={() => handleSave("resendApiKey")}
-          onReveal={() => handleReveal("resendApiKey")}
-          onHide={() => handleHide("resendApiKey")}
-        />
-        <ConfigField
-          field="resendFromEmail"
-          label="From email"
-          hint="Sender address. Must be on a domain verified in Resend."
-          config={config}
-          editing={editing}
-          revealed={revealed}
-          saveStatus={saveStatus[`resendFromEmail`]}
-          onEdit={(v) => setEditing((e) => ({ ...e, resendFromEmail: v }))}
-          onSave={() => handleSave("resendFromEmail")}
-        />
-        <ConfigField
-          field="contactRecipientEmail"
-          label="Contact recipient"
-          hint="Where contact-form submissions + lead notifications land."
-          config={config}
-          editing={editing}
-          revealed={revealed}
-          saveStatus={saveStatus[`contactRecipientEmail`]}
-          onEdit={(v) =>
-            setEditing((e) => ({ ...e, contactRecipientEmail: v }))
-          }
-          onSave={() => handleSave("contactRecipientEmail")}
-        />
-        <TestRow
-          provider="resend"
-          status={testResend}
-          onClick={() => handleTest("resend")}
-        />
-      </Section>
-
-      <Section title="AI Model (OpenRouter)">
-        <ConfigField
-          field="llmApiKey"
-          label="API key"
-          hint="OpenRouter API key. Field name is provider-agnostic — value is whatever LLM provider is wired."
-          config={config}
-          editing={editing}
-          revealed={revealed}
-          saveStatus={saveStatus[`llmApiKey`]}
-          onEdit={(v) => setEditing((e) => ({ ...e, llmApiKey: v }))}
-          onSave={() => handleSave("llmApiKey")}
-          onReveal={() => handleReveal("llmApiKey")}
-          onHide={() => handleHide("llmApiKey")}
-        />
-        <ConfigField
-          field="llmModelId"
-          label="Model ID"
-          hint="OpenRouter model id (e.g. anthropic/claude-sonnet-4-6). Leave empty for the in-code default."
-          config={config}
-          editing={editing}
-          revealed={revealed}
-          saveStatus={saveStatus[`llmModelId`]}
-          onEdit={(v) => setEditing((e) => ({ ...e, llmModelId: v }))}
-          onSave={() => handleSave("llmModelId")}
-        />
-        <TestRow
-          provider="openrouter"
-          status={testOpenrouter}
-          onClick={() => handleTest("openrouter")}
-        />
-      </Section>
-
-      <Section title="Authentication">
-        <ConfigField
-          field="adminPassword"
-          label="Admin password"
-          hint="Used for /admin/login. Reveal requires re-typing your current password."
-          config={config}
-          editing={editing}
-          revealed={revealed}
-          saveStatus={saveStatus[`adminPassword`]}
-          onEdit={(v) => setEditing((e) => ({ ...e, adminPassword: v }))}
-          onSave={() => handleSave("adminPassword")}
-          onReveal={() => handleReveal("adminPassword")}
-          onHide={() => handleHide("adminPassword")}
-        />
-        <ReadOnlyEnvRow
-          label="AUTH_SECRET"
-          hint="JWT signing key for admin + lead sessions. Cannot move to DB — middleware runs in Edge runtime, no DB access. Rotate via Render dashboard."
-        />
-        <div className="border-t border-hairline pt-4">
-          <ReadOnlyEnvRow
-            label="Master encryption key"
-            hint="BOOKING_ENCRYPTION_KEY. Encrypts every secret in this table. Rotating re-encrypts every row."
-            rightSlot={
-              <button
-                type="button"
-                onClick={() => setShowRotate(true)}
-                className={buttonClass}
-              >
-                Rotate master key…
-              </button>
-            }
+      {view === "email" && (
+        <Section title="Resend (email)">
+          <ConfigField
+            field="resendApiKey"
+            label="API key"
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus[`resendApiKey`]}
+            onEdit={(v) => setEditing((e) => ({ ...e, resendApiKey: v }))}
+            onSave={() => handleSave("resendApiKey")}
+            onReveal={() => handleReveal("resendApiKey")}
+            onHide={() => handleHide("resendApiKey")}
           />
-        </div>
-      </Section>
+          <ConfigField
+            field="resendFromEmail"
+            label="From email"
+            hint="Sender address. Must be on a domain verified in Resend."
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus[`resendFromEmail`]}
+            onEdit={(v) => setEditing((e) => ({ ...e, resendFromEmail: v }))}
+            onSave={() => handleSave("resendFromEmail")}
+          />
+          <ConfigField
+            field="contactRecipientEmail"
+            label="Contact recipient"
+            hint="Where contact-form submissions + lead notifications land."
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus[`contactRecipientEmail`]}
+            onEdit={(v) =>
+              setEditing((e) => ({ ...e, contactRecipientEmail: v }))
+            }
+            onSave={() => handleSave("contactRecipientEmail")}
+          />
+          <TestRow
+            provider="resend"
+            status={testResend}
+            onClick={() => handleTest("resend")}
+          />
+        </Section>
+      )}
 
-      <Section title="Google Calendar OAuth">
-        <p className="text-[12px] text-ink-subtle">
-          Used by the Book-a-Call flow. After you save Client ID + Secret here,
-          go to <code className="rounded bg-canvas px-1 py-0.5">/admin/google</code> and
-          click <span className="text-ink">Connect Google Calendar</span> to complete the grant.
-        </p>
-        <ConfigField
-          field="googleOauthClientId"
-          label="Client ID"
-          hint="From the Google Cloud Console Clients tab — looks like xxx.apps.googleusercontent.com. Identifier-grade, stored plaintext."
-          config={config}
-          editing={editing}
-          revealed={revealed}
-          saveStatus={saveStatus[`googleOauthClientId`]}
-          onEdit={(v) =>
-            setEditing((e) => ({ ...e, googleOauthClientId: v }))
-          }
-          onSave={() => handleSave("googleOauthClientId")}
-        />
-        <ConfigField
-          field="googleOauthClientSecret"
-          label="Client Secret"
-          hint="From the same Clients tab — starts with GOCSPX-. Encrypted at rest like every other secret here."
-          config={config}
-          editing={editing}
-          revealed={revealed}
-          saveStatus={saveStatus[`googleOauthClientSecret`]}
-          onEdit={(v) =>
-            setEditing((e) => ({ ...e, googleOauthClientSecret: v }))
-          }
-          onSave={() => handleSave("googleOauthClientSecret")}
-          onReveal={() => handleReveal("googleOauthClientSecret")}
-          onHide={() => handleHide("googleOauthClientSecret")}
-        />
-        <ReadOnlyEnvRow
-          label="GOOGLE_OAUTH_REDIRECT_URI"
-          hint="Lives in env because it differs between dev (localhost) and prod. Must match a value in the Google Cloud Console Authorized redirect URIs list exactly."
-        />
-      </Section>
+      {view === "ai-model" && (
+        <Section title="AI Model (OpenRouter)">
+          <ConfigField
+            field="llmApiKey"
+            label="API key"
+            hint="OpenRouter API key. Field name is provider-agnostic — value is whatever LLM provider is wired."
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus[`llmApiKey`]}
+            onEdit={(v) => setEditing((e) => ({ ...e, llmApiKey: v }))}
+            onSave={() => handleSave("llmApiKey")}
+            onReveal={() => handleReveal("llmApiKey")}
+            onHide={() => handleHide("llmApiKey")}
+          />
+          <ConfigField
+            field="llmModelId"
+            label="Model ID"
+            hint="OpenRouter model id (e.g. anthropic/claude-sonnet-4-6). Leave empty for the in-code default."
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus[`llmModelId`]}
+            onEdit={(v) => setEditing((e) => ({ ...e, llmModelId: v }))}
+            onSave={() => handleSave("llmModelId")}
+          />
+          <TestRow
+            provider="openrouter"
+            status={testOpenrouter}
+            onClick={() => handleTest("openrouter")}
+          />
+        </Section>
+      )}
 
-      <AuditLog rows={audit} />
+      {view === "authentication" && (
+        <Section title="Authentication">
+          <ConfigField
+            field="adminPassword"
+            label="Admin password"
+            hint="Used for /admin/login. Reveal requires re-typing your current password."
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus[`adminPassword`]}
+            onEdit={(v) => setEditing((e) => ({ ...e, adminPassword: v }))}
+            onSave={() => handleSave("adminPassword")}
+            onReveal={() => handleReveal("adminPassword")}
+            onHide={() => handleHide("adminPassword")}
+          />
+          <ReadOnlyEnvRow
+            label="AUTH_SECRET"
+            hint="JWT signing key for admin + lead sessions. Cannot move to DB — middleware runs in Edge runtime, no DB access. Rotate via Render dashboard."
+          />
+          <div className="border-t border-hairline pt-4">
+            <ReadOnlyEnvRow
+              label="Master encryption key"
+              hint="BOOKING_ENCRYPTION_KEY. Encrypts every secret in this table. Rotating re-encrypts every row."
+              rightSlot={
+                <button
+                  type="button"
+                  onClick={() => setShowRotate(true)}
+                  className={buttonClass}
+                >
+                  Rotate master key…
+                </button>
+              }
+            />
+          </div>
+        </Section>
+      )}
+
+      {view === "google-calendar" && (
+        <>
+          {googleConnect?.banner ? (
+            <div
+              className={`rounded-md border px-4 py-3 text-sm ${
+                googleConnect.banner.tone === "success"
+                  ? "border-semantic-success/40 bg-semantic-success/5 text-semantic-success"
+                  : "border-semantic-error/40 bg-semantic-error/5 text-semantic-error"
+              }`}
+            >
+              <p className="font-medium">{googleConnect.banner.title}</p>
+              {googleConnect.banner.detail ? (
+                <p className="mt-1 text-ink-subtle">
+                  {googleConnect.banner.detail}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          <Section title="Connection">
+            <GoogleConnectionBlock info={googleConnect} />
+          </Section>
+
+          <Section title="OAuth credentials">
+            <p className="text-[12px] text-ink-subtle">
+              Paste these from the Google Cloud Console Clients tab. Once
+              saved, click Connect above to complete the OAuth grant.
+            </p>
+            <ConfigField
+              field="googleOauthClientId"
+              label="Client ID"
+              hint="Looks like xxx.apps.googleusercontent.com. Identifier-grade, stored plaintext."
+              config={config}
+              editing={editing}
+              revealed={revealed}
+              saveStatus={saveStatus[`googleOauthClientId`]}
+              onEdit={(v) =>
+                setEditing((e) => ({ ...e, googleOauthClientId: v }))
+              }
+              onSave={() => handleSave("googleOauthClientId")}
+            />
+            <ConfigField
+              field="googleOauthClientSecret"
+              label="Client Secret"
+              hint="Starts with GOCSPX-. Encrypted at rest like every other secret here."
+              config={config}
+              editing={editing}
+              revealed={revealed}
+              saveStatus={saveStatus[`googleOauthClientSecret`]}
+              onEdit={(v) =>
+                setEditing((e) => ({ ...e, googleOauthClientSecret: v }))
+              }
+              onSave={() => handleSave("googleOauthClientSecret")}
+              onReveal={() => handleReveal("googleOauthClientSecret")}
+              onHide={() => handleHide("googleOauthClientSecret")}
+            />
+            <ReadOnlyEnvRow
+              label="GOOGLE_OAUTH_REDIRECT_URI"
+              hint="Lives in env because it differs between dev (localhost) and prod. Must match a value in the Google Cloud Console Authorized redirect URIs list exactly."
+            />
+          </Section>
+        </>
+      )}
 
       {revealError && (
         <div className="rounded-md border border-hairline bg-surface-1/40 p-3 text-sm text-ink-subtle">
@@ -862,7 +900,7 @@ function RotateMasterKeyModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function AuditLog({ rows }: { rows: AuditRow[] }) {
+export function AuditLog({ rows }: { rows: AuditRow[] }) {
   if (rows.length === 0) {
     return (
       <Section title="Recent changes">
@@ -890,5 +928,137 @@ function AuditLog({ rows }: { rows: AuditRow[] }) {
         ))}
       </ul>
     </Section>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// Google Calendar connection block — embedded in the google-calendar view
+// ----------------------------------------------------------------------------
+
+function GoogleConnectionBlock({
+  info,
+}: {
+  info?: GoogleConnectInfo;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [disconnectError, setDisconnectError] = useState<string | null>(null);
+
+  const status = info?.status ?? "not_configured";
+  const consultantEmail = info?.consultantEmail ?? null;
+  const displayName = info?.displayName ?? null;
+
+  const handleDisconnect = async () => {
+    if (busy) return;
+    if (
+      !window.confirm(
+        "Disconnect Google Calendar? Booking will be disabled until you reconnect.",
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setDisconnectError(null);
+    try {
+      const res = await fetch("/api/admin/google-oauth/disconnect", {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? `Disconnect failed (${res.status}).`);
+      }
+      window.location.reload();
+    } catch (err) {
+      setDisconnectError(
+        err instanceof Error ? err.message : "Disconnect failed.",
+      );
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-y-4">
+      <div>
+        <p className={labelClass}>Status</p>
+        <p className="mt-1">
+          <ConnectionStatusBadge status={status} />
+        </p>
+      </div>
+
+      <div className="grid gap-y-2 text-sm text-ink-subtle">
+        <Row label="Consultant email" value={consultantEmail ?? "—"} />
+        <Row label="Display name" value={displayName ?? "—"} />
+        <Row
+          label="Working hours"
+          value="Mon–Fri 9:00–17:00 (default; profile UI lands later)"
+        />
+      </div>
+
+      {status === "ok" || status === "stale" ? (
+        <div className="flex flex-wrap gap-2 pt-2">
+          <a href="/api/admin/google-oauth/start" className={buttonClass}>
+            Reconnect
+          </a>
+          <button
+            type="button"
+            onClick={handleDisconnect}
+            disabled={busy}
+            className="rounded-md border border-semantic-error/40 px-3 py-1.5 text-xs font-medium text-semantic-error transition-colors hover:bg-semantic-error/5 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {busy ? "Disconnecting…" : "Disconnect"}
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2 pt-2">
+          <a
+            href="/api/admin/google-oauth/start"
+            className={primaryButtonClass}
+          >
+            Connect Google Calendar
+          </a>
+        </div>
+      )}
+
+      {disconnectError ? (
+        <p className="text-sm text-semantic-error">{disconnectError}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid grid-cols-[200px_1fr] gap-x-4">
+      <span className="text-ink-subtle">{label}</span>
+      <span className="text-ink">{value}</span>
+    </div>
+  );
+}
+
+function ConnectionStatusBadge({
+  status,
+}: {
+  status: "pending" | "ok" | "stale" | "not_configured";
+}) {
+  if (status === "ok") {
+    return (
+      <span className="inline-flex items-center gap-x-2 text-ink">
+        <span className="inline-block h-2 w-2 rounded-full bg-semantic-success" />
+        Connected
+      </span>
+    );
+  }
+  if (status === "stale") {
+    return (
+      <span className="inline-flex items-center gap-x-2 text-semantic-warning">
+        <span className="inline-block h-2 w-2 rounded-full bg-semantic-warning" />
+        Stale — refresh token rejected by Google. Reconnect to restore.
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-x-2 text-ink-subtle">
+      <span className="inline-block h-2 w-2 rounded-full bg-ink-subtle/50" />
+      Not connected
+    </span>
   );
 }
