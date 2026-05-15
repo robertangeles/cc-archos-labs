@@ -19,7 +19,7 @@ export default function TermsPage() {
         <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-primary">
           Terms
         </p>
-        <h1 className="mt-4 text-4xl font-semibold leading-[1.1] tracking-[-0.03em] text-ink md:text-[56px]">
+        <h1 className="mt-4 text-display-md text-ink md:text-display-lg">
           Terms of use.
         </h1>
         <p className="mt-6 text-[18px] leading-[1.6] text-ink-subtle">

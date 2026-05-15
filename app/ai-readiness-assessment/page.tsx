@@ -18,7 +18,7 @@ export default function AIReadinessAssessmentPage() {
         <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-primary">
           AI Readiness Assessment
         </p>
-        <h1 className="mt-4 text-4xl font-semibold leading-[1.1] tracking-[-0.03em] text-ink md:text-[56px]">
+        <h1 className="mt-4 text-display-md text-ink md:text-display-lg">
           Find out where your gaps are.
         </h1>
         <p className="mt-6 max-w-[620px] text-[18px] leading-[1.6] text-ink-subtle">

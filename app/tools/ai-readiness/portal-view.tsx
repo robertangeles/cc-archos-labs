@@ -18,7 +18,7 @@ export function PortalView({ data }: { data: LeadPortalData }) {
         <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-primary">
           Welcome back
         </p>
-        <h1 className="mt-4 text-3xl font-semibold leading-[1.1] tracking-[-0.02em] text-ink md:text-[40px]">
+        <h1 className="mt-4 text-headline text-ink md:text-display-md">
           {data.firstName} {data.lastName}
         </h1>
         {data.organisation ? (

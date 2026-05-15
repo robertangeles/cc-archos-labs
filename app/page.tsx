@@ -40,12 +40,11 @@ const HERO_GRADIENT =
   "radial-gradient(ellipse 80% 60% at 50% 25%, rgba(94, 106, 210, 0.12) 0%, transparent 70%)";
 
 const ctaButtonClass =
-  "inline-flex items-center rounded-md bg-primary px-7 py-3 text-base font-medium text-white transition-colors duration-150 hover:bg-primary-hover";
+  "inline-flex items-center rounded-md bg-primary px-7 py-3 text-button text-white transition-colors duration-150 hover:bg-primary-hover";
 
-const sectionHeadingClass =
-  "text-[36px] font-semibold leading-[1.15] tracking-[-0.02em] text-ink";
+const sectionHeadingClass = "text-display-md text-ink";
 
-const bodyTextClass = "text-base leading-[1.7] text-ink-subtle";
+const bodyTextClass = "text-body text-ink-subtle";
 
 function BlueDot() {
   return (
@@ -67,15 +66,15 @@ export default function Home() {
           style={{ backgroundImage: HERO_GRADIENT }}
         />
         <div className="mx-auto flex max-w-[1080px] flex-col items-center px-6 pt-32 pb-12 text-center md:px-12">
-          <span className="inline-block rounded-full border border-primary px-3 py-1 text-[13px] font-medium uppercase tracking-[0.08em] text-primary">
+          <span className="inline-block rounded-full border border-primary px-3 py-1 uppercase text-eyebrow text-primary">
             AI Transformation Practice
           </span>
-          <h1 className="mt-8 text-4xl font-semibold leading-[1.05] tracking-[-0.04em] text-ink sm:text-5xl md:text-[80px]">
+          <h1 className="mt-8 text-display-md text-ink md:text-display-xl">
             Most AI programs <span className="text-primary">fail</span>{" "}
             <br className="hidden sm:inline" />
             before the model arrives.
           </h1>
-          <p className="mt-6 max-w-[560px] text-[18px] leading-[1.6] text-ink-subtle">
+          <p className="mt-6 max-w-[560px] text-body-lg text-ink-subtle">
             Not because the model isn&rsquo;t good enough.
             <br />
             Because the data underneath it was never ready.
@@ -90,7 +89,7 @@ export default function Home() {
       <section className="mt-0 bg-surface-1">
         <div className="mx-auto max-w-[1080px] px-6 pt-12 pb-12 md:px-12">
           <h2 className={sectionHeadingClass}>What we do.</h2>
-          <p className="mt-5 max-w-[700px] text-pretty text-[20px] font-normal leading-[1.6] text-[#E4E4E7]">
+          <p className="mt-5 max-w-[700px] text-pretty text-subhead text-ink-muted">
             We don&rsquo;t run pilots. We don&rsquo;t produce slide decks. We
             go into programs that are stuck or at risk and fix the thing
             that&rsquo;s actually broken.
@@ -101,10 +100,10 @@ export default function Home() {
                 key={service.name}
                 className="flex h-full flex-col justify-start rounded-lg border border-hairline p-10 transition-colors duration-150 hover:border-primary"
               >
-                <h3 className="min-h-[3.25rem] text-[22px] font-medium leading-[1.25] tracking-[-0.01em] text-ink">
+                <h3 className="min-h-[3.25rem] text-card-title text-ink">
                   {service.name}
                 </h3>
-                <p className="mt-4 text-base leading-[1.7] text-ink-subtle">
+                <p className="mt-4 text-body text-ink-subtle">
                   {service.body}
                 </p>
               </article>
@@ -122,12 +121,12 @@ export default function Home() {
           </p>
           <div className="mt-12 grid gap-12 md:grid-cols-2">
             <div className="md:pr-12">
-              <h3 className="text-xl font-medium text-ink">Built for</h3>
+              <h3 className="text-card-title text-ink">Built for</h3>
               <ul className="mt-6 space-y-3">
                 {BUILT_FOR.map((item) => (
                   <li
                     key={item}
-                    className="flex gap-x-3 text-base leading-[1.8] text-ink-subtle"
+                    className="flex gap-x-3 text-body text-ink-subtle"
                   >
                     <BlueDot />
                     <span>{item}</span>
@@ -136,12 +135,12 @@ export default function Home() {
               </ul>
             </div>
             <div className="md:border-l md:border-hairline md:pl-12">
-              <h3 className="text-xl font-medium text-ink">Not for</h3>
+              <h3 className="text-card-title text-ink">Not for</h3>
               <ul className="mt-6 space-y-3">
                 {NOT_FOR.map((item) => (
                   <li
                     key={item}
-                    className="flex gap-x-3 text-base leading-[1.8] text-ink-subtle"
+                    className="flex gap-x-3 text-body text-ink-subtle"
                   >
                     <BlueDot />
                     <span>{item}</span>
@@ -156,7 +155,7 @@ export default function Home() {
       {/* Closing CTA */}
       <section className="border-y border-hairline bg-surface-1">
         <div className="mx-auto max-w-[1080px] px-6 py-32 text-center md:px-12">
-          <h2 className="text-3xl font-semibold leading-tight tracking-[-0.02em] text-ink md:text-[40px]">
+          <h2 className="text-headline text-ink md:text-display-md">
             One call. Thirty minutes.
           </h2>
           <p className={`mx-auto mt-6 max-w-[520px] ${bodyTextClass}`}>
