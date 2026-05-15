@@ -129,7 +129,7 @@ export default function AdminSitePage() {
       {load.kind === "loading" ? (
         <p className="mt-12 text-sm text-ink-subtle">Loading settings…</p>
       ) : load.kind === "load-error" ? (
-        <p role="alert" className="mt-12 text-sm text-[#f87171]">
+        <p role="alert" className="mt-12 text-sm text-semantic-error">
           {load.message}
         </p>
       ) : (
@@ -164,7 +164,7 @@ export default function AdminSitePage() {
           ))}
 
           {save.kind === "error" ? (
-            <p role="alert" className="text-sm leading-[1.6] text-[#f87171]">
+            <p role="alert" className="text-sm leading-[1.6] text-semantic-error">
               {save.message}
             </p>
           ) : null}

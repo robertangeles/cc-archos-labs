@@ -156,14 +156,14 @@ export default function AdminDiagnosticPage() {
       {load.kind === "loading" ? (
         <p className="mt-12 text-sm text-ink-subtle">Loading…</p>
       ) : load.kind === "load-error" ? (
-        <p role="alert" className="mt-12 text-sm text-[#f87171]">
+        <p role="alert" className="mt-12 text-sm text-semantic-error">
           {load.message}
         </p>
       ) : (
         <>
           {load.kind === "ready" && load.isFallback ? (
-            <div className="mt-8 rounded-md border border-[#fbbf24]/40 bg-[#fbbf24]/5 px-5 py-4">
-              <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-[#fbbf24]">
+            <div className="mt-8 rounded-md border border-semantic-warning/40 bg-semantic-warning/5 px-5 py-4">
+              <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-semantic-warning">
                 No content configured
               </p>
               <p className="mt-2 text-sm leading-[1.6] text-ink/90">
@@ -221,14 +221,14 @@ export default function AdminDiagnosticPage() {
             {validationError ? (
               <p
                 role="alert"
-                className="rounded-md border border-[#f87171]/40 bg-[#f87171]/5 px-4 py-3 text-sm leading-[1.6] text-[#f87171]"
+                className="rounded-md border border-semantic-error/40 bg-semantic-error/5 px-4 py-3 text-sm leading-[1.6] text-semantic-error"
               >
                 {validationError}
               </p>
             ) : null}
 
             {save.kind === "error" ? (
-              <p role="alert" className="text-sm leading-[1.6] text-[#f87171]">
+              <p role="alert" className="text-sm leading-[1.6] text-semantic-error">
                 {save.message}
               </p>
             ) : null}

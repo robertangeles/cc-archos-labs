@@ -77,7 +77,7 @@ export const Field = forwardRef<
         />
       )}
       {error ? (
-        <p id={hintId} className="text-sm text-red-400">
+        <p id={hintId} className="text-sm text-semantic-error">
           {error}
         </p>
       ) : hint ? (
