@@ -4,44 +4,46 @@ import { eq } from "drizzle-orm";
 import { getDb } from "../db";
 import { siteSetting } from "../db/schema";
 import {
-  DIAGNOSTIC_CONTENT_FALLBACK,
   DiagnosticContentSchema,
   type DiagnosticContent,
 } from "./content-config-shared";
 
-// Server-only loader for the diagnostic content row. Mirrors the
-// prompt-config pattern from D-26: cache() dedupes within a request,
-// falls back to the source default on DB error or missing row.
+// Server-only loader for the diagnostic content row. cache() dedupes
+// within a request. The source of truth is the site_setting row keyed
+// 'diagnostic_content' (seeded by an admin via /admin/diagnostic).
 //
-// The admin seeds the real content via /admin/diagnostic on first
-// deploy. The source default is intentionally placeholder so a missing
-// seed produces an obviously-degraded assessment rather than silently
-// shipping wrong content.
+// No code-level fallback. A missing or malformed content row throws a
+// clear error pointing at the admin UI. Same treatment as the system
+// prompt (PR #31) and model id (PR #30): silent fallbacks hide
+// misconfiguration; loud failure forces the admin to seed the real
+// practitioner-calibrated content.
 
 export const SITE_SETTING_KEY = "diagnostic_content";
 
 export const getDiagnosticContent = cache(
   async (): Promise<DiagnosticContent> => {
-    try {
-      const db = getDb();
-      const rows = await db
-        .select({ value: siteSetting.value })
-        .from(siteSetting)
-        .where(eq(siteSetting.key, SITE_SETTING_KEY))
-        .limit(1);
+    const db = getDb();
+    const rows = await db
+      .select({ value: siteSetting.value })
+      .from(siteSetting)
+      .where(eq(siteSetting.key, SITE_SETTING_KEY))
+      .limit(1);
 
-      if (rows.length === 0) {
-        return DIAGNOSTIC_CONTENT_FALLBACK;
-      }
-
-      const parsed = DiagnosticContentSchema.safeParse(rows[0].value);
-      return parsed.success ? parsed.data : DIAGNOSTIC_CONTENT_FALLBACK;
-    } catch (err) {
-      console.error(
-        "getDiagnosticContent failed, falling back to source default:",
-        err,
+    if (rows.length === 0) {
+      throw new Error(
+        "Diagnostic content not configured. Seed it in /admin/diagnostic before serving the assessment.",
       );
-      return DIAGNOSTIC_CONTENT_FALLBACK;
     }
+
+    const parsed = DiagnosticContentSchema.safeParse(rows[0].value);
+    if (!parsed.success) {
+      const fields = parsed.error.issues
+        .map((i) => i.path.join("."))
+        .join(", ");
+      throw new Error(
+        `Stored diagnostic content failed validation (fields: ${fields}). Re-save it in /admin/diagnostic.`,
+      );
+    }
+    return parsed.data;
   },
 );
