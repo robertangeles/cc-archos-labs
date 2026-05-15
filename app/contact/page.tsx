@@ -15,7 +15,7 @@ export default function ContactPage() {
   return (
     <main className="flex flex-1 flex-col bg-canvas">
       <section className="mx-auto w-full max-w-[760px] px-6 pt-24 pb-32 md:px-12">
-        <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-primary">
+        <p className="uppercase text-eyebrow text-ink-subtle">
           Contact
         </p>
         <h1 className="mt-4 text-display-md text-ink md:text-display-lg">

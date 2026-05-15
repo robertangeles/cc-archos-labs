@@ -101,7 +101,7 @@ export function RegistrationGate({ onSubmit, submitting, errorMessage }: Props) 
         className="pointer-events-none absolute inset-0 select-none px-6 pt-16 opacity-25 blur-md md:px-12 md:pt-24"
       >
         <div className="mx-auto flex w-full max-w-[840px] flex-col gap-y-8">
-          <div className="h-3 w-32 rounded-full bg-primary" />
+          <div className="h-3 w-32 rounded-full bg-surface-2" />
           <div className="flex items-baseline gap-x-10">
             <div className="h-28 w-44 rounded-md bg-ink/30" />
             <div className="flex flex-col gap-y-3">

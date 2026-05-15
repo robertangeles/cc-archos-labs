@@ -65,8 +65,8 @@ export function ContactForm() {
 
   if (status.kind === "success") {
     return (
-      <div className="rounded-lg border border-primary bg-primary/5 p-8">
-        <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-primary">
+      <div className="rounded-lg border border-semantic-success/40 bg-semantic-success/5 p-8">
+        <p className="uppercase text-eyebrow text-semantic-success">
           Message sent
         </p>
         <h2 className="mt-3 text-2xl font-semibold tracking-[-0.01em] text-ink">

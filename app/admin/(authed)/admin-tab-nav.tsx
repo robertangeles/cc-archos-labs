@@ -53,8 +53,8 @@ export function AdminTabNav() {
             href={tab.href}
             className={`rounded-md px-3 py-2 text-sm transition-colors duration-150 ${
               active
-                ? "bg-surface-1 text-ink"
-                : "text-ink-subtle hover:bg-surface-1/60 hover:text-ink"
+                ? "bg-surface-2 text-ink"
+                : "text-ink-subtle hover:bg-surface-1 hover:text-ink"
             }`}
           >
             {tab.label}

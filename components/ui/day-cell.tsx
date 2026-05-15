@@ -64,7 +64,7 @@ export const DayCell = forwardRef<HTMLButtonElement, DayCellProps>(
         {isTodayMarked ? (
           <span
             aria-hidden
-            className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-primary"
+            className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-ink"
           />
         ) : null}
       </button>
