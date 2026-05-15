@@ -43,6 +43,22 @@ export const IntegrationConfigSchema = z.object({
   // the source of truth is the Settings UI. Provider-agnostic name
   // even though today's value is a Claude model identifier.
   llmModelId: z.string().min(1).nullable(),
+
+  // Google OAuth client credentials for the Book-a-Call flow. Lives in
+  // the DB rather than env so the same secret-handling discipline (audit
+  // log, encrypted at rest, no risk of accidental .env commit) covers
+  // them. The redirect URI is the only piece that stays in env because
+  // it's genuinely environment-specific (localhost vs prod URL).
+  //
+  // Both nullable — the loader returns the config even when Google isn't
+  // configured yet (the OAuth start route surfaces a clear error when
+  // the admin clicks Connect before filling these in).
+  //
+  // Client ID is identifier-grade (appears in OAuth URLs the browser
+  // sees) so it's plaintext. Client Secret is the actual credential and
+  // lives in ENCRYPTED_FIELDS.
+  googleOauthClientId: z.string().min(1).nullable(),
+  googleOauthClientSecret: z.string().min(1).nullable(),
 });
 
 export type IntegrationConfig = z.infer<typeof IntegrationConfigSchema>;
@@ -54,6 +70,7 @@ export const ENCRYPTED_FIELDS = [
   "adminPassword",
   "resendApiKey",
   "llmApiKey",
+  "googleOauthClientSecret",
 ] as const satisfies ReadonlyArray<keyof IntegrationConfig>;
 
 export type EncryptedField = (typeof ENCRYPTED_FIELDS)[number];
@@ -101,6 +118,13 @@ export const StoredIntegrationConfigSchema = z.object({
   contactRecipientEmail: z.string().min(1),
   resendFromEmail: z.string().min(1),
   llmModelId: z.string().min(1).nullable(),
+
+  // Google OAuth credentials. `.nullish()` so a stored blob written
+  // before these fields existed still parses — missing-key reads back
+  // as `undefined`, which the loader normalises to `null` before
+  // running IntegrationConfigSchema.
+  googleOauthClientId: z.string().min(1).nullish(),
+  googleOauthClientSecret: z.string().min(1).nullish(),
 });
 
 export type StoredIntegrationConfig = z.infer<

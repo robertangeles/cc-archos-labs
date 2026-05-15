@@ -80,6 +80,7 @@ describe("integration-config-shared", () => {
         "adminPassword",
         "resendApiKey",
         "llmApiKey",
+        "googleOauthClientSecret",
       ]);
     });
 
@@ -87,9 +88,11 @@ describe("integration-config-shared", () => {
       expect(isEncryptedField("adminPassword")).toBe(true);
       expect(isEncryptedField("resendApiKey")).toBe(true);
       expect(isEncryptedField("llmApiKey")).toBe(true);
+      expect(isEncryptedField("googleOauthClientSecret")).toBe(true);
       expect(isEncryptedField("contactRecipientEmail")).toBe(false);
       expect(isEncryptedField("resendFromEmail")).toBe(false);
       expect(isEncryptedField("llmModelId")).toBe(false);
+      expect(isEncryptedField("googleOauthClientId")).toBe(false);
     });
   });
 
@@ -102,6 +105,8 @@ describe("integration-config-shared", () => {
         contactRecipientEmail: "rob@archoslabs.xyz",
         resendFromEmail: "Archos Labs <hello@archoslabs.xyz>",
         llmModelId: null,
+        googleOauthClientId: null,
+        googleOauthClientSecret: null,
       };
       expect(IntegrationConfigSchema.safeParse(valid).success).toBe(true);
     });
@@ -141,6 +146,8 @@ describe("integration-config-shared", () => {
         contactRecipientEmail: "rob@archoslabs.xyz",
         resendFromEmail: "hello@archoslabs.xyz",
         llmModelId: null,
+        googleOauthClientId: null,
+        googleOauthClientSecret: null,
       };
       const parsed = IntegrationConfigSchema.safeParse(valid);
       expect(parsed.success).toBe(true);
@@ -157,6 +164,8 @@ describe("integration-config-shared", () => {
         contactRecipientEmail: "rob@archoslabs.xyz",
         resendFromEmail: "hello@archoslabs.xyz",
         llmModelId: "anthropic/claude-sonnet-4-6",
+        googleOauthClientId: null,
+        googleOauthClientSecret: null,
       };
       const parsed = IntegrationConfigSchema.safeParse(valid);
       expect(parsed.success).toBe(true);

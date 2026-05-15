@@ -86,6 +86,16 @@ export async function POST(request: Request) {
   const config = await getIntegrationConfig();
   const plaintext = config[field];
 
+  // Nullable encrypted fields (e.g. googleOauthClientSecret) can be
+  // unset on a fresh install. Surface that as "not configured" so the
+  // panel doesn't render an empty reveal modal.
+  if (plaintext === null || plaintext === undefined) {
+    return Response.json(
+      { ok: false, error: "This field is not configured yet." },
+      { status: 404 },
+    );
+  }
+
   // Audit row: who revealed which secret, when.
   try {
     const db = getDb();

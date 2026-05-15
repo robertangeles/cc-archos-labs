@@ -1,39 +1,62 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  exchangeCodeForTokens,
-  generateAuthUrl,
-  generateState,
-  getOAuthConfig,
-  refreshAccessToken,
-  REQUIRED_SCOPES,
-} from "./google-oauth";
-import {
-  BookingError,
-  GoogleAuthError,
-  GoogleAuthErrorRevoked,
-} from "./errors/booking";
 
 // Contract:
 //   - generateState yields cryptographically random base64url tokens
 //   - generateAuthUrl produces a Google consent URL with the right params
 //   - exchangeCodeForTokens parses Google's response and demands a refresh token
 //   - refreshAccessToken throws GoogleAuthErrorRevoked on invalid_grant
-//   - getOAuthConfig throws BookingError when env vars are missing
+//   - getOAuthConfig throws BookingError when DB config is missing
 //
 // All HTTP calls go through `fetch` which we stub via vi.stubGlobal.
+// integration-config is mocked so the OAuth helpers see a controlled
+// clientId/clientSecret without a real DB.
 
-const STUB_ENV = {
-  GOOGLE_OAUTH_CLIENT_ID: "client-id.apps.googleusercontent.com",
-  GOOGLE_OAUTH_CLIENT_SECRET: "client-secret",
-  GOOGLE_OAUTH_REDIRECT_URI: "http://localhost:3007/api/admin/google-oauth/cb",
+const STUB_CONFIG_VALUES = {
+  clientId: "client-id.apps.googleusercontent.com",
+  clientSecret: "client-secret",
+  redirectUri: "http://localhost:3007/api/admin/google-oauth/cb",
 };
 
+// Mutable mock so individual tests can null out clientId/clientSecret
+// to exercise the "missing config" branches.
+const mockConfig = {
+  adminPassword: "x",
+  resendApiKey: "x",
+  llmApiKey: "x",
+  contactRecipientEmail: "x@example.com",
+  resendFromEmail: "x@example.com",
+  llmModelId: null as string | null,
+  googleOauthClientId: STUB_CONFIG_VALUES.clientId as string | null,
+  googleOauthClientSecret: STUB_CONFIG_VALUES.clientSecret as string | null,
+};
+
+vi.mock("./integration-config", () => ({
+  getIntegrationConfig: async () => mockConfig,
+}));
+
+// Imports must come after vi.mock — Vitest hoists vi.mock so this still works,
+// but co-locating them makes the dependency direction obvious.
+const {
+  exchangeCodeForTokens,
+  generateAuthUrl,
+  generateState,
+  getOAuthConfig,
+  refreshAccessToken,
+  REQUIRED_SCOPES,
+} = await import("./google-oauth");
+const { BookingError, GoogleAuthError, GoogleAuthErrorRevoked } = await import(
+  "./errors/booking"
+);
+
 beforeEach(() => {
-  for (const [k, v] of Object.entries(STUB_ENV)) process.env[k] = v;
+  // Reset mock config + env on each test.
+  mockConfig.googleOauthClientId = STUB_CONFIG_VALUES.clientId;
+  mockConfig.googleOauthClientSecret = STUB_CONFIG_VALUES.clientSecret;
+  process.env.GOOGLE_OAUTH_REDIRECT_URI = STUB_CONFIG_VALUES.redirectUri;
 });
 
 afterEach(() => {
-  for (const k of Object.keys(STUB_ENV)) delete process.env[k];
+  delete process.env.GOOGLE_OAUTH_REDIRECT_URI;
   vi.unstubAllGlobals();
 });
 
@@ -65,26 +88,26 @@ describe("generateState", () => {
 // ----------------------------------------------------------------------------
 
 describe("getOAuthConfig", () => {
-  it("reads env vars when all three are set", () => {
-    const cfg = getOAuthConfig();
-    expect(cfg.clientId).toBe(STUB_ENV.GOOGLE_OAUTH_CLIENT_ID);
-    expect(cfg.clientSecret).toBe(STUB_ENV.GOOGLE_OAUTH_CLIENT_SECRET);
-    expect(cfg.redirectUri).toBe(STUB_ENV.GOOGLE_OAUTH_REDIRECT_URI);
+  it("reads clientId+clientSecret from Settings and redirectUri from env", async () => {
+    const cfg = await getOAuthConfig();
+    expect(cfg.clientId).toBe(STUB_CONFIG_VALUES.clientId);
+    expect(cfg.clientSecret).toBe(STUB_CONFIG_VALUES.clientSecret);
+    expect(cfg.redirectUri).toBe(STUB_CONFIG_VALUES.redirectUri);
   });
 
-  it("throws BookingError when client id is missing", () => {
-    delete process.env.GOOGLE_OAUTH_CLIENT_ID;
-    expect(() => getOAuthConfig()).toThrow(BookingError);
+  it("throws BookingError when client id is missing", async () => {
+    mockConfig.googleOauthClientId = null;
+    await expect(getOAuthConfig()).rejects.toBeInstanceOf(BookingError);
   });
 
-  it("throws BookingError when client secret is missing", () => {
-    delete process.env.GOOGLE_OAUTH_CLIENT_SECRET;
-    expect(() => getOAuthConfig()).toThrow(BookingError);
+  it("throws BookingError when client secret is missing", async () => {
+    mockConfig.googleOauthClientSecret = null;
+    await expect(getOAuthConfig()).rejects.toBeInstanceOf(BookingError);
   });
 
-  it("throws BookingError when redirect URI is missing", () => {
+  it("throws BookingError when redirect URI env var is missing", async () => {
     delete process.env.GOOGLE_OAUTH_REDIRECT_URI;
-    expect(() => getOAuthConfig()).toThrow(BookingError);
+    await expect(getOAuthConfig()).rejects.toBeInstanceOf(BookingError);
   });
 });
 
@@ -93,36 +116,38 @@ describe("getOAuthConfig", () => {
 // ----------------------------------------------------------------------------
 
 describe("generateAuthUrl", () => {
-  it("contains the consent endpoint", () => {
-    const url = new URL(generateAuthUrl({ state: "xyz" }));
+  it("contains the consent endpoint", async () => {
+    const url = new URL(await generateAuthUrl({ state: "xyz" }));
     expect(url.origin + url.pathname).toBe(
       "https://accounts.google.com/o/oauth2/v2/auth",
     );
   });
 
-  it("requests all REQUIRED_SCOPES", () => {
-    const url = new URL(generateAuthUrl({ state: "xyz" }));
+  it("requests all REQUIRED_SCOPES", async () => {
+    const url = new URL(await generateAuthUrl({ state: "xyz" }));
     const scope = url.searchParams.get("scope") ?? "";
     for (const required of REQUIRED_SCOPES) {
       expect(scope).toContain(required);
     }
   });
 
-  it("requests offline access + consent prompt so a refresh token is issued", () => {
-    const url = new URL(generateAuthUrl({ state: "xyz" }));
+  it("requests offline access + consent prompt so a refresh token is issued", async () => {
+    const url = new URL(await generateAuthUrl({ state: "xyz" }));
     expect(url.searchParams.get("access_type")).toBe("offline");
     expect(url.searchParams.get("prompt")).toBe("consent");
   });
 
-  it("forwards the state nonce", () => {
-    const url = new URL(generateAuthUrl({ state: "the-csrf-nonce" }));
+  it("forwards the state nonce", async () => {
+    const url = new URL(await generateAuthUrl({ state: "the-csrf-nonce" }));
     expect(url.searchParams.get("state")).toBe("the-csrf-nonce");
   });
 
-  it("uses the configured client_id and redirect_uri", () => {
-    const url = new URL(generateAuthUrl({ state: "xyz" }));
-    expect(url.searchParams.get("client_id")).toBe(STUB_ENV.GOOGLE_OAUTH_CLIENT_ID);
-    expect(url.searchParams.get("redirect_uri")).toBe(STUB_ENV.GOOGLE_OAUTH_REDIRECT_URI);
+  it("uses the configured client_id and redirect_uri", async () => {
+    const url = new URL(await generateAuthUrl({ state: "xyz" }));
+    expect(url.searchParams.get("client_id")).toBe(STUB_CONFIG_VALUES.clientId);
+    expect(url.searchParams.get("redirect_uri")).toBe(
+      STUB_CONFIG_VALUES.redirectUri,
+    );
   });
 });
 

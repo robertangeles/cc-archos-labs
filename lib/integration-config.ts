@@ -131,8 +131,16 @@ function decryptAndValidate(rawValue: unknown): IntegrationConfig {
 
   const decrypted: Record<string, unknown> = { ...stored.data };
   for (const field of ENCRYPTED_FIELDS) {
+    const raw = stored.data[field];
+    // Nullable encrypted fields (e.g. googleOauthClientSecret on a fresh
+    // install) stay null on the decrypted side; only attempt decrypt
+    // when ciphertext is actually present.
+    if (raw === undefined || raw === null) {
+      decrypted[field] = null;
+      continue;
+    }
     try {
-      decrypted[field] = decrypt(stored.data[field]);
+      decrypted[field] = decrypt(raw);
     } catch (err) {
       // CryptoError class covers tampered ciphertext, wrong key,
       // malformed base64. Any of those means the secret is unreadable
@@ -142,6 +150,12 @@ function decryptAndValidate(rawValue: unknown): IntegrationConfig {
         { cause: err },
       );
     }
+  }
+
+  // Normalise undefined → null on the plaintext nullable fields so
+  // IntegrationConfigSchema (.nullable, not .nullish) accepts them.
+  if (decrypted.googleOauthClientId === undefined) {
+    decrypted.googleOauthClientId = null;
   }
 
   const parsed = IntegrationConfigSchema.safeParse(decrypted);
@@ -179,6 +193,10 @@ function readFromEnv(): IntegrationConfig {
     resendFromEmail:
       process.env.RESEND_FROM_EMAIL ?? CONFIG_DEFAULTS.resendFromEmail,
     llmModelId: process.env.CLAUDE_MODEL_ID ?? CONFIG_DEFAULTS.llmModelId,
+    // Google OAuth env fallback. Empty string → null so the schema's
+    // `.min(1).nullable()` accepts "not configured."
+    googleOauthClientId: process.env.GOOGLE_OAUTH_CLIENT_ID || null,
+    googleOauthClientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET || null,
   };
 
   const parsed = IntegrationConfigSchema.safeParse(config);
@@ -321,6 +339,8 @@ export async function migrateEnvToDB(): Promise<{
     contactRecipientEmail: process.env.CONTACT_RECIPIENT_EMAIL ?? null,
     resendFromEmail: process.env.RESEND_FROM_EMAIL ?? null,
     llmModelId: process.env.CLAUDE_MODEL_ID ?? null,
+    googleOauthClientId: process.env.GOOGLE_OAUTH_CLIENT_ID ?? null,
+    googleOauthClientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? null,
   };
 
   const written: Array<keyof IntegrationConfig> = [];
@@ -429,9 +449,13 @@ export async function rotateMasterKey(
 
     const rotated: Record<string, unknown> = { ...stored };
     for (const field of ENCRYPTED_FIELDS) {
+      const raw = stored[field];
+      // Nullable encrypted fields (e.g. googleOauthClientSecret pre-config)
+      // have nothing to rotate — skip.
+      if (raw === undefined || raw === null) continue;
       let plaintext: string;
       try {
-        plaintext = decrypt(stored[field], oldKey);
+        plaintext = decrypt(raw, oldKey);
       } catch (err) {
         throw new IntegrationConfigDecryptError(
           `Old master key cannot decrypt field '${field}' — wrong --old key?`,
@@ -491,6 +515,8 @@ export async function getIntegrationConfigRedacted(): Promise<{
   contactRecipientEmail: string;
   resendFromEmail: string;
   llmModelId: string | null;
+  googleOauthClientId: string | null;
+  googleOauthClientSecret: string;
 }> {
   const config = await getIntegrationConfig();
   return {
@@ -500,6 +526,11 @@ export async function getIntegrationConfigRedacted(): Promise<{
     contactRecipientEmail: config.contactRecipientEmail,
     resendFromEmail: config.resendFromEmail,
     llmModelId: config.llmModelId,
+    // Client ID is identifier-grade — surface the full value so the
+    // admin can confirm it matches the Google Cloud Console panel.
+    googleOauthClientId: config.googleOauthClientId,
+    // Client Secret is the real credential — always redact (empty when null).
+    googleOauthClientSecret: redactSecret(config.googleOauthClientSecret ?? ""),
   };
 }
 
