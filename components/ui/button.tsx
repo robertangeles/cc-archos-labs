@@ -8,7 +8,7 @@ import { forwardRef, type ButtonHTMLAttributes } from "react";
 type Variant = "primary" | "ghost";
 
 const baseClass =
-  "inline-flex items-center justify-center rounded-md px-7 py-3 text-base font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:opacity-50 disabled:cursor-not-allowed";
+  "inline-flex items-center justify-center rounded-md px-7 py-3 text-button transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:opacity-50 disabled:cursor-not-allowed";
 
 const variantClass: Record<Variant, string> = {
   primary: "bg-primary text-white hover:bg-primary-hover",

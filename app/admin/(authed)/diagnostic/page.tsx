@@ -141,7 +141,7 @@ export default function AdminDiagnosticPage() {
 
   return (
     <section>
-      <h1 className="text-3xl font-semibold leading-[1.1] tracking-[-0.02em] text-ink md:text-[40px]">
+      <h1 className="text-headline text-ink md:text-display-md">
         Diagnostic Content
       </h1>
       <p className="mt-4 max-w-[720px] text-base leading-[1.7] text-ink-subtle">
