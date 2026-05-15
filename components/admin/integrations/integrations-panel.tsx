@@ -12,6 +12,10 @@ interface RedactedConfig {
   contactRecipientEmail: string;
   resendFromEmail: string;
   llmModelId: string | null;
+  // Plaintext on the wire: identifier-grade, browser sees it during OAuth anyway.
+  googleOauthClientId: string | null;
+  // Always redacted: this is the real credential.
+  googleOauthClientSecret: string;
 }
 
 interface AuditRow {
@@ -28,10 +32,23 @@ const ENCRYPTED_FIELDS: ReadonlyArray<FieldKey> = [
   "adminPassword",
   "resendApiKey",
   "llmApiKey",
+  "googleOauthClientSecret",
+];
+
+// Fields that accept null (empty string in the form clears them).
+// Mirrors the .nullable() entries in IntegrationConfigSchema.
+const NULLABLE_FIELDS: ReadonlyArray<FieldKey> = [
+  "llmModelId",
+  "googleOauthClientId",
+  "googleOauthClientSecret",
 ];
 
 function isEncrypted(field: FieldKey): boolean {
   return (ENCRYPTED_FIELDS as ReadonlyArray<string>).includes(field);
+}
+
+function isNullable(field: FieldKey): boolean {
+  return (NULLABLE_FIELDS as ReadonlyArray<string>).includes(field);
 }
 
 type SaveStatus =
@@ -122,9 +139,8 @@ export function IntegrationsPanel({
     if (value === undefined || value === null) return;
     setSaveStatus((s) => ({ ...s, [field]: { kind: "saving" } }));
     try {
-      // llmModelId accepts empty string from the form to mean "clear" → null
-      const wireValue =
-        field === "llmModelId" && value === "" ? null : value;
+      // Nullable fields accept empty string from the form to mean "clear" → null.
+      const wireValue = isNullable(field) && value === "" ? null : value;
 
       const resp = await fetch("/api/admin/integrations", {
         method: "PATCH",
@@ -363,6 +379,46 @@ export function IntegrationsPanel({
             }
           />
         </div>
+      </Section>
+
+      <Section title="Google Calendar OAuth">
+        <p className="text-[12px] text-ink-subtle">
+          Used by the Book-a-Call flow. After you save Client ID + Secret here,
+          go to <code className="rounded bg-canvas px-1 py-0.5">/admin/google</code> and
+          click <span className="text-ink">Connect Google Calendar</span> to complete the grant.
+        </p>
+        <ConfigField
+          field="googleOauthClientId"
+          label="Client ID"
+          hint="From the Google Cloud Console Clients tab — looks like xxx.apps.googleusercontent.com. Identifier-grade, stored plaintext."
+          config={config}
+          editing={editing}
+          revealed={revealed}
+          saveStatus={saveStatus[`googleOauthClientId`]}
+          onEdit={(v) =>
+            setEditing((e) => ({ ...e, googleOauthClientId: v }))
+          }
+          onSave={() => handleSave("googleOauthClientId")}
+        />
+        <ConfigField
+          field="googleOauthClientSecret"
+          label="Client Secret"
+          hint="From the same Clients tab — starts with GOCSPX-. Encrypted at rest like every other secret here."
+          config={config}
+          editing={editing}
+          revealed={revealed}
+          saveStatus={saveStatus[`googleOauthClientSecret`]}
+          onEdit={(v) =>
+            setEditing((e) => ({ ...e, googleOauthClientSecret: v }))
+          }
+          onSave={() => handleSave("googleOauthClientSecret")}
+          onReveal={() => handleReveal("googleOauthClientSecret")}
+          onHide={() => handleHide("googleOauthClientSecret")}
+        />
+        <ReadOnlyEnvRow
+          label="GOOGLE_OAUTH_REDIRECT_URI"
+          hint="Lives in env because it differs between dev (localhost) and prod. Must match a value in the Google Cloud Console Authorized redirect URIs list exactly."
+        />
       </Section>
 
       <AuditLog rows={audit} />
@@ -618,6 +674,8 @@ function RevealAuthModal({
     contactRecipientEmail: "",
     resendFromEmail: "",
     llmModelId: "",
+    googleOauthClientId: "",
+    googleOauthClientSecret: "Google OAuth Client Secret",
   };
 
   return (

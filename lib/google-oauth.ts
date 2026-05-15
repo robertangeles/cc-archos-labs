@@ -22,6 +22,7 @@ import {
   GoogleAuthError,
   GoogleAuthErrorRevoked,
 } from "./errors/booking";
+import { getIntegrationConfig } from "./integration-config";
 
 // `calendar.events` is the narrowest scope that covers everything we
 // need: freebusy.query, events.insert (with conferenceData for the
@@ -35,8 +36,16 @@ const AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 
 // ----------------------------------------------------------------------------
-// Config — env-driven so dev/prod can have separate OAuth clients
+// Config — Client ID/Secret in DB-backed Settings; Redirect URI in env
 // ----------------------------------------------------------------------------
+//
+// Why split: Client ID + Secret are stable across environments and only
+// rotated rarely — they live in integration_secrets (encrypted at rest)
+// so the same audit/rotation discipline as Resend/LLM keys applies, and
+// they never sit in a .env file at risk of accidental commit.
+//
+// Redirect URI is genuinely environment-specific (localhost vs prod URL)
+// so it remains a plain env var — textbook env-var territory.
 
 interface OAuthConfig {
   clientId: string;
@@ -44,19 +53,30 @@ interface OAuthConfig {
   redirectUri: string;
 }
 
-// Reads config at call time (not module load) so tests can stub env
-// vars per-suite. Throws BookingError with a remediation hint when
-// anything is missing — surfaces config errors loudly.
-export function getOAuthConfig(): OAuthConfig {
-  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+// Reads config at call time (not module load) so tests can stub the
+// integration-config layer per-suite. Throws BookingError with a
+// remediation hint when anything is missing — surfaces config errors
+// loudly.
+export async function getOAuthConfig(): Promise<OAuthConfig> {
+  const config = await getIntegrationConfig();
   const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URI;
-  if (!clientId || !clientSecret || !redirectUri) {
+
+  if (!config.googleOauthClientId || !config.googleOauthClientSecret) {
     throw new BookingError(
-      "Google OAuth not configured. Set GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, and GOOGLE_OAUTH_REDIRECT_URI in .env.local — see .env.example.",
+      "Google OAuth not configured. Set Client ID and Client Secret in /admin/integrations.",
     );
   }
-  return { clientId, clientSecret, redirectUri };
+  if (!redirectUri) {
+    throw new BookingError(
+      "GOOGLE_OAUTH_REDIRECT_URI is not set. Add it to .env.local (dev) and Render env (prod) — it is environment-specific so it stays in env, not Settings.",
+    );
+  }
+
+  return {
+    clientId: config.googleOauthClientId,
+    clientSecret: config.googleOauthClientSecret,
+    redirectUri,
+  };
 }
 
 // ----------------------------------------------------------------------------
@@ -80,8 +100,10 @@ export interface GenerateAuthUrlInput {
   state: string;
 }
 
-export function generateAuthUrl(input: GenerateAuthUrlInput): string {
-  const { clientId, redirectUri } = getOAuthConfig();
+export async function generateAuthUrl(
+  input: GenerateAuthUrlInput,
+): Promise<string> {
+  const { clientId, redirectUri } = await getOAuthConfig();
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
@@ -129,7 +151,7 @@ interface GoogleTokenResponse {
 export async function exchangeCodeForTokens(
   code: string,
 ): Promise<GoogleTokens> {
-  const config = getOAuthConfig();
+  const config = await getOAuthConfig();
   const body = new URLSearchParams({
     code,
     client_id: config.clientId,
@@ -189,7 +211,7 @@ export interface RefreshedAccessToken {
 export async function refreshAccessToken(
   refreshToken: string,
 ): Promise<RefreshedAccessToken> {
-  const config = getOAuthConfig();
+  const config = await getOAuthConfig();
   const body = new URLSearchParams({
     refresh_token: refreshToken,
     client_id: config.clientId,

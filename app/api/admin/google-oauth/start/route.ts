@@ -25,7 +25,7 @@ export async function GET() {
   let state: string;
   try {
     state = generateState();
-    authUrl = generateAuthUrl({ state });
+    authUrl = await generateAuthUrl({ state });
   } catch (err) {
     // Surface config issues (missing GOOGLE_OAUTH_* env vars) as a clear
     // 500 with the remediation hint baked into BookingError.

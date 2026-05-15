@@ -34,6 +34,8 @@ const PATCH_FIELDS = [
   "contactRecipientEmail",
   "resendFromEmail",
   "llmModelId",
+  "googleOauthClientId",
+  "googleOauthClientSecret",
 ] as const;
 
 const PatchSchema = z.object({
