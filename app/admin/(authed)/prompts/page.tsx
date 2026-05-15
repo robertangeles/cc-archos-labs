@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
-  DIAGNOSTIC_PROMPT_FALLBACK,
+  DIAGNOSTIC_PROMPT_STARTER,
   type DiagnosticPrompt,
 } from "../../../../lib/diagnostic/prompt-config-shared";
 
@@ -25,7 +25,7 @@ const labelClass =
 
 export default function AdminPromptsPage() {
   const [prompt, setPrompt] = useState<DiagnosticPrompt>(
-    DIAGNOSTIC_PROMPT_FALLBACK,
+    DIAGNOSTIC_PROMPT_STARTER,
   );
   const [load, setLoad] = useState<LoadStatus>({ kind: "loading" });
   const [save, setSave] = useState<SaveStatus>({ kind: "idle" });
@@ -116,13 +116,14 @@ export default function AdminPromptsPage() {
           {load.kind === "ready" && load.isFallback ? (
             <div className="mt-8 rounded-md border border-[#fbbf24]/40 bg-[#fbbf24]/5 px-5 py-4">
               <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-[#fbbf24]">
-                Fallback prompt active
+                No prompt configured
               </p>
               <p className="mt-2 text-sm leading-[1.6] text-fg/90">
-                No admin prompt is configured. Reports are being generated
-                with a minimal generic prompt and will not match the
-                practitioner voice. Paste your real prompt below and save
-                to replace it.
+                No admin prompt is saved yet — the form below is a starter
+                template. <strong>Report generation will fail</strong> until
+                you replace this with your real prompt and save. Paste your
+                practitioner-voice prompt into the System prompt field, set
+                a Version label, and click Save.
               </p>
             </div>
           ) : null}

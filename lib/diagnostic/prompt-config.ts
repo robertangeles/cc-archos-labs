@@ -4,24 +4,23 @@ import { eq } from "drizzle-orm";
 import { getDb } from "../db";
 import { siteSetting } from "../db/schema";
 import {
-  DIAGNOSTIC_PROMPT_FALLBACK,
   DiagnosticPromptSchema,
   type DiagnosticPrompt,
 } from "./prompt-config-shared";
 
-// Server-only loader for the diagnostic system prompt. Mirrors the
-// site-config pattern: cache() dedupes within a request, falls back
-// to the generic source default on DB error or missing row.
+// Server-only loader for the diagnostic system prompt. cache() dedupes
+// within a request. The source of truth is the site_setting row keyed
+// 'diagnostic_prompt' (seeded by an admin via /admin/prompts).
 //
-// Admin seeds the real prompt via /admin/prompts on first deploy. The
-// source default is deliberately weak so a missing seed produces an
-// obviously-degraded report rather than silently leaking IP through
-// some half-tuned default.
+// No code-level fallback. A missing or malformed prompt row throws a
+// clear error pointing at the admin UI. Same treatment as the LLM
+// model id (PR #30): silent fallbacks hide misconfiguration; loud
+// failure forces the admin to actually seed the prompt.
 
 export const SITE_SETTING_KEY = "diagnostic_prompt";
 
-export const getDiagnosticPrompt = cache(async (): Promise<DiagnosticPrompt> => {
-  try {
+export const getDiagnosticPrompt = cache(
+  async (): Promise<DiagnosticPrompt> => {
     const db = getDb();
     const rows = await db
       .select({ value: siteSetting.value })
@@ -30,16 +29,20 @@ export const getDiagnosticPrompt = cache(async (): Promise<DiagnosticPrompt> => 
       .limit(1);
 
     if (rows.length === 0) {
-      return DIAGNOSTIC_PROMPT_FALLBACK;
+      throw new Error(
+        "Diagnostic prompt not configured. Seed it in /admin/prompts before generating any report.",
+      );
     }
 
     const parsed = DiagnosticPromptSchema.safeParse(rows[0].value);
-    return parsed.success ? parsed.data : DIAGNOSTIC_PROMPT_FALLBACK;
-  } catch (err) {
-    console.error(
-      "getDiagnosticPrompt failed, falling back to source default:",
-      err,
-    );
-    return DIAGNOSTIC_PROMPT_FALLBACK;
-  }
-});
+    if (!parsed.success) {
+      const fields = parsed.error.issues
+        .map((i) => i.path.join("."))
+        .join(", ");
+      throw new Error(
+        `Stored diagnostic prompt failed validation (fields: ${fields}). Re-save it in /admin/prompts.`,
+      );
+    }
+    return parsed.data;
+  },
+);

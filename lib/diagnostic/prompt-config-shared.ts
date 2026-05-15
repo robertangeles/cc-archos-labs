@@ -28,14 +28,21 @@ export const DiagnosticPromptSchema = z.object({
 
 export type DiagnosticPrompt = z.infer<typeof DiagnosticPromptSchema>;
 
-// Deliberately generic fallback — used only when no admin row exists.
-// Public on the repo. Real practitioner-voice prompt is admin-seeded
-// per CONTRIBUTING.md and never lives in source.
-export const DIAGNOSTIC_PROMPT_FALLBACK: DiagnosticPrompt = {
+// Starter template — UI-only. The admin form pre-populates with this
+// shape on first use (or after the row is deleted) so the admin has
+// something to edit instead of a blank form that immediately fails
+// the min(100) Zod check. This is NEVER used as a runtime fallback;
+// lib/diagnostic/prompt-config.ts throws if no real prompt is seeded.
+//
+// Public on the repo — deliberately generic so no IP leaks. The real
+// practitioner-voice prompt is admin-seeded per CONTRIBUTING.md.
+export const DIAGNOSTIC_PROMPT_STARTER: DiagnosticPrompt = {
   systemPrompt:
-    "You are an AI assistant generating a structured JSON readiness report. " +
-    "Respond ONLY with a JSON object of the shape " +
+    "Replace this with your real system prompt (minimum 100 characters). " +
+    "Tell the model who it is, what voice to use, what JSON shape to emit, " +
+    "and any forbidden words / tone constraints. " +
+    "Expected output shape: " +
     `{"verdict": string, "narrative": string, "action_plan": [{"title": string, "explanation": string, "time_horizon": "immediate" | "30_days" | "90_days", "service_line": "ai_readiness_assessment" | "data_architecture" | "ai_agent_development"}]}. ` +
-    "No prose before or after, no code fences. The real practitioner prompt is configured by an administrator and not present in source.",
-  version: "fallback-v0",
+    "Respond ONLY with that JSON object — no prose before or after, no code fences.",
+  version: "starter-v0",
 };
