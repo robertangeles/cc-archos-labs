@@ -31,8 +31,13 @@ const SERVICES = [
   },
 ];
 
+// Primary lavender (#5e6ad2 → rgb 94, 106, 210) at 12% opacity. Kept as
+// a tinted gradient rather than a Tailwind utility because the spec is
+// an exact ellipse position + falloff that doesn't map cleanly to a
+// utility class. Re-derive RGB from --color-primary if that token ever
+// rotates.
 const HERO_GRADIENT =
-  "radial-gradient(ellipse 80% 60% at 50% 25%, rgba(59, 130, 246, 0.12) 0%, transparent 70%)";
+  "radial-gradient(ellipse 80% 60% at 50% 25%, rgba(94, 106, 210, 0.12) 0%, transparent 70%)";
 
 const ctaButtonClass =
   "inline-flex items-center rounded-md bg-primary px-7 py-3 text-base font-medium text-white transition-colors duration-150 hover:bg-primary-hover";
