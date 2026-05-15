@@ -101,24 +101,24 @@ export function RegistrationGate({ onSubmit, submitting, errorMessage }: Props) 
         className="pointer-events-none absolute inset-0 select-none px-6 pt-16 opacity-25 blur-md md:px-12 md:pt-24"
       >
         <div className="mx-auto flex w-full max-w-[840px] flex-col gap-y-8">
-          <div className="h-3 w-32 rounded-full bg-accent" />
+          <div className="h-3 w-32 rounded-full bg-primary" />
           <div className="flex items-baseline gap-x-10">
-            <div className="h-28 w-44 rounded-md bg-fg/30" />
+            <div className="h-28 w-44 rounded-md bg-ink/30" />
             <div className="flex flex-col gap-y-3">
-              <div className="h-6 w-56 rounded bg-fg/30" />
-              <div className="h-4 w-40 rounded bg-fg/20" />
+              <div className="h-6 w-56 rounded bg-ink/30" />
+              <div className="h-4 w-40 rounded bg-ink/20" />
             </div>
           </div>
           <div className="flex flex-col gap-y-3 pt-4">
-            <div className="h-3 w-full rounded bg-fg/20" />
-            <div className="h-3 w-11/12 rounded bg-fg/20" />
-            <div className="h-3 w-3/4 rounded bg-fg/20" />
-            <div className="h-3 w-5/6 rounded bg-fg/20" />
+            <div className="h-3 w-full rounded bg-ink/20" />
+            <div className="h-3 w-11/12 rounded bg-ink/20" />
+            <div className="h-3 w-3/4 rounded bg-ink/20" />
+            <div className="h-3 w-5/6 rounded bg-ink/20" />
           </div>
           <div className="grid grid-cols-3 gap-3 pt-4">
-            <div className="h-20 rounded-md bg-fg/15" />
-            <div className="h-20 rounded-md bg-fg/15" />
-            <div className="h-20 rounded-md bg-fg/15" />
+            <div className="h-20 rounded-md bg-ink/15" />
+            <div className="h-20 rounded-md bg-ink/15" />
+            <div className="h-20 rounded-md bg-ink/15" />
           </div>
         </div>
       </div>
@@ -130,23 +130,23 @@ export function RegistrationGate({ onSubmit, submitting, errorMessage }: Props) 
         transition={{ duration: 0.3, ease: "easeOut" }}
         className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 py-12 backdrop-blur-md md:px-12"
       >
-        <div className="w-full max-w-[520px] rounded-lg border border-rule bg-surface px-6 py-8 shadow-2xl md:px-10 md:py-10">
-          <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-accent">
+        <div className="w-full max-w-[520px] rounded-lg border border-hairline bg-surface-1 px-6 py-8 shadow-2xl md:px-10 md:py-10">
+          <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-primary">
             Your AI readiness report
           </p>
-          <h2 className="mt-3 text-2xl font-semibold leading-[1.2] tracking-[-0.01em] text-fg md:text-[28px]">
+          <h2 className="mt-3 text-2xl font-semibold leading-[1.2] tracking-[-0.01em] text-ink md:text-[28px]">
             Your report is ready.
           </h2>
-          <p className="mt-3 text-sm leading-[1.6] text-muted">
+          <p className="mt-3 text-sm leading-[1.6] text-ink-subtle">
             Create a free account to unlock it — no credit card, no pitch
             call, no obligation. Your report is generated once and stored
             securely; you can return to it any time.
           </p>
-          <p className="mt-3 text-sm leading-[1.6] text-muted">
+          <p className="mt-3 text-sm leading-[1.6] text-ink-subtle">
             Already done this?{" "}
             <Link
               href="/sign-in"
-              className="text-accent underline decoration-accent/40 underline-offset-4 hover:decoration-accent"
+              className="text-primary underline decoration-primary/40 underline-offset-4 hover:decoration-primary"
             >
               Sign in instead
             </Link>
@@ -233,7 +233,7 @@ export function RegistrationGate({ onSubmit, submitting, errorMessage }: Props) 
             <button
               type="submit"
               disabled={submitting}
-              className="mt-3 inline-flex items-center justify-center rounded-md bg-accent px-7 py-3.5 text-base font-medium text-white transition-colors duration-150 hover:bg-accent-hover disabled:cursor-default disabled:opacity-80"
+              className="mt-3 inline-flex items-center justify-center rounded-md bg-primary px-7 py-3.5 text-base font-medium text-white transition-colors duration-150 hover:bg-primary-hover disabled:cursor-default disabled:opacity-80"
             >
               {submitting ? SUBMITTING_STAGES[stage] : "Unlock report"}
             </button>
@@ -265,7 +265,7 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-y-1.5">
-      <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted">
+      <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-ink-subtle">
         {label}
       </span>
       <input
@@ -276,7 +276,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="rounded-md border border-rule bg-canvas px-3 py-2.5 text-base text-fg placeholder:text-muted/60 transition-colors duration-150 focus:border-accent focus:outline-none disabled:opacity-60"
+        className="rounded-md border border-hairline bg-canvas px-3 py-2.5 text-base text-ink placeholder:text-ink-subtle/60 transition-colors duration-150 focus:border-primary focus:outline-none disabled:opacity-60"
       />
     </label>
   );

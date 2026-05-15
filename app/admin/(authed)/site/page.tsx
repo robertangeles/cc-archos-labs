@@ -18,10 +18,10 @@ type SaveStatus =
   | { kind: "error"; message: string };
 
 const inputClass =
-  "w-full rounded-md border border-rule bg-canvas px-4 py-3 text-base text-fg placeholder:text-muted/60 transition-all duration-150 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/40";
+  "w-full rounded-md border border-hairline bg-canvas px-4 py-3 text-base text-ink placeholder:text-ink-subtle/60 transition-all duration-150 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/40";
 
 const labelClass =
-  "text-[13px] font-medium uppercase tracking-[0.08em] text-muted";
+  "text-[13px] font-medium uppercase tracking-[0.08em] text-ink-subtle";
 
 type FieldKey = keyof SiteSettings;
 
@@ -117,17 +117,17 @@ export default function AdminSitePage() {
 
   return (
     <section>
-      <h1 className="text-3xl font-semibold leading-[1.1] tracking-[-0.02em] text-fg md:text-[40px]">
+      <h1 className="text-3xl font-semibold leading-[1.1] tracking-[-0.02em] text-ink md:text-[40px]">
         SEO &amp; Brand
       </h1>
-      <p className="mt-4 max-w-[600px] text-base leading-[1.7] text-muted">
+      <p className="mt-4 max-w-[600px] text-base leading-[1.7] text-ink-subtle">
         Brand and SEO defaults consumed by every page&rsquo;s metadata,
         the sitemap, robots.txt, the OG card, and JSON-LD schemas.
         Changes save to the database and apply on the next page request.
       </p>
 
       {load.kind === "loading" ? (
-        <p className="mt-12 text-sm text-muted">Loading settings…</p>
+        <p className="mt-12 text-sm text-ink-subtle">Loading settings…</p>
       ) : load.kind === "load-error" ? (
         <p role="alert" className="mt-12 text-sm text-[#f87171]">
           {load.message}
@@ -156,7 +156,7 @@ export default function AdminSitePage() {
                 />
               )}
               {field.hint ? (
-                <span className="text-xs leading-[1.5] text-muted">
+                <span className="text-xs leading-[1.5] text-ink-subtle">
                   {field.hint}
                 </span>
               ) : null}
@@ -169,10 +169,10 @@ export default function AdminSitePage() {
             </p>
           ) : null}
 
-          <div className="flex items-center justify-between gap-x-4 border-t border-rule pt-6">
+          <div className="flex items-center justify-between gap-x-4 border-t border-hairline pt-6">
             <p
               className={`text-sm leading-[1.6] transition-colors duration-150 ${
-                save.kind === "saved" ? "text-accent" : "text-muted"
+                save.kind === "saved" ? "text-primary" : "text-ink-subtle"
               }`}
             >
               {save.kind === "saved"
@@ -182,7 +182,7 @@ export default function AdminSitePage() {
             <button
               type="submit"
               disabled={save.kind === "saving"}
-              className="inline-flex items-center rounded-md bg-accent px-7 py-3 text-base font-medium text-white transition-colors duration-150 hover:bg-accent-hover disabled:opacity-60"
+              className="inline-flex items-center rounded-md bg-primary px-7 py-3 text-base font-medium text-white transition-colors duration-150 hover:bg-primary-hover disabled:opacity-60"
             >
               {save.kind === "saving"
                 ? "Saving…"

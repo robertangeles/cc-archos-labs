@@ -12,7 +12,7 @@ export interface TrustMicroProps {
 export function TrustMicro({ children, className = "" }: TrustMicroProps) {
   return (
     <p
-      className={`text-[16px] leading-[1.6] text-muted ${className}`}
+      className={`text-[16px] leading-[1.6] text-ink-subtle ${className}`}
     >
       {children}
     </p>

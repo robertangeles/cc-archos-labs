@@ -16,15 +16,15 @@ export function WelcomeScreen({ onBegin }: { onBegin: () => void }) {
       className="flex flex-1 flex-col bg-canvas px-6 py-24 md:px-12 md:py-32"
     >
       <div className="mx-auto flex w-full max-w-[680px] flex-col">
-        <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-accent">
+        <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-primary">
           AI Readiness Assessment
         </p>
-        <h1 className="mt-4 text-4xl font-semibold leading-[1.05] tracking-[-0.03em] text-fg md:text-[64px]">
+        <h1 className="mt-4 text-4xl font-semibold leading-[1.05] tracking-[-0.03em] text-ink md:text-[64px]">
           Most organisations believe their data is ready for AI.
           <br />
-          <span className="text-accent">Most are wrong.</span>
+          <span className="text-primary">Most are wrong.</span>
         </h1>
-        <p className="mt-8 max-w-[600px] text-[18px] leading-[1.6] text-muted">
+        <p className="mt-8 max-w-[600px] text-[18px] leading-[1.6] text-ink-subtle">
           Twelve questions. About eight minutes. A practitioner-written
           report scoring your program across data foundation, program
           readiness, and organisational reality. No vendor pitch. No
@@ -33,11 +33,11 @@ export function WelcomeScreen({ onBegin }: { onBegin: () => void }) {
         <button
           type="button"
           onClick={onBegin}
-          className="mt-12 inline-flex w-fit items-center rounded-md bg-accent px-8 py-3.5 text-base font-medium text-white transition-colors duration-150 hover:bg-accent-hover"
+          className="mt-12 inline-flex w-fit items-center rounded-md bg-primary px-8 py-3.5 text-base font-medium text-white transition-colors duration-150 hover:bg-primary-hover"
         >
           Begin
         </button>
-        <p className="mt-6 text-[13px] leading-[1.6] text-muted">
+        <p className="mt-6 text-[13px] leading-[1.6] text-ink-subtle">
           Your answers stay on your device until you choose to receive
           your report.
         </p>

@@ -87,7 +87,7 @@ export function buildMagicLinkEmail(input: MagicLinkEmailInput): RenderedEmail {
     color: #ffffff !important;
   }
   [data-ogsb] .cta-button-cell {
-    background-color: #1e40af !important;
+    background-color: #5e6ad2 !important;
   }
 </style>
 <!--[if mso]>
@@ -121,7 +121,7 @@ export function buildMagicLinkEmail(input: MagicLinkEmailInput): RenderedEmail {
         </table>
         <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;background:#ffffff;border:1px solid #e5e5e3;border-radius:10px;">
           <tr>
-            <td bgcolor="#1e40af" height="4" style="background:#1e40af;height:4px;line-height:4px;font-size:0;mso-line-height-rule:exactly;border-top-left-radius:10px;border-top-right-radius:10px;">&nbsp;</td>
+            <td bgcolor="#5e6ad2" height="4" style="background:#5e6ad2;height:4px;line-height:4px;font-size:0;mso-line-height-rule:exactly;border-top-left-radius:10px;border-top-right-radius:10px;">&nbsp;</td>
           </tr>
           <tr>
             <td style="padding:36px 44px 0 44px;font-size:24px;line-height:1.25;font-weight:600;letter-spacing:-0.02em;color:#0f0f0f;">
@@ -142,15 +142,15 @@ export function buildMagicLinkEmail(input: MagicLinkEmailInput): RenderedEmail {
             <td style="padding:28px 44px 0 44px;">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td class="cta-button-cell" bgcolor="#1e40af" style="background-color:#1e40af;border-radius:8px;mso-padding-alt:0;">
+                  <td class="cta-button-cell" bgcolor="#5e6ad2" style="background-color:#5e6ad2;border-radius:8px;mso-padding-alt:0;">
                     <!--[if mso]>
-                    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escapeAttr(url)}" style="height:46px;v-text-anchor:middle;width:200px;" arcsize="18%" stroke="f" fillcolor="#1e40af">
+                    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escapeAttr(url)}" style="height:46px;v-text-anchor:middle;width:200px;" arcsize="18%" stroke="f" fillcolor="#5e6ad2">
                       <w:anchorlock/>
                       <center style="color:#ffffff;font-family:'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;">Open my report</center>
                     </v:roundrect>
                     <![endif]-->
                     <!--[if !mso]><!-->
-                    <a class="cta-button" href="${escapeAttr(url)}" style="display:inline-block;background:#1e40af;color:#ffffff !important;text-decoration:none;padding:14px 28px;border-radius:8px;font-size:15px;font-weight:500;letter-spacing:-0.005em;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;line-height:1;">
+                    <a class="cta-button" href="${escapeAttr(url)}" style="display:inline-block;background:#5e6ad2;color:#ffffff !important;text-decoration:none;padding:14px 28px;border-radius:8px;font-size:15px;font-weight:500;letter-spacing:-0.005em;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;line-height:1;">
                       <span class="cta-button-text" style="color:#ffffff !important;mso-color-alt:#ffffff;">Open my report</span>
                     </a>
                     <!--<![endif]-->

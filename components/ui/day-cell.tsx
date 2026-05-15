@@ -4,11 +4,11 @@
 // default styling, which is the biggest AI-slop risk on the booking page.
 //
 // States:
-//   default          — text-fg, transparent 1px border (becomes rule on hover)
+//   default          — text-ink, transparent 1px border (becomes rule on hover)
 //   outside-month    — muted/50, not interactive
 //   past             — muted/30, strikethrough, not interactive
 //   bookable         — same as default but with a hover treatment
-//   selected         — bg-accent, white text, no border
+//   selected         — bg-primary, white text, no border
 //   today-unbooked   — small accent dot under the number
 //   fully-booked     — muted/50 with a diagonal-stripe pattern background
 //
@@ -27,18 +27,18 @@ export type DayCellState =
   | "fully-booked";
 
 const baseClass =
-  "relative inline-flex h-10 w-10 items-center justify-center rounded-md text-sm font-medium tabular-nums transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-canvas sm:h-11 sm:w-11";
+  "relative inline-flex h-10 w-10 items-center justify-center rounded-md text-sm font-medium tabular-nums transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas sm:h-11 sm:w-11";
 
 const stateClass: Record<DayCellState, string> = {
-  default: "text-fg border border-transparent",
+  default: "text-ink border border-transparent",
   bookable:
-    "text-fg border border-transparent hover:border-rule cursor-pointer",
-  "outside-month": "text-muted/50 cursor-default",
-  past: "text-muted/30 line-through cursor-not-allowed",
-  selected: "bg-accent text-white",
-  "today-unbooked": "text-fg border border-transparent",
+    "text-ink border border-transparent hover:border-hairline cursor-pointer",
+  "outside-month": "text-ink-subtle/50 cursor-default",
+  past: "text-ink-subtle/30 line-through cursor-not-allowed",
+  selected: "bg-primary text-white",
+  "today-unbooked": "text-ink border border-transparent",
   "fully-booked":
-    "text-muted/50 cursor-not-allowed bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,var(--color-rule)_4px,var(--color-rule)_5px)]",
+    "text-ink-subtle/50 cursor-not-allowed bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,var(--color-rule)_4px,var(--color-rule)_5px)]",
 };
 
 export interface DayCellProps
@@ -64,7 +64,7 @@ export const DayCell = forwardRef<HTMLButtonElement, DayCellProps>(
         {isTodayMarked ? (
           <span
             aria-hidden
-            className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-accent"
+            className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-primary"
           />
         ) : null}
       </button>

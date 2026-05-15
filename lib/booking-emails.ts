@@ -11,12 +11,12 @@ import "server-only";
 //   - Subject lines: concrete + specific. No emoji. No "!". No "Hooray".
 //   - Sender display name: "Rob at Archos Labs" (set at the Resend
 //     callsite, not in these functions).
-//   - Single accent: #3b82f6 — only for inline link colours.
+//   - Single accent: #5e6ad2 — only for inline link colours.
 //   - Sign-off: "— Rob".
 //   - max-width 480px (matches the §17.12 spec; existing W4 Pass 2 email
 //     uses 520 — both are fine for any modern client).
 
-const ACCENT = "#3b82f6";
+const ACCENT = "#5e6ad2";
 const FG = "#0f0f0f";
 const MUTED = "#6b6b6b";
 const PAGE_BG = "#f7f7f5";

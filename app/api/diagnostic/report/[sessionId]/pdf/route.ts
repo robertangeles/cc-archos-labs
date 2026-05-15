@@ -114,7 +114,7 @@ export async function GET(
     // emulation has been unreliable in recent Puppeteer versions, so
     // we don't rely on @media print firing for the pdf() call. The
     // .pdf-mode class overrides the Tailwind theme tokens (set in
-    // globals.css) so bg-canvas, text-fg, etc. all resolve to light.
+    // globals.css) so bg-canvas, text-ink, etc. all resolve to light.
     await page.evaluate(() => {
       document.documentElement.classList.add("pdf-mode");
     });

@@ -59,19 +59,19 @@ export default async function IntegrationsAdminPage() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-fg">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">
           Integrations
         </h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted">
+        <p className="mt-2 max-w-2xl text-sm text-ink-subtle">
           API keys, credentials, and integration configuration. Secrets are
-          encrypted at rest with the master key in <code className="rounded bg-surface px-1 py-0.5 text-xs">BOOKING_ENCRYPTION_KEY</code>.
+          encrypted at rest with the master key in <code className="rounded bg-surface-1 px-1 py-0.5 text-xs">BOOKING_ENCRYPTION_KEY</code>.
           Edits take effect on the next request after save.
         </p>
       </header>
 
       {initialError ? (
-        <div className="rounded-md border border-rule bg-surface/50 p-6 text-sm text-muted">
-          <p className="font-medium text-fg">
+        <div className="rounded-md border border-hairline bg-surface-1/50 p-6 text-sm text-ink-subtle">
+          <p className="font-medium text-ink">
             Could not load integration config.
           </p>
           <p className="mt-2">{initialError}</p>

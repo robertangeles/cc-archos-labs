@@ -26,27 +26,27 @@ export default async function CheckEmailPage({
   return (
     <main className="flex flex-1 flex-col bg-canvas">
       <section className="mx-auto w-full max-w-[520px] px-6 pt-24 pb-32 md:px-12 md:pt-32">
-        <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-accent">
+        <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-primary">
           Check your inbox
         </p>
-        <h1 className="mt-4 text-3xl font-semibold leading-[1.1] tracking-[-0.02em] text-fg md:text-4xl">
+        <h1 className="mt-4 text-3xl font-semibold leading-[1.1] tracking-[-0.02em] text-ink md:text-4xl">
           We sent you a sign-in link.
         </h1>
-        <p className="mt-5 text-base leading-[1.6] text-muted">
+        <p className="mt-5 text-base leading-[1.6] text-ink-subtle">
           If we have an account for{" "}
           {display ? (
-            <span className="text-fg">{display}</span>
+            <span className="text-ink">{display}</span>
           ) : (
             <span>that email</span>
           )}
           , the link is on its way. It expires in 15 minutes and can only be
           used once.
         </p>
-        <p className="mt-4 text-base leading-[1.6] text-muted">
+        <p className="mt-4 text-base leading-[1.6] text-ink-subtle">
           Didn&rsquo;t get it? Check your spam folder, then{" "}
           <Link
             href="/sign-in"
-            className="text-accent underline decoration-accent/40 underline-offset-4 hover:decoration-accent"
+            className="text-primary underline decoration-primary/40 underline-offset-4 hover:decoration-primary"
           >
             try again
           </Link>

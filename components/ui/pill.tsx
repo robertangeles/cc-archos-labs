@@ -13,7 +13,7 @@ export interface PillProps {
 export function Pill({ children, className = "" }: PillProps) {
   return (
     <span
-      className={`inline-block rounded-full border border-accent px-3 py-1 text-[13px] font-medium uppercase tracking-[0.08em] text-accent ${className}`}
+      className={`inline-block rounded-full border border-primary px-3 py-1 text-[13px] font-medium uppercase tracking-[0.08em] text-primary ${className}`}
     >
       {children}
     </span>

@@ -18,9 +18,9 @@ export function StepHeading({
 }: StepHeadingProps) {
   return (
     <h2
-      className={`text-[24px] font-semibold leading-[1.25] tracking-[-0.01em] text-fg ${className}`}
+      className={`text-[24px] font-semibold leading-[1.25] tracking-[-0.01em] text-ink ${className}`}
     >
-      <span className="mr-3 text-muted tabular-nums">{number}.</span>
+      <span className="mr-3 text-ink-subtle tabular-nums">{number}.</span>
       {children}
     </h2>
   );

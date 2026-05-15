@@ -22,7 +22,7 @@ function AuthControl({ lead }: { lead: NavLeadProps | null }) {
     return (
       <Link
         href="/sign-in"
-        className="transition-colors duration-150 hover:text-fg"
+        className="transition-colors duration-150 hover:text-ink"
       >
         Sign in
       </Link>
@@ -60,7 +60,7 @@ function ProfileMenu({ firstName }: { firstName: string }) {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex items-center gap-x-1 transition-colors duration-150 hover:text-fg"
+        className="flex items-center gap-x-1 transition-colors duration-150 hover:text-ink"
       >
         Profile
         <svg
@@ -83,18 +83,18 @@ function ProfileMenu({ firstName }: { firstName: string }) {
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 z-50 mt-3 w-max min-w-[200px] max-w-[calc(100vw-3rem)] rounded-md border border-rule bg-surface p-2 shadow-2xl"
+          className="absolute right-0 z-50 mt-3 w-max min-w-[200px] max-w-[calc(100vw-3rem)] rounded-md border border-hairline bg-surface-1 p-2 shadow-2xl"
         >
           {/* Identity row — non-interactive label so the user knows
               which account they're signed in as. Stays at the top so
               future menu items (Account, Settings) read below it. */}
-          <p className="px-3 py-2 text-[11px] uppercase tracking-[0.08em] text-muted/70">
+          <p className="px-3 py-2 text-[11px] uppercase tracking-[0.08em] text-ink-subtle/70">
             Signed in as
           </p>
-          <p className="px-3 pb-2 text-sm font-medium text-fg">
+          <p className="px-3 pb-2 text-sm font-medium text-ink">
             {firstName}
           </p>
-          <div className="my-1 border-t border-rule" />
+          <div className="my-1 border-t border-hairline" />
           {/* Future profile menu items slot in here. When the profile
               page exists, add a "Your account" Link above Sign out. */}
           <LeadSignOutButton />
@@ -133,7 +133,7 @@ function ToolsMenu() {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex items-center gap-x-1 transition-colors duration-150 hover:text-fg"
+        className="flex items-center gap-x-1 transition-colors duration-150 hover:text-ink"
       >
         Tools
         <svg
@@ -156,7 +156,7 @@ function ToolsMenu() {
       {open ? (
         <div
           role="menu"
-          className="absolute left-0 z-50 mt-3 w-max max-w-[calc(100vw-3rem)] rounded-md border border-rule bg-surface p-2 shadow-2xl sm:left-auto sm:right-0"
+          className="absolute left-0 z-50 mt-3 w-max max-w-[calc(100vw-3rem)] rounded-md border border-hairline bg-surface-1 p-2 shadow-2xl sm:left-auto sm:right-0"
         >
           {TOOLS.map((tool) => (
             <Link
@@ -164,7 +164,7 @@ function ToolsMenu() {
               href={tool.href}
               role="menuitem"
               onClick={() => setOpen(false)}
-              className="block rounded px-3 py-2 text-sm text-muted transition-colors duration-150 hover:bg-canvas hover:text-fg"
+              className="block rounded px-3 py-2 text-sm text-ink-subtle transition-colors duration-150 hover:bg-canvas hover:text-ink"
             >
               {tool.label}
             </Link>
@@ -177,12 +177,12 @@ function ToolsMenu() {
 
 export function Nav({ lead }: { lead: NavLeadProps | null }) {
   return (
-    <nav className="flex items-center gap-x-5 text-sm text-muted sm:gap-x-7">
+    <nav className="flex items-center gap-x-5 text-sm text-ink-subtle sm:gap-x-7">
       {TOPLEVEL.map(({ href, label }) => (
         <Link
           key={href}
           href={href}
-          className="transition-colors duration-150 hover:text-fg"
+          className="transition-colors duration-150 hover:text-ink"
         >
           {label}
         </Link>

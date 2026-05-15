@@ -19,7 +19,7 @@ export default function AuthedAdminLayout({
     <main className="flex flex-1 flex-col bg-canvas">
       <div className="mx-auto w-full max-w-[1080px] px-6 pt-16 pb-32 md:px-12">
         <div className="mb-12 flex items-center justify-between gap-x-4">
-          <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-accent">
+          <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-primary">
             Admin
           </p>
           <SignOutButton />

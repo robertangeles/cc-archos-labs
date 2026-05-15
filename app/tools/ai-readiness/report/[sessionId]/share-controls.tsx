@@ -101,15 +101,15 @@ export function ShareControls({
   }
 
   return (
-    <section className="border-t border-rule px-6 py-12 md:px-12 md:py-16 print:hidden">
+    <section className="border-t border-hairline px-6 py-12 md:px-12 md:py-16 print:hidden">
       <div className="mx-auto w-full max-w-[840px]">
-        <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-muted">
+        <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
           Share this report
         </p>
-        <h2 className="mt-3 text-xl font-semibold leading-[1.3] tracking-[-0.01em] text-fg md:text-[24px]">
+        <h2 className="mt-3 text-xl font-semibold leading-[1.3] tracking-[-0.01em] text-ink md:text-[24px]">
           Forward to your CFO, board, or collaborator
         </h2>
-        <p className="mt-3 max-w-[640px] text-sm leading-[1.6] text-muted">
+        <p className="mt-3 max-w-[640px] text-sm leading-[1.6] text-ink-subtle">
           Each link is valid for 7 days and works without requiring the
           recipient to sign in. You can revoke a link at any time. We log
           the first time a link is opened (for your own audit) — re-views
@@ -121,12 +121,12 @@ export function ShareControls({
             type="button"
             onClick={onCreate}
             disabled={status.kind === "minting"}
-            className="inline-flex items-center rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-accent-hover disabled:opacity-60"
+            className="inline-flex items-center rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-primary-hover disabled:opacity-60"
           >
             {status.kind === "minting" ? "Creating…" : "Create shareable link"}
           </button>
           {tokens.length > 0 ? (
-            <span className="text-xs text-muted">
+            <span className="text-xs text-ink-subtle">
               {tokens.length} active link{tokens.length === 1 ? "" : "s"}
             </span>
           ) : null}
@@ -146,21 +146,21 @@ export function ShareControls({
             {tokens.map((t) => (
               <li
                 key={t.id}
-                className="rounded-md border border-rule bg-surface px-5 py-4"
+                className="rounded-md border border-hairline bg-surface-1 px-5 py-4"
               >
                 <div className="flex flex-col gap-y-3 md:flex-row md:items-center md:justify-between md:gap-x-4">
                   <div className="min-w-0 flex-1">
                     {t.url ? (
-                      <p className="truncate font-mono text-xs text-fg/90">
+                      <p className="truncate font-mono text-xs text-ink/90">
                         {t.url}
                       </p>
                     ) : (
-                      <p className="text-xs italic text-muted">
+                      <p className="text-xs italic text-ink-subtle">
                         Link revealed only at creation — refresh to mint a
                         fresh one if you didn&rsquo;t copy it.
                       </p>
                     )}
-                    <p className="mt-2 text-[11px] uppercase tracking-[0.08em] text-muted">
+                    <p className="mt-2 text-[11px] uppercase tracking-[0.08em] text-ink-subtle">
                       Expires {formatDate(t.expiresAt)}
                       {t.consumedAt
                         ? ` · first opened ${formatDate(t.consumedAt)}`
@@ -172,7 +172,7 @@ export function ShareControls({
                       <button
                         type="button"
                         onClick={() => onCopy(t)}
-                        className="rounded-md border border-rule px-3 py-1.5 text-xs font-medium text-fg transition-colors duration-150 hover:border-accent/60 hover:text-accent"
+                        className="rounded-md border border-hairline px-3 py-1.5 text-xs font-medium text-ink transition-colors duration-150 hover:border-primary/60 hover:text-primary"
                       >
                         {copiedId === t.id ? "Copied" : "Copy"}
                       </button>
@@ -183,7 +183,7 @@ export function ShareControls({
                       disabled={
                         status.kind === "revoking" && status.id === t.id
                       }
-                      className="text-xs font-medium text-muted underline decoration-muted/40 underline-offset-2 transition-colors duration-150 hover:text-[#f87171] hover:decoration-[#f87171]/60 disabled:opacity-60"
+                      className="text-xs font-medium text-ink-subtle underline decoration-muted/40 underline-offset-2 transition-colors duration-150 hover:text-[#f87171] hover:decoration-[#f87171]/60 disabled:opacity-60"
                     >
                       {status.kind === "revoking" && status.id === t.id
                         ? "Revoking…"

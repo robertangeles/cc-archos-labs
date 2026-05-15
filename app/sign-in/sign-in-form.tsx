@@ -10,10 +10,10 @@ type Status =
   | { kind: "error"; message: string };
 
 const inputClass =
-  "w-full rounded-md border border-rule bg-canvas px-4 py-3 text-base text-fg placeholder:text-muted/60 transition-colors duration-150 focus:border-accent focus:outline-none";
+  "w-full rounded-md border border-hairline bg-canvas px-4 py-3 text-base text-ink placeholder:text-ink-subtle/60 transition-colors duration-150 focus:border-primary focus:outline-none";
 
 const labelClass =
-  "text-[13px] font-medium uppercase tracking-[0.08em] text-muted";
+  "text-[13px] font-medium uppercase tracking-[0.08em] text-ink-subtle";
 
 export function SignInForm({ initialError }: { initialError?: string }) {
   const [status, setStatus] = useState<Status>(
@@ -63,13 +63,13 @@ export function SignInForm({ initialError }: { initialError?: string }) {
   return (
     <main className="flex flex-1 flex-col bg-canvas">
       <section className="mx-auto w-full max-w-[480px] px-6 pt-24 pb-32 md:px-12 md:pt-32">
-        <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-accent">
+        <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-primary">
           Return visitor
         </p>
-        <h1 className="mt-4 text-3xl font-semibold leading-[1.1] tracking-[-0.02em] text-fg md:text-4xl">
+        <h1 className="mt-4 text-3xl font-semibold leading-[1.1] tracking-[-0.02em] text-ink md:text-4xl">
           Open your report.
         </h1>
-        <p className="mt-4 text-base leading-[1.6] text-muted">
+        <p className="mt-4 text-base leading-[1.6] text-ink-subtle">
           Enter the email you used when you ran the assessment. We&rsquo;ll send
           you a sign-in link — no password, no marketing.
         </p>
@@ -102,17 +102,17 @@ export function SignInForm({ initialError }: { initialError?: string }) {
           <button
             type="submit"
             disabled={status.kind === "submitting"}
-            className="inline-flex items-center justify-center rounded-md bg-accent px-7 py-3 text-base font-medium text-white transition-colors duration-150 hover:bg-accent-hover disabled:opacity-60"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-7 py-3 text-base font-medium text-white transition-colors duration-150 hover:bg-primary-hover disabled:opacity-60"
           >
             {status.kind === "submitting" ? "Sending link…" : "Send sign-in link"}
           </button>
         </form>
 
-        <p className="mt-12 text-sm leading-[1.6] text-muted">
+        <p className="mt-12 text-sm leading-[1.6] text-ink-subtle">
           Haven&rsquo;t taken the assessment yet?{" "}
           <Link
             href="/tools/ai-readiness"
-            className="text-accent underline decoration-accent/40 underline-offset-4 hover:decoration-accent"
+            className="text-primary underline decoration-primary/40 underline-offset-4 hover:decoration-primary"
           >
             Start here
           </Link>

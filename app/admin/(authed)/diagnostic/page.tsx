@@ -29,10 +29,10 @@ type SaveStatus =
   | { kind: "error"; message: string };
 
 const inputClass =
-  "w-full rounded-md border border-rule bg-canvas px-4 py-3 text-base text-fg placeholder:text-muted/60 transition-all duration-150 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/40";
+  "w-full rounded-md border border-hairline bg-canvas px-4 py-3 text-base text-ink placeholder:text-ink-subtle/60 transition-all duration-150 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/40";
 
 const labelClass =
-  "text-[13px] font-medium uppercase tracking-[0.08em] text-muted";
+  "text-[13px] font-medium uppercase tracking-[0.08em] text-ink-subtle";
 
 export default function AdminDiagnosticPage() {
   const [jsonText, setJsonText] = useState<string>(
@@ -141,10 +141,10 @@ export default function AdminDiagnosticPage() {
 
   return (
     <section>
-      <h1 className="text-3xl font-semibold leading-[1.1] tracking-[-0.02em] text-fg md:text-[40px]">
+      <h1 className="text-3xl font-semibold leading-[1.1] tracking-[-0.02em] text-ink md:text-[40px]">
         Diagnostic Content
       </h1>
-      <p className="mt-4 max-w-[720px] text-base leading-[1.7] text-muted">
+      <p className="mt-4 max-w-[720px] text-base leading-[1.7] text-ink-subtle">
         The full content blob for the AI Readiness Assessment — questions,
         per-option scores, branch wiring, risk-flag rules, priority
         triggers, tier boundaries, domain weights. Edit as JSON. Changes
@@ -154,7 +154,7 @@ export default function AdminDiagnosticPage() {
       </p>
 
       {load.kind === "loading" ? (
-        <p className="mt-12 text-sm text-muted">Loading…</p>
+        <p className="mt-12 text-sm text-ink-subtle">Loading…</p>
       ) : load.kind === "load-error" ? (
         <p role="alert" className="mt-12 text-sm text-[#f87171]">
           {load.message}
@@ -166,7 +166,7 @@ export default function AdminDiagnosticPage() {
               <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-[#fbbf24]">
                 No content configured
               </p>
-              <p className="mt-2 text-sm leading-[1.6] text-fg/90">
+              <p className="mt-2 text-sm leading-[1.6] text-ink/90">
                 No admin content is saved yet — the JSON below is a
                 starter template. <strong>The public assessment will
                 throw a 500 error</strong> until you replace this with
@@ -194,7 +194,7 @@ export default function AdminDiagnosticPage() {
                 disabled={!parsed}
                 className={inputClass}
               />
-              <span className="text-xs leading-[1.5] text-muted">
+              <span className="text-xs leading-[1.5] text-ink-subtle">
                 Free-form. Bump on any meaningful content edit so you can
                 correlate report quality with content revisions.
               </span>
@@ -209,9 +209,9 @@ export default function AdminDiagnosticPage() {
                 className={`${inputClass} resize-y font-mono text-[12px] leading-[1.55]`}
                 spellCheck={false}
               />
-              <span className="text-xs leading-[1.5] text-muted">
+              <span className="text-xs leading-[1.5] text-ink-subtle">
                 Full DiagnosticContent shape. See
-                <code className="ml-1 rounded bg-surface px-1.5 py-0.5 font-mono text-[11px] text-fg/80">
+                <code className="ml-1 rounded bg-surface-1 px-1.5 py-0.5 font-mono text-[11px] text-ink/80">
                   lib/diagnostic/content-config-shared.ts
                 </code>{" "}
                 for the Zod schema.
@@ -233,10 +233,10 @@ export default function AdminDiagnosticPage() {
               </p>
             ) : null}
 
-            <div className="flex items-center justify-between gap-x-4 border-t border-rule pt-6">
+            <div className="flex items-center justify-between gap-x-4 border-t border-hairline pt-6">
               <p
                 className={`text-sm leading-[1.6] transition-colors duration-150 ${
-                  save.kind === "saved" ? "text-accent" : "text-muted"
+                  save.kind === "saved" ? "text-primary" : "text-ink-subtle"
                 }`}
               >
                 {save.kind === "saved"
@@ -246,7 +246,7 @@ export default function AdminDiagnosticPage() {
               <button
                 type="submit"
                 disabled={save.kind === "saving" || !parsed}
-                className="inline-flex items-center rounded-md bg-accent px-7 py-3 text-base font-medium text-white transition-colors duration-150 hover:bg-accent-hover disabled:opacity-60"
+                className="inline-flex items-center rounded-md bg-primary px-7 py-3 text-base font-medium text-white transition-colors duration-150 hover:bg-primary-hover disabled:opacity-60"
               >
                 {save.kind === "saving"
                   ? "Saving…"
@@ -281,12 +281,12 @@ function Summary({ content }: { content: DiagnosticContent }) {
       {stats.map((s) => (
         <div
           key={s.label}
-          className="rounded-md border border-rule bg-surface px-4 py-3"
+          className="rounded-md border border-hairline bg-surface-1 px-4 py-3"
         >
-          <dt className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted">
+          <dt className="text-[10px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
             {s.label}
           </dt>
-          <dd className="mt-1 text-sm font-semibold text-fg">{s.value}</dd>
+          <dd className="mt-1 text-sm font-semibold text-ink">{s.value}</dd>
         </div>
       ))}
     </dl>

@@ -48,13 +48,13 @@ type TestStatus =
 type RevealedValue = { value: string; expiresAt: number };
 
 const inputClass =
-  "w-full rounded-md border border-rule bg-canvas px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/40";
+  "w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink placeholder:text-ink-subtle/60 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/40";
 const labelClass =
-  "text-[12px] font-medium uppercase tracking-[0.08em] text-muted";
+  "text-[12px] font-medium uppercase tracking-[0.08em] text-ink-subtle";
 const buttonClass =
-  "rounded-md border border-rule px-3 py-1.5 text-xs font-medium text-fg transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50";
+  "rounded-md border border-hairline px-3 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-surface-1 disabled:cursor-not-allowed disabled:opacity-50";
 const primaryButtonClass =
-  "rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50";
+  "rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50";
 
 export function IntegrationsPanel({
   initialConfig,
@@ -348,7 +348,7 @@ export function IntegrationsPanel({
           label="AUTH_SECRET"
           hint="JWT signing key for admin + lead sessions. Cannot move to DB — middleware runs in Edge runtime, no DB access. Rotate via Render dashboard."
         />
-        <div className="border-t border-rule pt-4">
+        <div className="border-t border-hairline pt-4">
           <ReadOnlyEnvRow
             label="Master encryption key"
             hint="BOOKING_ENCRYPTION_KEY. Encrypts every secret in this table. Rotating re-encrypts every row."
@@ -368,7 +368,7 @@ export function IntegrationsPanel({
       <AuditLog rows={audit} />
 
       {revealError && (
-        <div className="rounded-md border border-rule bg-surface/40 p-3 text-sm text-muted">
+        <div className="rounded-md border border-hairline bg-surface-1/40 p-3 text-sm text-ink-subtle">
           {revealError}
         </div>
       )}
@@ -405,10 +405,10 @@ function Section({
 }) {
   return (
     <section className="space-y-4">
-      <h2 className="text-[13px] font-semibold uppercase tracking-[0.1em] text-fg">
+      <h2 className="text-[13px] font-semibold uppercase tracking-[0.1em] text-ink">
         {title}
       </h2>
-      <div className="space-y-5 rounded-md border border-rule bg-surface/30 p-6">
+      <div className="space-y-5 rounded-md border border-hairline bg-surface-1/30 p-6">
         {children}
       </div>
     </section>
@@ -453,7 +453,7 @@ function ConfigField({
       <label className={labelClass}>
         {label}
         {hint && (
-          <span className="ml-2 normal-case tracking-normal text-muted/70">
+          <span className="ml-2 normal-case tracking-normal text-ink-subtle/70">
             — {hint}
           </span>
         )}
@@ -489,7 +489,7 @@ function ConfigField({
         </div>
       ) : (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <code className="font-mono text-sm text-fg break-all">
+          <code className="font-mono text-sm text-ink break-all">
             {displayValue}
           </code>
           <div className="flex items-center gap-2">
@@ -519,13 +519,13 @@ function ConfigField({
       )}
 
       {saveStatus?.kind === "saved" && (
-        <p className="text-xs text-accent">Saved.</p>
+        <p className="text-xs text-primary">Saved.</p>
       )}
       {saveStatus?.kind === "error" && (
         <p className="text-xs text-red-400">{saveStatus.message}</p>
       )}
       {isRevealed && (
-        <p className="text-[11px] text-muted/70">
+        <p className="text-[11px] text-ink-subtle/70">
           Visible for 30 seconds. Copy to a password manager now.
         </p>
       )}
@@ -547,13 +547,13 @@ function ReadOnlyEnvRow({
       <label className={labelClass}>
         {label}
         {hint && (
-          <span className="ml-2 normal-case tracking-normal text-muted/70">
+          <span className="ml-2 normal-case tracking-normal text-ink-subtle/70">
             — {hint}
           </span>
         )}
       </label>
       <div className="flex items-center justify-between gap-2">
-        <code className="font-mono text-sm text-muted">
+        <code className="font-mono text-sm text-ink-subtle">
           Managed in Render dashboard →
         </code>
         {rightSlot}
@@ -573,9 +573,9 @@ function TestRow({
 }) {
   const providerLabel = provider === "resend" ? "Resend" : "OpenRouter";
   return (
-    <div className="border-t border-rule pt-4">
+    <div className="border-t border-hairline pt-4">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-muted">
+        <p className="text-xs text-ink-subtle">
           Verify the current {providerLabel} API key works without sending an
           email or consuming tokens.
         </p>
@@ -590,7 +590,7 @@ function TestRow({
       </div>
       {status.kind === "result" && (
         <p
-          className={`mt-2 text-xs ${status.ok ? "text-accent" : "text-red-400"}`}
+          className={`mt-2 text-xs ${status.ok ? "text-primary" : "text-red-400"}`}
         >
           {status.ok ? "✓" : "✗"} {status.message}
         </p>
@@ -622,11 +622,11 @@ function RevealAuthModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-canvas/80 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-lg border border-rule bg-surface p-6 shadow-2xl">
-        <h3 className="text-base font-semibold text-fg">
+      <div className="w-full max-w-md rounded-lg border border-hairline bg-surface-1 p-6 shadow-2xl">
+        <h3 className="text-base font-semibold text-ink">
           Confirm your password
         </h3>
-        <p className="mt-2 text-sm text-muted">
+        <p className="mt-2 text-sm text-ink-subtle">
           Re-enter your admin password to reveal the {fieldLabel[field]}.
         </p>
         <form
@@ -706,21 +706,21 @@ function RotateMasterKeyModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-canvas/80 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-xl rounded-lg border border-rule bg-surface p-6 shadow-2xl">
-        <h3 className="text-base font-semibold text-fg">
+      <div className="w-full max-w-xl rounded-lg border border-hairline bg-surface-1 p-6 shadow-2xl">
+        <h3 className="text-base font-semibold text-ink">
           Rotate master encryption key
         </h3>
 
         {state.kind === "intro" && (
           <>
-            <div className="mt-3 space-y-3 text-sm text-muted">
+            <div className="mt-3 space-y-3 text-sm text-ink-subtle">
               <p>
                 This generates a fresh 32-byte master key, re-encrypts every
                 secret in the integration_secrets row with it, and writes the
                 update inside a single transaction.
               </p>
               <p>
-                <strong className="font-medium text-fg">
+                <strong className="font-medium text-ink">
                   Do NOT close this modal between rotation and the Render
                   dashboard update.
                 </strong>{" "}
@@ -751,17 +751,17 @@ function RotateMasterKeyModal({ onClose }: { onClose: () => void }) {
         )}
 
         {state.kind === "rotating" && (
-          <p className="mt-4 text-sm text-muted">Re-encrypting fields…</p>
+          <p className="mt-4 text-sm text-ink-subtle">Re-encrypting fields…</p>
         )}
 
         {state.kind === "done" && (
           <div className="mt-3 space-y-4">
-            <p className="text-sm text-accent">
+            <p className="text-sm text-primary">
               ✓ Rotated {state.fieldsRotated} encrypted field(s).
             </p>
             <div>
               <p className={labelClass}>New master key (copy now)</p>
-              <code className="mt-1 block break-all rounded-md bg-canvas px-3 py-2 font-mono text-xs text-fg">
+              <code className="mt-1 block break-all rounded-md bg-canvas px-3 py-2 font-mono text-xs text-ink">
                 {state.newKey}
               </code>
               <button
@@ -772,7 +772,7 @@ function RotateMasterKeyModal({ onClose }: { onClose: () => void }) {
                 Copy to clipboard
               </button>
             </div>
-            <ol className="list-decimal space-y-1 pl-5 text-xs text-muted">
+            <ol className="list-decimal space-y-1 pl-5 text-xs text-ink-subtle">
               {state.instructions.map((step, i) => (
                 <li key={i}>{step}</li>
               ))}
@@ -808,7 +808,7 @@ function AuditLog({ rows }: { rows: AuditRow[] }) {
   if (rows.length === 0) {
     return (
       <Section title="Recent changes">
-        <p className="text-sm text-muted">
+        <p className="text-sm text-ink-subtle">
           No changes yet. Edits to integrations will appear here.
         </p>
       </Section>
@@ -816,15 +816,15 @@ function AuditLog({ rows }: { rows: AuditRow[] }) {
   }
   return (
     <Section title="Recent changes">
-      <ul className="divide-y divide-rule">
+      <ul className="divide-y divide-hairline">
         {rows.map((r) => (
           <li key={r.id} className="flex items-center gap-3 py-2 text-sm">
-            <span className="font-mono text-xs text-muted">
+            <span className="font-mono text-xs text-ink-subtle">
               {new Date(r.createdAt).toLocaleString()}
             </span>
-            <span className="text-fg">{r.actor}</span>
-            <span className="text-muted">{r.operation}</span>
-            <code className="font-mono text-xs text-fg">{r.keyName}</code>
+            <span className="text-ink">{r.actor}</span>
+            <span className="text-ink-subtle">{r.operation}</span>
+            <code className="font-mono text-xs text-ink">{r.keyName}</code>
           </li>
         ))}
       </ul>

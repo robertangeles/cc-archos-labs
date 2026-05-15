@@ -28,7 +28,7 @@ export function AdminTabNav() {
   const pathname = usePathname();
   return (
     <nav className="flex flex-col gap-y-1">
-      <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.1em] text-muted/70">
+      <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.1em] text-ink-subtle/70">
         Settings
       </p>
       {tabs.map((tab) => {
@@ -38,10 +38,10 @@ export function AdminTabNav() {
           return (
             <span
               key={tab.href}
-              className="cursor-not-allowed rounded-md px-3 py-2 text-sm text-muted/50"
+              className="cursor-not-allowed rounded-md px-3 py-2 text-sm text-ink-subtle/50"
             >
               {tab.label}
-              <span className="ml-2 text-[10px] uppercase tracking-wider text-muted/40">
+              <span className="ml-2 text-[10px] uppercase tracking-wider text-ink-subtle/40">
                 soon
               </span>
             </span>
@@ -53,8 +53,8 @@ export function AdminTabNav() {
             href={tab.href}
             className={`rounded-md px-3 py-2 text-sm transition-colors duration-150 ${
               active
-                ? "bg-surface text-fg"
-                : "text-muted hover:bg-surface/60 hover:text-fg"
+                ? "bg-surface-1 text-ink"
+                : "text-ink-subtle hover:bg-surface-1/60 hover:text-ink"
             }`}
           >
             {tab.label}
