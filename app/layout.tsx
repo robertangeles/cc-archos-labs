@@ -70,7 +70,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-canvas text-fg font-sans">
+      <body className="min-h-full flex flex-col bg-canvas text-ink font-sans">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}

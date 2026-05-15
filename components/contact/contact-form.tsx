@@ -9,9 +9,9 @@ type FormStatus =
   | { kind: "error"; message: string };
 
 const inputClass =
-  "w-full rounded-md border border-rule bg-canvas px-4 py-3 text-base text-fg placeholder:text-muted/60 transition-colors duration-150 focus:border-accent focus:outline-none";
+  "w-full rounded-md border border-hairline bg-canvas px-4 py-3 text-base text-ink placeholder:text-ink-subtle/60 transition-colors duration-150 focus:border-primary focus:outline-none";
 
-const labelClass = "text-[13px] font-medium uppercase tracking-[0.08em] text-muted";
+const labelClass = "text-[13px] font-medium uppercase tracking-[0.08em] text-ink-subtle";
 
 export function ContactForm() {
   const [status, setStatus] = useState<FormStatus>({ kind: "idle" });
@@ -65,21 +65,21 @@ export function ContactForm() {
 
   if (status.kind === "success") {
     return (
-      <div className="rounded-lg border border-accent bg-accent/5 p-8">
-        <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-accent">
+      <div className="rounded-lg border border-primary bg-primary/5 p-8">
+        <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-primary">
           Message sent
         </p>
-        <h2 className="mt-3 text-2xl font-semibold tracking-[-0.01em] text-fg">
+        <h2 className="mt-3 text-2xl font-semibold tracking-[-0.01em] text-ink">
           We&rsquo;ll be in touch.
         </h2>
-        <p className="mt-3 text-base leading-[1.7] text-muted">
+        <p className="mt-3 text-base leading-[1.7] text-ink-subtle">
           We respond within one business day, usually faster. If your enquiry is
           urgent, mention it in the subject line of your reply.
         </p>
         <button
           type="button"
           onClick={() => setStatus({ kind: "idle" })}
-          className="mt-6 text-sm text-accent transition-colors duration-150 hover:text-fg"
+          className="mt-6 text-sm text-primary transition-colors duration-150 hover:text-ink"
         >
           Send another message
         </button>
@@ -161,13 +161,13 @@ export function ContactForm() {
       ) : null}
 
       <div className="flex items-center justify-between gap-x-4">
-        <p className="text-sm leading-[1.6] text-muted">
+        <p className="text-sm leading-[1.6] text-ink-subtle">
           We respond within one business day. We don&rsquo;t pitch.
         </p>
         <button
           type="submit"
           disabled={status.kind === "submitting"}
-          className="inline-flex items-center rounded-md bg-accent px-7 py-3 text-base font-medium text-white transition-colors duration-150 hover:bg-accent-hover disabled:opacity-60"
+          className="inline-flex items-center rounded-md bg-primary px-7 py-3 text-base font-medium text-white transition-colors duration-150 hover:bg-primary-hover disabled:opacity-60"
         >
           {status.kind === "submitting" ? "Sending…" : "Send message"}
         </button>

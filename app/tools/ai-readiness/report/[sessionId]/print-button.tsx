@@ -93,7 +93,7 @@ export function PrintButton({ sessionId }: { sessionId?: string }) {
 }
 
 const baseClass =
-  "inline-flex items-center gap-x-2 rounded-md border border-rule bg-surface px-4 py-2 text-sm font-medium text-fg transition-colors duration-150 hover:border-accent/60 hover:text-accent disabled:cursor-default disabled:opacity-70 print:hidden";
+  "inline-flex items-center gap-x-2 rounded-md border border-hairline bg-surface-1 px-4 py-2 text-sm font-medium text-ink transition-colors duration-150 hover:border-primary/60 hover:text-primary disabled:cursor-default disabled:opacity-70 print:hidden";
 
 function PrinterIcon() {
   return (

@@ -18,14 +18,14 @@ export function Header({ lead }: { lead: NavLeadProps | null }) {
     <header
       className={`sticky top-0 z-50 transition-colors duration-150 print:hidden ${
         scrolled
-          ? "border-b border-rule bg-canvas/80 backdrop-blur-md"
+          ? "border-b border-hairline bg-canvas/80 backdrop-blur-md"
           : "border-b border-transparent bg-transparent"
       }`}
     >
       <div className="mx-auto flex max-w-[1080px] flex-col items-start gap-y-3 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-x-6 sm:gap-y-0 md:px-12">
         <Link
           href="/"
-          className="flex items-center gap-x-2.5 text-base font-semibold tracking-tight text-fg"
+          className="flex items-center gap-x-2.5 text-base font-semibold tracking-tight text-ink"
           aria-label="Archos Labs — home"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}

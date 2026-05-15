@@ -27,7 +27,7 @@ export function LeadSignOutButton() {
       type="button"
       role="menuitem"
       onClick={onLogout}
-      className="block w-full rounded px-3 py-2 text-left text-sm text-muted transition-colors duration-150 hover:bg-canvas hover:text-fg"
+      className="block w-full rounded px-3 py-2 text-left text-sm text-ink-subtle transition-colors duration-150 hover:bg-canvas hover:text-ink"
     >
       Sign out
     </button>

@@ -1,14 +1,59 @@
 @import "tailwindcss";
 
-/* Linear-quality dark theme. Tokens generate Tailwind utilities by name. */
+/* ----------------------------------------------------------------------------
+   DESIGN.md (Linear-themed) tokens.
+
+   Tailwind v4 compiles `@theme` tokens into utility names by token name:
+     --color-primary  -> bg-primary / text-primary / border-primary
+     --color-ink      -> text-ink / bg-ink / border-ink
+     --color-surface-2 -> bg-surface-2
+     etc.
+
+   The single chromatic accent across the whole system is `--color-primary`
+   (Linear lavender #5e6ad2). Per DESIGN.md: brand mark, primary CTA, focus
+   ring, link emphasis only — never decoratively.
+
+   Source of truth: DESIGN.md at the project root.
+   ---------------------------------------------------------------------------- */
 @theme {
-  --color-canvas: #0f0f0f;
-  --color-surface: #18181b;
-  --color-fg: #f5f5f5;
-  --color-muted: #a1a1aa;
-  --color-accent: #3b82f6;
-  --color-accent-hover: #2563eb;
-  --color-rule: #27272a;
+  /* Brand & accent */
+  --color-primary: #5e6ad2;
+  --color-primary-hover: #828fff;
+  --color-primary-focus: #5e69d1;
+  --color-on-primary: #ffffff;
+  --color-brand-secure: #7a7fad;
+
+  /* Surface ladder — four-step lift from canvas */
+  --color-canvas: #010102;
+  --color-surface-1: #0f1011;
+  --color-surface-2: #141516;
+  --color-surface-3: #18191a;
+  --color-surface-4: #191a1b;
+
+  /* Inverse surfaces — used by transactional surfaces (print/email path) */
+  --color-inverse-canvas: #ffffff;
+  --color-inverse-surface-1: #f5f6f6;
+  --color-inverse-surface-2: #f6f7f7;
+  --color-inverse-ink: #000000;
+
+  /* Text hierarchy — four steps from ink to disabled */
+  --color-ink: #f7f8f8;
+  --color-ink-muted: #d0d6e0;
+  --color-ink-subtle: #8a8f98;
+  --color-ink-tertiary: #62666d;
+
+  /* Hairline borders — three levels */
+  --color-hairline: #23252a;
+  --color-hairline-strong: #34343a;
+  --color-hairline-tertiary: #3e3e44;
+
+  /* Semantic — used sparingly. Only success appears on marketing surfaces;
+     error / warning are restricted to admin + form validation feedback. */
+  --color-semantic-success: #27a644;
+  --color-semantic-error: #f87171;
+  --color-semantic-warning: #fbbf24;
+  --color-semantic-high: #fb923c;
+  --color-semantic-overlay: #000000;
 }
 
 @theme inline {
@@ -36,22 +81,39 @@
    2. `@media print` — kicks in for browser Ctrl/Cmd-P. Same overrides
       so the two PDF paths produce visually identical output.
 
-   Both paths override Tailwind theme tokens (Tailwind v4 compiles
-   @theme tokens to var(--color-*) so a token override cascades to
-   every utility that uses them: bg-canvas, text-fg, bg-surface, etc.
+   Both paths override Tailwind theme tokens; the override cascades to
+   every utility that uses them (bg-canvas, text-ink, bg-surface-1, etc.).
+
+   Per DESIGN.md decision: transactional surfaces (print + email) stay
+   light-themed but use the lavender primary for brand consistency.
    ---------------------------------------------------------------------------- */
 
 /* Shared overrides for both PDF paths */
 .pdf-mode,
 :root.pdf-mode,
 html.pdf-mode {
+  /* Canvas + surfaces flip to light theme — printable + email-renderable */
   --color-canvas: #ffffff;
-  --color-surface: #f8f8f6;
-  --color-fg: #0f0f0f;
-  --color-muted: #525252;
-  --color-rule: #d4d4d8;
-  --color-accent: #1e40af;
-  --color-accent-hover: #1e3a8a;
+  --color-surface-1: #f8f8f6;
+  --color-surface-2: #f5f6f6;
+  --color-surface-3: #f0f1f2;
+  --color-surface-4: #eaecee;
+
+  /* Ink hierarchy flips to dark-on-light */
+  --color-ink: #0f0f0f;
+  --color-ink-muted: #1f1f1f;
+  --color-ink-subtle: #525252;
+  --color-ink-tertiary: #6b6b6b;
+
+  /* Hairlines flip to light-on-light */
+  --color-hairline: #d4d4d8;
+  --color-hairline-strong: #b4b4b8;
+  --color-hairline-tertiary: #e4e4e8;
+
+  /* Primary stays lavender but tones step closer for white-background contrast */
+  --color-primary: #5e6ad2;
+  --color-primary-hover: #5e69d1;
+  --color-primary-focus: #5e69d1;
 }
 
 .pdf-mode body {
@@ -62,12 +124,20 @@ html.pdf-mode {
 @media print {
   :root {
     --color-canvas: #ffffff;
-    --color-surface: #f8f8f6;
-    --color-fg: #0f0f0f;
-    --color-muted: #525252;
-    --color-rule: #d4d4d8;
-    --color-accent: #1e40af;
-    --color-accent-hover: #1e3a8a;
+    --color-surface-1: #f8f8f6;
+    --color-surface-2: #f5f6f6;
+    --color-surface-3: #f0f1f2;
+    --color-surface-4: #eaecee;
+    --color-ink: #0f0f0f;
+    --color-ink-muted: #1f1f1f;
+    --color-ink-subtle: #525252;
+    --color-ink-tertiary: #6b6b6b;
+    --color-hairline: #d4d4d8;
+    --color-hairline-strong: #b4b4b8;
+    --color-hairline-tertiary: #e4e4e8;
+    --color-primary: #5e6ad2;
+    --color-primary-hover: #5e69d1;
+    --color-primary-focus: #5e69d1;
   }
 
   body {
@@ -92,3 +162,4 @@ html.pdf-mode {
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
 }
+

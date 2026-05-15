@@ -7,12 +7,12 @@
 import { forwardRef, type InputHTMLAttributes, type TextareaHTMLAttributes } from "react";
 
 const labelClass =
-  "text-[13px] font-medium uppercase tracking-[0.08em] text-muted";
+  "text-[13px] font-medium uppercase tracking-[0.08em] text-ink-subtle";
 
 const baseInputClass =
-  "w-full rounded-md border bg-canvas px-4 py-3 text-base text-fg placeholder:text-muted/60 transition-colors duration-150 focus:outline-none";
+  "w-full rounded-md border bg-canvas px-4 py-3 text-base text-ink placeholder:text-ink-subtle/60 transition-colors duration-150 focus:outline-none";
 
-const borderClass = "border-rule focus:border-accent";
+const borderClass = "border-hairline focus:border-primary";
 const errorBorderClass = "border-red-500/40 focus:border-red-500/60";
 
 type CommonProps = {
@@ -81,7 +81,7 @@ export const Field = forwardRef<
           {error}
         </p>
       ) : hint ? (
-        <p id={hintId} className="text-sm text-muted">
+        <p id={hintId} className="text-sm text-ink-subtle">
           {hint}
         </p>
       ) : null}

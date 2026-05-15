@@ -78,7 +78,7 @@ export function ReportView({
           details, prepared-on date, and a forced page break before the
           body sections begin.
           ==================================================================== */}
-      <section className="border-b border-rule px-6 py-16 md:px-12 md:py-24 print:flex print:min-h-[9in] print:flex-col print:justify-between print:border-b-0 print:py-0 print:break-after-page">
+      <section className="border-b border-hairline px-6 py-16 md:px-12 md:py-24 print:flex print:min-h-[9in] print:flex-col print:justify-between print:border-b-0 print:py-0 print:break-after-page">
         <div className="mx-auto w-full max-w-[840px] print:flex print:flex-1 print:flex-col">
           {/* Print-only branded masthead. Hidden on screen because the
               site header already carries the logo. */}
@@ -91,13 +91,13 @@ export function ReportView({
               height={32}
               className="h-8 w-8"
             />
-            <p className="text-base font-semibold tracking-tight text-fg">
+            <p className="text-base font-semibold tracking-tight text-ink">
               Archos Labs
             </p>
           </div>
 
           <div className="flex items-start justify-between gap-x-6">
-            <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-accent print:text-[11px]">
+            <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-primary print:text-[11px]">
               AI Readiness Assessment
             </p>
             <PrintButton
@@ -107,53 +107,53 @@ export function ReportView({
             />
           </div>
           <div className="mt-8 flex flex-col gap-y-2 md:flex-row md:items-baseline md:gap-x-10 md:gap-y-0">
-            <p className="font-mono text-[80px] font-semibold leading-none tracking-[-0.04em] text-fg md:text-[140px] print:text-[120px]">
+            <p className="font-mono text-[80px] font-semibold leading-none tracking-[-0.04em] text-ink md:text-[140px] print:text-[120px]">
               {result.score.total}
             </p>
             <div className="flex flex-col gap-y-1">
-              <p className="text-2xl font-semibold leading-tight text-fg md:text-[36px] md:leading-[1.1] print:text-[32px]">
+              <p className="text-2xl font-semibold leading-tight text-ink md:text-[36px] md:leading-[1.1] print:text-[32px]">
                 {result.tier.label}
               </p>
-              <p className="text-sm text-muted">
+              <p className="text-sm text-ink-subtle">
                 {result.tier.tier} tier · score out of 100
               </p>
             </div>
           </div>
-          <h1 className="mt-12 max-w-[760px] text-2xl font-medium leading-[1.3] tracking-[-0.01em] text-fg md:text-[30px] print:mt-8 print:text-[22px]">
+          <h1 className="mt-12 max-w-[760px] text-2xl font-medium leading-[1.3] tracking-[-0.01em] text-ink md:text-[30px] print:mt-8 print:text-[22px]">
             {content.verdict}
           </h1>
 
           {/* Print-only "Prepared for / Prepared on" block. Pushed to
               the bottom of the cover via flex-1 on the parent. */}
-          <div className="hidden print:mt-auto print:grid print:grid-cols-2 print:gap-x-8 print:gap-y-6 print:border-t print:border-rule print:pt-8">
+          <div className="hidden print:mt-auto print:grid print:grid-cols-2 print:gap-x-8 print:gap-y-6 print:border-t print:border-hairline print:pt-8">
             {recipient ? (
               <div>
-                <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted">
+                <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
                   Prepared for
                 </p>
-                <p className="mt-1.5 text-sm font-semibold leading-[1.4] text-fg">
+                <p className="mt-1.5 text-sm font-semibold leading-[1.4] text-ink">
                   {recipient.firstName} {recipient.lastName}
                 </p>
                 {recipient.jobTitle ? (
-                  <p className="text-[13px] leading-[1.4] text-fg/80">
+                  <p className="text-[13px] leading-[1.4] text-ink/80">
                     {recipient.jobTitle}
                   </p>
                 ) : null}
                 {recipient.organisation ? (
-                  <p className="text-[13px] leading-[1.4] text-fg/80">
+                  <p className="text-[13px] leading-[1.4] text-ink/80">
                     {recipient.organisation}
                   </p>
                 ) : null}
               </div>
             ) : null}
             <div>
-              <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted">
+              <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
                 Prepared on
               </p>
-              <p className="mt-1.5 text-sm font-semibold leading-[1.4] text-fg">
+              <p className="mt-1.5 text-sm font-semibold leading-[1.4] text-ink">
                 {preparedOn}
               </p>
-              <p className="text-[13px] leading-[1.4] text-fg/80">
+              <p className="text-[13px] leading-[1.4] text-ink/80">
                 Archos Labs · archoslabs.xyz
               </p>
             </div>
@@ -165,9 +165,9 @@ export function ReportView({
           Section 2 — Risk flags (only shown when triggered)
           ==================================================================== */}
       {result.riskFlags.length > 0 ? (
-        <section className="border-b border-rule px-6 py-12 md:px-12 md:py-16">
+        <section className="border-b border-hairline px-6 py-12 md:px-12 md:py-16">
           <div className="mx-auto w-full max-w-[840px]">
-            <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-muted">
+            <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
               {result.riskFlags.length === 1
                 ? "Risk flag"
                 : `${result.riskFlags.length} risk flags`}
@@ -181,10 +181,10 @@ export function ReportView({
                   <p className="font-mono text-[11px] uppercase tracking-[0.1em]">
                     {sevLabels[f.severity]}
                   </p>
-                  <p className="mt-2 text-base font-semibold leading-[1.5] text-fg">
+                  <p className="mt-2 text-base font-semibold leading-[1.5] text-ink">
                     {f.title}
                   </p>
-                  <p className="mt-1 text-sm leading-[1.55] text-fg/80">
+                  <p className="mt-1 text-sm leading-[1.55] text-ink/80">
                     {f.body}
                   </p>
                 </li>
@@ -197,9 +197,9 @@ export function ReportView({
       {/* ====================================================================
           Section 3 — Domain score dashboard
           ==================================================================== */}
-      <section className="border-b border-rule px-6 py-12 md:px-12 md:py-16">
+      <section className="border-b border-hairline px-6 py-12 md:px-12 md:py-16">
         <div className="mx-auto w-full max-w-[840px]">
-          <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-muted">
+          <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
             Domain breakdown
           </p>
           <div className="mt-5 grid grid-cols-1 gap-3 print:grid-cols-3 print:gap-2 md:grid-cols-3">
@@ -214,18 +214,18 @@ export function ReportView({
               return (
                 <div
                   key={key}
-                  className="rounded-md border border-rule bg-surface px-5 py-5 print:break-inside-avoid"
+                  className="rounded-md border border-hairline bg-surface-1 px-5 py-5 print:break-inside-avoid"
                 >
-                  <p className="text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
                     {DOMAIN_LABELS[key]}
                   </p>
-                  <p className="mt-3 font-mono text-4xl font-semibold leading-none text-fg">
+                  <p className="mt-3 font-mono text-4xl font-semibold leading-none text-ink">
                     {ds.percent}
-                    <span className="text-xl text-muted">%</span>
+                    <span className="text-xl text-ink-subtle">%</span>
                   </p>
                   <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-rule/60">
                     <div
-                      className="h-full rounded-full bg-accent"
+                      className="h-full rounded-full bg-primary"
                       style={{ width: `${ds.percent}%` }}
                     />
                   </div>
@@ -243,12 +243,12 @@ export function ReportView({
           The browser's natural break logic + the break-inside-avoid
           on cards keeps things readable.
           ==================================================================== */}
-      <section className="border-b border-rule px-6 py-16 md:px-12 md:py-20 print:py-6">
+      <section className="border-b border-hairline px-6 py-16 md:px-12 md:py-20 print:py-6">
         <div className="mx-auto w-full max-w-[680px]">
-          <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-muted">
+          <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
             Practitioner analysis
           </p>
-          <div className="mt-8 flex flex-col gap-y-6 text-[18px] leading-[1.65] text-fg/90 print:mt-4 print:gap-y-3 print:text-[12.5px] print:leading-[1.6]">
+          <div className="mt-8 flex flex-col gap-y-6 text-[18px] leading-[1.65] text-ink/90 print:mt-4 print:gap-y-3 print:text-[12.5px] print:leading-[1.6]">
             {paragraphs.map((p, i) => (
               <p key={i}>{p}</p>
             ))}
@@ -261,9 +261,9 @@ export function ReportView({
           Flows naturally in print after the narrative. ActionRow has
           break-inside-avoid so individual actions don't split mid-card.
           ==================================================================== */}
-      <section className="border-b border-rule px-6 py-12 md:px-12 md:py-16 print:py-6">
+      <section className="border-b border-hairline px-6 py-12 md:px-12 md:py-16 print:py-6">
         <div className="mx-auto w-full max-w-[840px]">
-          <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-muted">
+          <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
             Priority action sequence
           </p>
           <ol className="mt-6 flex flex-col gap-y-4 print:mt-5 print:gap-y-3">
@@ -294,14 +294,14 @@ export function ReportView({
           leave dead space.
           ==================================================================== */}
       <section className="px-6 py-16 md:px-12 md:py-20 print:py-8">
-        <div className="mx-auto w-full max-w-[840px] rounded-md border border-accent/30 bg-accent/5 px-6 py-8 md:px-10 md:py-10 print:break-inside-avoid">
-          <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-accent">
+        <div className="mx-auto w-full max-w-[840px] rounded-md border border-primary/30 bg-primary/5 px-6 py-8 md:px-10 md:py-10 print:break-inside-avoid">
+          <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-primary">
             Next step
           </p>
-          <h2 className="mt-3 text-2xl font-semibold leading-[1.2] tracking-[-0.01em] text-fg md:text-[32px] print:text-[24px]">
+          <h2 className="mt-3 text-2xl font-semibold leading-[1.2] tracking-[-0.01em] text-ink md:text-[32px] print:text-[24px]">
             This is what the two-week engagement addresses.
           </h2>
-          <p className="mt-4 max-w-[600px] text-base leading-[1.6] text-muted print:text-[13px]">
+          <p className="mt-4 max-w-[600px] text-base leading-[1.6] text-ink-subtle print:text-[13px]">
             We map your data, governance, and AI surface area against
             what&rsquo;s viable and deliver a written assessment your CFO
             or board can act on. No retainer. No upsell. Practitioner
@@ -309,14 +309,14 @@ export function ReportView({
           </p>
           <Link
             href="/contact"
-            className="mt-8 inline-flex items-center rounded-md bg-accent px-7 py-3 text-base font-medium text-white transition-colors duration-150 hover:bg-accent-hover"
+            className="mt-8 inline-flex items-center rounded-md bg-primary px-7 py-3 text-base font-medium text-white transition-colors duration-150 hover:bg-primary-hover"
           >
             Book a 30-minute call
           </Link>
           {/* Print-only callout with the URL — the on-screen button
               isn't clickable in a printed PDF, so we surface the
               destination as text. */}
-          <p className="hidden text-[12px] leading-[1.5] text-muted print:mt-5 print:block">
+          <p className="hidden text-[12px] leading-[1.5] text-ink-subtle print:mt-5 print:block">
             Book at archoslabs.xyz/contact, or reply to the email this
             report came from.
           </p>
@@ -324,7 +324,7 @@ export function ReportView({
 
         {/* Print-only confidential footer on the last page. */}
         <div className="hidden print:mt-12 print:block">
-          <div className="mx-auto w-full max-w-[840px] border-t border-rule pt-6 text-center text-[10px] uppercase tracking-[0.1em] text-muted">
+          <div className="mx-auto w-full max-w-[840px] border-t border-hairline pt-6 text-center text-[10px] uppercase tracking-[0.1em] text-ink-subtle">
             Archos Labs · Confidential · archoslabs.xyz
           </div>
         </div>
@@ -338,12 +338,12 @@ export function ReportView({
 // Hidden on print so the PDF stays clean.
 function SharedReportBanner() {
   return (
-    <div className="border-b border-rule bg-surface px-6 py-4 print:hidden md:px-12">
+    <div className="border-b border-hairline bg-surface-1 px-6 py-4 print:hidden md:px-12">
       <div className="mx-auto flex w-full max-w-[840px] flex-wrap items-center gap-x-4 gap-y-2">
-        <span className="text-[11px] font-medium uppercase tracking-[0.1em] text-accent">
+        <span className="text-[11px] font-medium uppercase tracking-[0.1em] text-primary">
           Shared report
         </span>
-        <span className="text-sm leading-[1.55] text-muted">
+        <span className="text-sm leading-[1.55] text-ink-subtle">
           You&rsquo;re viewing this report via a shared link. The link
           expires after 7 days and can be revoked at any time by the
           report owner.
@@ -355,23 +355,23 @@ function SharedReportBanner() {
 
 function ActionRow({ action, index }: { action: ActionItem; index: number }) {
   return (
-    <li className="flex gap-x-5 rounded-md border border-rule bg-surface px-5 py-5 print:break-inside-avoid md:gap-x-7 md:px-6 md:py-6">
-      <span className="font-mono text-base font-semibold text-accent">
+    <li className="flex gap-x-5 rounded-md border border-hairline bg-surface-1 px-5 py-5 print:break-inside-avoid md:gap-x-7 md:px-6 md:py-6">
+      <span className="font-mono text-base font-semibold text-primary">
         {String(index).padStart(2, "0")}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-base font-semibold leading-[1.4] text-fg md:text-[18px]">
+        <p className="text-base font-semibold leading-[1.4] text-ink md:text-[18px]">
           {action.title}
         </p>
-        <p className="mt-2 text-sm leading-[1.6] text-muted md:text-base">
+        <p className="mt-2 text-sm leading-[1.6] text-ink-subtle md:text-base">
           {action.explanation}
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium uppercase tracking-[0.1em]">
-          <span className="text-accent">
+          <span className="text-primary">
             {ACTION_TIME_HORIZON_LABELS[action.time_horizon]}
           </span>
-          <span className="text-muted/50">·</span>
-          <span className="text-muted">
+          <span className="text-ink-subtle/50">·</span>
+          <span className="text-ink-subtle">
             {SERVICE_LINE_LABELS[action.service_line]}
           </span>
         </div>

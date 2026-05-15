@@ -9,10 +9,10 @@ type Status =
   | { kind: "error"; message: string };
 
 const inputClass =
-  "w-full rounded-md border border-rule bg-canvas px-4 py-3 text-base text-fg placeholder:text-muted/60 transition-colors duration-150 focus:border-accent focus:outline-none";
+  "w-full rounded-md border border-hairline bg-canvas px-4 py-3 text-base text-ink placeholder:text-ink-subtle/60 transition-colors duration-150 focus:border-primary focus:outline-none";
 
 const labelClass =
-  "text-[13px] font-medium uppercase tracking-[0.08em] text-muted";
+  "text-[13px] font-medium uppercase tracking-[0.08em] text-ink-subtle";
 
 export default function AdminLoginPage() {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
@@ -58,13 +58,13 @@ export default function AdminLoginPage() {
   return (
     <main className="flex flex-1 flex-col bg-canvas">
       <section className="mx-auto w-full max-w-[420px] px-6 pt-32 pb-32 md:px-12">
-        <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-accent">
+        <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-primary">
           Admin
         </p>
-        <h1 className="mt-4 text-3xl font-semibold leading-[1.1] tracking-[-0.02em] text-fg md:text-4xl">
+        <h1 className="mt-4 text-3xl font-semibold leading-[1.1] tracking-[-0.02em] text-ink md:text-4xl">
           Sign in.
         </h1>
-        <p className="mt-4 text-base leading-[1.6] text-muted">
+        <p className="mt-4 text-base leading-[1.6] text-ink-subtle">
           Operator access to site configuration.
         </p>
 
@@ -90,7 +90,7 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={status.kind === "submitting"}
-            className="inline-flex items-center justify-center rounded-md bg-accent px-7 py-3 text-base font-medium text-white transition-colors duration-150 hover:bg-accent-hover disabled:opacity-60"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-7 py-3 text-base font-medium text-white transition-colors duration-150 hover:bg-primary-hover disabled:opacity-60"
           >
             {status.kind === "submitting" ? "Signing in…" : "Sign in"}
           </button>

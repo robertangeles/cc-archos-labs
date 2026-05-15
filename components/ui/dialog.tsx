@@ -71,15 +71,15 @@ export function Dialog({
       />
       <div
         role="document"
-        className="fixed inset-x-0 bottom-0 z-10 mx-auto w-full max-w-[440px] rounded-t-lg border border-rule bg-surface p-8 motion-safe:animate-[slideup_200ms_ease-out] sm:bottom-auto sm:inset-y-1/2 sm:-translate-y-1/2 sm:rounded-lg"
+        className="fixed inset-x-0 bottom-0 z-10 mx-auto w-full max-w-[440px] rounded-t-lg border border-hairline bg-surface-1 p-8 motion-safe:animate-[slideup_200ms_ease-out] sm:bottom-auto sm:inset-y-1/2 sm:-translate-y-1/2 sm:rounded-lg"
       >
         <h2
           id={titleId}
-          className="text-[24px] font-semibold leading-[1.25] tracking-[-0.01em] text-fg"
+          className="text-[24px] font-semibold leading-[1.25] tracking-[-0.01em] text-ink"
         >
           {title}
         </h2>
-        <div className="mt-4 text-base leading-[1.7] text-muted">
+        <div className="mt-4 text-base leading-[1.7] text-ink-subtle">
           {children}
         </div>
       </div>

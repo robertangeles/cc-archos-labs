@@ -32,7 +32,7 @@ export function Skeleton({
   return (
     <div
       aria-hidden
-      className={`bg-surface motion-safe:animate-pulse ${variantClass[variant]} ${widthClass} ${className}`}
+      className={`bg-surface-1 motion-safe:animate-pulse ${variantClass[variant]} ${widthClass} ${className}`}
     />
   );
 }

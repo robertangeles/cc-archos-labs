@@ -15,11 +15,11 @@
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 
 const baseClass =
-  "w-full rounded-md px-4 py-3 text-left text-sm font-medium tabular-nums transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:opacity-50 disabled:cursor-not-allowed";
+  "w-full rounded-md px-4 py-3 text-left text-sm font-medium tabular-nums transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:opacity-50 disabled:cursor-not-allowed";
 
 const stateClass = {
-  default: "bg-surface border border-rule text-fg hover:border-accent",
-  selected: "bg-accent text-white border border-accent",
+  default: "bg-surface-1 border border-hairline text-ink hover:border-primary",
+  selected: "bg-primary text-white border border-primary",
 } as const;
 
 export interface SlotPillProps

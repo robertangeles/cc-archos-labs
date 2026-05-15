@@ -7,7 +7,7 @@
 // (accent reserved for the primary "Confirm booking" CTA).
 
 const ghostLinkClass =
-  "inline-flex items-center justify-center rounded-md border border-rule px-5 py-2.5 text-sm font-medium text-fg transition-colors duration-150 hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-canvas";
+  "inline-flex items-center justify-center rounded-md border border-hairline px-5 py-2.5 text-sm font-medium text-ink transition-colors duration-150 hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas";
 
 export interface AddToCalendarButtonsProps {
   title: string;
