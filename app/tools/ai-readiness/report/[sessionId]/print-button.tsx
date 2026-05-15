@@ -76,12 +76,12 @@ export function PrintButton({ sessionId }: { sessionId?: string }) {
         {status === "generating" ? "Generating PDF…" : "Download PDF"}
       </button>
       {status === "error" ? (
-        <p role="alert" className="text-xs leading-[1.5] text-[#f87171]">
+        <p role="alert" className="text-xs leading-[1.5] text-semantic-error">
           Couldn&rsquo;t generate the PDF.{" "}
           <button
             type="button"
             onClick={() => window.print()}
-            className="underline decoration-[#f87171]/40 underline-offset-2 hover:decoration-[#f87171]"
+            className="underline decoration-semantic-error/40 underline-offset-2 hover:decoration-semantic-error"
           >
             Use the browser print dialog instead
           </button>

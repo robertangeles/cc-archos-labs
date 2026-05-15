@@ -224,7 +224,7 @@ export function RegistrationGate({ onSubmit, submitting, errorMessage }: Props) 
             {errorMessage ? (
               <p
                 role="alert"
-                className="text-sm leading-[1.5] text-[#f87171]"
+                className="text-sm leading-[1.5] text-semantic-error"
               >
                 {errorMessage}
               </p>

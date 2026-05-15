@@ -94,7 +94,7 @@ export function SignInForm({ initialError }: { initialError?: string }) {
           </label>
 
           {status.kind === "error" ? (
-            <p role="alert" className="text-sm leading-[1.6] text-[#f87171]">
+            <p role="alert" className="text-sm leading-[1.6] text-semantic-error">
               {status.message}
             </p>
           ) : null}

@@ -135,7 +135,7 @@ export function ShareControls({
         {status.kind === "error" ? (
           <p
             role="alert"
-            className="mt-4 text-sm leading-[1.6] text-[#f87171]"
+            className="mt-4 text-sm leading-[1.6] text-semantic-error"
           >
             {status.message}
           </p>
@@ -183,7 +183,7 @@ export function ShareControls({
                       disabled={
                         status.kind === "revoking" && status.id === t.id
                       }
-                      className="text-xs font-medium text-ink-subtle underline decoration-muted/40 underline-offset-2 transition-colors duration-150 hover:text-[#f87171] hover:decoration-[#f87171]/60 disabled:opacity-60"
+                      className="text-xs font-medium text-ink-subtle underline decoration-muted/40 underline-offset-2 transition-colors duration-150 hover:text-semantic-error hover:decoration-semantic-error/60 disabled:opacity-60"
                     >
                       {status.kind === "revoking" && status.id === t.id
                         ? "Revoking…"

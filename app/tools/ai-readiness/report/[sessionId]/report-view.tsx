@@ -25,9 +25,9 @@ import { ShareControls } from "./share-controls";
 //   6. Next-step CTA — book a 30-minute call (sized to the tier later)
 
 const sevColours: Record<RiskSeverity, string> = {
-  critical: "border-[#f87171]/40 bg-[#f87171]/5 text-[#f87171]",
-  high: "border-[#fb923c]/40 bg-[#fb923c]/5 text-[#fb923c]",
-  medium: "border-[#fbbf24]/40 bg-[#fbbf24]/5 text-[#fbbf24]",
+  critical: "border-semantic-error/40 bg-semantic-error/5 text-semantic-error",
+  high: "border-semantic-high/40 bg-semantic-high/5 text-semantic-high",
+  medium: "border-semantic-warning/40 bg-semantic-warning/5 text-semantic-warning",
 };
 
 const sevLabels: Record<RiskSeverity, string> = {

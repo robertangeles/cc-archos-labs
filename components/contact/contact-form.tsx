@@ -154,7 +154,7 @@ export function ContactForm() {
       {status.kind === "error" ? (
         <p
           role="alert"
-          className="text-sm leading-[1.6] text-[#f87171]"
+          className="text-sm leading-[1.6] text-semantic-error"
         >
           {status.message}
         </p>

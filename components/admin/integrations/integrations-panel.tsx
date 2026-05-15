@@ -522,7 +522,7 @@ function ConfigField({
         <p className="text-xs text-primary">Saved.</p>
       )}
       {saveStatus?.kind === "error" && (
-        <p className="text-xs text-red-400">{saveStatus.message}</p>
+        <p className="text-xs text-semantic-error">{saveStatus.message}</p>
       )}
       {isRevealed && (
         <p className="text-[11px] text-ink-subtle/70">
@@ -590,7 +590,7 @@ function TestRow({
       </div>
       {status.kind === "result" && (
         <p
-          className={`mt-2 text-xs ${status.ok ? "text-primary" : "text-red-400"}`}
+          className={`mt-2 text-xs ${status.ok ? "text-primary" : "text-semantic-error"}`}
         >
           {status.ok ? "✓" : "✗"} {status.message}
         </p>
@@ -644,7 +644,7 @@ function RevealAuthModal({
             autoFocus
             placeholder="Admin password"
           />
-          {error && <p className="text-xs text-red-400">{error}</p>}
+          {error && <p className="text-xs text-semantic-error">{error}</p>}
           <div className="flex justify-end gap-2">
             <button
               type="button"
@@ -791,7 +791,7 @@ function RotateMasterKeyModal({ onClose }: { onClose: () => void }) {
 
         {state.kind === "error" && (
           <div className="mt-3 space-y-3 text-sm">
-            <p className="text-red-400">{state.message}</p>
+            <p className="text-semantic-error">{state.message}</p>
             <div className="flex justify-end gap-2">
               <button type="button" onClick={onClose} className={buttonClass}>
                 Close
