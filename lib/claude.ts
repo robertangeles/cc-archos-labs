@@ -12,10 +12,12 @@ import { getIntegrationConfig } from "./integration-config";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-// OpenRouter model id format: "<provider>/<model>". claude-sonnet-4-6
-// maps to "anthropic/claude-sonnet-4-6". Override via the llmModelId
-// field in /admin/integrations if a different revision is preferred.
-export const DEFAULT_MODEL_ID = "anthropic/claude-sonnet-4-6";
+// Model id resolution: per-call override > admin-configured llmModelId.
+// No code-level default — the source of truth is /admin/integrations
+// (AI Model section → Model ID). Missing model id surfaces as a clear
+// configuration error rather than silently using whatever default the
+// source happened to ship with. Anthropic OpenRouter ids look like
+// "anthropic/claude-sonnet-4-6" or "anthropic/claude-opus-4-6".
 
 async function resolveLlmConfig(override?: string): Promise<{
   apiKey: string;
@@ -27,10 +29,13 @@ async function resolveLlmConfig(override?: string): Promise<{
       "LLM API key missing from integration config — run pnpm migrate-integration-secrets or set OPENROUTER_API_KEY in env during the grace window.",
     );
   }
-  return {
-    apiKey: config.llmApiKey,
-    modelId: override ?? config.llmModelId ?? DEFAULT_MODEL_ID,
-  };
+  const modelId = override ?? config.llmModelId;
+  if (!modelId) {
+    throw new Error(
+      "LLM model ID not configured. Set it in /admin/integrations → AI Model → Model ID (e.g. anthropic/claude-sonnet-4-6).",
+    );
+  }
+  return { apiKey: config.llmApiKey, modelId };
 }
 
 // ----------------------------------------------------------------------------
