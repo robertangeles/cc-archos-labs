@@ -1,12 +1,8 @@
-import { desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { getDb } from "../../../../lib/db";
-import {
-  consultant,
-  integrationSecretAudit,
-} from "../../../../lib/db/schema";
+import { consultant } from "../../../../lib/db/schema";
 import { getIntegrationConfigRedacted } from "../../../../lib/integration-config";
 import { IntegrationsGrid } from "../../../../components/admin/integrations/integrations-grid";
-import { AuditLog } from "../../../../components/admin/integrations/integrations-panel";
 
 // /admin/integrations — index page. Renders a cards grid (one per
 // integration) showing status at a glance. Each card drills down to
@@ -56,34 +52,6 @@ export default async function IntegrationsAdminPage() {
     }
   }
 
-  let initialAudit: Array<{
-    id: string;
-    keyName: string;
-    operation: string;
-    actor: string;
-    createdAt: string;
-  }> = [];
-  try {
-    const db = getDb();
-    const rows = await db
-      .select({
-        id: integrationSecretAudit.id,
-        keyName: integrationSecretAudit.keyName,
-        operation: integrationSecretAudit.operation,
-        actor: integrationSecretAudit.actor,
-        createdAt: integrationSecretAudit.createdAt,
-      })
-      .from(integrationSecretAudit)
-      .orderBy(desc(integrationSecretAudit.createdAt))
-      .limit(20);
-    initialAudit = rows.map((r) => ({
-      ...r,
-      createdAt: r.createdAt.toISOString(),
-    }));
-  } catch (err) {
-    console.error("[admin/integrations page] audit load failed:", err);
-  }
-
   return (
     <div className="space-y-8">
       <header>
@@ -118,8 +86,6 @@ export default async function IntegrationsAdminPage() {
           googleStatus={googleStatus}
         />
       ) : null}
-
-      <AuditLog rows={initialAudit} />
     </div>
   );
 }
