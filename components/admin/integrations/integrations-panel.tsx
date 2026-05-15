@@ -877,7 +877,10 @@ function AuditLog({ rows }: { rows: AuditRow[] }) {
       <ul className="divide-y divide-hairline">
         {rows.map((r) => (
           <li key={r.id} className="flex items-center gap-3 py-2 text-sm">
-            <span className="font-mono text-xs text-ink-subtle">
+            <span
+              className="font-mono text-xs text-ink-subtle"
+              suppressHydrationWarning
+            >
               {new Date(r.createdAt).toLocaleString()}
             </span>
             <span className="text-ink">{r.actor}</span>
