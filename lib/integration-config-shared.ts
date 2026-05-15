@@ -36,9 +36,11 @@ export const IntegrationConfigSchema = z.object({
     .string()
     .min(1, "required")
     .max(254, "too long for an email From header"),
-  // null = use the in-code default model id (DEFAULT_MODEL_ID in
-  // lib/claude.ts). Matches the existing three-layer fallback so the
-  // override slot can be cleared from the UI. Provider-agnostic name
+  // Nullable so the loader (and admin login, contact form, etc.) can
+  // still resolve config when this isn't set yet. Only the LLM call
+  // path treats null as a misconfiguration and surfaces a clear error
+  // pointing at /admin/integrations. There is no code-level default —
+  // the source of truth is the Settings UI. Provider-agnostic name
   // even though today's value is a Claude model identifier.
   llmModelId: z.string().min(1).nullable(),
 });
@@ -68,9 +70,12 @@ export function isEncryptedField(
 // grace window) are missing a config value. NEVER provides defaults for
 // secrets — missing secrets must fail loudly.
 //
-// These mirror the in-code fallbacks that already exist:
-//   - app/api/contact/route.ts:62  ?? "rob.angeles@archoslabs.xyz"
-//   - lib/claude.ts:23             ?? DEFAULT_MODEL_ID
+// These mirror the in-code fallback that exists:
+//   - app/api/contact/route.ts  ?? "rob.angeles@archoslabs.xyz"
+//
+// llmModelId default is null (no code-level fallback). lib/claude.ts
+// treats null as a misconfiguration and surfaces a clear error
+// pointing at /admin/integrations.
 export const CONFIG_DEFAULTS = {
   contactRecipientEmail: "rob.angeles@archoslabs.xyz",
   // Required-but-defaulted: Resend rejects undefined From, so we have to
