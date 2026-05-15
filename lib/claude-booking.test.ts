@@ -14,7 +14,6 @@ import { ClaudeParseError } from "./errors/booking";
 
 vi.mock("./claude", () => ({
   generateStructured: vi.fn(),
-  DEFAULT_MODEL_ID: "anthropic/claude-sonnet-4-6",
 }));
 
 import { generateStructured } from "./claude";
