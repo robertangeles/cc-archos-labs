@@ -20,6 +20,12 @@ import { STATE_COOKIE } from "../start/route";
 
 export const runtime = "nodejs";
 
+function slugFromEmail(email: string): string {
+  const localPart = email.split("@")[0] ?? "consultant";
+  const cleaned = localPart.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return cleaned || "consultant";
+}
+
 // Default working hours for a freshly-created consultant. Admin can
 // edit these in a future profile UI; until then they sit at a sensible
 // "weekdays 9–5" so the slot generator returns something the moment the
@@ -127,7 +133,12 @@ export async function GET(request: NextRequest) {
         })
         .where(eq(consultant.id, existing[0].id));
     } else {
+      // Derive a sensible default slug from the email local part. Admin
+      // can rename via the profile UI later. Matches the SQL backfill in
+      // migration 0006 so existing + new rows pick up the same shape.
+      const slug = slugFromEmail(consultantEmail);
       await db.insert(consultant).values({
+        slug,
         email: consultantEmail,
         displayName: consultantDisplayName,
         workingHoursJson: DEFAULT_WORKING_HOURS,

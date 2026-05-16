@@ -372,6 +372,11 @@ export const reportOutputRelations = relations(reportOutput, ({ one }) => ({
 
 export const consultant = pgTable("consultant", {
   id: uuid("id").primaryKey().defaultRandom(),
+  // URL slug for the public booking page (/book/[slug]). Lower-case
+  // kebab-case, must be unique. Used in OG cards, copy/paste shareable
+  // links, and the magic-link manage URLs. Single source of truth for
+  // "which consultant does this booking belong to" in the public flow.
+  slug: text("slug").notNull().unique(),
   // Sender display name on emails (e.g. "Rob at Archos Labs").
   displayName: text("display_name").notNull(),
   // Sender email + alert routing destination. Unique per consultant.

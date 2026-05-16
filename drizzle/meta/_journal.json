@@ -43,6 +43,13 @@
       "when": 1778668961565,
       "tag": "0005_aspiring_squadron_supreme",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1778848312264,
+      "tag": "0006_worthless_puma",
+      "breakpoints": true
     }
   ]
 }

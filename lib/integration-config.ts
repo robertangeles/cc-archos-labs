@@ -157,6 +157,9 @@ function decryptAndValidate(rawValue: unknown): IntegrationConfig {
   if (decrypted.googleOauthClientId === undefined) {
     decrypted.googleOauthClientId = null;
   }
+  if (decrypted.turnstileSiteKey === undefined) {
+    decrypted.turnstileSiteKey = null;
+  }
 
   const parsed = IntegrationConfigSchema.safeParse(decrypted);
   if (!parsed.success) {
@@ -197,6 +200,9 @@ function readFromEnv(): IntegrationConfig {
     // `.min(1).nullable()` accepts "not configured."
     googleOauthClientId: process.env.GOOGLE_OAUTH_CLIENT_ID || null,
     googleOauthClientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET || null,
+    // Turnstile keys never lived in env historically — null in fallback.
+    turnstileSiteKey: process.env.TURNSTILE_SITE_KEY || null,
+    turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY || null,
   };
 
   const parsed = IntegrationConfigSchema.safeParse(config);
@@ -341,6 +347,8 @@ export async function migrateEnvToDB(): Promise<{
     llmModelId: process.env.CLAUDE_MODEL_ID ?? null,
     googleOauthClientId: process.env.GOOGLE_OAUTH_CLIENT_ID ?? null,
     googleOauthClientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? null,
+    turnstileSiteKey: process.env.TURNSTILE_SITE_KEY ?? null,
+    turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY ?? null,
   };
 
   const written: Array<keyof IntegrationConfig> = [];
@@ -517,6 +525,8 @@ export async function getIntegrationConfigRedacted(): Promise<{
   llmModelId: string | null;
   googleOauthClientId: string | null;
   googleOauthClientSecret: string;
+  turnstileSiteKey: string | null;
+  turnstileSecretKey: string;
 }> {
   const config = await getIntegrationConfig();
   return {
@@ -531,6 +541,10 @@ export async function getIntegrationConfigRedacted(): Promise<{
     googleOauthClientId: config.googleOauthClientId,
     // Client Secret is the real credential — always redact (empty when null).
     googleOauthClientSecret: redactSecret(config.googleOauthClientSecret ?? ""),
+    // Site key is rendered into HTML — surface plaintext so the admin
+    // can confirm what's deployed. Secret key always redacted.
+    turnstileSiteKey: config.turnstileSiteKey,
+    turnstileSecretKey: redactSecret(config.turnstileSecretKey ?? ""),
   };
 }
 

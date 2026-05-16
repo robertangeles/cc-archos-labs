@@ -59,6 +59,13 @@ export const IntegrationConfigSchema = z.object({
   // lives in ENCRYPTED_FIELDS.
   googleOauthClientId: z.string().min(1).nullable(),
   googleOauthClientSecret: z.string().min(1).nullable(),
+
+  // Cloudflare Turnstile keys for booking-form bot protection. Site key
+  // is public (rendered in the widget script tag), Secret key is the
+  // server-side verification credential. Both nullable so the booking
+  // route can no-op gracefully when Turnstile isn't yet configured.
+  turnstileSiteKey: z.string().min(1).nullable(),
+  turnstileSecretKey: z.string().min(1).nullable(),
 });
 
 export type IntegrationConfig = z.infer<typeof IntegrationConfigSchema>;
@@ -71,6 +78,7 @@ export const ENCRYPTED_FIELDS = [
   "resendApiKey",
   "llmApiKey",
   "googleOauthClientSecret",
+  "turnstileSecretKey",
 ] as const satisfies ReadonlyArray<keyof IntegrationConfig>;
 
 export type EncryptedField = (typeof ENCRYPTED_FIELDS)[number];
@@ -125,6 +133,8 @@ export const StoredIntegrationConfigSchema = z.object({
   // running IntegrationConfigSchema.
   googleOauthClientId: z.string().min(1).nullish(),
   googleOauthClientSecret: z.string().min(1).nullish(),
+  turnstileSiteKey: z.string().min(1).nullish(),
+  turnstileSecretKey: z.string().min(1).nullish(),
 });
 
 export type StoredIntegrationConfig = z.infer<
