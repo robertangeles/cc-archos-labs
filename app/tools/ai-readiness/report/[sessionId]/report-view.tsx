@@ -11,6 +11,7 @@ import {
 } from "../../../../../lib/diagnostic/types";
 import type { LoadedReport } from "../../../../../lib/diagnostic/report";
 import type { ShareTokenSummary } from "../../../../../lib/share-tokens";
+import { BOOK_A_CALL_URL } from "../../../../../lib/booking-urls";
 import { PrintButton } from "./print-button";
 import { ShareControls } from "./share-controls";
 
@@ -308,7 +309,7 @@ export function ReportView({
             work from day one.
           </p>
           <Link
-            href="/contact"
+            href={BOOK_A_CALL_URL}
             className="mt-8 inline-flex items-center rounded-md bg-primary px-7 py-3 text-base font-medium text-white transition-colors duration-150 hover:bg-primary-hover"
           >
             Book a 30-minute call
@@ -317,8 +318,8 @@ export function ReportView({
               isn't clickable in a printed PDF, so we surface the
               destination as text. */}
           <p className="hidden text-[12px] leading-[1.5] text-ink-subtle print:mt-5 print:block">
-            Book at archoslabs.xyz/contact, or reply to the email this
-            report came from.
+            Book at archoslabs.xyz{BOOK_A_CALL_URL}, or reply to the
+            email this report came from.
           </p>
         </div>
 
