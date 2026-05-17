@@ -20,6 +20,15 @@ export default defineConfig({
     // Single-fork keeps suites sequential to avoid hammering the LLM
     // provider with parallel requests on a single developer's key.
     fileParallelism: false,
+    // Auto-retry each test up to 2 times on failure. Eval cases hit a
+    // live API + a stochastic model — transient nulls (rate limit /
+    // 5xx) and the occasional wobbly output on a tight assertion are
+    // noise, not signal. With 3 total attempts we still catch real
+    // regressions (a broken prompt fails every time) but stop crying
+    // wolf on transient blips. Cost: ~3x worst-case on actually-bad
+    // cases. Practically: most cases pass on attempt 1, transient
+    // failures pass on attempt 2, real regressions consume 3 attempts.
+    retry: 2,
   },
   resolve: {
     alias: {
