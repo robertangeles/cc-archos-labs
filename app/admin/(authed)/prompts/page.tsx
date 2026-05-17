@@ -1,199 +1,211 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { eq } from "drizzle-orm";
 import {
-  DIAGNOSTIC_PROMPT_STARTER,
-  type DiagnosticPrompt,
+  BookingPromptsSchema,
+  SITE_SETTING_KEY as BOOKING_PROMPTS_KEY,
+  type BookingPrompts,
+} from "../../../../lib/booking-prompts-shared";
+import { getDb } from "../../../../lib/db";
+import { siteSetting } from "../../../../lib/db/schema";
+import {
+  DiagnosticPromptSchema,
 } from "../../../../lib/diagnostic/prompt-config-shared";
+import { SITE_SETTING_KEY as DIAGNOSTIC_PROMPT_KEY } from "../../../../lib/diagnostic/prompt-config";
 
-type LoadStatus =
-  | { kind: "loading" }
-  | { kind: "ready"; isFallback: boolean }
-  | { kind: "load-error"; message: string };
+// /admin/prompts — cards grid of all Claude prompts used across the site.
+// Mirrors the /admin/integrations layout: one card per prompt, status
+// at a glance, click drills into the editor.
+//
+// Each card surfaces:
+//   - The prompt's purpose (one-line description + where it fires)
+//   - A status pill: Configured (admin-edited) / Starter (hardcoded
+//     fallback) / Not configured (only diagnostic — hard-fail state)
+//
+// Server-rendered. Loads diagnostic prompt + booking_prompts rows once
+// and computes status per card.
 
-type SaveStatus =
-  | { kind: "idle" }
-  | { kind: "saving" }
-  | { kind: "saved" }
-  | { kind: "error"; message: string };
+export const dynamic = "force-dynamic";
 
-const inputClass =
-  "w-full rounded-md border border-hairline bg-canvas px-4 py-3 text-base text-ink placeholder:text-ink-subtle/60 transition-all duration-150 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/40";
+type CardStatus =
+  | { tone: "success"; label: string }
+  | { tone: "warning"; label: string }
+  | { tone: "neutral"; label: string }
+  | { tone: "error"; label: string };
 
-const labelClass =
-  "text-[13px] font-medium uppercase tracking-[0.08em] text-ink-subtle";
+interface PromptCard {
+  slug: string;
+  title: string;
+  description: string;
+  fires: string;
+  status: CardStatus;
+}
 
-export default function AdminPromptsPage() {
-  const [prompt, setPrompt] = useState<DiagnosticPrompt>(
-    DIAGNOSTIC_PROMPT_STARTER,
-  );
-  const [load, setLoad] = useState<LoadStatus>({ kind: "loading" });
-  const [save, setSave] = useState<SaveStatus>({ kind: "idle" });
+export default async function PromptsIndexPage() {
+  const { diagnosticStatus, bookingPrompts } = await loadCardData();
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/admin/settings/diagnostic-prompt");
-        const json = (await res.json().catch(() => null)) as
-          | {
-              ok: boolean;
-              data?: DiagnosticPrompt;
-              error?: string;
-              isFallback?: boolean;
-            }
-          | null;
-        if (cancelled) return;
-        if (res.ok && json?.ok && json.data) {
-          setPrompt(json.data);
-          setLoad({ kind: "ready", isFallback: !!json.isFallback });
-        } else {
-          setLoad({
-            kind: "load-error",
-            message: json?.error ?? "Could not load prompt.",
-          });
-        }
-      } catch {
-        if (!cancelled) {
-          setLoad({ kind: "load-error", message: "Network error." });
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (save.kind === "saving") return;
-    setSave({ kind: "saving" });
-    try {
-      const res = await fetch("/api/admin/settings/diagnostic-prompt", {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(prompt),
-      });
-      const json = (await res.json().catch(() => null)) as
-        | { ok: boolean; data?: DiagnosticPrompt; error?: string }
-        | null;
-      if (res.ok && json?.ok) {
-        setSave({ kind: "saved" });
-        setLoad({ kind: "ready", isFallback: false });
-        setTimeout(() => setSave({ kind: "idle" }), 2500);
-        return;
-      }
-      setSave({
-        kind: "error",
-        message: json?.error ?? "Could not save.",
-      });
-    } catch {
-      setSave({ kind: "error", message: "Network error." });
-    }
-  }
+  const cards: PromptCard[] = [
+    {
+      slug: "diagnostic",
+      title: "Diagnostic narrative",
+      description:
+        "The system prompt sent to Claude on every AI Readiness Assessment report. Voice, output shape, forbidden words, tone-by-tier.",
+      fires: "Fires on every report generation.",
+      status: diagnosticStatus,
+    },
+    {
+      slug: "intake-followup",
+      title: "Intake follow-up",
+      description:
+        "When a prospect types a reason on the booking form, Claude decides whether ONE follow-up question would sharpen what you need to know.",
+      fires: "Fires on /book/[slug] when the prospect leaves the reason field.",
+      status: bookingStatus(bookingPrompts, "followup"),
+    },
+    {
+      slug: "precall-brief",
+      title: "Pre-call brief",
+      description:
+        "Claude reads the prospect's intake and produces a tight brief for you — priority, summary, three talking points. Sent to your inbox.",
+      fires: "Fires from the cron processor 2h before each call.",
+      status: bookingStatus(bookingPrompts, "brief"),
+    },
+    {
+      slug: "blog-matching",
+      title: "Blog matching",
+      description:
+        "Picks 0–3 blog posts from a library that match the prospect's stated problem. Renders in the confirmation email as 'while you wait'.",
+      fires:
+        "Not yet wired — confirmation email currently sends an empty list.",
+      status: bookingStatus(bookingPrompts, "blogMatch"),
+    },
+  ];
 
   return (
-    <section>
-      <h1 className="text-headline text-ink md:text-display-md">
-        Diagnostic Prompt
-      </h1>
-      <p className="mt-4 max-w-[720px] text-base leading-[1.7] text-ink-subtle">
-        The system prompt sent to Claude on every AI Readiness Assessment
-        report. Edit here to tune voice, output shape, forbidden words,
-        tone-by-tier instructions. Changes apply on the next report
-        generation. The prompt version is stamped onto every saved
-        report so you can correlate model behaviour with prompt edits.
-      </p>
-
-      {load.kind === "loading" ? (
-        <p className="mt-12 text-sm text-ink-subtle">Loading…</p>
-      ) : load.kind === "load-error" ? (
-        <p role="alert" className="mt-12 text-sm text-semantic-error">
-          {load.message}
+    <div className="space-y-8">
+      <header>
+        <h1 className="text-headline text-ink">Prompts</h1>
+        <p className="mt-2 max-w-2xl text-body-sm text-ink-subtle">
+          Claude prompts that drive the AI surfaces of the site. Tune
+          voice, output shape, or behaviour without redeploying. The
+          diagnostic prompt is required for the AI Readiness Assessment
+          to work; booking prompts gracefully fall back to hardcoded
+          starters if missing.
         </p>
-      ) : (
-        <>
-          {load.kind === "ready" && load.isFallback ? (
-            <div className="mt-8 rounded-md border border-semantic-warning/40 bg-semantic-warning/5 px-5 py-4">
-              <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-semantic-warning">
-                No prompt configured
-              </p>
-              <p className="mt-2 text-sm leading-[1.6] text-ink/90">
-                No admin prompt is saved yet — the form below is a starter
-                template. <strong>Report generation will fail</strong> until
-                you replace this with your real prompt and save. Paste your
-                practitioner-voice prompt into the System prompt field, set
-                a Version label, and click Save.
-              </p>
-            </div>
-          ) : null}
+      </header>
 
-          <form onSubmit={onSubmit} className="mt-10 flex flex-col gap-y-6">
-            <label className="flex flex-col gap-y-2">
-              <span className={labelClass}>Version label</span>
-              <input
-                type="text"
-                value={prompt.version}
-                onChange={(e) =>
-                  setPrompt((p) => ({ ...p, version: e.target.value }))
-                }
-                placeholder="e.g. v1-practitioner-2026-05"
-                className={inputClass}
-              />
-              <span className="text-xs leading-[1.5] text-ink-subtle">
-                Free-form. Stamped onto every report_output row so you
-                can correlate report quality with prompt revisions.
-              </span>
-            </label>
-
-            <label className="flex flex-col gap-y-2">
-              <span className={labelClass}>System prompt</span>
-              <textarea
-                value={prompt.systemPrompt}
-                onChange={(e) =>
-                  setPrompt((p) => ({ ...p, systemPrompt: e.target.value }))
-                }
-                rows={32}
-                className={`${inputClass} resize-y font-mono text-[13px] leading-[1.55]`}
-              />
-              <span className="text-xs leading-[1.5] text-ink-subtle">
-                Min 100 chars, max 20,000. Anything Claude needs to know
-                that&rsquo;s NOT per-session — voice, output shape,
-                tone-by-tier, forbidden words, industry context cues.
-              </span>
-            </label>
-
-            {save.kind === "error" ? (
-              <p role="alert" className="text-sm leading-[1.6] text-semantic-error">
-                {save.message}
+      <ul className="grid gap-4 sm:grid-cols-2">
+        {cards.map((card) => (
+          <li key={card.slug}>
+            <Link
+              href={`/admin/prompts/${card.slug}`}
+              className="group block rounded-md border border-hairline bg-surface-1/30 p-5 transition-colors duration-150 hover:border-hairline-strong hover:bg-surface-1/60"
+            >
+              <div className="flex items-start justify-between gap-x-4">
+                <h3 className="text-card-title text-ink group-hover:text-ink">
+                  {card.title}
+                </h3>
+                <StatusPill status={card.status} />
+              </div>
+              <p className="mt-2 text-body-sm text-ink-subtle">
+                {card.description}
               </p>
-            ) : null}
-
-            <div className="flex items-center justify-between gap-x-4 border-t border-hairline pt-6">
-              <p
-                className={`text-sm leading-[1.6] transition-colors duration-150 ${
-                  save.kind === "saved" ? "text-semantic-success" : "text-ink-subtle"
-                }`}
-              >
-                {save.kind === "saved"
-                  ? "Saved. Live on next report generation."
-                  : "Changes apply on next report generation."}
+              <p className="mt-2 text-caption text-ink-subtle/70">
+                {card.fires}
               </p>
-              <button
-                type="submit"
-                disabled={save.kind === "saving"}
-                className="inline-flex items-center rounded-md bg-primary px-7 py-3 text-base font-medium text-white transition-colors duration-150 hover:bg-primary-hover disabled:opacity-60"
-              >
-                {save.kind === "saving"
-                  ? "Saving…"
-                  : save.kind === "saved"
-                    ? "Saved"
-                    : "Save prompt"}
-              </button>
-            </div>
-          </form>
-        </>
-      )}
-    </section>
+              <p className="mt-4 text-eyebrow uppercase text-ink-subtle/70 group-hover:text-primary">
+                Edit →
+              </p>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// Status loader + helpers
+// ----------------------------------------------------------------------------
+
+async function loadCardData(): Promise<{
+  diagnosticStatus: CardStatus;
+  bookingPrompts: BookingPrompts | null;
+}> {
+  const db = getDb();
+  let diagnosticStatus: CardStatus;
+  try {
+    const rows = await db
+      .select({ value: siteSetting.value })
+      .from(siteSetting)
+      .where(eq(siteSetting.key, DIAGNOSTIC_PROMPT_KEY))
+      .limit(1);
+    if (rows.length === 0) {
+      diagnosticStatus = { tone: "error", label: "Not configured" };
+    } else {
+      const parsed = DiagnosticPromptSchema.safeParse(rows[0].value);
+      diagnosticStatus = parsed.success
+        ? { tone: "success", label: "Configured" }
+        : { tone: "error", label: "Malformed" };
+    }
+  } catch (err) {
+    console.error("[admin/prompts] diagnostic status load failed:", err);
+    diagnosticStatus = { tone: "warning", label: "Unknown" };
+  }
+
+  let bookingPrompts: BookingPrompts | null = null;
+  try {
+    const rows = await db
+      .select({ value: siteSetting.value })
+      .from(siteSetting)
+      .where(eq(siteSetting.key, BOOKING_PROMPTS_KEY))
+      .limit(1);
+    if (rows.length > 0) {
+      const parsed = BookingPromptsSchema.safeParse(rows[0].value);
+      if (parsed.success) bookingPrompts = parsed.data;
+    }
+  } catch (err) {
+    console.error("[admin/prompts] booking status load failed:", err);
+  }
+
+  return { diagnosticStatus, bookingPrompts };
+}
+
+// A booking sub-prompt is "Configured" if its version label is anything
+// other than the literal starter sentinel. Treating version-label as the
+// admin's signal of "I've taken ownership" is more reliable than diffing
+// the full systemPrompt string (which can drift on whitespace).
+function bookingStatus(
+  prompts: BookingPrompts | null,
+  key: "followup" | "brief" | "blogMatch",
+): CardStatus {
+  if (!prompts) {
+    return { tone: "neutral", label: "Starter" };
+  }
+  const version = prompts[key]?.version ?? "";
+  if (!version || version === "starter-v0") {
+    return { tone: "neutral", label: "Starter" };
+  }
+  return { tone: "success", label: "Configured" };
+}
+
+function StatusPill({ status }: { status: CardStatus }) {
+  const cls = {
+    success: "border-semantic-success/40 text-semantic-success",
+    warning: "border-semantic-warning/40 text-semantic-warning",
+    neutral: "border-hairline text-ink-subtle",
+    error: "border-semantic-error/40 text-semantic-error",
+  }[status.tone];
+  const dotCls = {
+    success: "bg-semantic-success",
+    warning: "bg-semantic-warning",
+    neutral: "bg-ink-subtle/50",
+    error: "bg-semantic-error",
+  }[status.tone];
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center gap-x-1.5 rounded-full border px-2 py-0.5 text-eyebrow uppercase ${cls}`}
+    >
+      <span className={`inline-block h-1.5 w-1.5 rounded-full ${dotCls}`} />
+      {status.label}
+    </span>
   );
 }
