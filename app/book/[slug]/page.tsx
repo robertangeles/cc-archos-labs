@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getConsultantBySlug } from "../../../lib/booking";
 import { getIntegrationConfig } from "../../../lib/integration-config";
-import { getSiteSettings, buildPageMetadata } from "../../../lib/site-config";
+import { buildPageMetadata } from "../../../lib/site-config";
 import { BookingForm } from "./booking-form";
 
 // Public Book-a-Call page. Server-renders the consultant header + the
@@ -52,19 +52,21 @@ export default async function BookCallPage({ params }: PageProps) {
     console.error("[book/[slug] page] config load failed:", err);
   }
 
-  const settings = await getSiteSettings();
+  // Public-facing email surfaced on the booking page (escape-hatch +
+  // booking-paused state). Falls back to the internal routing address
+  // when no override is set on the consultant row.
+  const publicEmail = consultant.publicEmail ?? consultant.email;
 
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-16 sm:py-20">
-      <header className="mb-12">
+      <header className="mb-10">
         <p className="text-eyebrow uppercase text-ink-subtle">Book a call</p>
         <h1 className="mt-3 text-display-md text-ink">
           {consultant.slotMinutes} minutes with {consultant.displayName}
         </h1>
         <p className="mt-4 max-w-2xl text-body text-ink-subtle">
-          A focused {consultant.slotMinutes}-min Google Meet to discuss your
-          program. {settings.founderName} will send a brief an hour before
-          so the call starts at depth.
+          Tell me what&apos;s stuck. I&apos;ll read your intake before we talk,
+          then we&apos;ll spend the call on what&apos;s actually in your way.
         </p>
       </header>
 
@@ -75,10 +77,10 @@ export default async function BookCallPage({ params }: PageProps) {
             We&apos;re reconnecting the calendar. Try again shortly or reach
             us at{" "}
             <a
-              href={`mailto:${consultant.email}`}
+              href={`mailto:${publicEmail}`}
               className="text-primary underline"
             >
-              {consultant.email}
+              {publicEmail}
             </a>
             .
           </p>
@@ -88,6 +90,7 @@ export default async function BookCallPage({ params }: PageProps) {
           slug={slug}
           consultant={{
             displayName: consultant.displayName,
+            email: publicEmail,
             slotMinutes: consultant.slotMinutes,
             timezone: consultant.timezone,
           }}

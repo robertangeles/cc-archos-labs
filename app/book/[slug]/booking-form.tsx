@@ -28,6 +28,10 @@ interface BookingFormProps {
   slug: string;
   consultant: {
     displayName: string;
+    // Rendered in the escape-hatch line below the form submit. Public-
+    // facing email — already exposed via the contact page and the
+    // booking confirmation email's reply-to.
+    email: string;
     slotMinutes: number;
     timezone: string;
   };
@@ -299,21 +303,50 @@ export function BookingForm({
       ) : null}
       <form
         onSubmit={handleSubmit}
+        // Prevent accidental Enter-submit anywhere except inside a
+        // textarea. Users tab out of fields or hit Enter to skip to the
+        // next one — the browser default of "submit form on Enter in
+        // any input" is treacherous for a multi-step form like this.
+        // Textareas keep Enter as newline (their native behaviour).
+        onKeyDown={(e) => {
+          if (
+            e.key === "Enter" &&
+            e.target instanceof HTMLElement &&
+            e.target.tagName !== "TEXTAREA" &&
+            !(e.target instanceof HTMLButtonElement)
+          ) {
+            e.preventDefault();
+          }
+        }}
         className="grid gap-8"
         noValidate
         aria-label="Book a call"
       >
         {/* Slot picker */}
         <section className="rounded-md border border-hairline bg-surface-1 p-6">
-          <h2 className="text-card-title text-ink">Pick a time</h2>
-          <p className="mt-1 text-body-sm text-ink-subtle">
-            Times shown in <span className="text-ink">{prospectTimezone}</span>.
-            {consultant.timezone !== prospectTimezone ? (
-              <>
-                {" "}Consultant is in {consultant.timezone}.
-              </>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-card-title text-ink">Pick a time</h2>
+              <p className="mt-1 text-body-sm text-ink-subtle">
+                Times shown in{" "}
+                <span className="text-ink">{prospectTimezone}</span>.
+                {consultant.timezone !== prospectTimezone ? (
+                  <> Consultant is in {consultant.timezone}.</>
+                ) : null}
+              </p>
+            </div>
+            {dateKeys[0] && slotsByDate[dateKeys[0]]?.[0] ? (
+              <NextAvailableChip
+                slot={slotsByDate[dateKeys[0]][0]}
+                prospectTimezone={prospectTimezone}
+                onPick={(slot, dateKey) => {
+                  setSelectedDate(dateKey);
+                  setSelectedSlot(slot);
+                }}
+                dateKey={dateKeys[0]}
+              />
             ) : null}
-          </p>
+          </div>
 
           {!freebusyOk ? (
             <p className="mt-3 rounded-md border border-semantic-warning/40 bg-semantic-warning/5 px-3 py-2 text-body-sm text-semantic-warning">
@@ -330,49 +363,18 @@ export function BookingForm({
               No times available in the next {consultant.slotMinutes >= 60 ? "two weeks" : "fortnight"}. Email us instead.
             </p>
           ) : (
-            <div className="mt-6 grid gap-6 sm:grid-cols-[200px_1fr]">
-              <ul className="flex max-h-72 flex-col gap-1 overflow-y-auto pr-2">
-                {dateKeys.map((dateKey) => {
-                  const isSelected = selectedDate === dateKey;
-                  return (
-                    <li key={dateKey}>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedDate(dateKey)}
-                        className={`block w-full rounded-md px-3 py-2 text-left text-body-sm transition-colors duration-150 ${
-                          isSelected
-                            ? "bg-surface-2 text-ink"
-                            : "text-ink-subtle hover:bg-surface-1 hover:text-ink"
-                        }`}
-                      >
-                        {formatDateLabel(dateKey, prospectTimezone)}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-              <div className="flex max-h-72 flex-wrap content-start gap-2 overflow-y-auto">
-                {(selectedDate ? slotsByDate[selectedDate] ?? [] : []).map(
-                  (slot) => {
-                    const isSelected = selectedSlot?.startUtc === slot.startUtc;
-                    return (
-                      <button
-                        key={slot.startUtc}
-                        type="button"
-                        onClick={() => setSelectedSlot(slot)}
-                        className={`rounded-md border px-3 py-2 text-body-sm transition-colors duration-150 ${
-                          isSelected
-                            ? "border-primary bg-primary text-on-primary"
-                            : "border-hairline text-ink hover:border-hairline-strong"
-                        }`}
-                      >
-                        {formatTimeLabel(slot.startUtc, prospectTimezone)}
-                      </button>
-                    );
-                  },
-                )}
-              </div>
-            </div>
+            <CalendarPicker
+              slotsByDate={slotsByDate}
+              dateKeys={dateKeys}
+              selectedDate={selectedDate}
+              onSelectDate={(d) => {
+                setSelectedDate(d);
+                setSelectedSlot(null);
+              }}
+              selectedSlot={selectedSlot}
+              onSelectSlot={setSelectedSlot}
+              prospectTimezone={prospectTimezone}
+            />
           )}
         </section>
 
@@ -499,10 +501,14 @@ export function BookingForm({
               <div className="flex items-center gap-4 pt-2">
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || followupLoading}
                   className="inline-flex items-center justify-center rounded-md bg-primary px-7 py-3 text-button text-on-primary transition-colors duration-150 hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {submitting ? "Booking…" : "Confirm booking"}
+                  {submitting
+                    ? "Booking…"
+                    : followupLoading
+                      ? "Hold on…"
+                      : "Confirm booking"}
                 </button>
                 <button
                   type="button"
@@ -518,6 +524,19 @@ export function BookingForm({
             </div>
           </section>
         ) : null}
+
+        {/* Escape hatch — reassures the visitor they can opt out of the
+            self-serve flow without disappearing into a void. */}
+        <p className="text-center text-body-sm text-ink-subtle">
+          Times don&apos;t suit? Email{" "}
+          <a
+            href={`mailto:${consultant.email}`}
+            className="text-ink underline-offset-2 hover:underline"
+          >
+            {consultant.email}
+          </a>{" "}
+          directly.
+        </p>
       </form>
     </>
   );
@@ -529,6 +548,355 @@ export function BookingForm({
 
 const inputClass =
   "w-full rounded-md border border-hairline bg-canvas px-4 py-3 text-body text-ink placeholder:text-ink-subtle/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/40";
+
+// Single-click "skip the calendar" affordance — shows the soonest slot
+// as a chip in the header. Known conversion lever on premium booking
+// pages (Cal.com added it in 2023). Visitors who don't care which slot
+// they pick get one-click booking.
+function NextAvailableChip({
+  slot,
+  dateKey,
+  prospectTimezone,
+  onPick,
+}: {
+  slot: AvailableSlotWire;
+  dateKey: string;
+  prospectTimezone: string;
+  onPick: (slot: AvailableSlotWire, dateKey: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onPick(slot, dateKey)}
+      className="group inline-flex items-center gap-2 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-body-sm text-primary transition-colors duration-150 hover:bg-primary/10"
+    >
+      <span className="text-eyebrow uppercase text-primary/70 group-hover:text-primary">
+        Next available
+      </span>
+      <span className="font-medium">
+        {formatNextAvailableLabel(slot.startUtc, prospectTimezone)}
+      </span>
+    </button>
+  );
+}
+
+function formatNextAvailableLabel(utcIso: string, timezone: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).format(new Date(utcIso));
+  } catch {
+    return utcIso;
+  }
+}
+
+// Month-grid + time-pill picker. Mirrors the industry-standard booking
+// pattern (Calendly / Cal.com / SavvyCal): a month calendar on the
+// left with available days highlighted, time pills on the right for
+// the selected day. Stacks vertically on mobile.
+interface CalendarPickerProps {
+  slotsByDate: Record<string, AvailableSlotWire[]>;
+  dateKeys: string[]; // sorted ISO YYYY-MM-DD strings of dates with slots
+  selectedDate: string | null;
+  onSelectDate: (date: string) => void;
+  selectedSlot: AvailableSlotWire | null;
+  onSelectSlot: (slot: AvailableSlotWire) => void;
+  prospectTimezone: string;
+}
+
+function CalendarPicker({
+  slotsByDate,
+  dateKeys,
+  selectedDate,
+  onSelectDate,
+  selectedSlot,
+  onSelectSlot,
+  prospectTimezone,
+}: CalendarPickerProps) {
+  // Default the displayed month to the month of the earliest available
+  // date. Visitors should land on a month that actually has slots.
+  const initialMonth = useMemo(() => {
+    const first = dateKeys[0];
+    if (first) {
+      const [y, m] = first.split("-").map(Number);
+      return { year: y, month: m - 1 };
+    }
+    const today = todayInTz(prospectTimezone);
+    return { year: today.year, month: today.month - 1 };
+  }, [dateKeys, prospectTimezone]);
+
+  const [displayedMonth, setDisplayedMonth] = useState<{
+    year: number;
+    month: number;
+  }>(initialMonth);
+
+  const availableSet = useMemo(() => new Set(dateKeys), [dateKeys]);
+  const firstAvailable = dateKeys[0] ?? null;
+  const lastAvailable = dateKeys[dateKeys.length - 1] ?? null;
+
+  // Allow prev/next month nav only within the range covered by the
+  // available-dates window. Avoids dead-end navigation past Dec when
+  // the booking window only extends 14 days.
+  const canGoPrev = useMemo(() => {
+    if (!firstAvailable) return false;
+    const [y, m] = firstAvailable.split("-").map(Number);
+    return (
+      displayedMonth.year > y ||
+      (displayedMonth.year === y && displayedMonth.month > m - 1)
+    );
+  }, [displayedMonth, firstAvailable]);
+
+  const canGoNext = useMemo(() => {
+    if (!lastAvailable) return false;
+    const [y, m] = lastAvailable.split("-").map(Number);
+    return (
+      displayedMonth.year < y ||
+      (displayedMonth.year === y && displayedMonth.month < m - 1)
+    );
+  }, [displayedMonth, lastAvailable]);
+
+  const gridCells = useMemo(
+    () => buildMonthGrid(displayedMonth.year, displayedMonth.month),
+    [displayedMonth],
+  );
+
+  const monthLabel = useMemo(
+    () =>
+      new Intl.DateTimeFormat("en-US", {
+        month: "long",
+        year: "numeric",
+      }).format(new Date(displayedMonth.year, displayedMonth.month, 1)),
+    [displayedMonth],
+  );
+
+  const slotsForSelectedDate = selectedDate
+    ? slotsByDate[selectedDate] ?? []
+    : [];
+
+  return (
+    <div className="mt-6 grid gap-6 md:grid-cols-[auto_1fr] md:items-start">
+      {/* Calendar grid */}
+      <div className="w-full md:w-[300px]">
+        <div className="mb-3 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setDisplayedMonth(addMonth(displayedMonth, -1))}
+            disabled={!canGoPrev}
+            aria-label="Previous month"
+            className="rounded-md border border-hairline px-2 py-1 text-body-sm text-ink-subtle transition-colors duration-150 hover:bg-surface-1 hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            ←
+          </button>
+          <p className="text-body-sm font-medium text-ink">{monthLabel}</p>
+          <button
+            type="button"
+            onClick={() => setDisplayedMonth(addMonth(displayedMonth, 1))}
+            disabled={!canGoNext}
+            aria-label="Next month"
+            className="rounded-md border border-hairline px-2 py-1 text-body-sm text-ink-subtle transition-colors duration-150 hover:bg-surface-1 hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            →
+          </button>
+        </div>
+
+        {/* Weekday header — Monday-first (AU/EU convention) */}
+        <div className="grid grid-cols-7 gap-1 pb-2 text-center">
+          {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
+            <span
+              key={i}
+              className="text-eyebrow uppercase text-ink-subtle/60"
+            >
+              {d}
+            </span>
+          ))}
+        </div>
+
+        {/* Day cells */}
+        <div className="grid grid-cols-7 gap-1">
+          {gridCells.map((cell) => {
+            const cellKey = isoDate(cell);
+            const isCurrentMonth = cell.getMonth() === displayedMonth.month;
+            const isAvailable = isCurrentMonth && availableSet.has(cellKey);
+            const isSelected = isAvailable && cellKey === selectedDate;
+            return (
+              <button
+                key={cellKey + (isCurrentMonth ? "" : "_o")}
+                type="button"
+                onClick={() => {
+                  if (isAvailable) onSelectDate(cellKey);
+                }}
+                disabled={!isAvailable}
+                aria-label={cellKey}
+                className={`aspect-square rounded-md text-body-sm transition-colors duration-150 ${
+                  isSelected
+                    ? "bg-primary text-on-primary"
+                    : isAvailable
+                      ? "bg-surface-2 text-ink hover:bg-surface-3"
+                      : isCurrentMonth
+                        ? "text-ink-subtle/40"
+                        : "text-ink-subtle/20"
+                }`}
+              >
+                {cell.getDate()}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Time pills for selected day, grouped by part-of-day */}
+      <div className="min-h-[12rem]">
+        {selectedDate ? (
+          <>
+            <p className="mb-3 text-body-sm font-medium text-ink">
+              {formatDateLabel(selectedDate, prospectTimezone)}
+            </p>
+            <div className="flex max-h-80 flex-col gap-4 overflow-y-auto">
+              {groupSlotsByPartOfDay(
+                slotsForSelectedDate,
+                prospectTimezone,
+              ).map((group) =>
+                group.slots.length === 0 ? null : (
+                  <div key={group.label}>
+                    <p className="mb-2 text-eyebrow uppercase text-ink-subtle">
+                      {group.label}
+                    </p>
+                    <div className="flex flex-wrap content-start gap-2">
+                      {group.slots.map((slot) => {
+                        const isSelected =
+                          selectedSlot?.startUtc === slot.startUtc;
+                        return (
+                          <button
+                            key={slot.startUtc}
+                            type="button"
+                            onClick={() => onSelectSlot(slot)}
+                            className={`rounded-md border px-3 py-2 text-body-sm transition-colors duration-150 ${
+                              isSelected
+                                ? "border-primary bg-primary text-on-primary"
+                                : "border-hairline text-ink hover:border-hairline-strong"
+                            }`}
+                          >
+                            {formatTimeLabel(slot.startUtc, prospectTimezone)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ),
+              )}
+            </div>
+          </>
+        ) : (
+          <p className="text-body-sm text-ink-subtle">
+            Pick a day to see available times.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Bucket slots by part-of-day in the prospect's tz. Pure UX win:
+// "afternoon" is a more useful filter than a flat list of 12 pills.
+function groupSlotsByPartOfDay(
+  slots: AvailableSlotWire[],
+  timezone: string,
+): { label: string; slots: AvailableSlotWire[] }[] {
+  const morning: AvailableSlotWire[] = [];
+  const afternoon: AvailableSlotWire[] = [];
+  const evening: AvailableSlotWire[] = [];
+  for (const slot of slots) {
+    const hour = hourInTz(slot.startUtc, timezone);
+    if (hour < 12) morning.push(slot);
+    else if (hour < 17) afternoon.push(slot);
+    else evening.push(slot);
+  }
+  return [
+    { label: "Morning", slots: morning },
+    { label: "Afternoon", slots: afternoon },
+    { label: "Evening", slots: evening },
+  ];
+}
+
+function hourInTz(utcIso: string, timezone: string): number {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      hour: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(new Date(utcIso));
+    const h = parts.find((p) => p.type === "hour")?.value;
+    return Number(h);
+  } catch {
+    return 0;
+  }
+}
+
+// 6 weeks × 7 days = 42 cells starting from the Monday on or before the
+// 1st of the month. Cells outside the current month are rendered greyed
+// (preserves the standard 6-row calendar grid that doesn't visually jump).
+function buildMonthGrid(year: number, month: number): Date[] {
+  const firstOfMonth = new Date(year, month, 1);
+  const dayOfWeek = firstOfMonth.getDay(); // 0=Sun, 1=Mon, ...
+  const mondayOffset = (dayOfWeek + 6) % 7; // Sun→6, Mon→0, ..., Sat→5
+  const cells: Date[] = [];
+  for (let i = 0; i < 42; i++) {
+    cells.push(new Date(year, month, 1 - mondayOffset + i));
+  }
+  return cells;
+}
+
+function addMonth(
+  current: { year: number; month: number },
+  delta: number,
+): { year: number; month: number } {
+  const m = current.month + delta;
+  const yearShift = Math.floor(m / 12);
+  const normalised = ((m % 12) + 12) % 12;
+  return { year: current.year + yearShift, month: normalised };
+}
+
+function isoDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function todayInTz(timezone: string): {
+  year: number;
+  month: number;
+  day: number;
+} {
+  try {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date());
+    const map: Record<string, string> = {};
+    for (const p of parts) if (p.type !== "literal") map[p.type] = p.value;
+    return {
+      year: Number(map.year),
+      month: Number(map.month),
+      day: Number(map.day),
+    };
+  } catch {
+    const now = new Date();
+    return {
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+      day: now.getDate(),
+    };
+  }
+}
 
 function Field({
   label,

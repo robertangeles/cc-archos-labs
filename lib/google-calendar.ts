@@ -365,6 +365,12 @@ export async function createEvent(
     `${CALENDAR_BASE}/calendars/${encodeURIComponent(input.calendarId)}/events`,
   );
   url.searchParams.set("conferenceDataVersion", "1");
+  // sendUpdates=all triggers Google's native attendee invite email —
+  // .ics attachment, Yes/No/Maybe RSVP buttons, "Add to calendar" UI.
+  // Sent from the consultant's calendar address (higher trust than
+  // Resend). Complements our branded confirmation email which carries
+  // the manage link + prep brief framing.
+  url.searchParams.set("sendUpdates", "all");
 
   const body = {
     summary: input.summary,

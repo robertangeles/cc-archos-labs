@@ -50,7 +50,12 @@ export interface ConsultantRow {
   id: string;
   slug: string;
   displayName: string;
+  // Internal routing address (OAuth identity, From: header on outgoing
+  // emails). May be an alias inbox — not what we show publicly.
   email: string;
+  // Branded public address surfaced on the booking page. Falls back to
+  // `email` when unset.
+  publicEmail: string | null;
   timezone: string;
   slotMinutes: number;
   slotBufferMinutes: number;
@@ -70,6 +75,7 @@ export async function getConsultantBySlug(
       slug: consultant.slug,
       displayName: consultant.displayName,
       email: consultant.email,
+      publicEmail: consultant.publicEmail,
       timezone: consultant.timezone,
       slotMinutes: consultant.slotMinutes,
       slotBufferMinutes: consultant.slotBufferMinutes,
@@ -96,6 +102,7 @@ export async function getConsultantBySlug(
     slug: row.slug,
     displayName: row.displayName,
     email: row.email,
+    publicEmail: row.publicEmail,
     timezone: row.timezone,
     slotMinutes: row.slotMinutes,
     slotBufferMinutes: row.slotBufferMinutes,

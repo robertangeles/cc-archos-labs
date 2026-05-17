@@ -379,8 +379,17 @@ export const consultant = pgTable("consultant", {
   slug: text("slug").notNull().unique(),
   // Sender display name on emails (e.g. "Rob at Archos Labs").
   displayName: text("display_name").notNull(),
-  // Sender email + alert routing destination. Unique per consultant.
+  // Internal routing email — used as the consultant's identity for
+  // OAuth lookups and as the From: header on outgoing booking emails.
+  // Unique per consultant. NOT necessarily the same as what's surfaced
+  // publicly on the booking page; that's `public_email` below.
   email: text("email").notNull().unique(),
+  // Public-facing email shown on the booking page's escape-hatch
+  // ("Times don't suit? Email …"). NULL means fall back to `email`.
+  // Lets an admin route internal notifications to an aliased inbox
+  // (e.g. trebor.selegna@outlook.com) while showing prospects a
+  // branded address (rob.angeles@archoslabs.xyz).
+  publicEmail: text("public_email"),
   // IANA tz string (e.g. 'Australia/Sydney'). Slot generation is
   // anchored to this tz; the prospect's tz is captured separately on
   // each booking. Default is UTC — a placeholder admin must overwrite
