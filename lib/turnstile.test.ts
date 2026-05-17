@@ -42,12 +42,26 @@ function mockFetch(handler: (req: Request) => Response | Promise<Response>) {
 }
 
 describe("isTurnstileConfigured", () => {
-  it("returns true when the secret key is set", async () => {
+  it("returns true when BOTH site key and secret key are set", async () => {
     expect(await isTurnstileConfigured()).toBe(true);
   });
 
   it("returns false when the secret key is null", async () => {
     mockConfig.turnstileSecretKey = null;
+    expect(await isTurnstileConfigured()).toBe(false);
+  });
+
+  it("returns false when only the secret key is set (asymmetric: no site key)", async () => {
+    // Regression: previously this returned true, which caused the booking
+    // route to demand verification of a token the form couldn't have
+    // generated (no widget = no token = Cloudflare missing-input-response).
+    mockConfig.turnstileSiteKey = null;
+    expect(await isTurnstileConfigured()).toBe(false);
+  });
+
+  it("returns false when only the site key is set (asymmetric: no secret key)", async () => {
+    mockConfig.turnstileSecretKey = null;
+    mockConfig.turnstileSiteKey = "site-only";
     expect(await isTurnstileConfigured()).toBe(false);
   });
 });

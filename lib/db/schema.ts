@@ -381,9 +381,12 @@ export const consultant = pgTable("consultant", {
   displayName: text("display_name").notNull(),
   // Sender email + alert routing destination. Unique per consultant.
   email: text("email").notNull().unique(),
-  // IANA tz string (e.g. 'Asia/Manila'). Slot generation is anchored to
-  // this tz; the prospect's tz is captured separately on each booking.
-  timezone: text("timezone").notNull().default("Asia/Manila"),
+  // IANA tz string (e.g. 'Australia/Sydney'). Slot generation is
+  // anchored to this tz; the prospect's tz is captured separately on
+  // each booking. Default is UTC — a placeholder admin must overwrite
+  // via the profile UI to match where they actually take calls.
+  // Migration 0007 removed an earlier arbitrary 'Asia/Manila' default.
+  timezone: text("timezone").notNull().default("UTC"),
   // Slot length and buffer between bookings, both in minutes.
   slotMinutes: integer("slot_minutes").notNull().default(30),
   slotBufferMinutes: integer("slot_buffer_minutes").notNull().default(15),

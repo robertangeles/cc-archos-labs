@@ -273,9 +273,14 @@ export type CreateBookingInput = z.infer<typeof createBookingInputSchema>;
 export interface CreateBookingResult {
   bookingId: string;
   idempotencyKey: string;
-  // True if this call inserted a new row, false if a previous identical
-  // submit already created the booking (idempotent replay).
-  created: boolean;
+  // "created"        — new row inserted by this call
+  // "exists_confirmed" — prior submit succeeded, booking is fully ready
+  //                    (Google event + jtis + email all done). Route
+  //                    should short-circuit to confirmation page.
+  // "exists_pending_sync" — prior submit inserted the row but Google
+  //                    failed at the event-creation step. Route should
+  //                    retry steps 5-8 (Google + email + enqueue).
+  status: "created" | "exists_confirmed" | "exists_pending_sync";
 }
 
 // Insert a booking_request row, race-safe via the unique idempotency_key.
@@ -311,14 +316,27 @@ export async function createBookingRow(input: {
   const db = getDb();
 
   // Check for an existing row with the same idempotency key — second
-  // identical submit returns the original row.
+  // identical submit returns the original row but with a status flag
+  // so the route handler can decide whether to retry the Google /
+  // email steps (when the prior attempt left the booking in
+  // pending_calendar_sync) or short-circuit to the confirmation page.
   const existing = await db
-    .select({ id: bookingRequest.id })
+    .select({
+      id: bookingRequest.id,
+      status: bookingRequest.status,
+    })
     .from(bookingRequest)
     .where(eq(bookingRequest.idempotencyKey, idempotencyKey))
     .limit(1);
   if (existing[0]) {
-    return { bookingId: existing[0].id, idempotencyKey, created: false };
+    return {
+      bookingId: existing[0].id,
+      idempotencyKey,
+      status:
+        existing[0].status === "pending_calendar_sync"
+          ? "exists_pending_sync"
+          : "exists_confirmed",
+    };
   }
 
   // Race-guard: another confirmed booking at the same slot?
@@ -369,12 +387,15 @@ export async function createBookingRow(input: {
     throw new BookingError("Booking insert returned no row");
   }
 
-  return { bookingId: inserted[0].id, idempotencyKey, created: true };
+  return { bookingId: inserted[0].id, idempotencyKey, status: "created" };
 }
 
 // Update the booking row with the Google event id + Meet URL once the
 // calendar event creation succeeds. Separate transaction so a Google
-// failure doesn't block the initial insert.
+// failure doesn't block the initial insert. Always sets status back
+// to 'confirmed' — if this is a retry of a pending_calendar_sync
+// booking, that flip clears the "sync delayed" banner on the
+// confirmation page.
 export async function attachGoogleEvent(input: {
   bookingId: string;
   googleEventId: string;
@@ -386,6 +407,7 @@ export async function attachGoogleEvent(input: {
     .set({
       googleEventId: input.googleEventId,
       meetUrl: input.meetUrl,
+      status: "confirmed",
       updatedAt: input.now,
     })
     .where(eq(bookingRequest.id, input.bookingId));

@@ -5,6 +5,7 @@ import { getDb } from "../../../../../lib/db";
 import { consultant } from "../../../../../lib/db/schema";
 import { BookingError, GoogleAuthError } from "../../../../../lib/errors/booking";
 import { exchangeCodeForTokens } from "../../../../../lib/google-oauth";
+import { clearAccessTokenCache } from "../../../../../lib/google-calendar";
 import { getIntegrationConfig } from "../../../../../lib/integration-config";
 import { getSiteSettings } from "../../../../../lib/site-config";
 import { STATE_COOKIE } from "../start/route";
@@ -132,6 +133,11 @@ export async function GET(request: NextRequest) {
           updatedAt: new Date(),
         })
         .where(eq(consultant.id, existing[0].id));
+      // Bust the in-memory access-token cache so the next API call
+      // re-derives a token from the *new* refresh token. Without this,
+      // a scope upgrade (or any rotation) wouldn't take effect until
+      // the cached access token's 1-hour TTL expired.
+      clearAccessTokenCache(existing[0].id);
     } else {
       // Derive a sensible default slug from the email local part. Admin
       // can rename via the profile UI later. Matches the SQL backfill in

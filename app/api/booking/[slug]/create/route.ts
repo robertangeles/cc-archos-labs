@@ -154,10 +154,15 @@ export async function POST(request: NextRequest, { params }: Params) {
     );
   }
 
-  // Idempotent replay: a second identical POST returns the existing row
-  // without re-creating the event / re-sending the email. The page
-  // navigates to /confirmation regardless.
-  if (!inserted.created) {
+  // Idempotent replay: a second identical POST might find:
+  //   - exists_confirmed → booking already fully landed (Google event +
+  //     email + jtis). Short-circuit to the confirmation page.
+  //   - exists_pending_sync → a prior submit inserted the row but
+  //     Google failed at the event-creation step. Fall through and
+  //     retry steps 5-8 (Google + jtis + email + enqueue). Once the
+  //     attach succeeds, status flips back to 'confirmed' so the
+  //     confirmation page clears the "sync delayed" banner.
+  if (inserted.status === "exists_confirmed") {
     return NextResponse.json({
       ok: true,
       bookingId: inserted.bookingId,

@@ -128,28 +128,46 @@ export function BookingForm({
   // Honeypot — visually hidden, screen-reader hidden, autocomplete off.
   const [website, setWebsite] = useState("");
 
-  // Turnstile widget id (returned by turnstile.render) so we can read +
-  // reset it on submit / error.
+  // Turnstile widget id (returned by turnstile.render) so we can reset
+  // it after a failed submit. Token capture goes through the widget's
+  // `callback` option directly into React state — more reliable than
+  // polling getResponse() on submit (which can return empty if the
+  // widget hasn't completed verification yet).
   const turnstileWidgetIdRef = useRef<string | null>(null);
   const turnstileContainerRef = useRef<HTMLDivElement | null>(null);
   const [turnstileReady, setTurnstileReady] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string>("");
 
   // Submit state ----------------------------------------------------------
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Render Turnstile once the script loads + the container is in the DOM.
+  // Render Turnstile when the script is loaded AND the container is
+  // mounted (which only happens after the user picks a slot). The
+  // selectedSlot dep is load-bearing: without it the effect fires once
+  // before the form renders, sees a null container, and never re-runs.
   useEffect(() => {
     if (!turnstileSiteKey || !turnstileReady) return;
+    if (!selectedSlot) return; // form not visible yet
     if (!turnstileContainerRef.current) return;
     if (turnstileWidgetIdRef.current) return; // already rendered
     if (!window.turnstile) return;
     const id = window.turnstile.render(turnstileContainerRef.current, {
       sitekey: turnstileSiteKey,
       theme: "dark",
+      callback: (token: string) => setTurnstileToken(token),
     });
     turnstileWidgetIdRef.current = id;
-  }, [turnstileSiteKey, turnstileReady]);
+  }, [turnstileSiteKey, turnstileReady, selectedSlot]);
+
+  // Reset the widget tracking + token state. Called from the "Pick a
+  // different time" button and the slot-conflict refresh path — we
+  // can't do this in a useEffect because setState-in-effect is a
+  // perf antipattern (React docs: you-might-not-need-an-effect).
+  const resetTurnstile = () => {
+    turnstileWidgetIdRef.current = null;
+    setTurnstileToken("");
+  };
 
   // Trigger conversational follow-up after the prospect leaves the
   // reason field (and only if they typed something non-trivial). The
@@ -193,11 +211,11 @@ export function BookingForm({
 
     setSubmitting(true);
 
-    const turnstileToken =
-      turnstileSiteKey && window.turnstile && turnstileWidgetIdRef.current
-        ? window.turnstile.getResponse(turnstileWidgetIdRef.current)
-        : "";
-
+    // Token comes from the widget's callback (set on every successful
+    // verification). When Turnstile isn't configured, turnstileSiteKey
+    // is null and we send an empty token — the server checks
+    // isTurnstileConfigured() (now requires both keys) and skips
+    // verification.
     if (turnstileSiteKey && !turnstileToken) {
       setSubmitError("Complete the bot check above the submit button.");
       setSubmitting(false);
@@ -248,11 +266,13 @@ export function BookingForm({
         // Reset Turnstile so a fresh token gets minted on the next submit.
         if (window.turnstile && turnstileWidgetIdRef.current) {
           window.turnstile.reset(turnstileWidgetIdRef.current);
+          setTurnstileToken(""); // clear stale token until callback fires again
         }
       } else {
         setSubmitError(body.error ?? "Could not book. Try again.");
         if (window.turnstile && turnstileWidgetIdRef.current) {
           window.turnstile.reset(turnstileWidgetIdRef.current);
+          setTurnstileToken(""); // clear stale token until callback fires again
         }
       }
     } catch (err) {
@@ -486,7 +506,10 @@ export function BookingForm({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedSlot(null)}
+                  onClick={() => {
+                    setSelectedSlot(null);
+                    resetTurnstile();
+                  }}
                   className="text-body-sm text-ink-subtle underline hover:text-ink"
                 >
                   Pick a different time

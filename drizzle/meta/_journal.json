@@ -50,6 +50,13 @@
       "when": 1778848312264,
       "tag": "0006_worthless_puma",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1778974728258,
+      "tag": "0007_spooky_warpath",
+      "breakpoints": true
     }
   ]
 }

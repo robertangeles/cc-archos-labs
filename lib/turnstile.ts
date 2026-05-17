@@ -88,10 +88,12 @@ export async function verifyTurnstile(
   return true;
 }
 
-// Returns true if Turnstile is configured (secret key set). Used by the
-// booking page to decide whether to render the widget at all; if false,
-// the page omits the widget and the create route skips verification.
+// Returns true if Turnstile is *fully* configured — BOTH site key
+// (needed for the widget to render client-side) AND secret key (needed
+// for server-side verification). Half-configured state is treated as
+// "not configured" so we never reject a submission that the form
+// couldn't have generated a token for.
 export async function isTurnstileConfigured(): Promise<boolean> {
   const config = await getIntegrationConfig();
-  return Boolean(config.turnstileSecretKey);
+  return Boolean(config.turnstileSiteKey && config.turnstileSecretKey);
 }
