@@ -2,8 +2,8 @@
 title: Shipped Backlog Items
 category: synthesis
 created: 2026-05-17
-updated: 2026-05-17
-related: [[backlog]], [[state]], [[2026-05-08-phase2-ceo-review]], [[book-a-call-architecture]]
+updated: 2026-05-18
+related: [[backlog]], [[state]], [[2026-05-08-phase2-ceo-review]], [[book-a-call-architecture]], [[2026-05-17-home-page-pas-rewrite]], [[home-page-section-components]]
 ---
 
 Historical record of items moved out of [[backlog]] once shipped. For current ship state by route / endpoint / component, see [[state]] (auto-generated, always fresh). [[backlog]] going forward describes **intent only**.
@@ -35,6 +35,12 @@ Items 14–25 inclusive. Full route set at `/tools/ai-readiness` (welcome → qu
 
 The PDF audit on 2026-05-17 found [[backlog]] still claimed Phase 2 was "in progress" — that staleness is why [[state]] now exists.
 
+## Home page PAS rewrite (shipped 2026-05-18, PR #53)
+
+Replaced the May 7 four-section home page (Hero → What we do → Who we work with → Closing CTA, single Book a call CTA) with a 9-section PAS sales page: Hero → Agitate → Solution+Proof → 90-day timeline → Services (4 cards) → Objection FAQ → Who We Work With → Assessment Block → Final CTA. Dual CTA (Take the assessment + Book a call) in the hero and Final CTA; assessment-only in the Assessment Block. See [[2026-05-17-home-page-pas-rewrite]] for the full locked-decisions table and [[home-page-section-components]] for the reusable component library that came out of this work.
+
+Workstream 2 of the May 2026 home-page plan (Workstream 1 = wiki rot fix shipped as PR #52). Supersedes [[2026-05-07-home-page]] on structure and copy; the 2026-05-07 decision doc only covered the first four-section layout.
+
 ## Phase 2.5 — IP-sensitive content moved to DB (shipped 2026-05-12 / 2026-05-13)
 - Item 26 — Claude system prompt moved to Settings (PR #9). Source has generic fallback; real prompt lives in `site_setting` key `'diagnostic_prompt'`, edited via `/admin/prompts`.
 - Item 27 — Diagnostic content moved to DB (PR #12). Source has placeholder fallback; real content lives in `site_setting` key `'diagnostic_content'`, edited via `/admin/diagnostic`. `pnpm extract-content` recovers historical content from git history.
@@ -48,4 +54,3 @@ Items still describing intent (not ship state):
 - Item 12 — Basic SEO + meta
 - Items 31–34 — Phase 1.E follow-ups (admin status flip, consultant profile UI, blog library wiring, cron alert)
 - Phase 3 items (Modelling Room page, Tools index, analytics, newsletter signup)
-- The May 2026 Home Page PAS rewrite (separate plan, separate PR — Workstream 2)
