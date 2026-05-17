@@ -19,6 +19,7 @@ _(none yet)_
 - [Transactional email rendering — patterns and brand decisions](concepts/transactional-email-rendering.md) — bulletproof button (table + VML + [data-ogsc]), table-row spacing, masthead-outside-card, personal sign-off, palette matched to PDF light-mode tokens
 - [Integration config — DB-backed secrets with env-rooted master key](concepts/integration-config.md) — AES-256-GCM per-field encryption in `site_setting`, fail-closed loader, module-level cache, env-fallback grace window, master-key rotation
 - [Design system — implementation reference](concepts/design-system.md) — how DESIGN.md flows into globals.css `@theme`, the 22 colour + 13 typography tokens, surface ladder, transactional-surface overrides, rules-of-thumb for adding new tokens
+- [Claude eval suites for booking prompts](concepts/claude-eval-suites.md) — pnpm eval, fixture-based programmatic checks across the 3 booking prompts, live API calls, kept out of CI
 
 ## decisions
 - [Diagnostic per-option scoring calibration (overview)](decisions/2026-05-09-diagnostic-scoring-calls.md) — meta-discipline for calibration deviations: four classes of deviation + score-vs-trigger separation pattern; specific values live in /admin/diagnostic

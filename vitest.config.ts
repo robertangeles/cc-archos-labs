@@ -5,6 +5,10 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["lib/**/*.test.ts", "tests/**/*.test.ts"],
+    // Eval suites under tests/eval/ make LIVE Claude calls and incur API
+    // cost. They run via `pnpm eval` (a separate vitest config), never
+    // in the default test pass / CI. Excluded here so CI stays free.
+    exclude: ["node_modules/**", "tests/eval/**"],
   },
   resolve: {
     alias: {

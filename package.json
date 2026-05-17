@@ -11,6 +11,7 @@
     "tsc": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "eval": "node --env-file-if-exists=.env.local ./node_modules/vitest/vitest.mjs run --config vitest.eval.config.ts",
     "prepare": "husky",
     "wip": "node scripts/wip.mjs",
     "new-branch": "node scripts/new-branch.mjs",
