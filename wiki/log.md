@@ -8,6 +8,24 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-17 — Wiki rot fix: auto-derived state register + verification rule + shipped-items move-out
+
+Surfaced during the system audit for the home-page PAS rewrite plan: a dispatched Explore subagent reported `/tools/ai-readiness` as "Phase 2 in progress" because [[backlog]] still described it that way, even though the route shipped on 2026-05-13. That stale claim produced a confidently wrong CTA-sequencing question in the planning session. Fixing the wiki structure so the same failure mode doesn't recur was made a prerequisite to the home-page rewrite — Workstream 1 of the May 2026 home-page plan, separate PR, ships before Workstream 2.
+
+Three changes in this PR:
+
+1. **`scripts/wiki-state.mjs` + `pnpm wiki:state`** — walks `git ls-files` and writes [[state]] with three tables (routes from `app/**/page.tsx`, API endpoints from `app/api/**/route.ts`, components from `components/**/*.tsx`), each row carrying the last-commit ISO date. The file is committed so any agent can `Read` it directly from a clone without having to run the script first.
+
+2. **Pre-commit hook regeneration** — `.husky/pre-commit` now checks for staged changes under `app/` or `components/` and re-runs `wiki-state.mjs` + `git add wiki/state.md` after lint-staged. The register stays fresh without anyone remembering to refresh it manually.
+
+3. **CLAUDE.md verification rule** — new "Before claiming a feature is unbuilt" subsection under `# LLM Wiki`. Instructs the agent (and any dispatched Explore subagent) to read [[state]] before treating a backlog claim as authoritative. Backlog describes intent; state describes reality.
+
+Plus a one-time cleanup: [[shipped]] now indexes everything moved out of the planning backlog — Phase 0 foundations, Phase 1 contact + privacy/terms, Phase 1.E book-a-call (PRs #39–#48 inclusive), Phase 2 AI Readiness Assessment (items 14–25), Phase 2.5 IP-to-DB moves. [[backlog]] gains `✅ SHIPPED` banners at the head of Phase 2 and Phase 1.E sections while preserving the design narrative below.
+
+Verified: `pnpm wiki:state` produces 21 routes / 30 endpoints / 18 components; `/tools/ai-readiness` and `/book/archos-labs` both appear under Routes. Pre-commit hook verified by staging a no-op change (covered separately in the verification step).
+
+Workstream 1 of the home-page PAS rewrite plan. Workstream 2 (the actual home-page rewrite + 10 expansions) follows in a separate branch + PR.
+
 ## 2026-05-17 — Seed-script confirmation guardrail (dev/prod share one DB)
 
 Stopgap until the dev DB splits off (planned when Rob moves to the Linux dev machine + local Postgres). `pnpm db:seed-diagnostic-content` now (a) prints the target DB host so the operator can see which DB they're about to write, (b) computes a content-shape-specific structural diff against the current row (question add/remove, option score changes, label/text changes, risk rule add/remove, priority trigger add/remove, tier-boundary tweaks, domain-weight tweaks, version bumps), (c) prompts for a typed `yes` before writing, and (d) accepts `--yes` (skip prompt, for CI-style use) and `--diff-only` (print diff then exit, never write).
