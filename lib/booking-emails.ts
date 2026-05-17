@@ -500,3 +500,72 @@ export function buildBookingNoshowRecoveryEmail(
 
   return { subject, text, html: wrapHtml(cardHtml) };
 }
+
+// ----------------------------------------------------------------------------
+// 7. Cancellation email — fires when the prospect cancels via the
+//    magic-link manage page. Google sends its own "Event cancelled"
+//    alongside; ours carries the brand voice + a re-book CTA.
+// ----------------------------------------------------------------------------
+
+export interface BookingCancellationInput {
+  prospectFirstName: string;
+  // Pre-formatted: "Tuesday, 14 May 2026 at 2:00 PM Sydney time".
+  slotStartLocal: string;
+  // /book/<slug> URL on the live site so they can re-book in one click.
+  bookAgainUrl: string;
+}
+
+export function buildBookingCancellationEmail(
+  input: BookingCancellationInput,
+): RenderedEmail {
+  const firstName = sanitiseForPlainText(input.prospectFirstName);
+  const subject = `Cancelled: ${sanitiseForPlainText(input.slotStartLocal)}`;
+
+  const text = [
+    `Hi ${firstName},`,
+    ``,
+    `Your call on ${input.slotStartLocal} is cancelled. No further reminders will land.`,
+    ``,
+    `If life intervened and you still want to talk, pick a new time:`,
+    input.bookAgainUrl,
+    ``,
+    `— Rob`,
+  ].join("\n");
+
+  const cardHtml = `
+    <tr>
+      <td style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:${MUTED};font-weight:600;">
+        Cancelled
+      </td>
+    </tr>
+    <tr>
+      <td style="padding-top:16px;font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-0.01em;">
+        ${escapeHtml(input.slotStartLocal)}
+      </td>
+    </tr>
+    <tr>
+      <td style="padding-top:16px;font-size:15px;line-height:1.6;color:${FG};">
+        Your call is cancelled. No further reminders will land.
+      </td>
+    </tr>
+    <tr>
+      <td style="padding-top:16px;font-size:15px;line-height:1.6;color:${FG};">
+        If life intervened and you still want to talk, pick a new time:
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:16px 0 8px 0;">
+        <a href="${escapeAttr(input.bookAgainUrl)}" style="display:inline-block;background:${ACCENT};color:#ffffff;text-decoration:none;padding:14px 24px;border-radius:6px;font-size:15px;font-weight:500;">
+          Pick a new time
+        </a>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding-top:24px;font-size:15px;color:${FG};">
+        — Rob
+      </td>
+    </tr>
+  `;
+
+  return { subject, text, html: wrapHtml(cardHtml) };
+}

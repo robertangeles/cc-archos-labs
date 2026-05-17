@@ -420,6 +420,225 @@ export async function attachGoogleEvent(input: {
     .where(eq(bookingRequest.id, input.bookingId));
 }
 
+// ----------------------------------------------------------------------------
+// Manage flow — magic-link token verification + cancel + reschedule
+// ----------------------------------------------------------------------------
+//
+// The confirmation email carries a JWT signed with AUTH_SECRET that
+// embeds the booking id + a single-use jti. The manage page + the
+// cancel/reschedule routes hand that token here to (a) verify the
+// signature and expiry, and (b) confirm the jti still matches the
+// booking's stored cancel_jti — which means the token hasn't already
+// been consumed by a prior cancel or supplanted by a reschedule.
+
+import {
+  generateJti,
+  signMagicLink,
+  verifyMagicLink,
+} from "./jwt-magic-link";
+import { JWTRevokedError } from "./errors/booking";
+
+export interface VerifiedManageContext {
+  bookingId: string;
+  // The booking row, minus a few columns the routes/pages don't need.
+  // Drizzle won't infer "fewer columns" from select(), so we type
+  // exactly what the verifier returns.
+  booking: {
+    id: string;
+    consultantId: string;
+    name: string;
+    email: string;
+    organisation: string | null;
+    position: string | null;
+    reasonInitial: string;
+    reasonFollowups: unknown;
+    slotStart: Date;
+    slotEnd: Date;
+    prospectTimezone: string;
+    status: string;
+    googleEventId: string | null;
+    meetUrl: string | null;
+    cancelJti: string | null;
+    rescheduleJti: string | null;
+  };
+  consultant: ConsultantRow;
+}
+
+// Verify the manage token + jti. Throws JWTInvalidError /
+// JWTExpiredError / JWTRevokedError on auth failure. Throws
+// BookingError if the booking row is missing or its consultant is
+// unreachable.
+//
+// `expectedKind` defaults to 'cancel' because PR #42 only mints cancel
+// tokens (the confirmation email's manage URL embeds one). A future
+// flow that surfaces a 'reschedule' token can verify with that kind.
+export async function verifyManageToken(input: {
+  token: string;
+  expectedKind?: "cancel" | "reschedule";
+}): Promise<VerifiedManageContext> {
+  const payload = await verifyMagicLink(input.token);
+  const expectedKind = input.expectedKind ?? "cancel";
+  if (payload.kind !== expectedKind) {
+    throw new JWTRevokedError(
+      `Token kind mismatch (got ${payload.kind}, expected ${expectedKind})`,
+    );
+  }
+
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: bookingRequest.id,
+      consultantId: bookingRequest.consultantId,
+      name: bookingRequest.name,
+      email: bookingRequest.email,
+      organisation: bookingRequest.organisation,
+      position: bookingRequest.position,
+      reasonInitial: bookingRequest.reasonInitial,
+      reasonFollowups: bookingRequest.reasonFollowups,
+      slotStart: bookingRequest.slotStart,
+      slotEnd: bookingRequest.slotEnd,
+      prospectTimezone: bookingRequest.prospectTimezone,
+      status: bookingRequest.status,
+      googleEventId: bookingRequest.googleEventId,
+      meetUrl: bookingRequest.meetUrl,
+      cancelJti: bookingRequest.cancelJti,
+      rescheduleJti: bookingRequest.rescheduleJti,
+    })
+    .from(bookingRequest)
+    .where(eq(bookingRequest.id, payload.bid))
+    .limit(1);
+  const booking = rows[0];
+  if (!booking) {
+    throw new JWTRevokedError(`Booking ${payload.bid} not found`);
+  }
+
+  // jti revocation check. The jti stamped on the booking row is the
+  // single source of truth — if it's been cleared (cancel happened) or
+  // rotated (reschedule happened), the link is dead.
+  const expectedJti =
+    expectedKind === "cancel" ? booking.cancelJti : booking.rescheduleJti;
+  if (!expectedJti || expectedJti !== payload.jti) {
+    throw new JWTRevokedError(
+      "Token has already been used or superseded by a reschedule",
+    );
+  }
+
+  const consultant = await getConsultantById(booking.consultantId);
+  if (!consultant) {
+    throw new BookingError(
+      `Consultant ${booking.consultantId} not found for booking ${booking.id}`,
+    );
+  }
+
+  return { bookingId: booking.id, booking, consultant };
+}
+
+// Load consultant by id — sister to getConsultantBySlug. Keeps the
+// query column list in one place.
+async function getConsultantById(id: string): Promise<ConsultantRow | null> {
+  const rows = await getDb()
+    .select({
+      id: consultant.id,
+      slug: consultant.slug,
+      displayName: consultant.displayName,
+      email: consultant.email,
+      publicEmail: consultant.publicEmail,
+      timezone: consultant.timezone,
+      slotMinutes: consultant.slotMinutes,
+      slotBufferMinutes: consultant.slotBufferMinutes,
+      advanceDays: consultant.advanceDays,
+      minNoticeHours: consultant.minNoticeHours,
+      workingHoursJson: consultant.workingHoursJson,
+      googleCalendarId: consultant.googleCalendarId,
+      googleStatus: consultant.googleStatus,
+    })
+    .from(consultant)
+    .where(eq(consultant.id, id))
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  const workingHours = workingHoursSchema.parse(row.workingHoursJson);
+  return {
+    id: row.id,
+    slug: row.slug,
+    displayName: row.displayName,
+    email: row.email,
+    publicEmail: row.publicEmail,
+    timezone: row.timezone,
+    slotMinutes: row.slotMinutes,
+    slotBufferMinutes: row.slotBufferMinutes,
+    advanceDays: row.advanceDays,
+    minNoticeHours: row.minNoticeHours,
+    workingHours,
+    googleCalendarId: row.googleCalendarId,
+    googleStatus: row.googleStatus as "pending" | "ok" | "stale",
+  };
+}
+
+// Mark a booking cancelled in the DB and revoke its magic-link jtis.
+// Caller is responsible for the side-effects: deleting the Google
+// event, sending the cancellation email, cancelling pending scheduled
+// jobs. Splitting "DB state change" from "side effects" keeps the
+// route handler in control of error recovery — if Google delete fails,
+// the DB is already correct and the operator can manually clean up.
+export async function markBookingCancelled(input: {
+  bookingId: string;
+  now: Date;
+}): Promise<void> {
+  await getDb()
+    .update(bookingRequest)
+    .set({
+      status: "cancelled",
+      // Single-use: clear the jtis so neither magic link works again.
+      cancelJti: null,
+      rescheduleJti: null,
+      updatedAt: input.now,
+    })
+    .where(eq(bookingRequest.id, input.bookingId));
+}
+
+// Mark a booking as superseded by a new one. Used by the reschedule
+// flow on the OLD booking row — the new row gets its own create-time
+// inserts via createBookingRow.
+export async function markBookingRescheduled(input: {
+  oldBookingId: string;
+  newBookingId: string;
+  now: Date;
+}): Promise<void> {
+  await getDb()
+    .update(bookingRequest)
+    .set({
+      status: "rescheduled_from",
+      rescheduledToId: input.newBookingId,
+      cancelJti: null,
+      rescheduleJti: null,
+      updatedAt: input.now,
+    })
+    .where(eq(bookingRequest.id, input.oldBookingId));
+}
+
+// Mint fresh cancel + reschedule jtis for a booking. Used by the
+// reschedule flow's new-booking step. The cancel token is returned so
+// the route can build the manage URL embedded in the new confirmation
+// email.
+export async function mintBookingJtis(input: {
+  bookingId: string;
+  now: Date;
+}): Promise<{ cancelToken: string; cancelJti: string; rescheduleJti: string }> {
+  const cancelJti = generateJti();
+  const rescheduleJti = generateJti();
+  const cancelToken = await signMagicLink(input.bookingId, "cancel", cancelJti);
+  await getDb()
+    .update(bookingRequest)
+    .set({
+      cancelJti,
+      rescheduleJti,
+      updatedAt: input.now,
+    })
+    .where(eq(bookingRequest.id, input.bookingId));
+  return { cancelToken, cancelJti, rescheduleJti };
+}
+
 // Re-export named errors that route handlers narrow on for typed
 // responses. Keeps the error surface clear at call sites.
 export {
