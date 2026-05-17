@@ -2,8 +2,8 @@
 title: Wiki Index
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-15
-related: [[backlog]], [[lead-session-and-owner-only-reports]], [[magic-link-sign-in]], [[transactional-email-rendering]], [[integration-config]], [[design-system]], [[2026-05-08-minimal-admin-for-seo]], [[2026-05-08-resend-with-external-recipient]], [[2026-05-08-godaddy-smtp-for-contact-form]], [[2026-05-08-render-postgres-over-neon]], [[2026-05-08-phase2-ceo-review]], [[2026-05-08-admin-deferred]], [[2026-05-07-linear-redesign]], [[2026-05-07-brand-foundation]], [[2026-05-07-layout-shell]], [[2026-05-07-home-page]], [[2026-05-07-turbopack-root]], [[2026-05-07-tailwind-v4-new-utilities]], [[2026-05-08-drizzle-kit-push-hangs-on-render]], [[2026-05-13-email-buttons-need-the-bulletproof-pattern]]
+updated: 2026-05-17
+related: [[backlog]], [[book-a-call-architecture]], [[booking-prompts-in-db]], [[claude-eval-suites]], [[lead-session-and-owner-only-reports]], [[magic-link-sign-in]], [[transactional-email-rendering]], [[integration-config]], [[design-system]]
 ---
 
 Master catalog of all wiki pages. Read this at the start of every session.
@@ -20,6 +20,8 @@ _(none yet)_
 - [Integration config — DB-backed secrets with env-rooted master key](concepts/integration-config.md) — AES-256-GCM per-field encryption in `site_setting`, fail-closed loader, module-level cache, env-fallback grace window, master-key rotation
 - [Design system — implementation reference](concepts/design-system.md) — how DESIGN.md flows into globals.css `@theme`, the 22 colour + 13 typography tokens, surface ladder, transactional-surface overrides, rules-of-thumb for adding new tokens
 - [Claude eval suites for booking prompts](concepts/claude-eval-suites.md) — pnpm eval, fixture-based programmatic checks across the 3 booking prompts, live API calls, kept out of CI
+- [Book-a-Call architecture](concepts/book-a-call-architecture.md) — full pipeline overview: prospect → booking page → Google Calendar event + Resend confirmation → cron-driven reminders + Claude pre-call brief → magic-link manage flow; soft-fallback semantics, schema, what's deliberately not shipped
+- [Booking prompts in the DB — soft-fallback by design](concepts/booking-prompts-in-db.md) — three Claude prompts (followup, brief, blogMatch) in one `booking_prompts` site_setting row; admin edits at /admin/prompts; soft-fallback to hardcoded starters when row missing/malformed (vs diagnostic's hard-fail)
 
 ## decisions
 - [Diagnostic per-option scoring calibration (overview)](decisions/2026-05-09-diagnostic-scoring-calls.md) — meta-discipline for calibration deviations: four classes of deviation + score-vs-trigger separation pattern; specific values live in /admin/diagnostic
@@ -33,6 +35,10 @@ _(none yet)_
 - [Brand foundation — typography and colour tokens](decisions/2026-05-07-brand-foundation.md) — _superseded_; original editorial Source Serif 4 + Inter direction
 - [Layout shell — header, footer, nav](decisions/2026-05-07-layout-shell.md) — _superseded_ on styling; structural shape (4-link nav, mobile stacking) carries forward
 - [Home page (`/`) — Phase 0a structure and copy](decisions/2026-05-07-home-page.md) — _superseded_ on styling; copy and four-section structure carry forward
+- [Patch-in-place reschedule (events.patch over delete + create)](decisions/2026-05-17-patch-in-place-reschedule.md) — reschedule moves the existing Google event via PATCH rather than delete-old + create-new; preserves event id, fires a single "Event updated" notification, avoids Google's invite-suppression on rapid cancel+create pairs
+- [events.insert uses sendUpdates=all](decisions/2026-05-17-send-updates-all-on-events-insert.md) — without it, attendees get no .ics invite email; bookings ship both Google's native invite AND our branded Resend confirmation
+- [consultant.public_email split from internal routing](decisions/2026-05-17-public-email-split.md) — `consultant.email` is the OAuth identity + From: header; `consultant.public_email` is what the booking page surfaces; falls back to `email` when null
+- [Booking prompts soft-fallback (vs diagnostic's hard-fail)](decisions/2026-05-17-soft-fallback-for-booking-prompts.md) — booking is operational AI augmentation, not a deliverable; missing/malformed prompts row → hardcoded starter, never throw; diagnostic prompt does the opposite for a reason
 
 ## synthesis
 _(none yet)_
@@ -42,6 +48,10 @@ _(none yet)_
 - [Puppeteer-on-Render setup needs three things, not one](lessons-learned/2026-05-13-puppeteer-on-render.md) — build command must run `npx puppeteer browsers install chrome`; cache path must be project-local via `PUPPETEER_CACHE_DIR`; navigation target must use `NEXT_PUBLIC_SITE_URL`, not `request.url`
 - [Schema drift claims need an origin/main check, not just the working tree](lessons-learned/2026-05-12-schema-drift-needs-origin-main-check.md) — fetch + diff against origin/main before declaring code or tables unreferenced; a feature-branch grep doesn't see what merged to main after you branched off
 - [drizzle-kit push hangs on Render Postgres](lessons-learned/2026-05-08-drizzle-kit-push-hangs-on-render.md) — bypass push; use `drizzle-kit generate` + a `postgres-js` SQL applier
+- [Google events.insert needs sendUpdates=all to email the .ics invite](lessons-learned/2026-05-17-google-send-updates-required-for-ics.md) — without it, the event lands on the calendar but no attendee invite goes out; always test with attendee != calendar owner
+- [Google suppresses rapid invite + cancel pairs on the same attendee](lessons-learned/2026-05-17-google-suppresses-rapid-invite-cancel.md) — delete-old + create-new for reschedules silently drops the new invite email; use events.patch instead
+- [Turnstile needs BOTH keys set — half-config silently breaks](lessons-learned/2026-05-17-asymmetric-turnstile-config.md) — Site Key alone or Secret alone produces a form that submits an empty token to a server that demands verification; require both before treating Turnstile as enabled
+- [Vitest retry:2 is the right pattern for live-API eval suites](lessons-learned/2026-05-17-vitest-retry-for-live-api-evals.md) — eval cases mix transient API noise with real regressions; 3 total attempts filter the noise without masking the signal
 - [Turbopack workspace root must be set explicitly on Next.js 16](lessons-learned/2026-05-07-turbopack-root.md) — set `turbopack.root` in `next.config.ts` from day one when project lives inside a shared parent dir
 - [Tailwind v4 dev server doesn't always compile new utility names on hot-reload](lessons-learned/2026-05-07-tailwind-v4-new-utilities.md) — re-save `globals.css` after introducing new `--color-*` tokens; values hot-reload, names don't
 

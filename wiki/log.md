@@ -2,11 +2,47 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-13
+updated: 2026-05-17
 related:
 ---
 
 Append-only log of sessions. Newest entry at the top.
+
+## 2026-05-17 — Book-a-Call shipped end-to-end (10 PRs, full autonomous pipeline)
+
+Shipped the entire Phase 1.E Book-a-Call subsystem in one session (PRs #39–#48). Pipeline is now fully autonomous: prospect books → immediate confirmation email + Google calendar invite (.ics) → cron-driven 24h reminder → Claude-generated pre-call brief 2h before → 1h final reminder → 30min post-call follow-up. Every Claude prompt is DB-editable from `/admin/prompts` and verifiable via `pnpm eval`.
+
+Ten PRs, in shipping order:
+
+- **#39** `lib/calendar.ts` — pure-function slot generator. Working hours interpreted in consultant tz via `Intl.DateTimeFormat`. DST handled by walking UTC grid + resolving wall clock per instant. 23 unit tests cover spring-forward / fall-back, blackouts, buffer/min-notice/advance window, slot stepping.
+- **#40** `lib/scheduler.ts` — queue dispatcher with FOR UPDATE SKIP LOCKED dequeue, attempts++ in same tx, 5-min lock TTL + stale-lock recovery. Pure helpers (`planBookingJobs`, `decideRetryStatus`) covered by 15 unit tests; DB wrappers exercised by the cron processor later.
+- **#41** Admin Google OAuth flow. CSRF state cookie + token exchange + encrypted refresh-token storage. Cards-grid refactor of `/admin/integrations` (mirrors Stripe / Vercel). Pivot mid-PR: moved OAuth Client ID + Secret from env to DB-backed Settings ("you know how many idiots release their dotenv in public" — saved as feedback memory `feedback_design_properly_over_yagni`). Five Settings-managed integration tiles now: Email, AI Model, Authentication, Google Calendar, Anti-spam.
+- **#42** Public `/book/[slug]` page + create flow. Month-grid calendar picker, time pills grouped by Morning/Afternoon/Evening, "Next available" quick-pick chip, Claude conversational intake (2-turn cap), Turnstile + honeypot, idempotent create with deterministic email|slot|5-min-bucket key, sendUpdates=all on `events.insert` so attendees get the .ics invite, sync confirmation via Resend. Hero copy: *"Tell me what's stuck. I'll read your intake before we talk, then we'll spend the call on what's actually in your way."* Home page CTA swapped from mailto: to `/book/archos-labs`. Schema migrations 0006 (consultant.slug), 0007 (tz default UTC + Sydney backfill), 0008 (consultant.public_email split), 0009 (slug rename to "archos-labs").
+- **#43** `/book/manage/[token]` cancel + reschedule. Magic-link JWT (cancel_jti single-use) authorises both actions. **Pivoted mid-PR**: original implementation did Google delete-old + create-new on reschedule, which lost the .ics invite (Google suppresses rapid invite+cancel pairs on the same attendee). Rewrote to use `events.patch` in place — single "Event updated" notification, preserves event id, no phantom cancellation. Booking row stays the SAME row through reschedule; only slot times + JTIs rotate.
+- **#44** `/api/cron/process-scheduled` cron processor. Per-kind dispatch (`lib/cron-dispatch.ts`) covers reminder_24h / reminder_1h / precall_brief (Claude call inside, soft-fallback to raw intake if Claude unavailable) / postcall_followup / noshow_recovery. Skips correctly when booking status is not 'confirmed'. Heartbeat table + unauthenticated `/api/health/cron` for UptimeRobot. 16 unit tests cover dispatch routing + skip conditions + already-sent dedup.
+- **#45** Booking prompts → DB. Three Claude prompts (followup, brief, blogMatch) moved from hardcoded constants to `site_setting` row keyed `booking_prompts`. Soft-fallback semantics (vs the diagnostic prompt's hard-fail): row missing → starter; row malformed → log + starter; DB unreachable → log + starter. Booking remains operational at v1 quality even with the row deleted. UI refactor mid-PR: surfaced "the page is now 2000px of scroll" → cards-grid + drill-down for `/admin/prompts` (mirrors `/admin/integrations`).
+- **#46** `pnpm eval` — fixture-based suites for the 3 booking prompts. Separate `vitest.eval.config.ts` so live API calls stay out of CI. 15 fixtures across intake/brief/blogMatch; programmatic checks only (Zod + forbidden phrases + anchor words). Wiki concept doc `claude-eval-suites.md` covers usage + cost.
+- **#47** Eval polish — added `retry: 2` for transient API blips + fixed two miscalibrated fixtures (the "could go either way" case had a strict assertion; the "CEO of small startup" case was P2 but Claude rightly returned P1 because rubric doesn't weight company size).
+- **#48** `generateStructured` JSON recovery. Final eval re-run hit ONE persistent failure (3/3 retries) — surfaced via temporary diagnostic logging that Claude was producing TWO JSON objects with prose between them (`{wrong}\nWait, let me correct:\n{right}`). Hardened the parser to extract balanced-brace JSON objects (string-literal + escape aware) and try them in reverse order — Claude's "final corrected" object wins. 15/15 eval pass after the fix. Hardens diagnostic + brief + blog match against the same failure mode.
+
+Six bugs surfaced mid-session and got their own commits within the relevant PRs (rather than separate PRs, kept the shipping cadence tight):
+
+1. Asymmetric Turnstile config (Secret without Site key or vice versa) silently broke the form — now requires both before treating Turnstile as enabled.
+2. Turnstile widget never rendered — `useEffect` dep array missed `selectedSlot`, so the render fired before the form section mounted, container ref was null, never re-fired.
+3. Consultant tz defaulted to `Asia/Manila` (arbitrary). Migration 0007 changed default to UTC + flipped existing row to Australia/Sydney.
+4. Missing `calendar.freebusy` OAuth scope — Google needs it as a separate scope from `calendar.events`. Admin had to reconnect.
+5. Access-token cache wasn't busted on reconnect — added `clearAccessTokenCache(consultantId)` to the OAuth callback after the consultant UPDATE.
+6. Idempotent replay returned success without retrying Google on `pending_calendar_sync` bookings — split `created` / `exists_confirmed` / `exists_pending_sync` so the route retries appropriately.
+
+**Decisions saved as docs** (today, 2026-05-17): patch-in-place reschedule, sendUpdates=all on events.insert, consultant.public_email split, soft-fallback for booking prompts.
+
+**Lessons-learned saved as docs** (today): Google sendUpdates required for .ics, Google suppresses rapid invite/cancel pairs, asymmetric Turnstile config, Vitest retry pattern for live-API evals.
+
+**Memory saved this session**: `feedback_design_properly_over_yagni` — Rob consistently picks design-properly over YAGNI/least-friction recommendations; lead with the design-properly option, frame YAGNI only as counter-argument.
+
+**Tests**: 217/217 default suite pass (was 161 at start of session, added 56 across the new modules). Live `pnpm eval` 15/15 after the JSON-recovery fix.
+
+**Next**: prod cutover — apply migrations 0006–0009 against prod DATABASE_URL, configure Render Cron Job (every minute, Authorization: Bearer $CRON_SECRET), add CRON_SECRET to Render env vars, reconnect Google on prod (new `calendar.freebusy` scope), paste Turnstile keys in prod Settings, save the 4 prompts in prod `/admin/prompts`. After that, the May 18 revenue deadline is met with a working autonomous booking pipeline.
 
 ## 2026-05-15 — Site-wide design refresh (Linear-themed, five-PR pipeline)
 
