@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-17T10:51:40.840Z
+generated: 2026-05-17T23:24:57.050Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -13,7 +13,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 
 | Route | File | Last shipped |
 |-------|------|--------------|
-| `/` | [app/page.tsx](../app/page.tsx) | 2026-05-17 |
+| `/` | [app/page.tsx](../app/page.tsx) | 2026-05-18 |
 | `/admin/(authed)/diagnostic` | [app/admin/(authed)/diagnostic/page.tsx](../app/admin/(authed)/diagnostic/page.tsx) | 2026-05-15 |
 | `/admin/(authed)/integrations` | [app/admin/(authed)/integrations/page.tsx](../app/admin/(authed)/integrations/page.tsx) | 2026-05-15 |
 | `/admin/(authed)/integrations/[slug]` | [app/admin/(authed)/integrations/[slug]/page.tsx](../app/admin/(authed)/integrations/[slug]/page.tsx) | 2026-05-17 |
@@ -35,7 +35,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/ai-readiness/report/[sessionId]` | [app/tools/ai-readiness/report/[sessionId]/page.tsx](../app/tools/ai-readiness/report/[sessionId]/page.tsx) | 2026-05-13 |
 | `/tools/ai-readiness/share/[token]` | [app/tools/ai-readiness/share/[token]/page.tsx](../app/tools/ai-readiness/share/[token]/page.tsx) | 2026-05-13 |
 
-## API endpoints (30)
+## API endpoints (31)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -68,20 +68,33 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/diagnostic/report/[sessionId]/pdf` | [app/api/diagnostic/report/[sessionId]/pdf/route.ts](../app/api/diagnostic/report/[sessionId]/pdf/route.ts) | 2026-05-15 |
 | `/api/diagnostic/share` | [app/api/diagnostic/share/route.ts](../app/api/diagnostic/share/route.ts) | 2026-05-13 |
 | `/api/diagnostic/share/[id]/revoke` | [app/api/diagnostic/share/[id]/revoke/route.ts](../app/api/diagnostic/share/[id]/revoke/route.ts) | 2026-05-13 |
+| `/api/events` | [app/api/events/route.ts](../app/api/events/route.ts) | 2026-05-18 |
 | `/api/health/cron` | [app/api/health/cron/route.ts](../app/api/health/cron/route.ts) | 2026-05-17 |
 
-## Components (18)
+## Components (30)
 
 | File | Last shipped |
 |------|--------------|
 | [components/admin/integrations/integrations-grid.tsx](../components/admin/integrations/integrations-grid.tsx) | 2026-05-17 |
 | [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-05-17 |
+| [components/analytics/analytics-client.tsx](../components/analytics/analytics-client.tsx) | 2026-05-18 |
 | [components/booking/calendar-picker.tsx](../components/booking/calendar-picker.tsx) | 2026-05-17 |
 | [components/contact/contact-form.tsx](../components/contact/contact-form.tsx) | 2026-05-15 |
 | [components/layout/footer.tsx](../components/layout/footer.tsx) | 2026-05-15 |
 | [components/layout/header.tsx](../components/layout/header.tsx) | 2026-05-15 |
 | [components/layout/lead-sign-out-button.tsx](../components/layout/lead-sign-out-button.tsx) | 2026-05-15 |
 | [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-05-15 |
+| [components/sections/home/anchor-nav.tsx](../components/sections/home/anchor-nav.tsx) | 2026-05-18 |
+| [components/sections/home/audience-list.tsx](../components/sections/home/audience-list.tsx) | 2026-05-18 |
+| [components/sections/home/cta-pair.tsx](../components/sections/home/cta-pair.tsx) | 2026-05-18 |
+| [components/sections/home/hero.tsx](../components/sections/home/hero.tsx) | 2026-05-18 |
+| [components/sections/home/index.ts](../components/sections/home/index.ts) | 2026-05-18 |
+| [components/sections/home/objection-faq.tsx](../components/sections/home/objection-faq.tsx) | 2026-05-18 |
+| [components/sections/home/proof-item.tsx](../components/sections/home/proof-item.tsx) | 2026-05-18 |
+| [components/sections/home/section.tsx](../components/sections/home/section.tsx) | 2026-05-18 |
+| [components/sections/home/service-card.tsx](../components/sections/home/service-card.tsx) | 2026-05-18 |
+| [components/sections/home/sticky-mobile-cta.tsx](../components/sections/home/sticky-mobile-cta.tsx) | 2026-05-18 |
+| [components/sections/home/timeline.tsx](../components/sections/home/timeline.tsx) | 2026-05-18 |
 | [components/ui/add-to-calendar-buttons.tsx](../components/ui/add-to-calendar-buttons.tsx) | 2026-05-15 |
 | [components/ui/button.tsx](../components/ui/button.tsx) | 2026-05-15 |
 | [components/ui/day-cell.tsx](../components/ui/day-cell.tsx) | 2026-05-15 |

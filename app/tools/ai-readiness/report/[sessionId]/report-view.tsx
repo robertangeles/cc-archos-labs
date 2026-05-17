@@ -11,7 +11,7 @@ import {
 } from "../../../../../lib/diagnostic/types";
 import type { LoadedReport } from "../../../../../lib/diagnostic/report";
 import type { ShareTokenSummary } from "../../../../../lib/share-tokens";
-import { BOOK_A_CALL_URL } from "../../../../../lib/booking-urls";
+import { BOOK_A_CALL_URL } from "../../../../../lib/cta-urls";
 import { PrintButton } from "./print-button";
 import { ShareControls } from "./share-controls";
 

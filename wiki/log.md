@@ -8,6 +8,18 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-17 — Home page PAS rewrite (Workstream 2 of the May home-page plan)
+
+Replaced the May 7 four-section home page with a 9-section PAS sales page. Hero now leads with "Most AI programs fail at the data layer. By the time anyone admits it, the budget is gone." Subhead names four target industries (financial services, healthcare, government, retail). Body adds Agitate ("That decision has a name on it" — ships as written), Solution+Proof with three anonymised proof points + a counter-positioning one-liner, a 90-day timeline visualisation, three Service cards, an inline objection FAQ (native `<details>`), Built for / Not for, an Assessment Block framing the assessment as the qualifier, and a Final CTA. Dual CTAs (Take the assessment + Book a call) appear in the hero, the Assessment Block (single CTA), the Final CTA, and the new sticky mobile CTA bar.
+
+Implementation: componentised into 10 reusable section components under `components/sections/home/` (Hero, Section, CtaPair, ProofItem, ServiceCard, AudienceList, Timeline, ObjectionFaq, AnchorNav, StickyMobileCta) plus a barrel `index.ts`. Pattern carries forward to the Consulting page (Phase 1 backlog) and Tools index (Phase 3). Side modules: `lib/cta-urls.ts` (renamed from `lib/booking-urls.ts`, now exporting both BOOK_A_CALL_URL + TAKE_ASSESSMENT_URL), `lib/analytics.ts` (track() with dev console.log + prod POST to /api/events — a noop endpoint until PostHog is wired in Phase 3), `lib/schema-org.ts` (page-specific Service ×3 JSON-LD; the root Organization + WebSite schemas already live in app/layout.tsx), `lib/sanitise-name.ts` (strict allow-list regex for the optional ?name= URL param that drives a print-personalisation header — "Prepared for {name} · Prepared on {date}").
+
+Sovereign-AI proof point ships with a corrected framing per Rob: "We're not the first, but one of the very few in Australia who have shipped this" (not "among the first"). Anonymised trust strip (E4), live sovereign-AI demo (E10), and Modelling Room embed (E11) were skipped — deferred to TODOS. Eight of the surfaced expansions accepted (E1–E3, E5–E9, E12).
+
+Verified: pnpm tsc clean, pnpm test 19/19 files 237/237 tests, pnpm lint clean (pre-existing warning in `tmp/walkthrough.mjs` is unrelated), pnpm build clean, Playwright visual + computed-style at 375/768/1280. ?name=Jane%20Smith renders the personalisation header; ?name=<script>alert(1)</script> is silently dropped by the sanitiser (verified: "Prepared for" count = 0 for the malicious input, no executable script tags in the rendered HTML).
+
+Workstream 2 of the home-page plan. Workstream 1 (wiki rot fix) shipped as PR #52.
+
 ## 2026-05-17 — Wiki rot fix: auto-derived state register + verification rule + shipped-items move-out
 
 Surfaced during the system audit for the home-page PAS rewrite plan: a dispatched Explore subagent reported `/tools/ai-readiness` as "Phase 2 in progress" because [[backlog]] still described it that way, even though the route shipped on 2026-05-13. That stale claim produced a confidently wrong CTA-sequencing question in the planning session. Fixing the wiki structure so the same failure mode doesn't recur was made a prerequisite to the home-page rewrite — Workstream 1 of the May 2026 home-page plan, separate PR, ships before Workstream 2.

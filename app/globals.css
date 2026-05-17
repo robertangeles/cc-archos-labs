@@ -240,6 +240,15 @@ html.pdf-mode {
   print-color-adjust: exact !important;
 }
 
+/* Print-only utility — used by the home page's optional personalisation
+   header ("Prepared for {name} · Prepared on {date}"). Visible on screen
+   too, by design: if a prospect clicks a shared link with ?name=Jane the
+   banner appears in the rendered page; Ctrl/Cmd-P and the .pdf-mode path
+   both keep it visible in the printed output. */
+.print-only {
+  display: block;
+}
+
 
 
 
