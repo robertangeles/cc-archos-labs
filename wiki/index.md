@@ -3,10 +3,10 @@ title: Wiki Index
 category: synthesis
 created: 2026-05-07
 updated: 2026-05-17
-related: [[backlog]], [[book-a-call-architecture]], [[booking-prompts-in-db]], [[claude-eval-suites]], [[lead-session-and-owner-only-reports]], [[magic-link-sign-in]], [[transactional-email-rendering]], [[integration-config]], [[design-system]]
+related: [[state]], [[backlog]], [[shipped]], [[book-a-call-architecture]], [[booking-prompts-in-db]], [[claude-eval-suites]], [[lead-session-and-owner-only-reports]], [[magic-link-sign-in]], [[transactional-email-rendering]], [[integration-config]], [[design-system]]
 ---
 
-Master catalog of all wiki pages. Read this at the start of every session.
+Master catalog of all wiki pages. Read this at the start of every session. For current ship state by route / endpoint / component, read [[state]] first (auto-generated, always fresh).
 
 ## entities
 _(none yet)_
@@ -65,4 +65,8 @@ _(none yet)_
 - [Remove env vars from Render dashboard after migrating to DB](runbooks/env-removal-checklist.md) — pre-flight checks, one-at-a-time removal procedure, 7-day cutover finalisation
 
 ## backlog
-- [Archos Labs HQ — Build Backlog](backlog/backlog.md) — prioritised build list, ordered by what unblocks revenue and reduces risk
+- [Archos Labs HQ — Build Backlog](backlog/backlog.md) — prioritised build list, ordered by what unblocks revenue and reduces risk (describes **intent**; for ship state read [[state]])
+- [Shipped Backlog Items](backlog/shipped.md) — historical record of items moved out of the backlog once shipped; indexes Phase 0 / 1 / 1.E / 2 / 2.5
+
+## state
+- [Project state — auto-generated](state.md) — **source of truth for ship state.** Read this before claiming any route, API endpoint, or component does not exist. Regenerated on every commit touching `app/` or `components/` via `scripts/wiki-state.mjs`.

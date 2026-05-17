@@ -1,1 +1,10 @@
 pnpm dlx lint-staged
+
+# Regenerate wiki/state.md when files under app/ or components/ are staged.
+# Per wiki/state.md frontmatter: this file is the source of truth for ship
+# state — every commit that ships a route, endpoint, or component should
+# refresh the register so agents never read stale claims.
+if git diff --cached --name-only | grep -qE '^(app/|components/)'; then
+  node scripts/wiki-state.mjs
+  git add wiki/state.md
+fi

@@ -2,11 +2,13 @@
 title: Archos Labs HQ — Build Backlog
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-13
-related: [[index]], [[log]], [[2026-05-08-phase2-ceo-review]]
+updated: 2026-05-17
+related: [[index]], [[log]], [[state]], [[shipped]], [[2026-05-08-phase2-ceo-review]]
 ---
 
 Prioritised build list for the Archos Labs HQ at archoslabs.xyz. Ordered by what unblocks revenue and reduces risk, not by what is most fun to build.
+
+**This file describes intent — what we plan to build.** For what is currently shipped, read [[state]] (auto-generated from the filesystem). For the historical record of items that moved out of this file, see [[shipped]]. Backlog narratives marked `✅ SHIPPED` below are kept for context; the canonical "is it built?" answer always lives in [[state]].
 
 ## Prioritisation rules
 
@@ -50,7 +52,9 @@ The pieces that turn a stranger into a paid consulting conversation. Home page a
 
 ---
 
-## Phase 2 — Lead Gen (AI Readiness Assessment)
+## Phase 2 — Lead Gen (AI Readiness Assessment) — ✅ SHIPPED 2026-05-13
+
+**Status:** Items 14–25 inclusive shipped. Live at `/tools/ai-readiness`. See [[shipped]] for the index entry and [[state]] for the live route + endpoint list. The narrative below is kept for historical context — design rationale, CEO review decisions, deviations from spec — but the canonical answer to "is this built?" is [[state]].
 
 **Supersedes the previous stub (items 14–20).** Now driven by the v1.0 product spec (28pp PDF, 2026-05-08) and the CEO review decision recorded in [[2026-05-08-phase2-ceo-review]]. Built **in parallel** with Phase 1 per Rob's sequencing call.
 
@@ -134,7 +138,9 @@ The pieces that turn a stranger into a paid consulting conversation. Home page a
 
 ---
 
-## Phase 1.E — Book a Call (replaces mailto: CTAs) — added 2026-05-12
+## Phase 1.E — Book a Call (replaces mailto: CTAs) — ✅ SHIPPED 2026-05-17 (items 29–30)
+
+**Status:** Lane A foundations (PR #8, #10), Lane B Calendar + Claude (PRs #41, #42, #44, #45, #46, #48), Lane C slot math + scheduler (PRs #39, #40, #44) all shipped. Live at `/book/[slug]`. See [[shipped]] for the index entry, [[state]] for live routes, and [[book-a-call-architecture]] for the architecture overview. Follow-up items 31–34 (admin status flip, consultant profile UI, blog library wiring, cron alert) remain in this backlog.
 
 Per the CEO + design + eng plan review locked 2026-05-12, the home page's `mailto:` CTAs are being replaced with a self-serve calendar booking flow that creates Google Meet invites and feeds an AI-augmented pre-call pipeline (AI follow-up question on the intake, AI pre-call brief to Rob 1h before, AI-matched blog posts in the confirmation email, scheduled reminders + no-show recovery). Lane A foundations (schema for 5 new tables, AES-GCM crypto, JWT magic links, error hierarchy, redaction, 10 UI primitives, 6 email templates) shipped in PR #8 + PR #10. Full plan + design spec + eng review at `~/.claude/plans/before-we-start-can-indexed-riddle.md` (external; not in repo).
 
