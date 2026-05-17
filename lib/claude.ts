@@ -141,10 +141,32 @@ export async function generateStructured<T>(
   try {
     data = JSON.parse(jsonText) as T;
   } catch (err) {
-    const sample = jsonText.slice(0, 200);
-    throw new Error(
-      `OpenRouter response was not valid JSON (sample: ${sample}…): ${(err as Error).message}`,
-    );
+    // Recovery: try extracting a single balanced-brace JSON object.
+    // Observed failure modes the strict parse can't survive:
+    //   (a) JSON followed by prose ("...} Let me know if you need...")
+    //   (b) Two JSON objects with prose between them — Claude self-
+    //       corrects ({wrong}\nWait, let me correct:\n{right}).
+    //       Take the LAST balanced object — Claude's final answer.
+    //   (c) Prose followed by JSON ("Sure, here it is: {...}").
+    const candidates = extractBalancedJsonObjects(jsonText);
+    let recovered: T | null = null;
+    // Try from last to first so Claude's "final corrected" object
+    // wins when both exist.
+    for (let i = candidates.length - 1; i >= 0; i--) {
+      try {
+        recovered = JSON.parse(candidates[i]) as T;
+        break;
+      } catch {
+        // Try the next candidate.
+      }
+    }
+    if (recovered === null) {
+      const sample = jsonText.slice(0, 200);
+      throw new Error(
+        `OpenRouter response was not valid JSON (sample: ${sample}…): ${(err as Error).message}`,
+      );
+    }
+    data = recovered;
   }
 
   return {
@@ -153,4 +175,55 @@ export async function generateStructured<T>(
     outputTokens: json.usage?.completion_tokens ?? 0,
     modelId,
   };
+}
+
+// Find every balanced-brace JSON-object substring in the input,
+// respecting string literals + escape characters. Returns them in
+// order of appearance. Used as a fallback when JSON.parse on the
+// full response fails because the model wrapped its JSON in prose
+// or emitted a self-correcting second object.
+//
+// Exported for unit testing; production callers should use the
+// JSON-then-extract path inside generateStructured above.
+export function extractBalancedJsonObjects(text: string): string[] {
+  const objects: string[] = [];
+  let i = 0;
+  while (i < text.length) {
+    const start = text.indexOf("{", i);
+    if (start < 0) break;
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    let j = start;
+    let closed = false;
+    for (; j < text.length; j++) {
+      const ch = text[j];
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      if (inString) {
+        if (ch === "\\") escape = true;
+        else if (ch === '"') inString = false;
+        continue;
+      }
+      if (ch === '"') {
+        inString = true;
+        continue;
+      }
+      if (ch === "{") depth++;
+      else if (ch === "}") {
+        depth--;
+        if (depth === 0) {
+          objects.push(text.slice(start, j + 1));
+          closed = true;
+          break;
+        }
+      }
+    }
+    // Move past this object (or past the unbalanced opener if we
+    // never closed) so the next iteration looks beyond it.
+    i = closed ? j + 1 : start + 1;
+  }
+  return objects;
 }
