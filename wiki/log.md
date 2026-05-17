@@ -8,6 +8,14 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-17 — Seed-script confirmation guardrail (dev/prod share one DB)
+
+Stopgap until the dev DB splits off (planned when Rob moves to the Linux dev machine + local Postgres). `pnpm db:seed-diagnostic-content` now (a) prints the target DB host so the operator can see which DB they're about to write, (b) computes a content-shape-specific structural diff against the current row (question add/remove, option score changes, label/text changes, risk rule add/remove, priority trigger add/remove, tier-boundary tweaks, domain-weight tweaks, version bumps), (c) prompts for a typed `yes` before writing, and (d) accepts `--yes` (skip prompt, for CI-style use) and `--diff-only` (print diff then exit, never write).
+
+One subtlety: Postgres `jsonb` does not preserve object key order across round-trips, so a naive `JSON.stringify` on the current-row value diverges from `JSON.stringify` on the source-file value even when content is identical. The diff uses a small `stableStringify` helper (recursive key sort) for comparing nested objects/arrays. Without it the first run reported 13 false positives on `branch` triggers + risk rule `trigger` arrays. The fix is local to the diff helper; no impact on the live engine or admin loader.
+
+The whole guardrail is sized for the stopgap window only — once dev and prod are on different DBs, confirmation prompts are friction not safety, and the prompt block can be deleted.
+
 ## 2026-05-17 — Assessment scoring calibration v1.1 + Q12a budget question
 
 Retune of the AI Readiness Assessment ahead of go-live. Five changes — three score corrections (Q9a A 3→0 "broken-foundation answer should not score full marks", Q3 C/D swap "scaling-with-walls beats stuck-in-prod", Q6 D 2→1 "self-claimed no-problem ranks below demonstrated awareness"), one spec addition (new top-level Q12a "Has budget been formally allocated" + priority trigger on A — sits alongside the Q12=B board/regulator trigger), and one removal-from-scoring (Q1 sector flattens to 0 for every option; stays captured as lead/prompt context).
