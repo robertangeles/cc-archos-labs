@@ -23,7 +23,8 @@
     "reset-admin-password": "node --env-file=.env.local scripts/reset-admin-password.mjs",
     "db:generate": "node --env-file=.env.local --no-warnings ./node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "node --env-file=.env.local scripts/db-apply.mjs",
-    "db:studio": "node --env-file=.env.local --no-warnings ./node_modules/drizzle-kit/bin.cjs studio"
+    "db:studio": "node --env-file=.env.local --no-warnings ./node_modules/drizzle-kit/bin.cjs studio",
+    "db:seed-diagnostic-content": "node --env-file=.env.local scripts/seed-diagnostic-content.mjs"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",

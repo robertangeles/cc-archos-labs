@@ -8,6 +8,18 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-17 — Assessment scoring calibration v1.1 + Q12a budget question
+
+Retune of the AI Readiness Assessment ahead of go-live. Five changes — three score corrections (Q9a A 3→0 "broken-foundation answer should not score full marks", Q3 C/D swap "scaling-with-walls beats stuck-in-prod", Q6 D 2→1 "self-claimed no-problem ranks below demonstrated awareness"), one spec addition (new top-level Q12a "Has budget been formally allocated" + priority trigger on A — sits alongside the Q12=B board/regulator trigger), and one removal-from-scoring (Q1 sector flattens to 0 for every option; stays captured as lead/prompt context).
+
+Source-of-truth for the JSON moved out of the admin textarea and into a committed `scripts/diagnostic-content.json` + `scripts/seed-diagnostic-content.mjs` upsert keyed on `diagnostic_content`. The textarea editor at `/admin/diagnostic` still works for live tweaks; the script+JSON is the durable record going forward. Pre-change DB row snapshot kept locally in `tmp/diagnostic-content.backup-*.json` for rollback safety.
+
+One code change: `computeFlow` in [lib/diagnostic/flow.ts](../lib/diagnostic/flow.ts) has a hardcoded base order, so the JSON alone could not surface Q12a — appended `q12a` to `BASE_ORDER` and to the Block 3 push. Scoring engine itself stays content-driven (no math changes).
+
+Verified with `pnpm tsc` (clean), `pnpm test` (217 pass), `pnpm build` (clean), and a Playwright walkthrough that confirmed Q12a renders as the 14th and final question with correct copy, options, em-dashes, and progress bar.
+
+See [Assessment scoring calibration v1.1 + spec bump](decisions/2026-05-17-assessment-scoring-calibration.md) for class mapping (which of the four 2026-05-09 calibration classes each change falls into) and source-of-truth rationale.
+
 ## 2026-05-17 — Book-a-Call shipped end-to-end (10 PRs, full autonomous pipeline)
 
 Shipped the entire Phase 1.E Book-a-Call subsystem in one session (PRs #39–#48). Pipeline is now fully autonomous: prospect books → immediate confirmation email + Google calendar invite (.ics) → cron-driven 24h reminder → Claude-generated pre-call brief 2h before → 1h final reminder → 30min post-call follow-up. Every Claude prompt is DB-editable from `/admin/prompts` and verifiable via `pnpm eval`.

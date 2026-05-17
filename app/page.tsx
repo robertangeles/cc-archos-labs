@@ -1,7 +1,4 @@
-// Home-page CTA points at the Book-a-Call self-serve flow. Mailto is
-// kept as a comment for reference — the booking flow ships email
-// notifications and a manage link, so a mailto is no longer needed.
-const BOOK_A_CALL_URL = "/book/archos-labs";
+import { BOOK_A_CALL_URL } from "../lib/booking-urls";
 
 const BUILT_FOR = [
   "Programs in financial services, healthcare, and government where governance isn't optional.",
