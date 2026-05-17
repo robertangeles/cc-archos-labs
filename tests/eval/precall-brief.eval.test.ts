@@ -148,7 +148,7 @@ const FIXTURES: Fixture[] = [
     },
   },
   {
-    name: "CEO of small startup → P2",
+    name: "CEO of small startup → P1",
     input: {
       prospectName: "Priya Naidu",
       prospectRole: "CEO & Co-founder",
@@ -158,10 +158,13 @@ const FIXTURES: Fixture[] = [
       followups: [],
     },
     expected: {
-      // Could go P1 or P2 — decision-maker + urgent enough that it's
-      // worth Rob's time but not the kind of "$40M of risk capital
-      // shipping next quarter" P1 case. Most prompts will land P2.
-      priorityScore: "P2",
+      // Originally written as P2 (penalising small company size).
+      // Eval-corrected to P1: prospect IS a decision-maker (CEO),
+      // has real budget (seed raised), faces an urgent concrete
+      // decision ("commit code direction"). The rubric weights
+      // authority + urgency + qualified problem — all three hit.
+      // Company size doesn't appear in the P1 criteria.
+      priorityScore: "P1",
       talkingPointsMustMention: [
         "openai",
         "api",

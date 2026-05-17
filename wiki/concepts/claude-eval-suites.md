@@ -60,6 +60,18 @@ Default response: figure out whether the prompt is wrong or the fixture is wrong
 - **Fixture is wrong**: the expected behaviour was wrong-headed. Relax the expectation, document why in the fixture comment, commit.
 - **Both are reasonable**: the prompt is making a judgement call we hadn't anticipated. Decide which is the desired behaviour, edit the loser.
 
+## Transient failures + retry
+
+`vitest.eval.config.ts` sets `retry: 2` so every test gets up to 3 total attempts. Eval cases hit a live API + a stochastic model — transient nulls (rate limit / 5xx) and occasional Claude wobbles on tight assertions are noise, not signal. A real regression fails all 3 attempts; a transient blip passes on attempt 2.
+
+Cost implication: a genuinely-broken case costs 3x to surface, but most runs pay no retry cost at all.
+
+## Soft-boundary judgement cases
+
+When a fixture sits on a real judgement boundary (e.g. "specific reason but short — Claude could reasonably go either way"), use the literal `"either"` instead of `true`/`false` for boolean fields. The suite then skips the strict assertion on that field but still enforces every other check (forbidden phrases, length, etc). See the second intake-followup fixture for an example.
+
+Don't reach for `"either"` to hide a fixture you can't make up your mind about. It's only for cases where two equally-good answers exist.
+
 ## Cost discipline
 
 Eval cost is real but small (~$0.02 / run). Ways to keep it down:
