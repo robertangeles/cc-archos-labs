@@ -22,6 +22,7 @@ _(none yet)_
 - [Claude eval suites for booking prompts](concepts/claude-eval-suites.md) — pnpm eval, fixture-based programmatic checks across the 3 booking prompts, live API calls, kept out of CI
 - [Book-a-Call architecture](concepts/book-a-call-architecture.md) — full pipeline overview: prospect → booking page → Google Calendar event + Resend confirmation → cron-driven reminders + Claude pre-call brief → magic-link manage flow; soft-fallback semantics, schema, what's deliberately not shipped
 - [Booking prompts in the DB — soft-fallback by design](concepts/booking-prompts-in-db.md) — three Claude prompts (followup, brief, blogMatch) in one `booking_prompts` site_setting row; admin edits at /admin/prompts; soft-fallback to hardcoded starters when row missing/malformed (vs diagnostic's hard-fail)
+- [Home page section components — reusable pattern](concepts/home-page-section-components.md) — 10 reusable section components (Hero, Section, CtaPair, ProofItem, ServiceCard, AudienceList, Timeline, ObjectionFaq, AnchorNav, StickyMobileCta) extracted in PR #53; pattern is the foundation for the Consulting page, Modelling Room, and Tools index
 
 ## decisions
 - [Diagnostic per-option scoring calibration (overview)](decisions/2026-05-09-diagnostic-scoring-calls.md) — meta-discipline for calibration deviations: four classes of deviation + score-vs-trigger separation pattern; specific values live in /admin/diagnostic

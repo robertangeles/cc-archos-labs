@@ -8,6 +8,16 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-18 — Wiki follow-up after PR #53 merge
+
+Three small fixes after the home-page PAS rewrite landed:
+
+1. [[shipped]] previously listed the May 2026 PAS rewrite under "What still belongs in [[backlog]]". Moved it into a new "Home page PAS rewrite (shipped 2026-05-18, PR #53)" section and removed the stale "still pending" line.
+2. [[2026-05-07-home-page]] now declares itself superseded twice: by [[2026-05-07-linear-redesign]] on styling (same day) and by [[2026-05-17-home-page-pas-rewrite]] on structure + copy (2026-05-18). The four-section layout is gone; only the no-pricing decision and practitioner voice carry forward.
+3. New concepts page: [[home-page-section-components]]. Catalogues the 10 reusable section components (`Hero`, `Section`, `CtaPair`, `ProofItem`, `ServiceCard`, `AudienceList`, `Timeline`, `ObjectionFaq`, `AnchorNav`, `StickyMobileCta`) with prop shapes and composition conventions. Sets the foundation for the Consulting page (Phase 1 backlog), Modelling Room landing, and Tools index without forcing the next builder to re-derive the vocabulary from reading the home-page source.
+
+No code changes. Wiki-only PR.
+
 ## 2026-05-17 — Home page PAS rewrite (Workstream 2 of the May home-page plan)
 
 Replaced the May 7 four-section home page with a 9-section PAS sales page. Hero now leads with "Most AI programs fail at the data layer. By the time anyone admits it, the budget is gone." Subhead names four target industries (financial services, healthcare, government, retail). Body adds Agitate ("That decision has a name on it" — ships as written), Solution+Proof with three anonymised proof points + a counter-positioning one-liner, a 90-day timeline visualisation, three Service cards, an inline objection FAQ (native `<details>`), Built for / Not for, an Assessment Block framing the assessment as the qualifier, and a Final CTA. Dual CTAs (Take the assessment + Book a call) appear in the hero, the Assessment Block (single CTA), the Final CTA, and the new sticky mobile CTA bar.
