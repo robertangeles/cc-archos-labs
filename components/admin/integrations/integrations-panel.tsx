@@ -16,6 +16,10 @@ export interface RedactedConfig {
   googleOauthClientId: string | null;
   // Always redacted: this is the real credential.
   googleOauthClientSecret: string;
+  // Site key is rendered into HTML — plaintext for admin verification.
+  turnstileSiteKey: string | null;
+  // Secret key is the server-side verification credential — always redacted.
+  turnstileSecretKey: string;
 }
 
 export interface AuditRow {
@@ -33,6 +37,7 @@ const ENCRYPTED_FIELDS: ReadonlyArray<FieldKey> = [
   "resendApiKey",
   "llmApiKey",
   "googleOauthClientSecret",
+  "turnstileSecretKey",
 ];
 
 // Fields that accept null (empty string in the form clears them).
@@ -41,6 +46,8 @@ const NULLABLE_FIELDS: ReadonlyArray<FieldKey> = [
   "llmModelId",
   "googleOauthClientId",
   "googleOauthClientSecret",
+  "turnstileSiteKey",
+  "turnstileSecretKey",
 ];
 
 function isEncrypted(field: FieldKey): boolean {
@@ -80,7 +87,8 @@ export type IntegrationSlug =
   | "email"
   | "ai-model"
   | "authentication"
-  | "google-calendar";
+  | "google-calendar"
+  | "anti-spam";
 
 // Google-specific extras passed in only when view === 'google-calendar'.
 // Coming from the page server component which reads the consultant row.
@@ -461,6 +469,50 @@ export function IntegrationsPanel({
         </>
       )}
 
+      {view === "anti-spam" && (
+        <Section title="Cloudflare Turnstile">
+          <p className="text-[12px] text-ink-subtle">
+            Bot protection for the public Book-a-Call form. Register a widget at{" "}
+            <a
+              href="https://dash.cloudflare.com/?to=/:account/turnstile"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-ink"
+            >
+              dash.cloudflare.com → Turnstile
+            </a>{" "}
+            and paste the keys here. Site key is rendered into the page,
+            Secret key verifies the token server-side.
+          </p>
+          <ConfigField
+            field="turnstileSiteKey"
+            label="Site key"
+            hint="From the Turnstile widget settings — looks like 0x4AAA…"
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus[`turnstileSiteKey`]}
+            onEdit={(v) => setEditing((e) => ({ ...e, turnstileSiteKey: v }))}
+            onSave={() => handleSave("turnstileSiteKey")}
+          />
+          <ConfigField
+            field="turnstileSecretKey"
+            label="Secret key"
+            hint="From the same widget settings — starts with 0x4AAA…. Encrypted at rest."
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus[`turnstileSecretKey`]}
+            onEdit={(v) =>
+              setEditing((e) => ({ ...e, turnstileSecretKey: v }))
+            }
+            onSave={() => handleSave("turnstileSecretKey")}
+            onReveal={() => handleReveal("turnstileSecretKey")}
+            onHide={() => handleHide("turnstileSecretKey")}
+          />
+        </Section>
+      )}
+
       {revealError && (
         <div className="rounded-md border border-hairline bg-surface-1/40 p-3 text-sm text-ink-subtle">
           {revealError}
@@ -714,6 +766,8 @@ function RevealAuthModal({
     llmModelId: "",
     googleOauthClientId: "",
     googleOauthClientSecret: "Google OAuth Client Secret",
+    turnstileSiteKey: "",
+    turnstileSecretKey: "Turnstile Secret Key",
   };
 
   return (

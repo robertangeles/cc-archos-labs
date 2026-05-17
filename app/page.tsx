@@ -1,5 +1,7 @@
-const CONSULTING_MAILTO =
-  "mailto:rob.angeles@archoslabs.xyz?subject=Consulting%20enquiry";
+// Home-page CTA points at the Book-a-Call self-serve flow. Mailto is
+// kept as a comment for reference — the booking flow ships email
+// notifications and a manage link, so a mailto is no longer needed.
+const BOOK_A_CALL_URL = "/book/archos-labs";
 
 const BUILT_FOR = [
   "Programs in financial services, healthcare, and government where governance isn't optional.",
@@ -82,7 +84,7 @@ export default function Home() {
             <br />
             Because the data underneath it was never ready.
           </p>
-          <a href={CONSULTING_MAILTO} className={`mt-12 ${ctaButtonClass}`}>
+          <a href={BOOK_A_CALL_URL} className={`mt-12 ${ctaButtonClass}`}>
             Book a call
           </a>
         </div>
@@ -170,7 +172,7 @@ export default function Home() {
             <br />
             If we can&rsquo;t help, we&rsquo;ll tell you that too.
           </p>
-          <a href={CONSULTING_MAILTO} className={`mt-12 ${ctaButtonClass}`}>
+          <a href={BOOK_A_CALL_URL} className={`mt-12 ${ctaButtonClass}`}>
             Book a call
           </a>
         </div>

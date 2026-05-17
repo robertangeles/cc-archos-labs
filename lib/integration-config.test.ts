@@ -81,6 +81,7 @@ describe("integration-config-shared", () => {
         "resendApiKey",
         "llmApiKey",
         "googleOauthClientSecret",
+        "turnstileSecretKey",
       ]);
     });
 
@@ -89,10 +90,12 @@ describe("integration-config-shared", () => {
       expect(isEncryptedField("resendApiKey")).toBe(true);
       expect(isEncryptedField("llmApiKey")).toBe(true);
       expect(isEncryptedField("googleOauthClientSecret")).toBe(true);
+      expect(isEncryptedField("turnstileSecretKey")).toBe(true);
       expect(isEncryptedField("contactRecipientEmail")).toBe(false);
       expect(isEncryptedField("resendFromEmail")).toBe(false);
       expect(isEncryptedField("llmModelId")).toBe(false);
       expect(isEncryptedField("googleOauthClientId")).toBe(false);
+      expect(isEncryptedField("turnstileSiteKey")).toBe(false);
     });
   });
 
@@ -107,6 +110,8 @@ describe("integration-config-shared", () => {
         llmModelId: null,
         googleOauthClientId: null,
         googleOauthClientSecret: null,
+        turnstileSiteKey: null,
+        turnstileSecretKey: null,
       };
       expect(IntegrationConfigSchema.safeParse(valid).success).toBe(true);
     });
@@ -148,6 +153,8 @@ describe("integration-config-shared", () => {
         llmModelId: null,
         googleOauthClientId: null,
         googleOauthClientSecret: null,
+        turnstileSiteKey: null,
+        turnstileSecretKey: null,
       };
       const parsed = IntegrationConfigSchema.safeParse(valid);
       expect(parsed.success).toBe(true);
@@ -166,6 +173,8 @@ describe("integration-config-shared", () => {
         llmModelId: "anthropic/claude-sonnet-4-6",
         googleOauthClientId: null,
         googleOauthClientSecret: null,
+        turnstileSiteKey: null,
+        turnstileSecretKey: null,
       };
       const parsed = IntegrationConfigSchema.safeParse(valid);
       expect(parsed.success).toBe(true);

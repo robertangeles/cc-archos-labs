@@ -372,13 +372,30 @@ export const reportOutputRelations = relations(reportOutput, ({ one }) => ({
 
 export const consultant = pgTable("consultant", {
   id: uuid("id").primaryKey().defaultRandom(),
+  // URL slug for the public booking page (/book/[slug]). Lower-case
+  // kebab-case, must be unique. Used in OG cards, copy/paste shareable
+  // links, and the magic-link manage URLs. Single source of truth for
+  // "which consultant does this booking belong to" in the public flow.
+  slug: text("slug").notNull().unique(),
   // Sender display name on emails (e.g. "Rob at Archos Labs").
   displayName: text("display_name").notNull(),
-  // Sender email + alert routing destination. Unique per consultant.
+  // Internal routing email — used as the consultant's identity for
+  // OAuth lookups and as the From: header on outgoing booking emails.
+  // Unique per consultant. NOT necessarily the same as what's surfaced
+  // publicly on the booking page; that's `public_email` below.
   email: text("email").notNull().unique(),
-  // IANA tz string (e.g. 'Asia/Manila'). Slot generation is anchored to
-  // this tz; the prospect's tz is captured separately on each booking.
-  timezone: text("timezone").notNull().default("Asia/Manila"),
+  // Public-facing email shown on the booking page's escape-hatch
+  // ("Times don't suit? Email …"). NULL means fall back to `email`.
+  // Lets an admin route internal notifications to an aliased inbox
+  // (e.g. trebor.selegna@outlook.com) while showing prospects a
+  // branded address (rob.angeles@archoslabs.xyz).
+  publicEmail: text("public_email"),
+  // IANA tz string (e.g. 'Australia/Sydney'). Slot generation is
+  // anchored to this tz; the prospect's tz is captured separately on
+  // each booking. Default is UTC — a placeholder admin must overwrite
+  // via the profile UI to match where they actually take calls.
+  // Migration 0007 removed an earlier arbitrary 'Asia/Manila' default.
+  timezone: text("timezone").notNull().default("UTC"),
   // Slot length and buffer between bookings, both in minutes.
   slotMinutes: integer("slot_minutes").notNull().default(30),
   slotBufferMinutes: integer("slot_buffer_minutes").notNull().default(15),

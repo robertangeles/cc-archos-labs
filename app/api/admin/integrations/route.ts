@@ -36,6 +36,8 @@ const PATCH_FIELDS = [
   "llmModelId",
   "googleOauthClientId",
   "googleOauthClientSecret",
+  "turnstileSiteKey",
+  "turnstileSecretKey",
 ] as const;
 
 const PatchSchema = z.object({

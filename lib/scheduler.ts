@@ -112,19 +112,29 @@ export interface DequeuedJob {
 // Insert all jobs for a new booking. Idempotency is the caller's
 // responsibility — booking_request.idempotency_key keeps duplicate
 // bookings out, so scheduled rows are only created once per booking.
+//
+// `excludeKinds` lets the caller skip enqueueing specific kinds — used
+// by the booking-create route which sends the confirmation email
+// synchronously, so the queued confirmation would just be a duplicate
+// fire once cron lands.
 export async function enqueueBookingJobs(input: {
   bookingId: string;
   slotStart: Date;
   slotEnd: Date;
   now: Date;
+  excludeKinds?: JobKind[];
 }): Promise<void> {
   const planned = planBookingJobs(input);
-  const rows = planned.map((p) => ({
-    bookingId: input.bookingId,
-    kind: p.kind,
-    dueAt: p.dueAt,
-    status: p.initialStatus,
-  }));
+  const skip = new Set(input.excludeKinds ?? []);
+  const rows = planned
+    .filter((p) => !skip.has(p.kind))
+    .map((p) => ({
+      bookingId: input.bookingId,
+      kind: p.kind,
+      dueAt: p.dueAt,
+      status: p.initialStatus,
+    }));
+  if (rows.length === 0) return;
   await getDb().insert(scheduledJob).values(rows);
 }
 

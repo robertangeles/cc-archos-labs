@@ -22,6 +22,7 @@ const VALID_SLUGS: ReadonlyArray<IntegrationSlug> = [
   "ai-model",
   "authentication",
   "google-calendar",
+  "anti-spam",
 ];
 
 const TITLES: Record<IntegrationSlug, string> = {
@@ -29,6 +30,7 @@ const TITLES: Record<IntegrationSlug, string> = {
   "ai-model": "AI Model (OpenRouter)",
   authentication: "Authentication",
   "google-calendar": "Google Calendar",
+  "anti-spam": "Anti-spam (Turnstile)",
 };
 
 const SUBTITLES: Record<IntegrationSlug, string> = {
@@ -40,6 +42,8 @@ const SUBTITLES: Record<IntegrationSlug, string> = {
     "Admin password, JWT signing key, master encryption key. Rotating the master key re-encrypts every secret in this table.",
   "google-calendar":
     "OAuth credentials + grant status. Connecting reads your availability and creates events with Meet links for booked calls.",
+  "anti-spam":
+    "Cloudflare Turnstile site + secret keys. Required to enable bot protection on the public booking form.",
 };
 
 interface PageProps {

@@ -59,6 +59,13 @@ export function IntegrationsGrid({
         "Read availability + create events with Meet links for the Book-a-Call flow.",
       status: googleStatusToStatus(googleStatus),
     },
+    {
+      slug: "anti-spam",
+      title: "Anti-spam (Turnstile)",
+      description:
+        "Cloudflare Turnstile bot protection for the public Book-a-Call form.",
+      status: redactedSecretToStatus(config.turnstileSecretKey),
+    },
   ];
 
   return (

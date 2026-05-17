@@ -24,12 +24,17 @@ import {
 } from "./errors/booking";
 import { getIntegrationConfig } from "./integration-config";
 
-// `calendar.events` is the narrowest scope that covers everything we
-// need: freebusy.query, events.insert (with conferenceData for the
-// Meet link), events.delete, events.get. Broader `calendar` scope
-// would also work but grants strictly more than needed.
+// Narrowest scope set that covers everything we need:
+//   - calendar.events   → events.insert (with Meet conferenceData),
+//                         events.delete, events.get
+//   - calendar.freebusy → freebusy.query (read busy intervals across
+//                         the consultant's primary calendar)
+// Broader `calendar` scope would also work but grants strictly more
+// than needed. Google docs confirm freebusy is gated separately from
+// events: https://developers.google.com/calendar/api/auth
 export const REQUIRED_SCOPES = [
   "https://www.googleapis.com/auth/calendar.events",
+  "https://www.googleapis.com/auth/calendar.freebusy",
 ];
 
 const AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";

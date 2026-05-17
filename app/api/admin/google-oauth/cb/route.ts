@@ -5,6 +5,7 @@ import { getDb } from "../../../../../lib/db";
 import { consultant } from "../../../../../lib/db/schema";
 import { BookingError, GoogleAuthError } from "../../../../../lib/errors/booking";
 import { exchangeCodeForTokens } from "../../../../../lib/google-oauth";
+import { clearAccessTokenCache } from "../../../../../lib/google-calendar";
 import { getIntegrationConfig } from "../../../../../lib/integration-config";
 import { getSiteSettings } from "../../../../../lib/site-config";
 import { STATE_COOKIE } from "../start/route";
@@ -19,6 +20,12 @@ import { STATE_COOKIE } from "../start/route";
 // admin back to /admin/google with a status flag.
 
 export const runtime = "nodejs";
+
+function slugFromEmail(email: string): string {
+  const localPart = email.split("@")[0] ?? "consultant";
+  const cleaned = localPart.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return cleaned || "consultant";
+}
 
 // Default working hours for a freshly-created consultant. Admin can
 // edit these in a future profile UI; until then they sit at a sensible
@@ -126,8 +133,18 @@ export async function GET(request: NextRequest) {
           updatedAt: new Date(),
         })
         .where(eq(consultant.id, existing[0].id));
+      // Bust the in-memory access-token cache so the next API call
+      // re-derives a token from the *new* refresh token. Without this,
+      // a scope upgrade (or any rotation) wouldn't take effect until
+      // the cached access token's 1-hour TTL expired.
+      clearAccessTokenCache(existing[0].id);
     } else {
+      // Derive a sensible default slug from the email local part. Admin
+      // can rename via the profile UI later. Matches the SQL backfill in
+      // migration 0006 so existing + new rows pick up the same shape.
+      const slug = slugFromEmail(consultantEmail);
       await db.insert(consultant).values({
+        slug,
         email: consultantEmail,
         displayName: consultantDisplayName,
         workingHoursJson: DEFAULT_WORKING_HOURS,
