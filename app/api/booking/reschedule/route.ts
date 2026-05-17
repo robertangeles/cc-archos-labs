@@ -1,52 +1,45 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { buildBookingConfirmationEmail } from "../../../../lib/booking-emails";
 import {
-  attachGoogleEvent,
-  createBookingRow,
   loadAvailableSlots,
-  markBookingRescheduled,
-  mintBookingJtis,
+  rescheduleBookingSlot,
   verifyManageToken,
 } from "../../../../lib/booking";
 import { getDb } from "../../../../lib/db";
 import { bookingRequest } from "../../../../lib/db/schema";
 import {
-  BookingWindowError,
   GoogleAuthError,
   GoogleAuthErrorRevoked,
   JWTExpiredError,
   JWTInvalidError,
   JWTRevokedError,
-  SlotConflictError,
 } from "../../../../lib/errors/booking";
-import { createEvent, deleteEvent } from "../../../../lib/google-calendar";
+import { updateEventTime } from "../../../../lib/google-calendar";
+import { generateJti, signMagicLink } from "../../../../lib/jwt-magic-link";
 import { getPublicOrigin } from "../../../../lib/public-origin";
 import { getResend } from "../../../../lib/resend";
-import { enqueueBookingJobs } from "../../../../lib/scheduler";
+import {
+  cancelJobsForBooking,
+  enqueueBookingJobs,
+} from "../../../../lib/scheduler";
 
 // POST /api/booking/reschedule
 //
 // Body: { token, slotStartUtc, slotEndUtc, prospectTimezone? }
-// Moves an existing booking to a new slot:
-//   1. Verify the magic-link token + jti
-//   2. Insert a new booking_request row (carrying over name/email/etc
-//      from the old row, with the new slot times). Race-safe via a
-//      fresh idempotency key.
-//   3. Create the new Google Calendar event (sendUpdates=all → attendee
-//      gets the new .ics invite).
-//   4. Delete the old Google event (sendUpdates=all → attendee gets
-//      "Event cancelled" for the old slot).
-//   5. Mint fresh JTIs for the new booking + send the confirmation
-//      email pointing at the new manage URL.
-//   6. Enqueue follow-up reminder jobs for the new booking.
-//   7. Mark the old row status='rescheduled_from' with rescheduledToId
-//      set to the new row, JTIs cleared.
+// Moves an EXISTING booking to a new slot in place. The booking_request
+// row stays the same row; we just update slot_start + slot_end. Google
+// Calendar's events.patch moves the event with a single "Event updated"
+// notification — preserves event id, fires one .ics email to the
+// attendee, no phantom cancellation. Cleaner than delete-and-create.
 //
-// On Google failure mid-flow we degrade gracefully: the new row stays
-// as pending_calendar_sync, and the old row stays confirmed. Operator
-// can manually clean up.
+// Status codes:
+//   401 — token invalid / expired / revoked
+//   409 — new slot conflicts with an existing booking
+//   503 — Google unreachable; old slot still intact
+//   400 — input invalid (Zod or window)
+//   200 — rescheduled successfully; client navigates to confirmation
 
 export const runtime = "nodejs";
 
@@ -91,10 +84,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { booking: oldBooking, consultant } = context;
+  const { booking, consultant } = context;
 
-  // 2. State check ---------------------------------------------------------
-  if (oldBooking.status !== "confirmed") {
+  // 2. State checks --------------------------------------------------------
+  if (booking.status !== "confirmed") {
     return NextResponse.json(
       {
         ok: false,
@@ -109,210 +102,180 @@ export async function POST(request: NextRequest) {
       { status: 503 },
     );
   }
-
-  // 3. Insert the new booking row (race-safe via idempotency key) ---------
-  // We slightly perturb the idempotency key calculation by appending the
-  // old booking id — so a reschedule from booking A to slot S, followed
-  // by another reschedule from booking B to slot S (different prospect),
-  // doesn't collide.
-  const now = new Date();
-  const newRowInput = {
-    slotStartUtc: body.slotStartUtc,
-    slotEndUtc: body.slotEndUtc,
-    name: oldBooking.name,
-    email: oldBooking.email,
-    organisation: oldBooking.organisation,
-    position: oldBooking.position,
-    reasonInitial: oldBooking.reasonInitial,
-    reasonFollowups:
-      (oldBooking.reasonFollowups as Array<{
-        question: string;
-        answer: string;
-      }>) ?? [],
-    prospectTimezone: body.prospectTimezone ?? oldBooking.prospectTimezone,
-    utm: {},
-  };
-
-  let inserted: Awaited<ReturnType<typeof createBookingRow>>;
-  try {
-    inserted = await createBookingRow({
-      consultantId: consultant.id,
-      validated: newRowInput,
-      now,
-    });
-  } catch (err) {
-    if (err instanceof SlotConflictError) {
-      const fresh = await loadAvailableSlots({ consultant, now }).catch(
-        () => null,
-      );
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "That slot was just taken. Pick another.",
-          slots: fresh?.slots ?? null,
-        },
-        { status: 409 },
-      );
-    }
-    if (err instanceof BookingWindowError) {
-      return NextResponse.json(
-        { ok: false, error: err.message },
-        { status: 400 },
-      );
-    }
-    console.error("[booking/reschedule] insert failed:", err);
-    return NextResponse.json(
-      { ok: false, error: "Could not reschedule." },
-      { status: 500 },
-    );
-  }
-
-  if (inserted.status === "exists_confirmed") {
-    // A prior submit already completed the same reschedule. Idempotent
-    // success — point the caller at the new confirmation.
-    return NextResponse.json({
-      ok: true,
-      bookingId: inserted.bookingId,
-      slug: consultant.slug,
-      idempotent: true,
-    });
-  }
-
-  // 4. Create the new Google event -----------------------------------------
-  let googleEventId: string | null = null;
-  let meetUrl: string | null = null;
-  try {
-    const event = await createEvent({
-      consultantId: consultant.id,
-      calendarId: consultant.googleCalendarId,
-      summary: `${consultant.displayName} ↔ ${oldBooking.name}`,
-      description: buildEventDescription({
-        name: oldBooking.name,
-        email: oldBooking.email,
-        organisation: oldBooking.organisation,
-        position: oldBooking.position,
-        reasonInitial: oldBooking.reasonInitial,
-        reasonFollowups:
-          (oldBooking.reasonFollowups as Array<{
-            question: string;
-            answer: string;
-          }>) ?? [],
-      }),
-      startUtc: body.slotStartUtc,
-      endUtc: body.slotEndUtc,
-      bookingId: inserted.bookingId,
-      attendeeEmails: [oldBooking.email],
-      timeZone: consultant.timezone,
-    });
-    googleEventId = event.eventId;
-    meetUrl = event.meetUrl;
-  } catch (err) {
-    await getDb()
-      .update(bookingRequest)
-      .set({ status: "pending_calendar_sync", updatedAt: new Date() })
-      .where(eq(bookingRequest.id, inserted.bookingId));
-
-    const status =
-      err instanceof GoogleAuthErrorRevoked
-        ? "Calendar grant expired — "
-        : err instanceof GoogleAuthError
-          ? "Calendar auth failed — "
-          : "Calendar service unavailable — ";
-    console.error("[booking/reschedule] new google event failed:", err);
+  if (!booking.googleEventId) {
     return NextResponse.json(
       {
         ok: false,
-        error: `${status}new slot saved but not yet on the calendar.`,
+        error: "This booking has no Google event yet — can't reschedule.",
       },
       { status: 503 },
     );
   }
 
-  // 5. Attach event + mint fresh JTIs --------------------------------------
-  await attachGoogleEvent({
-    bookingId: inserted.bookingId,
-    googleEventId,
-    meetUrl,
-    now: new Date(),
-  });
-  const { cancelToken } = await mintBookingJtis({
-    bookingId: inserted.bookingId,
-    now: new Date(),
-  });
+  const newSlotStart = new Date(body.slotStartUtc);
+  const newSlotEnd = new Date(body.slotEndUtc);
+  const now = new Date();
 
-  // 6. Delete the OLD Google event (Google notifies the attendee) ---------
-  if (oldBooking.googleEventId) {
-    try {
-      await deleteEvent({
-        consultantId: consultant.id,
-        calendarId: consultant.googleCalendarId,
-        eventId: oldBooking.googleEventId,
-        notifyAttendees: true,
-      });
-    } catch (err) {
-      console.error("[booking/reschedule] old google delete failed:", err);
-      // Leave the stale event on the calendar — operator can clean up.
-      // The new event is in place; the user will see both until manual
-      // cleanup, but that's better than failing the whole reschedule.
-    }
+  if (newSlotEnd.getTime() <= newSlotStart.getTime()) {
+    return NextResponse.json(
+      { ok: false, error: "New slot end must be after start." },
+      { status: 400 },
+    );
+  }
+  if (newSlotStart.getTime() <= now.getTime()) {
+    return NextResponse.json(
+      { ok: false, error: "New slot is in the past." },
+      { status: 400 },
+    );
   }
 
-  // 7. Mark the old row as superseded by the new one -----------------------
+  // 3. Slot-conflict check — refuse if another confirmed booking already
+  //    owns the new slot. Exclude THIS booking so moving to the same
+  //    time is a no-op rather than a self-collision.
+  const db = getDb();
+  const conflict = await db
+    .select({ id: bookingRequest.id })
+    .from(bookingRequest)
+    .where(
+      and(
+        eq(bookingRequest.consultantId, consultant.id),
+        eq(bookingRequest.status, "confirmed"),
+        eq(bookingRequest.slotStart, newSlotStart),
+        ne(bookingRequest.id, booking.id),
+      ),
+    )
+    .limit(1);
+  if (conflict[0]) {
+    const fresh = await loadAvailableSlots({ consultant, now }).catch(
+      () => null,
+    );
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "That slot was just taken. Pick another.",
+        slots: fresh?.slots ?? null,
+      },
+      { status: 409 },
+    );
+  }
+
+  // 4. PATCH the Google event -----------------------------------------------
+  // Single API call moves the event + fires the "Event updated"
+  // notification to attendees (.ics attached).
   try {
-    await markBookingRescheduled({
-      oldBookingId: oldBooking.id,
-      newBookingId: inserted.bookingId,
-      now: new Date(),
+    await updateEventTime({
+      consultantId: consultant.id,
+      calendarId: consultant.googleCalendarId,
+      eventId: booking.googleEventId,
+      startUtc: body.slotStartUtc,
+      endUtc: body.slotEndUtc,
+      timeZone: consultant.timezone,
     });
   } catch (err) {
-    console.error("[booking/reschedule] old-row update failed:", err);
-    // Non-fatal — the new booking is alive. The old row may still
-    // show as 'confirmed' in admin views until an operator fixes it.
+    const prefix =
+      err instanceof GoogleAuthErrorRevoked
+        ? "Calendar grant expired — "
+        : err instanceof GoogleAuthError
+          ? "Calendar auth failed — "
+          : "Calendar service unavailable — ";
+    console.error("[booking/reschedule] google patch failed:", err);
+    return NextResponse.json(
+      { ok: false, error: `${prefix}old slot is still intact. Try again.` },
+      { status: 503 },
+    );
   }
 
-  // 8. Send confirmation email for the new booking + enqueue jobs ---------
+  // 5. Update the booking row + rotate JTIs --------------------------------
+  // The cancel/reschedule magic link in the confirmation email is
+  // single-use; mint fresh JTIs so the next email's link works again.
+  const newCancelJti = generateJti();
+  const newRescheduleJti = generateJti();
+  await rescheduleBookingSlot({
+    bookingId: booking.id,
+    newSlotStart,
+    newSlotEnd,
+    newCancelJti,
+    newRescheduleJti,
+    now: new Date(),
+  });
+
+  // 6. Cancel pending scheduled jobs + enqueue new ones for the new slot ---
+  try {
+    await cancelJobsForBooking({
+      bookingId: booking.id,
+      reason: "booking rescheduled",
+      now: new Date(),
+    });
+    await enqueueBookingJobs({
+      bookingId: booking.id,
+      slotStart: newSlotStart,
+      slotEnd: newSlotEnd,
+      now: new Date(),
+      excludeKinds: ["confirmation"],
+    });
+  } catch (err) {
+    // Non-fatal — the reschedule has happened on Google + DB. Stale
+    // pending jobs from the old slot will harmlessly skip when cron
+    // sees the new slot_start in the booking row.
+    console.error("[booking/reschedule] requeue jobs failed:", err);
+  }
+
+  // 7. Send our branded confirmation email with the new manage URL --------
   const origin = getPublicOrigin(request);
-  const manageUrl = `${origin}/book/manage/${encodeURIComponent(cancelToken)}`;
+  const newManageToken = await signMagicLink(
+    booking.id,
+    "cancel",
+    newCancelJti,
+  );
+  const newManageUrl = `${origin}/book/manage/${encodeURIComponent(newManageToken)}`;
+  const prospectTimezone =
+    body.prospectTimezone ?? booking.prospectTimezone;
   try {
     const email = buildBookingConfirmationEmail({
-      prospectFirstName: firstNameFrom(oldBooking.name),
-      slotStartLocal: formatSlotInTz(
-        body.slotStartUtc,
-        newRowInput.prospectTimezone,
-      ),
-      prospectTimezone: newRowInput.prospectTimezone,
+      prospectFirstName: firstNameFrom(booking.name),
+      slotStartLocal: formatSlotInTz(body.slotStartUtc, prospectTimezone),
+      prospectTimezone,
       durationMinutes: consultant.slotMinutes,
-      meetUrl: meetUrl ?? "(Meet link arriving in a follow-up email)",
-      manageUrl,
+      meetUrl: booking.meetUrl ?? "(Meet link in your calendar invite)",
+      manageUrl: newManageUrl,
       recommendedReading: [],
     });
     const { resend, from } = await getResend();
     await resend.emails.send({
       from,
-      to: oldBooking.email,
-      subject: email.subject,
+      to: booking.email,
+      subject: email.subject.replace(
+        "You're booked for",
+        "Your call has been moved to",
+      ),
       html: email.html,
-      text: email.text,
+      text: email.text.replace(
+        "You're on the calendar for",
+        "Your call is now at",
+      ),
     });
   } catch (err) {
-    console.error("[booking/reschedule] new confirmation email failed:", err);
+    console.error(
+      "[booking/reschedule] confirmation email failed:",
+      err,
+    );
+    // Don't fail the whole reschedule — Google's "Event updated" email
+    // already covered the calendar side.
   }
 
-  try {
-    await enqueueBookingJobs({
-      bookingId: inserted.bookingId,
-      slotStart: new Date(body.slotStartUtc),
-      slotEnd: new Date(body.slotEndUtc),
-      now: new Date(),
-      excludeKinds: ["confirmation"],
-    });
-  } catch (err) {
-    console.error("[booking/reschedule] enqueue jobs failed:", err);
+  // 8. Update the prospect_timezone on the row if the form sent a new one.
+  //    Defensive — most reschedules come from the same prospect on the
+  //    same device, so the tz rarely changes.
+  if (body.prospectTimezone && body.prospectTimezone !== booking.prospectTimezone) {
+    await db
+      .update(bookingRequest)
+      .set({ prospectTimezone: body.prospectTimezone, updatedAt: new Date() })
+      .where(eq(bookingRequest.id, booking.id));
   }
 
   return NextResponse.json({
     ok: true,
-    bookingId: inserted.bookingId,
+    bookingId: booking.id,
     slug: consultant.slug,
   });
 }
@@ -320,31 +283,6 @@ export async function POST(request: NextRequest) {
 // ----------------------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------------------
-
-function buildEventDescription(input: {
-  name: string;
-  email: string;
-  organisation: string | null;
-  position: string | null;
-  reasonInitial: string;
-  reasonFollowups: { question: string; answer: string }[];
-}): string {
-  const lines = [
-    `Prospect: ${input.name} <${input.email}>`,
-    input.organisation ? `Org: ${input.organisation}` : null,
-    input.position ? `Role: ${input.position}` : null,
-    "",
-    "Reason for the call:",
-    input.reasonInitial,
-  ];
-  if (input.reasonFollowups.length > 0) {
-    lines.push("", "Follow-up:");
-    for (const f of input.reasonFollowups) {
-      lines.push(`Q: ${f.question}`, `A: ${f.answer}`);
-    }
-  }
-  return lines.filter((l) => l !== null).join("\n");
-}
 
 function firstNameFrom(fullName: string): string {
   const parts = fullName.trim().split(/\s+/);

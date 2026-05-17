@@ -597,24 +597,32 @@ export async function markBookingCancelled(input: {
     .where(eq(bookingRequest.id, input.bookingId));
 }
 
-// Mark a booking as superseded by a new one. Used by the reschedule
-// flow on the OLD booking row — the new row gets its own create-time
-// inserts via createBookingRow.
-export async function markBookingRescheduled(input: {
-  oldBookingId: string;
-  newBookingId: string;
+// Move a booking to a new slot in place. Same booking_request row,
+// new slot_start + slot_end, rotated JTIs, status stays 'confirmed'.
+//
+// Why in-place: Google Calendar's events.patch is the canonical
+// "move this event" operation — single update event + .ics email,
+// no phantom cancellation, history preserved. Delete-and-create
+// causes Google to suppress the new invite email when the pair fires
+// close together (observed empirically on dev).
+export async function rescheduleBookingSlot(input: {
+  bookingId: string;
+  newSlotStart: Date;
+  newSlotEnd: Date;
+  newCancelJti: string;
+  newRescheduleJti: string;
   now: Date;
 }): Promise<void> {
   await getDb()
     .update(bookingRequest)
     .set({
-      status: "rescheduled_from",
-      rescheduledToId: input.newBookingId,
-      cancelJti: null,
-      rescheduleJti: null,
+      slotStart: input.newSlotStart,
+      slotEnd: input.newSlotEnd,
+      cancelJti: input.newCancelJti,
+      rescheduleJti: input.newRescheduleJti,
       updatedAt: input.now,
     })
-    .where(eq(bookingRequest.id, input.oldBookingId));
+    .where(eq(bookingRequest.id, input.bookingId));
 }
 
 // Mint fresh cancel + reschedule jtis for a booking. Used by the

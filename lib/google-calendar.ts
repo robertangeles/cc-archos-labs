@@ -142,7 +142,7 @@ export async function getAccessToken(consultantId: string): Promise<string> {
 
 interface CalendarRequestOpts {
   consultantId: string;
-  method: "GET" | "POST" | "DELETE";
+  method: "GET" | "POST" | "PATCH" | "DELETE";
   url: string;
   body?: unknown;
 }
@@ -413,6 +413,49 @@ export async function createEvent(
     meetUrl,
     htmlLink: event.htmlLink ?? null,
   };
+}
+
+// ----------------------------------------------------------------------------
+// events.patch — move an existing event to a new time
+// ----------------------------------------------------------------------------
+//
+// Used by the reschedule flow. PATCH is the canonical Google Calendar
+// pattern for moving an event — preserves the event id, fires a single
+// "Event updated" notification with the new .ics attachment, and
+// doesn't trigger a separate cancellation. This is what Calendly /
+// Cal.com use; the delete + create alternative leads to Google
+// suppressing the new invite when the two events fire close together.
+
+export interface UpdateEventTimeInput {
+  consultantId: string;
+  calendarId: string;
+  eventId: string;
+  startUtc: string;
+  endUtc: string;
+  timeZone: string;
+}
+
+export async function updateEventTime(
+  input: UpdateEventTimeInput,
+): Promise<void> {
+  const url = new URL(
+    `${CALENDAR_BASE}/calendars/${encodeURIComponent(input.calendarId)}/events/${encodeURIComponent(input.eventId)}`,
+  );
+  // sendUpdates=all → Google emails the attendee an "Event updated"
+  // notification with the new .ics.
+  url.searchParams.set("sendUpdates", "all");
+
+  await calendarRequest<unknown>({
+    consultantId: input.consultantId,
+    method: "PATCH",
+    url: url.toString(),
+    body: {
+      start: { dateTime: input.startUtc, timeZone: input.timeZone },
+      end: { dateTime: input.endUtc, timeZone: input.timeZone },
+    },
+  });
+
+  invalidateFreebusyCache(input.consultantId);
 }
 
 // ----------------------------------------------------------------------------
