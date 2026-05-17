@@ -14,6 +14,10 @@ import type { AnswerCode } from "./types";
 //     (Q3=D). When replaced, Q9 is not asked at all — and Q9c/Q9d
 //     (which depend on Q9 being asked) are also skipped. Q9 only fires
 //     when Q3=C ("AI in production but not scaling").
+//
+// Q12a is a top-level (non-branched) Block 3 question — always asked
+// after Q12. Captures budget allocation; its own priority trigger flags
+// the lead as high-priority when budget is approved.
 
 // Stored as a session's accumulated answers. Question IDs map to the
 // answer code the user picked.
@@ -37,6 +41,7 @@ const BASE_ORDER = [
   // Q10a inserted here when Q10=D
   "q11",
   "q12",
+  "q12a",
 ] as const;
 
 // Computes the ordered list of question IDs the session will see given
@@ -76,12 +81,12 @@ export function computeFlow(answers: SessionAnswers): string[] {
     }
   }
 
-  // Block 3 — Q10, Q10a (conditional), Q11, Q12
+  // Block 3 — Q10, Q10a (conditional), Q11, Q12, Q12a
   flow.push("q10");
   if (answers.q10 === "D") {
     flow.push("q10a");
   }
-  flow.push("q11", "q12");
+  flow.push("q11", "q12", "q12a");
 
   return flow;
 }

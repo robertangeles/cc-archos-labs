@@ -39,6 +39,7 @@ _(none yet)_
 - [events.insert uses sendUpdates=all](decisions/2026-05-17-send-updates-all-on-events-insert.md) — without it, attendees get no .ics invite email; bookings ship both Google's native invite AND our branded Resend confirmation
 - [consultant.public_email split from internal routing](decisions/2026-05-17-public-email-split.md) — `consultant.email` is the OAuth identity + From: header; `consultant.public_email` is what the booking page surfaces; falls back to `email` when null
 - [Booking prompts soft-fallback (vs diagnostic's hard-fail)](decisions/2026-05-17-soft-fallback-for-booking-prompts.md) — booking is operational AI augmentation, not a deliverable; missing/malformed prompts row → hardcoded starter, never throw; diagnostic prompt does the opposite for a reason
+- [Assessment scoring calibration v1.1 + spec bump](decisions/2026-05-17-assessment-scoring-calibration.md) — five-change retune (Q9a, Q3, Q6 score corrections + Q12a new question with priority trigger + Q1 sector removed from scoring); source-of-truth JSON committed at scripts/diagnostic-content.json
 
 ## synthesis
 _(none yet)_

@@ -1,0 +1,330 @@
+{
+  "version": "diagnostic-content-2026-05-17",
+  "questions": [
+    {
+      "id": "q1",
+      "block": 1,
+      "domain": "org_reality",
+      "text": "What sector does your organisation operate in?",
+      "options": [
+        { "code": "A", "label": "Financial services", "score": 0 },
+        { "code": "B", "label": "Healthcare and life sciences", "score": 0 },
+        { "code": "C", "label": "Government and public sector", "score": 0 },
+        { "code": "D", "label": "Energy and utilities", "score": 0 },
+        { "code": "E", "label": "Other", "score": 0 }
+      ]
+    },
+    {
+      "id": "q2",
+      "block": 1,
+      "domain": "org_reality",
+      "text": "What best describes your role in AI investment decisions?",
+      "options": [
+        { "code": "A", "label": "I own the budget and the outcome", "score": 3 },
+        { "code": "B", "label": "I influence the decision but do not hold the budget", "score": 2 },
+        { "code": "C", "label": "I am building the business case for someone above me", "score": 1 },
+        { "code": "D", "label": "I am implementing what has already been decided", "score": 0 }
+      ]
+    },
+    {
+      "id": "q3",
+      "block": 1,
+      "domain": "program_readiness",
+      "text": "Where is your organisation right now with AI?",
+      "options": [
+        { "code": "A", "label": "Still exploring — no firm program yet", "score": 0 },
+        { "code": "B", "label": "We have run pilots but nothing is in production", "score": 1 },
+        { "code": "C", "label": "We have AI in production but it is not scaling", "score": 1 },
+        { "code": "D", "label": "We are scaling AI but hitting unexpected walls", "score": 2 }
+      ]
+    },
+    {
+      "id": "q4",
+      "block": 2,
+      "domain": "data_foundation",
+      "text": "If I asked your data team to trace your three most important business metrics back to their source systems today — could they do it?",
+      "options": [
+        { "code": "A", "label": "Yes — we have documented end-to-end lineage", "score": 3 },
+        { "code": "B", "label": "Partially — for some systems but not all", "score": 2 },
+        { "code": "C", "label": "We could reconstruct it but it would take weeks", "score": 1 },
+        { "code": "D", "label": "Honestly, no", "score": 0 }
+      ]
+    },
+    {
+      "id": "q5",
+      "block": 2,
+      "domain": "data_foundation",
+      "text": "How many authoritative sources of truth exist for your organisation's core business data?",
+      "options": [
+        { "code": "A", "label": "One — a single authoritative source that everyone trusts", "score": 3 },
+        { "code": "B", "label": "Two or three — we manage the reconciliation ourselves", "score": 2 },
+        { "code": "C", "label": "More than three — the answer depends on who you ask", "score": 1 },
+        { "code": "D", "label": "We do not know", "score": 0 }
+      ]
+    },
+    {
+      "id": "q6",
+      "block": 2,
+      "domain": "data_foundation",
+      "text": "Has a data quality or data governance issue ever delayed or killed an AI initiative in your organisation?",
+      "options": [
+        { "code": "A", "label": "Yes — it was the primary reason the initiative failed or stalled", "score": 0 },
+        { "code": "B", "label": "Yes — it was a contributing factor alongside other issues", "score": 1 },
+        { "code": "C", "label": "Not yet, but it is a risk we are aware of", "score": 2 },
+        { "code": "D", "label": "No — data has not been an issue for us", "score": 1 }
+      ]
+    },
+    {
+      "id": "q6a",
+      "block": 2,
+      "domain": "data_foundation",
+      "text": "Was the data quality issue known before the program started, or did it surface during implementation?",
+      "options": [
+        { "code": "A", "label": "Known beforehand but deprioritised in favour of getting started", "score": 1 },
+        { "code": "B", "label": "It surfaced during discovery and we adapted", "score": 2 },
+        { "code": "C", "label": "It only became clear at deployment — too late to fix cheaply", "score": 0 },
+        { "code": "D", "label": "It is still not fully understood", "score": 0 }
+      ],
+      "branch": { "parentQuestionId": "q6", "triggerAnswers": ["A"] }
+    },
+    {
+      "id": "q6b",
+      "block": 2,
+      "domain": "data_foundation",
+      "text": "Has your data infrastructure been formally assessed for AI workloads specifically — not just analytics or reporting?",
+      "options": [
+        { "code": "A", "label": "Yes — assessed specifically for AI workloads within the last 12 months", "score": 3 },
+        { "code": "B", "label": "Yes — but the assessment was for analytics, not AI specifically", "score": 1 },
+        { "code": "C", "label": "No — but we are planning to do this", "score": 2 },
+        { "code": "D", "label": "No — we have assumed it is ready based on our analytics capability", "score": 0 }
+      ],
+      "branch": { "parentQuestionId": "q6", "triggerAnswers": ["D"] }
+    },
+    {
+      "id": "q7",
+      "block": 2,
+      "domain": "data_foundation",
+      "text": "When your AI model makes an incorrect or unexpected decision, who in your organisation can explain why — and point to the data that caused it?",
+      "options": [
+        { "code": "A", "label": "Our data team can do this today — we have explainability tooling", "score": 3 },
+        { "code": "B", "label": "We could reconstruct it with effort and time", "score": 2 },
+        { "code": "C", "label": "We would have to make educated guesses", "score": 1 },
+        { "code": "D", "label": "Nobody owns this accountability yet", "score": 0 }
+      ]
+    },
+    {
+      "id": "q8",
+      "block": 2,
+      "domain": "data_foundation",
+      "text": "How would you honestly describe your organisation's data governance in practice — not on paper?",
+      "options": [
+        { "code": "A", "label": "Active — it blocks bad decisions and is respected across the business", "score": 3 },
+        { "code": "B", "label": "Documented — policies exist but are rarely enforced", "score": 1 },
+        { "code": "C", "label": "Aspirational — we have the documents but not the behaviour", "score": 0 },
+        { "code": "D", "label": "We do not have a formal data governance function", "score": 0 }
+      ]
+    },
+    {
+      "id": "q9",
+      "block": 2,
+      "domain": "data_foundation",
+      "text": "What happened to the most significant AI initiative your organisation has run?",
+      "options": [
+        { "code": "A", "label": "It went to production and is delivering the value that was promised", "score": 3 },
+        { "code": "B", "label": "It delivered insight but stalled when we tried to scale it", "score": 1 },
+        { "code": "C", "label": "It was quietly shelved", "score": 0 },
+        { "code": "D", "label": "We have not run a significant AI initiative yet", "score": 0 }
+      ]
+    },
+    {
+      "id": "q9a",
+      "block": 2,
+      "domain": "data_foundation",
+      "text": "What do you believe is your organisation's single biggest barrier to getting AI into production?",
+      "options": [
+        { "code": "A", "label": "Our data is not in a state that would support AI reliably", "score": 0 },
+        { "code": "B", "label": "We do not have the internal skills to build or operate AI systems", "score": 1 },
+        { "code": "C", "label": "We cannot get executive commitment or budget allocation", "score": 1 },
+        { "code": "D", "label": "We do not have clearly defined use cases with measurable outcomes", "score": 1 },
+        { "code": "E", "label": "Budget has not been allocated", "score": 0 }
+      ],
+      "branch": { "parentQuestionId": "q3", "triggerAnswers": ["A", "B"] }
+    },
+    {
+      "id": "q9b",
+      "block": 2,
+      "domain": "data_foundation",
+      "text": "Where specifically are the walls you are hitting?",
+      "options": [
+        { "code": "A", "label": "Data quality is degrading as volume and variety increase", "score": 0 },
+        { "code": "B", "label": "Our governance processes cannot keep pace with deployment speed", "score": 0 },
+        { "code": "C", "label": "Model performance is below expectation in production conditions", "score": 1 },
+        { "code": "D", "label": "Business adoption is low despite technical delivery", "score": 1 },
+        { "code": "E", "label": "The cost of running AI at scale is exceeding the value it delivers", "score": 0 }
+      ],
+      "branch": { "parentQuestionId": "q3", "triggerAnswers": ["D"] }
+    },
+    {
+      "id": "q9c",
+      "block": 2,
+      "domain": "data_foundation",
+      "text": "What was the primary reason given for shelving the initiative?",
+      "options": [
+        { "code": "A", "label": "Data was not ready to support the use case", "score": 1 },
+        { "code": "B", "label": "Cost overran the business case", "score": 1 },
+        { "code": "C", "label": "Business priorities shifted and the sponsor moved on", "score": 1 },
+        { "code": "D", "label": "Results did not justify continuation", "score": 1 },
+        { "code": "E", "label": "The reason was never formally documented or discussed", "score": 0 }
+      ],
+      "branch": { "parentQuestionId": "q9", "triggerAnswers": ["C"] }
+    },
+    {
+      "id": "q9d",
+      "block": 2,
+      "domain": "data_foundation",
+      "text": "Is it delivering the business value that was originally promised in the business case?",
+      "options": [
+        { "code": "A", "label": "Yes — it is exceeding the original projections", "score": 3 },
+        { "code": "B", "label": "Yes — roughly in line with what was promised", "score": 2 },
+        { "code": "C", "label": "Partially — some value but below what was sold to the business", "score": 1 },
+        { "code": "D", "label": "No — it is underperforming and we are not sure why", "score": 0 }
+      ],
+      "branch": { "parentQuestionId": "q9", "triggerAnswers": ["A"] }
+    },
+    {
+      "id": "q10",
+      "block": 3,
+      "domain": "program_readiness",
+      "text": "Who owns the business outcome of your AI program — not the technology, the outcome?",
+      "options": [
+        { "code": "A", "label": "A named executive with personal accountability for delivery", "score": 3 },
+        { "code": "B", "label": "A steering committee with shared accountability", "score": 1 },
+        { "code": "C", "label": "The IT or data team", "score": 1 },
+        { "code": "D", "label": "Ownership is unclear or contested", "score": 0 }
+      ]
+    },
+    {
+      "id": "q10a",
+      "block": 3,
+      "domain": "program_readiness",
+      "text": "When AI investment decisions need to be made, what typically happens in practice?",
+      "options": [
+        { "code": "A", "label": "Decisions get escalated and delayed — no clear authority exists", "score": 1 },
+        { "code": "B", "label": "Different teams make competing or conflicting decisions", "score": 1 },
+        { "code": "C", "label": "Decisions default to vendor recommendations by default", "score": 0 },
+        { "code": "D", "label": "Decisions simply do not get made in a reasonable timeframe", "score": 0 }
+      ],
+      "branch": { "parentQuestionId": "q10", "triggerAnswers": ["D"] }
+    },
+    {
+      "id": "q11",
+      "block": 3,
+      "domain": "program_readiness",
+      "text": "How long does a material change to your core data architecture typically take to approve and implement?",
+      "options": [
+        { "code": "A", "label": "Days — we move quickly and have clear approval authority", "score": 3 },
+        { "code": "B", "label": "Weeks — there is a governance process but it is manageable", "score": 2 },
+        { "code": "C", "label": "Months — approvals are slow and cross-departmental", "score": 1 },
+        { "code": "D", "label": "It has never been done cleanly — it always involves technical debt", "score": 0 }
+      ]
+    },
+    {
+      "id": "q12",
+      "block": 3,
+      "domain": "org_reality",
+      "text": "What is driving urgency around AI in your organisation right now?",
+      "options": [
+        { "code": "A", "label": "Competitive pressure — we are falling behind peers", "score": 2 },
+        { "code": "B", "label": "Board or regulatory mandate — we have been directed to act", "score": 2 },
+        { "code": "C", "label": "Internal cost reduction targets tied to AI automation", "score": 2 },
+        { "code": "D", "label": "An internal champion is pushing it without a formal mandate", "score": 1 },
+        { "code": "E", "label": "There is no active urgency yet", "score": 0 }
+      ]
+    },
+    {
+      "id": "q12a",
+      "block": 3,
+      "domain": "org_reality",
+      "text": "Has budget been formally allocated for your AI program?",
+      "options": [
+        { "code": "A", "label": "Yes — approved and available now", "score": 3 },
+        { "code": "B", "label": "Not yet — we are building the business case", "score": 1 },
+        { "code": "C", "label": "Budget was allocated but has since been reduced or frozen", "score": 0 },
+        { "code": "D", "label": "No budget discussion has started", "score": 0 }
+      ]
+    }
+  ],
+  "riskFlagRules": [
+    {
+      "code": "no_data_lineage",
+      "title": "No documented data lineage",
+      "body": "No documented data lineage exists. AI models built on this foundation cannot be trusted or explained.",
+      "severity": "critical",
+      "trigger": [{ "questionId": "q4", "answer": "D" }]
+    },
+    {
+      "code": "prior_failure_unexplained",
+      "title": "Prior AI failure with unidentified root cause",
+      "body": "A prior AI initiative failed due to data quality, and the root cause has not been formally identified.",
+      "severity": "critical",
+      "trigger": [
+        { "questionId": "q6", "answer": "A" },
+        { "questionId": "q6a", "answer": "D" }
+      ]
+    },
+    {
+      "code": "no_explainability_owner",
+      "title": "No explainability accountability",
+      "body": "No individual or team owns explainability for AI decisions. This is a regulatory liability in regulated sectors.",
+      "severity": "high",
+      "trigger": [{ "questionId": "q7", "answer": "D" }]
+    },
+    {
+      "code": "vendor_default_decisioning",
+      "title": "AI decisions default to vendor",
+      "body": "AI investment decisions are defaulting to vendor recommendations without internal accountability.",
+      "severity": "high",
+      "trigger": [
+        { "questionId": "q10", "answer": "D" },
+        { "questionId": "q10a", "answer": "C" }
+      ]
+    },
+    {
+      "code": "shelved_no_postmortem",
+      "title": "Previous initiative shelved without post-mortem",
+      "body": "A previous AI initiative was shelved without a documented post-mortem. The failure mode is likely to recur.",
+      "severity": "high",
+      "trigger": [{ "questionId": "q9c", "answer": "E" }]
+    },
+    {
+      "code": "governance_aspirational",
+      "title": "Governance exists on paper only",
+      "body": "Data governance exists on paper but is not enforced in practice.",
+      "severity": "medium",
+      "trigger": [{ "questionId": "q8", "answer": "C" }]
+    }
+  ],
+  "priorityTriggers": [
+    {
+      "questionId": "q12",
+      "answer": "B",
+      "reason": "Board or regulatory mandate — buyer is under board or regulator timeline pressure regardless of org maturity. Highest-priority outreach."
+    },
+    {
+      "questionId": "q12a",
+      "answer": "A",
+      "reason": "Budget approved and available — decision-maker has money and authority. High-priority outreach."
+    }
+  ],
+  "tierBoundaries": [
+    { "tier": "Critical", "label": "Foundation Risk", "min": 0, "max": 25 },
+    { "tier": "Emerging", "label": "Structurally Exposed", "min": 26, "max": 50 },
+    { "tier": "Developing", "label": "Program-Ready", "min": 51, "max": 75 },
+    { "tier": "Advanced", "label": "Scale-Ready", "min": 76, "max": 100 }
+  ],
+  "domainWeights": {
+    "data_foundation": 0.5,
+    "program_readiness": 0.3,
+    "org_reality": 0.2
+  }
+}
