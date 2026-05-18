@@ -7,6 +7,7 @@ import {
   type BlockTypeKey,
 } from "../../../../lib/pages/blocks/registry";
 import type { BlockInputView } from "../../../../lib/pages/types";
+import { ZodForm } from "./zod-form";
 
 // BlocksEditor — admin UI for composing a page from section blocks.
 //
@@ -246,17 +247,96 @@ function BlockRow({
 }
 
 // ---------------------------------------------------------------------------
-// PropsEditor — JSON textarea v1.
+// PropsEditor — per-field form by default (ZodForm), JSON escape hatch.
 //
-// Renders the block's props as a pretty-printed JSON textarea. Parses
-// on every keystroke and surfaces a parse error inline without losing
-// the user's in-progress text. A future enhancement would generate a
-// per-field form per block_type by introspecting the registry's Zod
-// schema, but the JSON editor is the universal first-cut that works
-// for every block including future additions without code changes.
+// L2 ships per-field forms generated from the block's Zod schema. The
+// schema is the single source of truth: adding a field to a block's
+// schema appears in the editor with zero UI code change.
+//
+// JSON view is preserved as a toggle for:
+//   - Power users pasting known-good blobs
+//   - Block types using Zod constructs the introspector doesn't yet
+//     handle (record/union/etc. — the field-introspection module
+//     surfaces those as 'unknown' with a friendly fallback message)
+//   - Debugging when the per-field UI has an unexpected bug
 // ---------------------------------------------------------------------------
 
 function PropsEditor({
+  blockType,
+  value,
+  onChange,
+}: {
+  blockType: string;
+  value: Record<string, unknown>;
+  onChange: (next: Record<string, unknown>) => void;
+}) {
+  const registryEntry = BLOCK_REGISTRY[blockType as BlockTypeKey];
+  const [mode, setMode] = useState<"fields" | "json">("fields");
+
+  if (!registryEntry) {
+    // Unknown block_type — registry/renderer drift. Fall back to JSON
+    // so the user can at least see + correct the props.
+    return (
+      <JsonEditor blockType={blockType} value={value} onChange={onChange} />
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-[11px] uppercase tracking-wider text-ink-subtle">
+          Props · {registryEntry.label}
+        </p>
+        <div className="flex items-center gap-x-2 text-[11px]">
+          <button
+            type="button"
+            onClick={() => setMode("fields")}
+            className={`rounded px-2 py-0.5 ${
+              mode === "fields"
+                ? "bg-primary/10 text-primary"
+                : "text-ink-subtle hover:text-ink"
+            }`}
+          >
+            Fields
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("json")}
+            className={`rounded px-2 py-0.5 ${
+              mode === "json"
+                ? "bg-primary/10 text-primary"
+                : "text-ink-subtle hover:text-ink"
+            }`}
+          >
+            Show as JSON
+          </button>
+        </div>
+      </div>
+
+      {mode === "fields" ? (
+        <ZodForm
+          schema={registryEntry.schema}
+          value={value}
+          onChange={onChange}
+        />
+      ) : (
+        <JsonEditor
+          blockType={blockType}
+          value={value}
+          onChange={onChange}
+        />
+      )}
+
+      <p className="mt-3 text-[11px] text-ink-subtle">
+        Validated against the block schema on save.
+      </p>
+    </div>
+  );
+}
+
+// JSON editor as the escape hatch + the universal fallback for blocks
+// whose schema uses Zod constructs the introspector doesn't yet handle.
+function JsonEditor({
   blockType,
   value,
   onChange,
@@ -272,7 +352,11 @@ function PropsEditor({
     setText(next);
     try {
       const parsed = JSON.parse(next);
-      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      if (
+        typeof parsed !== "object" ||
+        parsed === null ||
+        Array.isArray(parsed)
+      ) {
         setError("Props must be a JSON object.");
         return;
       }
@@ -286,16 +370,12 @@ function PropsEditor({
   return (
     <div>
       <div className="mb-2 flex items-baseline justify-between">
-        <p className="text-[11px] uppercase tracking-wider text-ink-subtle">
-          Props ({blockType}) — JSON
+        <p className="text-[11px] text-ink-subtle">
+          JSON · {blockType}
         </p>
         {error ? (
           <p className="text-[11px] text-red-500">{error}</p>
-        ) : (
-          <p className="text-[11px] text-ink-subtle">
-            Validated against the block schema on save.
-          </p>
-        )}
+        ) : null}
       </div>
       <textarea
         value={text}

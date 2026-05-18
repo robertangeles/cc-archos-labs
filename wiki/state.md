@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-18T07:35:48.900Z
+generated: 2026-05-18T07:54:19.625Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -56,7 +56,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/logout` | [app/api/admin/logout/route.ts](../app/api/admin/logout/route.ts) | 2026-05-08 |
 | `/api/admin/pages` | [app/api/admin/pages/route.ts](../app/api/admin/pages/route.ts) | 2026-05-18 |
 | `/api/admin/pages/[id]` | [app/api/admin/pages/[id]/route.ts](../app/api/admin/pages/[id]/route.ts) | 2026-05-18 |
-| `/api/admin/pages/[id]/blocks` | [app/api/admin/pages/[id]/blocks/route.ts](../app/api/admin/pages/[id]/blocks/route.ts) | unknown |
+| `/api/admin/pages/[id]/blocks` | [app/api/admin/pages/[id]/blocks/route.ts](../app/api/admin/pages/[id]/blocks/route.ts) | 2026-05-18 |
 | `/api/admin/pages/[id]/restore` | [app/api/admin/pages/[id]/restore/route.ts](../app/api/admin/pages/[id]/restore/route.ts) | 2026-05-18 |
 | `/api/admin/pages/[id]/revisions` | [app/api/admin/pages/[id]/revisions/route.ts](../app/api/admin/pages/[id]/revisions/route.ts) | 2026-05-18 |
 | `/api/admin/pages/[id]/revisions/[revId]/restore` | [app/api/admin/pages/[id]/revisions/[revId]/restore/route.ts](../app/api/admin/pages/[id]/revisions/[revId]/restore/route.ts) | 2026-05-18 |
@@ -97,14 +97,14 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/layout/header.tsx](../components/layout/header.tsx) | 2026-05-15 |
 | [components/layout/lead-sign-out-button.tsx](../components/layout/lead-sign-out-button.tsx) | 2026-05-15 |
 | [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-05-18 |
-| [components/pages/block-error-boundary.tsx](../components/pages/block-error-boundary.tsx) | unknown |
-| [components/pages/blocks-renderer.test.tsx](../components/pages/blocks-renderer.test.tsx) | unknown |
-| [components/pages/blocks-renderer.tsx](../components/pages/blocks-renderer.tsx) | unknown |
-| [components/pages/blocks/cta-pair-block.tsx](../components/pages/blocks/cta-pair-block.tsx) | unknown |
-| [components/pages/blocks/hero-block.tsx](../components/pages/blocks/hero-block.tsx) | unknown |
-| [components/pages/blocks/markdown-block.tsx](../components/pages/blocks/markdown-block.tsx) | unknown |
-| [components/pages/blocks/proof-grid-block.tsx](../components/pages/blocks/proof-grid-block.tsx) | unknown |
-| [components/pages/blocks/service-grid-block.tsx](../components/pages/blocks/service-grid-block.tsx) | unknown |
+| [components/pages/block-error-boundary.tsx](../components/pages/block-error-boundary.tsx) | 2026-05-18 |
+| [components/pages/blocks-renderer.test.tsx](../components/pages/blocks-renderer.test.tsx) | 2026-05-18 |
+| [components/pages/blocks-renderer.tsx](../components/pages/blocks-renderer.tsx) | 2026-05-18 |
+| [components/pages/blocks/cta-pair-block.tsx](../components/pages/blocks/cta-pair-block.tsx) | 2026-05-18 |
+| [components/pages/blocks/hero-block.tsx](../components/pages/blocks/hero-block.tsx) | 2026-05-18 |
+| [components/pages/blocks/markdown-block.tsx](../components/pages/blocks/markdown-block.tsx) | 2026-05-18 |
+| [components/pages/blocks/proof-grid-block.tsx](../components/pages/blocks/proof-grid-block.tsx) | 2026-05-18 |
+| [components/pages/blocks/service-grid-block.tsx](../components/pages/blocks/service-grid-block.tsx) | 2026-05-18 |
 | [components/pages/markdown-article.test.tsx](../components/pages/markdown-article.test.tsx) | 2026-05-18 |
 | [components/pages/markdown-article.tsx](../components/pages/markdown-article.tsx) | 2026-05-18 |
 | [components/sections/about/index.ts](../components/sections/about/index.ts) | 2026-05-18 |

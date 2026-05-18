@@ -8,6 +8,29 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-18 — Pages CMS Phase 2.L2: per-field forms (feature/pages-cms-phase-2)
+
+Editor UX upgrade for Phase 2 blocks. Phase 2's first commit shipped a raw-JSON props editor as the universal fallback; this commit replaces it with **per-field forms generated from the block's Zod schema**. JSON view preserved as an escape-hatch toggle.
+
+Shipped on this branch (additional commit on top of Phase 2):
+
+- **Zod schema introspection** ([lib/pages/blocks/field-introspection.ts](../lib/pages/blocks/field-introspection.ts)) — classifies a Zod schema into a normalised `FieldDescriptor` discriminated union. Handles `string` (with optional textarea promotion past 200 chars), `number`, `boolean`, `enum`, `literal`, nested `object`, `array<T>`, and the wrappers `optional` / `nullable` / `default`. Unsupported constructs (record/union/intersection/tuple/transform) degrade to `{ kind: 'unknown' }` with a hint message — no crashes.
+- **Coverage proof:** test asserts every Phase 2 block schema in `BLOCK_REGISTRY` classifies cleanly as a top-level object with no `unknown` fields. Adding a future block_type with an unsupported shape will surface a precise error at test time rather than silently degrading in production.
+- **`<ZodForm>`** ([app/admin/(authed)/pages/zod-form.tsx](../app/admin/(authed)/pages/zod-form.tsx)) — recursive renderer driven by the FieldDescriptor tree. Emits the right input per field: text input vs textarea, number, checkbox, select, repeatable list with Up/Down/Remove on array items, indented fieldset for nested objects. Optional objects show an "+ Add" CTA so the form stays minimal until the user opts in. Char counters with amber-at-90%-of-max for string fields. Inline `defaultFor()` seeds new items + new optional objects with sensible empty values.
+- **BlocksEditor integration** — `<PropsEditor>` in [blocks-editor.tsx](../app/admin/(authed)/pages/blocks-editor.tsx) now shows the per-field form by default with a "Fields / Show as JSON" toggle. Both views write to the same `props` state — the user can flip between them mid-edit. The JSON view stays as the universal fallback for blocks whose schema uses unsupported Zod constructs.
+- **Tests:** 22 new for `field-introspection.test.ts` (per-kind classification + every registry block schema) on top of the existing 319. Total: **341/341 vitest pass**.
+
+Why this work landed before merge of the Phase 2 PR: the JSON editor was the cheap fallback shipped to get the platform testable inside the cake-bake window. L2 is the real editor UX — bundling it into the same PR keeps Phase 2's review surface cohesive (the editor is part of "section blocks shipped") and avoids a follow-up PR for what is fundamentally one feature. Posture: cleanest single review unit beats two smaller PRs with editor regression risk in between.
+
+Out of scope (deferred):
+
+- HTML5 drag-to-reorder for blocks (Up/Down buttons ship; DnD remains a follow-up nicety)
+- Live preview pane alongside the form (L3 — defer unless authoring volume justifies the build)
+- `describe()`-driven field help text (could enrich each field with author guidance; small follow-up once block schemas have it)
+- Schema-driven validation messages surfaced inline as you type (currently we validate at save and at the registry's render path; inline pre-save validation is a polish item)
+
+Rob owns before merging: re-test `/admin/pages/<phase-2-test-id>` — every block should now show labelled inputs instead of raw JSON. The "Show as JSON" toggle should still work as a fallback. Push when ready.
+
 ## 2026-05-18 — Pages CMS Phase 2: section blocks (feature/pages-cms-phase-2)
 
 Phase 2 of the Pages CMS arc per [[2026-05-18-pages-cms-expansion]]: the design system becomes the CMS palette. Marketing pages (Consulting deep page, audience landings, Modelling Room) now compose from section blocks in admin without dev time. Branch: `feature/pages-cms-phase-2`.
