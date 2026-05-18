@@ -50,6 +50,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 _(none yet)_
 
 ## lessons-learned
+- [Drizzle raw `sql` template rejects Date bind parameters](lessons-learned/2026-05-18-drizzle-raw-sql-rejects-date-params.md) — postgres.js's `.str()` throws `ERR_INVALID_ARG_TYPE` on Date params via raw `sql` template; use the typed query builder, or convert Date → ISO string + `::timestamptz` cast; unit-mocking `getDb` does not exercise the driver
 - [Email CTA buttons need the bulletproof pattern from the first attempt](lessons-learned/2026-05-13-email-buttons-need-the-bulletproof-pattern.md) — Outlook desktop strips display:inline-block on `<a>`; Outlook web dark mode rewrites `<a>` color after inline styles resolve; only `<td bgcolor>` + VML + `[data-ogsc]` overrides survive both
 - [Puppeteer-on-Render setup needs three things, not one](lessons-learned/2026-05-13-puppeteer-on-render.md) — build command must run `npx puppeteer browsers install chrome`; cache path must be project-local via `PUPPETEER_CACHE_DIR`; navigation target must use `NEXT_PUBLIC_SITE_URL`, not `request.url`
 - [Schema drift claims need an origin/main check, not just the working tree](lessons-learned/2026-05-12-schema-drift-needs-origin-main-check.md) — fetch + diff against origin/main before declaring code or tables unreferenced; a feature-branch grep doesn't see what merged to main after you branched off
