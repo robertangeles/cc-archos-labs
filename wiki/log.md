@@ -8,6 +8,36 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-18 — Pages CMS Phase 1 + Privacy/Terms cutover (feature/pages-cms-phase-1)
+
+WordPress-style Pages CMS shipped (Phase 1 of 6 — see [[2026-05-18-pages-cms-expansion]] for the full plan). Phase 1 covers the core CMS surface + the cutover of `/privacy` and `/terms` from hand-coded JSX to DB-backed pages with the corrected legal copy (ABN 18 379 780 858, Victoria — the previous pages incorrectly identified the entity as "Pty Ltd, Sydney"). Branch: `feature/pages-cms-phase-1`.
+
+Shipped on this branch:
+
+- Schema: `page` + `page_revision` tables in [lib/db/schema.ts](../lib/db/schema.ts) (2NF, FK indexed, immutable-audit revisions matching the `integration_secret_audit` pattern). Migrations `0010_exotic_typhoid_mary.sql` (CREATE TABLE) + `0011_seed_legal_pages.sql` (idempotent seed of Privacy + Terms with the corrected copy and initial revision rows).
+- `lib/pages/` service module: `types`, `reserved-slugs` (three-layer guard — Zod refinement + resolver short-circuit + boot-time assertion), `feature-flag` (module-cache for `pages_cms_enabled`), `resolver` (7-branch state diagram, pure function), `schema` (Zod), `index` (CRUD + revision atomicity via Drizzle tx + optimistic locking via `expectedUpdatedAt`), `boot-check` (called from the catch-all so deploys fail fast if a future static route shadows a CMS page).
+- `components/pages/markdown-article.tsx` — react-markdown + remark-gfm (NO rehype-raw — XSS posture). Custom link renderer routes internal links via `next/link`, external links get `rel="noopener noreferrer"` + `target="_blank"`. Typography token-for-token matches the legacy hand-coded pages.
+- `components/pages/markdown-article.test.tsx` — load-bearing XSS regression test. 7 attack vectors (`<script>`, `<img onerror>`, `<iframe src=javascript:>`, `<svg onload>`, markdown `[](javascript:)`, `[](data:text/html)`, inline-handler in surrounding HTML) all rendered as escaped text. If a future PR adds `rehype-raw`, these tests fail before the XSS lands in prod.
+- `app/[...slug]/page.tsx` — public catch-all. Calls `resolvePage(slug, viewer)`, emits Schema.org WebPage JSON-LD with `dateModified` (E1 cherry-pick), supports admin draft preview when the admin session cookie is present.
+- `lib/site-config.ts` `buildPageMetadata()` extended with `ogType` / `lastUpdatedISO` / `articleSection` (E9 cherry-pick + Schema.org alignment). Backward-compatible.
+- `lib/schema-org.ts` `buildCmsPageWebPageLd()` helper.
+- Admin UI at `/admin/(authed)/pages/`: list view (active + archived sections), `new`, edit (split form), `revisions` (with diff_size_pct material-change badges + restore action that creates a new revision documenting the restore). Sidebar nav slot added in [admin-tab-nav](../app/admin/(authed)/admin-tab-nav.tsx).
+- API routes at `/api/admin/pages/`: list+create, get+update+archive, revisions, revision restore, archive restore. All gated by `proxy.ts`.
+- Cutover: deleted `app/privacy/page.tsx` + `app/terms/page.tsx`. The catch-all serves them from DB.
+- ESLint nudge: added two scoped `eslint-disable-next-line @next/next/no-html-link-for-pages` comments in `components/admin/integrations/integrations-panel.tsx` — my catch-all flipped the rule on existing `<a href="/api/admin/google-oauth/start">` tags (which need full-page nav for the OAuth redirect, so `<Link>` is wrong). Surgical fix scoped to the two lines that changed behaviour.
+- `vitest.config.ts` extended to include `components/**/*.test.{ts,tsx}` so the XSS regression test runs in `pnpm test`.
+- Wiki: [[2026-05-18-pages-cms-expansion]] (the CEO plan + scope decisions + phasing — all 21 cherry-picks accepted, six phases over four-to-six PRs).
+
+Out of scope (deferred to later phases):
+
+- Section blocks / composed pages (Phase 2)
+- AI authoring + OG card auto-generation (Phase 3)
+- Hierarchy / `parent_id` + audience variants + auto-redirects on rename (Phase 4)
+- Per-page analytics + material-change email notifications + magic-link external reviewers (Phase 5)
+- Reusable transcluded blocks + public hover previews + scheduled publish (Phase 6)
+
+Rob owns before merging: review the cutover diff, confirm rendered /privacy + /terms match expectations in the browser, push when ready.
+
 ## 2026-05-18 — Data retention purge jobs + privacy policy alignment (feature/data-retention-purge-jobs)
 
 Two daily cron jobs added to enforce the retention windows the `/privacy` page commits to. Both windows are hardcoded constants (not Settings rows) so admin cannot silently drift from the published policy. Branch: `feature/data-retention-purge-jobs`.

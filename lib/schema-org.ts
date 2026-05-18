@@ -122,3 +122,52 @@ export function buildHomePageServicesLd(orgName: string): SchemaService[] {
     },
   ];
 }
+
+// WebPage JSON-LD for Pages-CMS-served URLs. Built per-page from the
+// row in the `page` table. dateModified is the signal Google + LLM
+// citation graphs pick up to surface "this is the current version of
+// the Privacy Policy" in answers — important for legal documents.
+type SchemaWebPage = {
+  "@context": "https://schema.org";
+  "@type": "WebPage";
+  name: string;
+  description: string;
+  url: string;
+  inLanguage: string;
+  isPartOf: { "@type": "WebSite"; name: string; url: string };
+  publisher: { "@type": "Organization"; name: string; url: string };
+  datePublished?: string;
+  dateModified?: string;
+};
+
+export function buildCmsPageWebPageLd(args: {
+  title: string;
+  description: string;
+  url: string;
+  orgName: string;
+  siteUrl: string;
+  datePublishedISO?: string;
+  dateModifiedISO?: string;
+}): SchemaWebPage {
+  const ld: SchemaWebPage = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: args.title,
+    description: args.description,
+    url: args.url,
+    inLanguage: "en-AU",
+    isPartOf: {
+      "@type": "WebSite",
+      name: args.orgName,
+      url: args.siteUrl,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: args.orgName,
+      url: args.siteUrl,
+    },
+  };
+  if (args.datePublishedISO) ld.datePublished = args.datePublishedISO;
+  if (args.dateModifiedISO) ld.dateModified = args.dateModifiedISO;
+  return ld;
+}

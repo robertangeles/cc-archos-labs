@@ -26,6 +26,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 - [About page section components](concepts/about-page-section-components.md) — 4 bio-oriented primitives (PersonCard, PhilosophyBlock, WayOfWorkingSteps, SelectedWorkCard) introduced for `/about`; companion family to home — together they are the design system's vocabulary for public-facing content pages
 
 ## decisions
+- [Pages CMS — SCOPE EXPANSION plan](decisions/2026-05-18-pages-cms-expansion.md) — WordPress-style Pages CMS expanded into a publishing platform (21 cherry-picks accepted, 6 phases). Phase 1 ships the core CMS + Privacy/Terms cutover with corrected legal copy (ABN 18 379 780 858, Victoria — not "Pty Ltd, Sydney")
 - [Data retention policy + enforcement](decisions/2026-05-18-data-retention-policy.md) — 30-day IP/UA purge + 24-month inactive-lead purge; constants hardcoded (not Settings) to prevent drift from `/privacy` text; explicit two-step DELETE because `assessment_session.lead_id` is `SET NULL` by design
 - [Diagnostic per-option scoring calibration (overview)](decisions/2026-05-09-diagnostic-scoring-calls.md) — meta-discipline for calibration deviations: four classes of deviation + score-vs-trigger separation pattern; specific values live in /admin/diagnostic
 - [Minimal admin for SEO config](decisions/2026-05-08-minimal-admin-for-seo.md) — single-user admin (password + JWT cookie), one site_setting table, drives all SEO/brand metadata; partially supersedes admin-deferred for SEO slice

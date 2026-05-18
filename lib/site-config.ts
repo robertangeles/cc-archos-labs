@@ -60,14 +60,28 @@ export function getSiteUrl(): string {
 // with) layout metadata in Next.js's metadata model — that's why we
 // build the full openGraph + twitter blocks per page rather than
 // expecting layout values to propagate.
+//
+// `ogType` and `lastUpdatedISO` were added in the Pages CMS Phase 1 to
+// support per-page metadata overrides (legal pages publish as
+// og:type=article with a dateModified signal). Existing call sites that
+// don't pass them fall back to og:type=website with no dateModified.
 export async function buildPageMetadata({
   title,
   description,
   path,
+  ogType,
+  lastUpdatedISO,
+  articleSection,
 }: {
   title?: string;
   description?: string;
   path?: string;
+  /** OG type override. Default 'website'. Legal/long-form pages use 'article'. */
+  ogType?: "website" | "article";
+  /** ISO datetime of the most recent material update. Powers og:updated_time. */
+  lastUpdatedISO?: string;
+  /** Schema.org article section (e.g. 'Legal', 'Marketing'). Optional. */
+  articleSection?: string;
 }): Promise<Metadata> {
   const settings = await getSiteSettings();
   const siteUrl = getSiteUrl();
@@ -82,6 +96,8 @@ export async function buildPageMetadata({
     ? settings.ogImageUrl
     : `${siteUrl}${settings.ogImageUrl.startsWith("/") ? settings.ogImageUrl : `/${settings.ogImageUrl}`}`;
 
+  const resolvedOgType = ogType ?? "website";
+
   return {
     metadataBase: new URL(siteUrl),
     title: title
@@ -90,12 +106,18 @@ export async function buildPageMetadata({
     description: effectiveDescription,
     alternates: { canonical: fullUrl },
     openGraph: {
-      type: "website",
+      type: resolvedOgType,
       siteName: settings.siteName,
       title: effectiveTitle,
       description: effectiveDescription,
       url: fullUrl,
       images: [{ url: ogImageUrl, width: 1200, height: 630 }],
+      ...(resolvedOgType === "article" && lastUpdatedISO
+        ? {
+            modifiedTime: lastUpdatedISO,
+            ...(articleSection ? { section: articleSection } : {}),
+          }
+        : {}),
     },
     twitter: {
       card: "summary_large_image",

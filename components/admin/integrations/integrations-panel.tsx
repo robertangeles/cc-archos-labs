@@ -1049,6 +1049,7 @@ function GoogleConnectionBlock({
 
       {status === "ok" || status === "stale" ? (
         <div className="flex flex-wrap gap-2 pt-2">
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- API route, needs full-page nav for the OAuth redirect */}
           <a href="/api/admin/google-oauth/start" className={buttonClass}>
             Reconnect
           </a>
@@ -1063,6 +1064,7 @@ function GoogleConnectionBlock({
         </div>
       ) : (
         <div className="flex flex-wrap gap-2 pt-2">
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- API route, needs full-page nav for the OAuth redirect */}
           <a
             href="/api/admin/google-oauth/start"
             className={primaryButtonClass}
