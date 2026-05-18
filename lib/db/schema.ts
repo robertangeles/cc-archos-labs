@@ -709,3 +709,150 @@ export const scheduledJobRelations = relations(scheduledJob, ({ one }) => ({
     references: [bookingRequest.id],
   }),
 }));
+
+// ============================================================================
+// page — Pages CMS Phase 1
+// ============================================================================
+// WordPress-style Pages CMS. Each row is a publishable long-form page
+// (Privacy, Terms, future marketing pages). Content is markdown only —
+// the renderer (components/pages/markdown-article.tsx) uses react-markdown
+// with remark-gfm + NO rehype-raw (XSS posture). Phases 2-6 will add
+// section blocks, hierarchy, audience variants, redirects, etc. — none of
+// those columns are on this table yet (see
+// wiki/decisions/2026-05-18-pages-cms-expansion.md).
+//
+// Lifecycle:
+//
+//   draft ───publish──▶ published ───archive──▶ archived
+//     ▲                     │                       │
+//     │                     ▼                       │
+//     └─── unpublish ◀───── │ ◀── restore ──────────┘
+//
+// Soft-delete only: archived_at NOT NULL means archived. Public surfaces
+// filter on `status='published' AND archived_at IS NULL`. The catch-all
+// at app/[...slug]/page.tsx is the sole reader for public traffic.
+
+export const page = pgTable(
+  "page",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // URL slug, kebab-case, no leading slash. Reserved-slug guard runs at
+    // three layers (Zod refinement, lib/pages/reserved-slugs, boot
+    // assertion) so the CMS can never shadow an existing app/* route.
+    slug: text("slug").notNull().unique(),
+    title: text("title").notNull(),
+    // Markdown source of truth. Capped at 200KB at the API layer (Zod
+    // .max). No HTML allowed — react-markdown default config strips it.
+    contentMd: text("content_md").notNull().default(""),
+    // 1-2 sentence summary. Used as og:description fallback when
+    // seo_description is null.
+    excerpt: text("excerpt"),
+    // Per-page overrides for SEO. NULL = fall back to title / excerpt.
+    seoTitle: text("seo_title"),
+    seoDescription: text("seo_description"),
+    // 'long_form' for v1. Phase 2 adds 'composed'.
+    template: text("template").notNull().default("long_form"),
+    // 'draft' | 'published' | 'archived'. Status transitions only via
+    // savePage / archivePage / restorePage — never written directly.
+    status: text("status").notNull().default("draft"),
+    // 'article' (default for legal/long-form) | 'website' (landing pages).
+    ogType: text("og_type").notNull().default("article"),
+    // First-publish timestamp. NULL until first publish; preserved across
+    // republishes (only set once).
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    // "Last reviewed" stamp separate from updated_at. Privacy/Terms
+    // convention — content may not change but the policy was reviewed.
+    lastReviewedAt: timestamp("last_reviewed_at", { withTimezone: true }),
+    // Soft-delete. archived_at NOT NULL hides the page from public
+    // surfaces but preserves it (and its revisions) for restore.
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // Public catch-all hot path: SELECT ... WHERE slug = $1 AND
+    // status = 'published' AND archived_at IS NULL.
+    // slug is already UNIQUE indexed via .unique(); this composite
+    // partial index serves admin "list published" listings.
+    index("page_status_published_at_idx")
+      .on(table.status, table.publishedAt),
+    // Admin archive view: WHERE archived_at IS NOT NULL.
+    index("page_archived_at_idx").on(table.archivedAt),
+  ],
+);
+
+export type Page = typeof page.$inferSelect;
+export type NewPage = typeof page.$inferInsert;
+
+// ============================================================================
+// page_revision — Pages CMS Phase 1
+// ============================================================================
+// Immutable audit trail. One row per admin save, including the initial
+// create. Captures title + content_md + seo_* at the point of save —
+// every legal-copy edit is reconstructable from this table. Same
+// posture as integration_secret_audit (append-only, actor + timestamp,
+// no updated_at). diff_size_pct quantifies the delta from the prior
+// revision so the admin UI can surface "material change" banners
+// (Privacy §12 promise — Phase 5 will email leads on material change).
+//
+// CASCADE delete on page_id: revisions vanish only when the page row
+// itself is hard-deleted (which only happens via direct DB tooling,
+// never via the admin UI — admin uses soft-delete via archived_at).
+
+export const pageRevision = pgTable(
+  "page_revision",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    pageId: uuid("page_id")
+      .notNull()
+      .references(() => page.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    contentMd: text("content_md").notNull(),
+    seoTitle: text("seo_title"),
+    seoDescription: text("seo_description"),
+    // 0-100. Percentage change in content_md vs the prior revision.
+    // First revision (create) is always 100.00. Computed at the API
+    // layer via a simple length-delta heuristic — exact Levenshtein
+    // is overkill for the "is this a material change?" signal.
+    diffSizePct: numeric("diff_size_pct", { precision: 5, scale: 2 })
+      .notNull()
+      .default("0"),
+    // The admin identity that performed the save. Single-admin model
+    // today; matches integration_secret_audit.actor shape so multi-admin
+    // can land later as a FK without rewriting this column.
+    savedBy: text("saved_by").notNull().default("admin"),
+    savedAt: timestamp("saved_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // Primary query: "show revisions for this page, newest first."
+    // Admin revision-history view + restore flow.
+    index("page_revision_page_id_saved_at_idx").on(
+      table.pageId,
+      table.savedAt,
+    ),
+  ],
+);
+
+export type PageRevision = typeof pageRevision.$inferSelect;
+export type NewPageRevision = typeof pageRevision.$inferInsert;
+
+// ============================================================================
+// Relations — Pages CMS
+// ============================================================================
+
+export const pageRelations = relations(page, ({ many }) => ({
+  revisions: many(pageRevision),
+}));
+
+export const pageRevisionRelations = relations(pageRevision, ({ one }) => ({
+  page: one(page, {
+    fields: [pageRevision.pageId],
+    references: [page.id],
+  }),
+}));

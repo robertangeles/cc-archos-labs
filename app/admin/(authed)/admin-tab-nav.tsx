@@ -15,6 +15,7 @@ type Tab = {
 
 const tabs: Tab[] = [
   { href: "/admin/site", label: "SEO & Brand" },
+  { href: "/admin/pages", label: "Pages" },
   { href: "/admin/diagnostic", label: "Diagnostic Content" },
   { href: "/admin/prompts", label: "Diagnostic Prompt" },
   { href: "/admin/integrations", label: "Integrations" },
