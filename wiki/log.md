@@ -8,6 +8,32 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-18 — Body prose alignment retired across home + about
+
+`text-justify` removed from every public page body block on the same branch as the About build. Affected: `components/sections/home/{service-card,proof-item,objection-faq}.tsx` plus three `<div>`s in `app/page.tsx` (Agitate, Solution+Proof, Assessment Block); the four About components were already on left-align from the earlier in-session fix. Reason: narrow columns (3-col proof grid, 2-col service grid, mobile widths) produced visible word-spacing gaps that read worse than ragged-right. Both home and about now share the convention — `text-justify` is not used anywhere in the public site composition. Concept pages [[home-page-section-components]] and [[about-page-section-components]] updated to reflect the new rule.
+
+## 2026-05-18 — About page build (feature/about-page)
+
+CEO-mode plan review (`/plan-ceo-review`) on the About page draft (`About us.pdf`, May 2026) — review record at `~/.claude/plans/next-isd-we-wil-majestic-pillow.md`. Four decisions locked, eight expansions accepted, plan approved, branch `feature/about-page` opened.
+
+Shipped on this branch:
+
+- New route: `app/about/page.tsx` — Server Component composing the home page primitives + new about/ family. Section order Hero → Person → Selected Work → Philosophy → Way of Working → CTA. Anchor IDs on every section; sticky mobile CTA hides on `#book-a-call`.
+- New component family: `components/sections/about/` — `<PersonCard>`, `<PhilosophyBlock>`, `<WayOfWorkingSteps>`, `<SelectedWorkCard>`. Documented at [[about-page-section-components]].
+- `<Hero>` generalised: `cta` prop is now optional. Home page still passes one; About omits per D3. Future pages can use either.
+- `lib/schema-org.ts` gains `buildAboutPagePersonLd()` — Schema.org Person markup for /about. Filters empty `sameAs` URLs.
+- `app/about/opengraph-image.tsx` — branded OG card with the "out loud" lavender accent + founder identity at the bottom. 1200×630 via `next/og`.
+- `modellingRoomUrl` field added to `SiteSettings`. Admin form at `/admin/site` picks it up automatically (driven by `keyof SiteSettings` iteration). Flows into `<PersonCard>` outbound link + Person `sameAs`.
+- Nav slot: `{ href: "/about", label: "About" }` added to top-level nav. Footer link added before Privacy.
+- New entity page [[about-page]] and concept page [[about-page-section-components]] and decision page [[2026-05-18-about-page]].
+
+External dependencies Rob owns before the PR opens:
+- LinkedIn profile URL (paste into `/admin/site` → Founder LinkedIn URL).
+- Modelling Room newsletter URL (paste into `/admin/site` → Modelling Room URL).
+- Workspace photo (drop into `/public/images/` and set `PHOTO_SRC` constant in `app/about/page.tsx`; ships with placeholder otherwise).
+
+`pnpm tsc` clean. `pnpm test` covers existing suites without regression. Playwright screenshots captured for mobile (390px) + desktop (1280px) verification.
+
 ## 2026-05-18 — Wiki follow-up after PR #53 merge
 
 Three small fixes after the home-page PAS rewrite landed:

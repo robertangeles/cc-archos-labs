@@ -207,7 +207,7 @@ export default async function Home({
         ) : null}
 
         <Hero
-          eyebrow="AI Transformation Practice"
+          eyebrow="Data and AI Transformation Practice"
           headline={
             <>
               Most AI programs <span className="text-primary">fail</span> at the
@@ -238,7 +238,7 @@ export default async function Home({
           <h2 className="text-display-md text-ink">
             The longer it stays stuck, the more it costs you.
           </h2>
-          <div className="mt-8 space-y-6 text-justify text-body-lg text-ink-subtle">
+          <div className="mt-8 space-y-6 text-body-lg text-ink-subtle">
             <p>
               The vendor is not going to tell you. The model performs in demo
               conditions. Your data team knows there are problems but is not in
@@ -264,7 +264,7 @@ export default async function Home({
           <h2 className="text-display-md text-ink">
             We go in and fix what is broken.
           </h2>
-          <div className="mt-8 space-y-6 text-justify text-body-lg text-ink-subtle">
+          <div className="mt-8 space-y-6 text-body-lg text-ink-subtle">
             <p>
               Archos Labs is not a vendor. We are the person your vendor
               should have sent. We go into programs that are stuck or at risk
@@ -350,7 +350,7 @@ export default async function Home({
           <h2 className="text-display-md text-ink">
             Start with the assessment.
           </h2>
-          <div className="mt-6 space-y-5 text-justify text-body-lg text-ink-subtle">
+          <div className="mt-6 space-y-5 text-body-lg text-ink-subtle">
             <p>
               It takes 8 minutes. It tells you where your program is exposed
               across data foundation, governance, and program readiness. You

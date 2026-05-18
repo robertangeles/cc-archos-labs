@@ -9,7 +9,7 @@ related: [[state]], [[backlog]], [[shipped]], [[book-a-call-architecture]], [[bo
 Master catalog of all wiki pages. Read this at the start of every session. For current ship state by route / endpoint / component, read [[state]] first (auto-generated, always fresh).
 
 ## entities
-_(none yet)_
+- [About page](entities/about-page.md) — `/about` route; practitioner dossier composed from the home + about section primitives. Anchors Rob as the credibility surface a sceptical exec lands on before the assessment or call.
 
 ## concepts
 - [AI Readiness Assessment — Scoring Logic](concepts/diagnostic-scoring-logic.md) — engine architecture: pipeline, branch resolution, domain weighting, tier derivation, risk flags, priority triggers; calibrated values live in /admin/diagnostic
@@ -23,6 +23,7 @@ _(none yet)_
 - [Book-a-Call architecture](concepts/book-a-call-architecture.md) — full pipeline overview: prospect → booking page → Google Calendar event + Resend confirmation → cron-driven reminders + Claude pre-call brief → magic-link manage flow; soft-fallback semantics, schema, what's deliberately not shipped
 - [Booking prompts in the DB — soft-fallback by design](concepts/booking-prompts-in-db.md) — three Claude prompts (followup, brief, blogMatch) in one `booking_prompts` site_setting row; admin edits at /admin/prompts; soft-fallback to hardcoded starters when row missing/malformed (vs diagnostic's hard-fail)
 - [Home page section components — reusable pattern](concepts/home-page-section-components.md) — 10 reusable section components (Hero, Section, CtaPair, ProofItem, ServiceCard, AudienceList, Timeline, ObjectionFaq, AnchorNav, StickyMobileCta) extracted in PR #53; pattern is the foundation for the Consulting page, Modelling Room, and Tools index
+- [About page section components](concepts/about-page-section-components.md) — 4 bio-oriented primitives (PersonCard, PhilosophyBlock, WayOfWorkingSteps, SelectedWorkCard) introduced for `/about`; companion family to home — together they are the design system's vocabulary for public-facing content pages
 
 ## decisions
 - [Diagnostic per-option scoring calibration (overview)](decisions/2026-05-09-diagnostic-scoring-calls.md) — meta-discipline for calibration deviations: four classes of deviation + score-vs-trigger separation pattern; specific values live in /admin/diagnostic
@@ -37,6 +38,7 @@ _(none yet)_
 - [Layout shell — header, footer, nav](decisions/2026-05-07-layout-shell.md) — _superseded_ on styling; structural shape (4-link nav, mobile stacking) carries forward
 - [Home page (`/`) — Phase 0a structure and copy](decisions/2026-05-07-home-page.md) — _superseded by the May 2026 PAS rewrite_; the four-section structure has been replaced
 - [Home page PAS rewrite — May 2026](decisions/2026-05-17-home-page-pas-rewrite.md) — 9-section sales page (Hero → Agitate → Solution+Proof → Timeline → Services → Objection FAQ → Who We Work With → Assessment Block → Final CTA), dual CTA, sticky mobile CTA bar, ?name=-driven print personalisation; componentised into `components/sections/home/`
+- [About page — May 2026 CEO review + locked decisions](decisions/2026-05-18-about-page.md) — `/about` route; 4 locked decisions (D1 new components/sections/about/ family; D2 SCOPE EXPANSION mode; D3 omit hero CTAs + generalise <Hero> cta prop; D4 Selected Work between Person and Philosophy); 8 expansions accepted (Schema.org Person, OG card, anchor nav, sticky mobile, pull-quote, photo placeholder, ?name=, Selected Work strip, LinkedIn + Modelling Room outbound links)
 - [Patch-in-place reschedule (events.patch over delete + create)](decisions/2026-05-17-patch-in-place-reschedule.md) — reschedule moves the existing Google event via PATCH rather than delete-old + create-new; preserves event id, fires a single "Event updated" notification, avoids Google's invite-suppression on rapid cancel+create pairs
 - [events.insert uses sendUpdates=all](decisions/2026-05-17-send-updates-all-on-events-insert.md) — without it, attendees get no .ics invite email; bookings ship both Google's native invite AND our branded Resend confirmation
 - [consultant.public_email split from internal routing](decisions/2026-05-17-public-email-split.md) — `consultant.email` is the OAuth identity + From: header; `consultant.public_email` is what the booking page surfaces; falls back to `email` when null

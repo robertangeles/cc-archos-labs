@@ -158,7 +158,7 @@ When a new page reuses these:
 3. **Cards lift from canvas with `bg-surface-1`.** Sections themselves use `bg="canvas"` or `bg="surface-1"` in alternation; cards always step up one surface level from their containing section. This is what gives the page its rhythm.
 4. **Stroke direction tells the reader what the card is.** Top-left stroke = evidence (something already happened). Bottom-left stroke = offering (something we'd build). Don't mix.
 5. **Body text uses `text-body-lg text-ink` inside cards** and `text-body-lg text-ink-subtle` outside cards. Cards are where the page promises something; their body deserves full ink. Section-level body is supporting.
-6. **`text-justify` is the page-wide convention** for multi-line body paragraphs (Agitate, Solution+Proof, Assessment Block, FAQ answers, proof outcomes, service bodies). Narrow-column justify is the trade-off we accept for full-page consistency.
+6. **Body prose is left-aligned (ragged right), not justified.** Default `text-align: left`; do not add `text-justify`. Earlier home pages used `text-justify` page-wide; that convention was retired on 2026-05-18 because narrow columns (proof grid, service grid, FAQ answers, mobile widths) produced visible word-spacing gaps that read worse than ragged-right. The Agitate and Solution+Proof body blocks, the Assessment Block prose, ProofItem outcomes, ServiceCard bodies, and ObjectionFaq answers all flow left-aligned now.
 7. **No em dashes in user-visible copy** per CLAUDE.md voice. Use commas, periods, or restructure. Code comments are fine.
 
 ## Side modules these components depend on

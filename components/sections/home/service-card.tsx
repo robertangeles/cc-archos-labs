@@ -39,7 +39,7 @@ export function ServiceCard({
       </div>
       <div aria-hidden className="h-px bg-hairline" />
       <h3 className="text-headline text-ink">{name}</h3>
-      <p className="text-justify text-body-lg text-ink">{body}</p>
+      <p className="text-body-lg text-ink">{body}</p>
       <span
         aria-hidden
         className="pointer-events-none absolute bottom-0 left-10 h-px w-12 bg-primary transition-all duration-300 group-hover:w-24"
