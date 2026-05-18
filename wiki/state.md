@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-17T23:24:57.050Z
+generated: 2026-05-18T02:35:14.907Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -9,11 +9,12 @@ Auto-generated snapshot of what is currently shipped. **Source of truth for ship
 
 Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `app/` or `components/` to fire the pre-commit hook.
 
-## Routes (21)
+## Routes (22)
 
 | Route | File | Last shipped |
 |-------|------|--------------|
 | `/` | [app/page.tsx](../app/page.tsx) | 2026-05-18 |
+| `/about` | [app/about/page.tsx](../app/about/page.tsx) | unknown |
 | `/admin/(authed)/diagnostic` | [app/admin/(authed)/diagnostic/page.tsx](../app/admin/(authed)/diagnostic/page.tsx) | 2026-05-15 |
 | `/admin/(authed)/integrations` | [app/admin/(authed)/integrations/page.tsx](../app/admin/(authed)/integrations/page.tsx) | 2026-05-15 |
 | `/admin/(authed)/integrations/[slug]` | [app/admin/(authed)/integrations/[slug]/page.tsx](../app/admin/(authed)/integrations/[slug]/page.tsx) | 2026-05-17 |
@@ -71,7 +72,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/events` | [app/api/events/route.ts](../app/api/events/route.ts) | 2026-05-18 |
 | `/api/health/cron` | [app/api/health/cron/route.ts](../app/api/health/cron/route.ts) | 2026-05-17 |
 
-## Components (30)
+## Components (36)
 
 | File | Last shipped |
 |------|--------------|
@@ -80,10 +81,16 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/analytics/analytics-client.tsx](../components/analytics/analytics-client.tsx) | 2026-05-18 |
 | [components/booking/calendar-picker.tsx](../components/booking/calendar-picker.tsx) | 2026-05-17 |
 | [components/contact/contact-form.tsx](../components/contact/contact-form.tsx) | 2026-05-15 |
+| [components/icons/social.tsx](../components/icons/social.tsx) | unknown |
 | [components/layout/footer.tsx](../components/layout/footer.tsx) | 2026-05-15 |
 | [components/layout/header.tsx](../components/layout/header.tsx) | 2026-05-15 |
 | [components/layout/lead-sign-out-button.tsx](../components/layout/lead-sign-out-button.tsx) | 2026-05-15 |
 | [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-05-15 |
+| [components/sections/about/index.ts](../components/sections/about/index.ts) | unknown |
+| [components/sections/about/person-card.tsx](../components/sections/about/person-card.tsx) | unknown |
+| [components/sections/about/philosophy-block.tsx](../components/sections/about/philosophy-block.tsx) | unknown |
+| [components/sections/about/selected-work-card.tsx](../components/sections/about/selected-work-card.tsx) | unknown |
+| [components/sections/about/way-of-working-steps.tsx](../components/sections/about/way-of-working-steps.tsx) | unknown |
 | [components/sections/home/anchor-nav.tsx](../components/sections/home/anchor-nav.tsx) | 2026-05-18 |
 | [components/sections/home/audience-list.tsx](../components/sections/home/audience-list.tsx) | 2026-05-18 |
 | [components/sections/home/cta-pair.tsx](../components/sections/home/cta-pair.tsx) | 2026-05-18 |

@@ -27,6 +27,8 @@
 # misc
 .DS_Store
 *.pem
+# Claude Code local cache (per-session artifacts; never repo content)
+.claude/
 
 # debug
 npm-debug.log*

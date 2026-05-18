@@ -36,7 +36,7 @@ export function ObjectionFaq({ items }: ObjectionFaqProps) {
               {item.answer.map((paragraph, i) => (
                 <p
                   key={i}
-                  className="text-justify text-body text-ink-subtle"
+                  className="text-body text-ink-subtle"
                 >
                   {paragraph}
                 </p>

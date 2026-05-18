@@ -6,6 +6,7 @@ import { LeadSignOutButton } from "./lead-sign-out-button";
 
 const TOPLEVEL = [
   { href: "/", label: "Home" },
+  { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];
 

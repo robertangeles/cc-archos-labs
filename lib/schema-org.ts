@@ -24,6 +24,64 @@ type SchemaService = {
   areaServed: { "@type": "Country"; name: string };
 };
 
+// Person schema rendered on /about. Anchors Rob as a recognisable entity
+// for LLM citation graphs + Google Knowledge Panel. `sameAs` reinforces
+// identity through the LinkedIn + Modelling Room links shown on the page
+// — keep both surfaces driven by the same DB-backed `site_setting` row so
+// they cannot drift. Empty URLs are filtered out so unconfigured fields
+// don't produce broken anchors in the JSON-LD.
+type SchemaPerson = {
+  "@context": "https://schema.org";
+  "@type": "Person";
+  name: string;
+  jobTitle: string;
+  worksFor: { "@type": "Organization"; name: string; url: string };
+  url: string;
+  knowsAbout: string[];
+  sameAs?: string[];
+};
+
+export function buildAboutPagePersonLd(args: {
+  founderName: string;
+  orgName: string;
+  siteUrl: string;
+  /** URLs that identify the founder across the web — LinkedIn, X,
+   *  GitHub, Hugging Face, the Modelling Room newsletter, etc. Empty
+   *  strings are filtered out so unconfigured entries don't produce
+   *  broken anchors in the JSON-LD payload. */
+  sameAs: string[];
+}): SchemaPerson {
+  const cleanSameAs = args.sameAs
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  const person: SchemaPerson = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: args.founderName,
+    jobTitle: "Principal Consultant",
+    worksFor: {
+      "@type": "Organization",
+      name: args.orgName,
+      url: args.siteUrl,
+    },
+    url: `${args.siteUrl}/about`,
+    knowsAbout: [
+      "Data Architecture",
+      "AI Agent Development",
+      "Data Lineage",
+      "Data Governance",
+      "Domain Modelling",
+      "AI Readiness",
+      "Enterprise AI",
+    ],
+  };
+  if (cleanSameAs.length > 0) {
+    person.sameAs = cleanSameAs;
+  }
+  return person;
+}
+
 export function buildHomePageServicesLd(orgName: string): SchemaService[] {
   return [
     {

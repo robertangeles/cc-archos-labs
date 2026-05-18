@@ -24,7 +24,7 @@ export function ProofItem({ label, outcome }: ProofItemProps) {
         className="pointer-events-none absolute left-8 top-0 h-px w-12 bg-primary transition-all duration-300 group-hover:w-24"
       />
       <span className="text-eyebrow uppercase text-ink-tertiary">{label}</span>
-      <p className="text-justify text-body-lg text-ink">{outcome}</p>
+      <p className="text-body-lg text-ink">{outcome}</p>
     </article>
   );
 }

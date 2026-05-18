@@ -22,7 +22,10 @@ export type HeroProps = {
   eyebrow: string;
   headline: ReactNode;
   subhead: ReactNode;
-  cta: CtaPairProps;
+  /** Optional. Omit for credibility-first pages (e.g. /about) where the
+   *  bio earns the click further down the page. When omitted, the
+   *  CtaPair block is not rendered. */
+  cta?: CtaPairProps;
   anchorNav?: AnchorNavProps;
 };
 
@@ -44,9 +47,11 @@ export function Hero({ eyebrow, headline, subhead, cta, anchorNav }: HeroProps) 
         <p className="mt-6 max-w-[640px] text-body-lg text-ink-subtle">
           {subhead}
         </p>
-        <div className="mt-12">
-          <CtaPair {...cta} />
-        </div>
+        {cta ? (
+          <div className="mt-12">
+            <CtaPair {...cta} />
+          </div>
+        ) : null}
         {anchorNav ? (
           <div className="mt-10 hidden lg:block">
             <AnchorNav {...anchorNav} />

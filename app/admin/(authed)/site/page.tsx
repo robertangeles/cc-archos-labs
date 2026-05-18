@@ -42,6 +42,11 @@ const fieldDefs: Array<{
   { key: "founderName", label: "Founder name", hint: "For Person JSON-LD schema." },
   { key: "founderLinkedinUrl", label: "Founder LinkedIn URL" },
   {
+    key: "modellingRoomUrl",
+    label: "Modelling Room URL",
+    hint: "LinkedIn newsletter or publication URL. Shown as an outbound trust link on /about; included in Person sameAs.",
+  },
+  {
     key: "ogImageUrl",
     label: "OG image URL",
     hint: "Path to the social share image (relative or absolute).",
