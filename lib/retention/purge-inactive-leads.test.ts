@@ -1,29 +1,52 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Captures every tx.execute() call inside the transaction so tests can
-// verify the two-step delete sequence ran. SQL semantics (does it
-// actually purge the right leads?) are deferred to integration testing
-// against real Postgres — same pattern as lib/scheduler.test.ts.
-const executeCalls: Array<unknown> = [];
-let mockSessionDeleteCount = 0;
-let mockLeadDeleteCount = 0;
+// Mocks the typed Drizzle chain inside a transaction:
+//   tx.select().from().where()       → resolves to inactive-lead rows
+//   tx.delete().where().returning()  → resolves to deleted-row id arrays
+// (called twice: once for sessions, once for leads)
+//
+// Pure SQL semantics (does the NOT EXISTS subquery actually pick the
+// right leads on a real Postgres?) are deferred to integration testing —
+// same pattern as lib/scheduler.test.ts.
+
+let mockInactiveLeads: Array<{ id: string }> = [];
+let mockSessionDeletes: Array<{ id: string }> = [];
+let mockLeadDeletes: Array<{ id: string }> = [];
+let deleteCallCount = 0;
 
 vi.mock("../db", () => ({
   getDb: () => ({
     transaction: async (
       callback: (tx: {
-        execute: (q: unknown) => Promise<{ count: number }>;
+        select: () => {
+          from: () => {
+            where: () => Promise<Array<{ id: string }>>;
+          };
+        };
+        delete: () => {
+          where: () => {
+            returning: () => Promise<Array<{ id: string }>>;
+          };
+        };
       }) => Promise<unknown>,
     ) => {
-      let callIndex = 0;
       return callback({
-        execute: async (q: unknown) => {
-          executeCalls.push(q);
-          // First DELETE in the lib is sessions, second is leads.
-          const count = callIndex === 0 ? mockSessionDeleteCount : mockLeadDeleteCount;
-          callIndex++;
-          return { count };
-        },
+        select: () => ({
+          from: () => ({
+            where: async () => mockInactiveLeads,
+          }),
+        }),
+        delete: () => ({
+          where: () => ({
+            returning: async () => {
+              // First delete call is sessions, second is leads.
+              const result =
+                deleteCallCount === 0 ? mockSessionDeletes : mockLeadDeletes;
+              deleteCallCount++;
+              return result;
+            },
+          }),
+        }),
       });
     },
   }),
@@ -35,9 +58,10 @@ const {
 } = await import("./purge-inactive-leads");
 
 beforeEach(() => {
-  executeCalls.length = 0;
-  mockSessionDeleteCount = 0;
-  mockLeadDeleteCount = 0;
+  mockInactiveLeads = [];
+  mockSessionDeletes = [];
+  mockLeadDeletes = [];
+  deleteCallCount = 0;
 });
 
 afterEach(() => {
@@ -54,36 +78,39 @@ describe("LEAD_INACTIVITY_RETENTION_MONTHS", () => {
 
 describe("purgeInactiveLeads", () => {
   it("returns leadsDeleted + sessionsDeleted + cutoffAt", async () => {
-    mockSessionDeleteCount = 12;
-    mockLeadDeleteCount = 4;
+    mockInactiveLeads = [{ id: "l1" }, { id: "l2" }];
+    mockSessionDeletes = [{ id: "s1" }, { id: "s2" }, { id: "s3" }];
+    mockLeadDeletes = [{ id: "l1" }, { id: "l2" }];
     const now = new Date("2026-05-18T03:00:00Z");
     const result = await purgeInactiveLeads({ now });
-    expect(result.sessionsDeleted).toBe(12);
-    expect(result.leadsDeleted).toBe(4);
-    // Cutoff is 24 * 30 days before `now` (lib uses 30-day-month
-    // approximation; close enough for a 24-month retention window where
-    // ±a few days does not matter to anyone).
+    expect(result.sessionsDeleted).toBe(3);
+    expect(result.leadsDeleted).toBe(2);
+    // Cutoff is 24 * 30 days before `now` (lib uses a 30-day-month
+    // approximation; ±a few days is irrelevant at a 24-month window).
     const expectedCutoffMs =
       now.getTime() - 24 * 30 * 24 * 60 * 60 * 1000;
     expect(new Date(result.cutoffAt).getTime()).toBe(expectedCutoffMs);
   });
 
-  it("returns 0s when no leads match (idempotent rerun)", async () => {
-    mockSessionDeleteCount = 0;
-    mockLeadDeleteCount = 0;
+  it("returns 0s when no leads match (idempotent rerun, no DELETEs)", async () => {
+    mockInactiveLeads = [];
     const result = await purgeInactiveLeads({
       now: new Date("2026-05-18T03:00:00Z"),
     });
     expect(result.sessionsDeleted).toBe(0);
     expect(result.leadsDeleted).toBe(0);
+    // Early-return short-circuits the two DELETE calls.
+    expect(deleteCallCount).toBe(0);
   });
 
-  it("runs both DELETEs inside a single transaction", async () => {
+  it("issues two DELETEs when at least one lead is inactive", async () => {
+    mockInactiveLeads = [{ id: "l1" }];
+    mockSessionDeletes = [];
+    mockLeadDeletes = [{ id: "l1" }];
     await purgeInactiveLeads({
       now: new Date("2026-05-18T03:00:00Z"),
     });
-    // Two execute calls: DELETE sessions, then DELETE leads.
-    expect(executeCalls).toHaveLength(2);
+    expect(deleteCallCount).toBe(2);
   });
 
   it("uses current time when `now` is not supplied", async () => {

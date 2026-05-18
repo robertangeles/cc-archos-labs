@@ -1,5 +1,5 @@
 import "server-only";
-import { sql } from "drizzle-orm";
+import { and, isNotNull, lt, or } from "drizzle-orm";
 import { getDb } from "../db";
 import { assessmentSession } from "../db/schema";
 
@@ -8,10 +8,10 @@ import { assessmentSession } from "../db/schema";
 // row itself + answers + score + report stay — only the request-metadata
 // fields are bound to the 30-day window.
 //
-// 30 is coupled to the /privacy page text ("Server logs: 30 days, then
-// purged"). Changing it requires updating both. Hardcoded as a constant
-// rather than a Settings row so admin can't silently drift from the
-// published policy.
+// 30 is coupled to the /privacy page text ("Request metadata: cleared
+// after 30 days"). Changing it requires updating both. Hardcoded as a
+// constant rather than a Settings row so admin can't silently drift from
+// the published policy.
 
 export const SESSION_METADATA_RETENTION_DAYS = 30;
 
@@ -24,9 +24,11 @@ export interface PurgeSessionMetadataResult {
 // than the retention window. Idempotent — rows already nulled are
 // skipped by the WHERE clause.
 //
-// Uses created_at (not started_at) for the cutoff: both default to
-// now() and are equivalent for our purposes, but created_at is the
-// CLAUDE.md-mandated audit timestamp present on every table.
+// Uses Drizzle's typed query builder rather than the raw `sql` template:
+// the postgres.js driver rejects Date objects passed through the raw
+// template (ERR_INVALID_ARG_TYPE in Function.str), but the typed builder
+// converts Date → ISO string via Drizzle's type system before binding.
+// See wiki/lessons-learned/2026-05-18-drizzle-raw-sql-rejects-date-params.md.
 //
 // `now` is injected so tests can pin the clock. Defaults to real now.
 export async function purgeOldSessionMetadata(input?: {
@@ -38,21 +40,26 @@ export async function purgeOldSessionMetadata(input?: {
   );
 
   const db = getDb();
-  const result = await db.execute(sql`
-    UPDATE ${assessmentSession}
-    SET ip_address = NULL,
-        user_agent = NULL,
-        updated_at = ${now}
-    WHERE (ip_address IS NOT NULL OR user_agent IS NOT NULL)
-      AND created_at < ${cutoff}
-  `);
+  const updated = await db
+    .update(assessmentSession)
+    .set({
+      ipAddress: null,
+      userAgent: null,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        or(
+          isNotNull(assessmentSession.ipAddress),
+          isNotNull(assessmentSession.userAgent),
+        ),
+        lt(assessmentSession.createdAt, cutoff),
+      ),
+    )
+    .returning({ id: assessmentSession.id });
 
-  // postgres.js returns the affected count on the result object's `count`
-  // property (Drizzle re-exposes it via the same shape).
-  const rowsAffected =
-    typeof (result as { count?: number }).count === "number"
-      ? (result as { count: number }).count
-      : 0;
-
-  return { rowsAffected, cutoffAt: cutoff.toISOString() };
+  return {
+    rowsAffected: updated.length,
+    cutoffAt: cutoff.toISOString(),
+  };
 }

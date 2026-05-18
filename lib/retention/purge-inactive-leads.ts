@@ -1,11 +1,18 @@
 import "server-only";
-import { sql } from "drizzle-orm";
+import {
+  and,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  lt,
+  notExists,
+} from "drizzle-orm";
 import { getDb } from "../db";
 import {
   assessmentSession,
   lead,
   magicLinkToken,
-  reportOutput,
 } from "../db/schema";
 
 // Privacy retention: lead accounts and their assessment data are kept for
@@ -26,8 +33,14 @@ import {
 // sessions — it would leave orphan rows. For retention we want the data
 // gone, not anonymised. So the purge runs in explicit steps inside a
 // transaction:
-//   1. delete the lead's sessions (cascades report_output + share_token)
-//   2. delete the lead itself (cascades magic_link_token)
+//   1. find inactive lead ids
+//   2. delete those leads' sessions (cascades report_output + share_token)
+//   3. delete the leads themselves (cascades magic_link_token)
+//
+// All three queries use Drizzle's typed builder rather than raw SQL
+// templates — postgres.js rejects Date objects passed through the raw
+// `sql` tag, but the typed builder serialises them correctly. See
+// wiki/lessons-learned/2026-05-18-drizzle-raw-sql-rejects-date-params.md.
 
 export const LEAD_INACTIVITY_RETENTION_MONTHS = 24;
 
@@ -53,63 +66,70 @@ export async function purgeInactiveLeads(input?: {
 
   const db = getDb();
 
-  // Single transaction so a mid-flight failure leaves the DB consistent.
-  // Multi-step delete is required because lead_id is SET NULL on session,
-  // not CASCADE — see the schema comment at the top of this file.
-  const result = await db.transaction(async (tx) => {
-    // Identify the inactive leads in a CTE-friendly subquery. A lead is
-    // inactive if every signal we track predates the cutoff. NOT EXISTS
-    // semantics treat "no sessions at all" + "no magic links at all" as
-    // satisfied — i.e. a registered lead who never re-engaged is eligible
-    // for purge 24 months after registration.
-    const inactiveLeadIds = sql`
-      SELECT ${lead.id} FROM ${lead}
-      WHERE ${lead.updatedAt} < ${cutoff}
-        AND NOT EXISTS (
-          SELECT 1 FROM ${assessmentSession}
-          WHERE ${assessmentSession.leadId} = ${lead.id}
-            AND ${assessmentSession.createdAt} >= ${cutoff}
-        )
-        AND NOT EXISTS (
-          SELECT 1 FROM ${magicLinkToken}
-          WHERE ${magicLinkToken.leadId} = ${lead.id}
-            AND ${magicLinkToken.consumedAt} IS NOT NULL
-            AND ${magicLinkToken.consumedAt} >= ${cutoff}
-        )
-    `;
+  return await db.transaction(async (tx) => {
+    // Step 1: identify inactive leads. NOT EXISTS semantics treat "no
+    // sessions at all" + "no consumed magic links at all" as satisfied
+    // — i.e. a registered lead who never re-engaged is eligible for
+    // purge 24 months after registration.
+    const inactiveLeadRows = await tx
+      .select({ id: lead.id })
+      .from(lead)
+      .where(
+        and(
+          lt(lead.updatedAt, cutoff),
+          notExists(
+            tx
+              .select({ one: assessmentSession.id })
+              .from(assessmentSession)
+              .where(
+                and(
+                  eq(assessmentSession.leadId, lead.id),
+                  gte(assessmentSession.createdAt, cutoff),
+                ),
+              ),
+          ),
+          notExists(
+            tx
+              .select({ one: magicLinkToken.id })
+              .from(magicLinkToken)
+              .where(
+                and(
+                  eq(magicLinkToken.leadId, lead.id),
+                  isNotNull(magicLinkToken.consumedAt),
+                  gte(magicLinkToken.consumedAt, cutoff),
+                ),
+              ),
+          ),
+        ),
+      );
 
-    // Step 1: delete sessions belonging to these leads. Cascades take
-    // care of report_output + share_token. We RETURNING-count for the
-    // result payload.
-    const sessionsResult = await tx.execute(sql`
-      DELETE FROM ${assessmentSession}
-      WHERE ${assessmentSession.leadId} IN (${inactiveLeadIds})
-    `);
+    if (inactiveLeadRows.length === 0) {
+      return {
+        sessionsDeleted: 0,
+        leadsDeleted: 0,
+        cutoffAt: cutoff.toISOString(),
+      };
+    }
 
-    // Step 2: delete the leads themselves. Cascades magic_link_token.
-    const leadsResult = await tx.execute(sql`
-      DELETE FROM ${lead}
-      WHERE ${lead.id} IN (${inactiveLeadIds})
-    `);
+    const inactiveIds = inactiveLeadRows.map((r) => r.id);
 
-    const sessionsDeleted =
-      typeof (sessionsResult as { count?: number }).count === "number"
-        ? (sessionsResult as { count: number }).count
-        : 0;
-    const leadsDeleted =
-      typeof (leadsResult as { count?: number }).count === "number"
-        ? (leadsResult as { count: number }).count
-        : 0;
+    // Step 2: delete their sessions. Cascades take care of report_output
+    // and share_token. .returning() gives us a per-row id to count.
+    const sessionsDeleted = await tx
+      .delete(assessmentSession)
+      .where(inArray(assessmentSession.leadId, inactiveIds))
+      .returning({ id: assessmentSession.id });
 
-    return { sessionsDeleted, leadsDeleted };
+    // Step 3: delete the leads. Cascades magic_link_token.
+    const leadsDeleted = await tx
+      .delete(lead)
+      .where(inArray(lead.id, inactiveIds))
+      .returning({ id: lead.id });
+
+    return {
+      sessionsDeleted: sessionsDeleted.length,
+      leadsDeleted: leadsDeleted.length,
+      cutoffAt: cutoff.toISOString(),
+    };
   });
-
-  return {
-    ...result,
-    cutoffAt: cutoff.toISOString(),
-  };
 }
-
-// Imported for typed reference but only used transitively via cascade.
-// Keeping the import explicit makes the cascade chain visible in source.
-void reportOutput;
