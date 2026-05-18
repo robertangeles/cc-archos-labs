@@ -2,7 +2,7 @@
 title: Wiki Index
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-17
+updated: 2026-05-18
 related: [[state]], [[backlog]], [[shipped]], [[book-a-call-architecture]], [[booking-prompts-in-db]], [[claude-eval-suites]], [[lead-session-and-owner-only-reports]], [[magic-link-sign-in]], [[transactional-email-rendering]], [[integration-config]], [[design-system]]
 ---
 
@@ -26,6 +26,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 - [About page section components](concepts/about-page-section-components.md) — 4 bio-oriented primitives (PersonCard, PhilosophyBlock, WayOfWorkingSteps, SelectedWorkCard) introduced for `/about`; companion family to home — together they are the design system's vocabulary for public-facing content pages
 
 ## decisions
+- [Data retention policy + enforcement](decisions/2026-05-18-data-retention-policy.md) — 30-day IP/UA purge + 24-month inactive-lead purge; constants hardcoded (not Settings) to prevent drift from `/privacy` text; explicit two-step DELETE because `assessment_session.lead_id` is `SET NULL` by design
 - [Diagnostic per-option scoring calibration (overview)](decisions/2026-05-09-diagnostic-scoring-calls.md) — meta-discipline for calibration deviations: four classes of deviation + score-vs-trigger separation pattern; specific values live in /admin/diagnostic
 - [Minimal admin for SEO config](decisions/2026-05-08-minimal-admin-for-seo.md) — single-user admin (password + JWT cookie), one site_setting table, drives all SEO/brand metadata; partially supersedes admin-deferred for SEO slice
 - [Resend with an external recipient mailbox for the contact form](decisions/2026-05-08-resend-with-external-recipient.md) — current contact-form path; Resend → Outlook/Gmail (never a GoDaddy-cPanel mailbox)

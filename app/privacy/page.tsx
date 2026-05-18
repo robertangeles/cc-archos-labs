@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-const lastUpdated = "2026-05-08";
+const lastUpdated = "2026-05-18";
 
 export default function PrivacyPage() {
   return (
@@ -47,9 +47,10 @@ export default function PrivacyPage() {
             optional.
           </li>
           <li>
-            <span className="text-ink">Server logs.</span> IP address, request
-            timestamp, and user-agent for each request, retained for up to 30
-            days for rate-limiting and abuse prevention.
+            <span className="text-ink">Request metadata.</span> IP address and
+            browser user-agent are captured when you submit an assessment, for
+            rate-limiting and abuse prevention. Cleared from the assessment
+            record after 30 days.
           </li>
         </ul>
         <p className="mt-6 text-base leading-[1.7] text-ink-subtle">
@@ -120,16 +121,24 @@ export default function PrivacyPage() {
         </h2>
         <ul className="mt-4 space-y-3 text-base leading-[1.7] text-ink-subtle">
           <li>
-            Contact-form submissions and assessment lead records: kept while
-            you remain a relevant prospect, deleted on request, and reviewed
-            for purging at least once a year.
+            <span className="text-ink">Contact-form submissions.</span> We do
+            not keep a database copy. Submissions arrive as an email in our
+            inbox and live there under our standard inbox retention. Ask us to
+            delete the email at any time.
           </li>
           <li>
-            Assessment reports: kept indefinitely while your account exists, so
-            you can return and re-read them. Deleted on request.
+            <span className="text-ink">Lead accounts and assessment reports.</span>{" "}
+            Kept for up to 24 months after your last activity (the most recent
+            assessment, sign-in, or profile update). After that, your account,
+            assessment answers, and reports are deleted automatically. You can
+            ask us to delete them sooner at any time.
           </li>
           <li>
-            Server logs: 30 days, then purged.
+            <span className="text-ink">Request metadata (IP address, browser).</span>{" "}
+            Captured with each assessment for rate-limiting and abuse
+            prevention, then automatically cleared from the assessment record
+            after 30 days. The assessment itself is retained on the schedule
+            above.
           </li>
         </ul>
 
@@ -161,10 +170,10 @@ export default function PrivacyPage() {
           Cookies
         </h2>
         <p className="mt-4 text-base leading-[1.7] text-ink-subtle">
-          We use one essential cookie: a session cookie that signs you in to
-          your assessment account. It is httpOnly, secure, and expires when you
-          sign out. We do not use any other cookies. We do not run third-party
-          tracking scripts.
+          We use essential cookies only. A session cookie signs you in to your
+          assessment account; a separate session cookie signs admins in to the
+          admin area. Both are httpOnly, secure, and expire on sign-out. We do
+          not use any other cookies. We do not run third-party tracking scripts.
         </p>
         <p className="mt-4 text-base leading-[1.7] text-ink-subtle">
           If we ever add privacy-respecting analytics (such as Plausible), we

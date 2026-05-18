@@ -2,11 +2,30 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-17
+updated: 2026-05-18
 related:
 ---
 
 Append-only log of sessions. Newest entry at the top.
+
+## 2026-05-18 — Data retention purge jobs + privacy policy alignment (feature/data-retention-purge-jobs)
+
+Two daily cron jobs added to enforce the retention windows the `/privacy` page commits to. Both windows are hardcoded constants (not Settings rows) so admin cannot silently drift from the published policy. Branch: `feature/data-retention-purge-jobs`.
+
+Shipped on this branch:
+
+- `lib/retention/purge-session-metadata.ts` — nulls `assessment_session.ip_address` + `.user_agent` for rows older than 30 days. Constant `SESSION_METADATA_RETENTION_DAYS = 30`.
+- `lib/retention/purge-inactive-leads.ts` — deletes `lead` + linked sessions/reports/share-tokens/magic-link-tokens after 24 months of inactivity (`lead.updated_at`, `assessment_session.created_at`, and `magic_link_token.consumed_at` all considered). Constant `LEAD_INACTIVITY_RETENTION_MONTHS = 24`. Two-step DELETE inside a transaction because `assessment_session.lead_id` is `ON DELETE SET NULL` by original design — the retention purge needs the data gone, not anonymised.
+- `app/api/cron/purge-session-metadata/route.ts` + `app/api/cron/purge-inactive-leads/route.ts` — Bearer-CRON_SECRET-auth endpoints mirroring the existing `process-scheduled` pattern. Return `{ ok, rowsAffected, cutoffAt, durationMs }`.
+- Vitest unit tests with mocked `getDb` (same pattern as `cron-dispatch.test.ts` / `scheduler.test.ts`). Tests assert the retention constant values explicitly — drift between source and `/privacy` text now breaks CI.
+- `/privacy` rewritten: retention section split into three concrete bullets (contact form / lead accounts / request metadata) with exact windows; "what we collect" updated to say IP/UA cleared after 30 days; cookies section corrected to mention both lead + admin session cookies. `lastUpdated` bumped to 2026-05-18.
+- Decision page [[2026-05-18-data-retention-policy]] captures the why on both numbers, the schema decision on explicit two-step delete vs cascade, and the coupling rule for future edits.
+
+Rob owns before merging:
+
+- Add two Render Cron jobs (daily 03:00 + 03:05 UTC) hitting the two new endpoints with `Authorization: Bearer $CRON_SECRET`. Exact curl commands in [[2026-05-18-data-retention-policy]].
+
+`pnpm tsc` clean. `pnpm test` adds 8 unit tests, suite green.
 
 ## 2026-05-18 — Body prose alignment retired across home + about
 
