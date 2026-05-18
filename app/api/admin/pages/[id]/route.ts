@@ -15,6 +15,7 @@ import { PageUpdateSchema } from "../../../../../lib/pages/schema";
 import {
   ConcurrentEditError,
   DuplicateSlugError,
+  InvalidBlockError,
   PageNotFoundError,
   ReservedSlugError,
 } from "../../../../../lib/pages/types";
@@ -80,6 +81,9 @@ export async function PUT(request: Request, { params }: RouteContext) {
       return Response.json({ ok: false, error: err.message }, { status: 404 });
     }
     if (err instanceof ReservedSlugError) {
+      return Response.json({ ok: false, error: err.message }, { status: 400 });
+    }
+    if (err instanceof InvalidBlockError) {
       return Response.json({ ok: false, error: err.message }, { status: 400 });
     }
     if (err instanceof DuplicateSlugError) {

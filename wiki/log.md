@@ -8,6 +8,60 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-18 — Pages CMS Phase 2.L2: per-field forms (feature/pages-cms-phase-2)
+
+Editor UX upgrade for Phase 2 blocks. Phase 2's first commit shipped a raw-JSON props editor as the universal fallback; this commit replaces it with **per-field forms generated from the block's Zod schema**. JSON view preserved as an escape-hatch toggle.
+
+Shipped on this branch (additional commit on top of Phase 2):
+
+- **Zod schema introspection** ([lib/pages/blocks/field-introspection.ts](../lib/pages/blocks/field-introspection.ts)) — classifies a Zod schema into a normalised `FieldDescriptor` discriminated union. Handles `string` (with optional textarea promotion past 200 chars), `number`, `boolean`, `enum`, `literal`, nested `object`, `array<T>`, and the wrappers `optional` / `nullable` / `default`. Unsupported constructs (record/union/intersection/tuple/transform) degrade to `{ kind: 'unknown' }` with a hint message — no crashes.
+- **Coverage proof:** test asserts every Phase 2 block schema in `BLOCK_REGISTRY` classifies cleanly as a top-level object with no `unknown` fields. Adding a future block_type with an unsupported shape will surface a precise error at test time rather than silently degrading in production.
+- **`<ZodForm>`** ([app/admin/(authed)/pages/zod-form.tsx](../app/admin/(authed)/pages/zod-form.tsx)) — recursive renderer driven by the FieldDescriptor tree. Emits the right input per field: text input vs textarea, number, checkbox, select, repeatable list with Up/Down/Remove on array items, indented fieldset for nested objects. Optional objects show an "+ Add" CTA so the form stays minimal until the user opts in. Char counters with amber-at-90%-of-max for string fields. Inline `defaultFor()` seeds new items + new optional objects with sensible empty values.
+- **BlocksEditor integration** — `<PropsEditor>` in [blocks-editor.tsx](../app/admin/(authed)/pages/blocks-editor.tsx) now shows the per-field form by default with a "Fields / Show as JSON" toggle. Both views write to the same `props` state — the user can flip between them mid-edit. The JSON view stays as the universal fallback for blocks whose schema uses unsupported Zod constructs.
+- **Tests:** 22 new for `field-introspection.test.ts` (per-kind classification + every registry block schema) on top of the existing 319. Total: **341/341 vitest pass**.
+
+Why this work landed before merge of the Phase 2 PR: the JSON editor was the cheap fallback shipped to get the platform testable inside the cake-bake window. L2 is the real editor UX — bundling it into the same PR keeps Phase 2's review surface cohesive (the editor is part of "section blocks shipped") and avoids a follow-up PR for what is fundamentally one feature. Posture: cleanest single review unit beats two smaller PRs with editor regression risk in between.
+
+Out of scope (deferred):
+
+- HTML5 drag-to-reorder for blocks (Up/Down buttons ship; DnD remains a follow-up nicety)
+- Live preview pane alongside the form (L3 — defer unless authoring volume justifies the build)
+- `describe()`-driven field help text (could enrich each field with author guidance; small follow-up once block schemas have it)
+- Schema-driven validation messages surfaced inline as you type (currently we validate at save and at the registry's render path; inline pre-save validation is a polish item)
+
+Rob owns before merging: re-test `/admin/pages/<phase-2-test-id>` — every block should now show labelled inputs instead of raw JSON. The "Show as JSON" toggle should still work as a fallback. Push when ready.
+
+## 2026-05-18 — Pages CMS Phase 2: section blocks (feature/pages-cms-phase-2)
+
+Phase 2 of the Pages CMS arc per [[2026-05-18-pages-cms-expansion]]: the design system becomes the CMS palette. Marketing pages (Consulting deep page, audience landings, Modelling Room) now compose from section blocks in admin without dev time. Branch: `feature/pages-cms-phase-2`.
+
+Shipped on this branch:
+
+- **Schema:** new `page_block` table (FK to `page`, `position` ordinal, `props jsonb`), new `page.template = 'composed'` enum value alongside `'long_form'`, new `page_revision.blocks_snapshot jsonb` column for audit. Migration `0012_wandering_mysterio.sql` — additive only, zero rows initially, applied to prod DB. Manual seed `0011_seed_legal_pages.sql` (Phase 1) renumbered alongside in the journal.
+- **Block registry pattern:** [lib/pages/blocks/registry.ts](../lib/pages/blocks/registry.ts) is the single source of truth mapping `block_type` → `{ schema, label, description, defaultProps }`. Adding a new block_type is one registry entry + one adapter component + one `BLOCK_COMPONENTS` entry. Per-block Zod schemas in [schemas.ts](../lib/pages/blocks/schemas.ts) validated at admin save AND at render (defense in depth — render-time uses `safeParseBlockProps` which never throws).
+- **5 block types in Phase 2:** `hero`, `proof_grid`, `service_grid`, `cta_pair`, `markdown`. Each wraps an existing component from `components/sections/home/` so the design system stays the single visual truth. Adapters live at [components/pages/blocks/](../components/pages/blocks/).
+- **BlocksRenderer** ([components/pages/blocks-renderer.tsx](../components/pages/blocks-renderer.tsx)) sorts blocks by position, validates each via `safeParseBlockProps`, maps to adapter via `BLOCK_COMPONENTS`, wraps each in a per-block `BlockErrorBoundary`. Public traffic sees `[block unavailable]` on failure; admin preview sees the failing field path inline. Empty state in preview prompts the author to add blocks.
+- **Catch-all branching:** `app/[...slug]/page.tsx` reads `page.template`. `'composed'` → `<BlocksRenderer>` with `listBlocksForPage(id)`. `'long_form'` → `<MarkdownArticle>` (unchanged). Draft-preview banner moved from MarkdownArticle up to the catch-all so it appears uniformly above both template renders.
+- **Atomic write semantics:** `createPage` / `updatePage` accept `blocks?: BlockInputView[]` and persist them inside the same Drizzle transaction as the page + revision rows. `updatePage` uses delete-all-then-insert for blocks (simplest semantics for the admin reorder/add/remove flow; CASCADE-safe since no FKs into `page_block`). `page_revision.blocks_snapshot` captures the saved block array at every save so the audit trail covers composed templates uniformly with markdown.
+- **`InvalidBlockError`** thrown by `validateBlocks`, caught at the API boundary, returned as 400 with the precise per-block path so the admin gets actionable feedback.
+- **Admin UI** at [app/admin/(authed)/pages/blocks-editor.tsx](../app/admin/(authed)/pages/blocks-editor.tsx): block picker with all 5 types + their descriptions, up/down/remove buttons, JSON props editor per block (Phase 2 ships JSON editor; Phase 3 may add Zod-introspected per-field forms). Pre-loads blocks server-side via `listBlocksForPage` so the editor has zero client-side fetch on mount.
+- **Template toggle** in [page-form.tsx](../app/admin/(authed)/pages/page-form.tsx): admin selects long_form or composed at edit time; the form swaps the markdown editor for the BlocksEditor.
+- **Admin API extension:** `GET /api/admin/pages/[id]/blocks` (lists blocks); existing `POST /api/admin/pages` and `PUT /api/admin/pages/[id]` accept the new `blocks` field via the extended `PageCreateSchema` / `PageUpdateSchema`.
+- **Seed test page:** `/phase-2-test` shipped via `scripts/_seed-phase2-test-page.mjs` (idempotent; one-shot underscore-prefixed) so Rob can test the full composed render + admin edit flow end-to-end immediately. Page composes Hero → Proof grid → Service grid → Markdown → CTA pair.
+- **Tests:** [registry.test.ts](../lib/pages/blocks/registry.test.ts) — registry consistency, every defaultProps satisfies its own schema, per-block-type schema enforcement (hero rejects missing headline, proof_grid caps items at 6, etc.). [blocks-renderer.test.tsx](../components/pages/blocks-renderer.test.tsx) — empty state, unknown block_type fallback (public + preview), invalid-props fallback, happy-path render, position ordering, per-block XSS regression (5 attack vectors across hero/proof_grid/service_grid/markdown). Total: 319/319 vitest pass.
+
+Out of scope (deferred to later phases per [[2026-05-18-pages-cms-expansion]]):
+
+- AI authoring (X2 — Phase 3)
+- OG card auto-generation (X6 — Phase 3)
+- Page hierarchy (`parent_id`) + audience variants + auto-redirects on slug rename (E10 + X5 + X3 — Phase 4)
+- Per-page analytics + material-change email notification + magic-link external reviewer (X4 + E6 + X7 — Phase 5)
+- Reusable transcluded blocks + public hover previews + scheduled publish (X8 + X9 + E4 — Phase 6)
+- Drag-to-reorder via HTML5 native DnD (the Up/Down buttons ship in Phase 2; HTML5 DnD pending a follow-up if it ergonomically lands)
+- Zod-introspected per-field form editor (Phase 2 ships JSON editor; per-field UI is a Phase 3 polish if needed)
+
+Rob owns before merging: review the diff, test `/phase-2-test` in dev + admin edit flow, push when ready.
+
 ## 2026-05-18 — Pages CMS Phase 1 + Privacy/Terms cutover (feature/pages-cms-phase-1)
 
 WordPress-style Pages CMS shipped (Phase 1 of 6 — see [[2026-05-18-pages-cms-expansion]] for the full plan). Phase 1 covers the core CMS surface + the cutover of `/privacy` and `/terms` from hand-coded JSX to DB-backed pages with the corrected legal copy (ABN 18 379 780 858, Victoria — the previous pages incorrectly identified the entity as "Pty Ltd, Sydney"). Branch: `feature/pages-cms-phase-1`.

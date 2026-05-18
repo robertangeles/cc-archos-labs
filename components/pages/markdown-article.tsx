@@ -27,7 +27,7 @@ export interface MarkdownArticleProps {
   preview?: boolean;
 }
 
-export function MarkdownArticle({ page, preview }: MarkdownArticleProps) {
+export function MarkdownArticle({ page, preview: _preview }: MarkdownArticleProps) {
   const lastUpdated = formatIsoDate(
     page.lastReviewedAt ?? page.updatedAt,
   );
@@ -37,13 +37,12 @@ export function MarkdownArticle({ page, preview }: MarkdownArticleProps) {
   // Strip the leading `# Heading` line before handing to ReactMarkdown
   // so the component is the single source of truth for the page title.
   const body = stripLeadingH1(page.contentMd);
+  // Note: draft preview banner is now rendered at the catch-all layer
+  // so it appears uniformly above both long_form and composed bodies.
+  // _preview kept on the prop so existing tests don't break; will be
+  // removed entirely in a follow-up cleanup.
   return (
     <main className="flex flex-1 flex-col bg-canvas">
-      {preview ? (
-        <div className="bg-amber-500/10 px-6 py-2 text-center text-sm text-amber-700 dark:text-amber-300">
-          Draft preview — not visible to the public.
-        </div>
-      ) : null}
       <article className="mx-auto w-full max-w-[760px] px-6 pt-24 pb-32 md:px-12">
         <h1 className="text-display-md text-ink md:text-display-lg">
           {page.title}

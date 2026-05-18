@@ -16,6 +16,7 @@ import {
 import { PageCreateSchema } from "../../../../lib/pages/schema";
 import {
   DuplicateSlugError,
+  InvalidBlockError,
   ReservedSlugError,
 } from "../../../../lib/pages/types";
 
@@ -66,6 +67,9 @@ export async function POST(request: Request) {
     return Response.json({ ok: true, data: created }, { status: 201 });
   } catch (err) {
     if (err instanceof ReservedSlugError) {
+      return Response.json({ ok: false, error: err.message }, { status: 400 });
+    }
+    if (err instanceof InvalidBlockError) {
       return Response.json({ ok: false, error: err.message }, { status: 400 });
     }
     if (err instanceof DuplicateSlugError) {

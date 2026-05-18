@@ -29,7 +29,19 @@ export const SlugSchema = z
 
 const PageStatusSchema = z.enum(["draft", "published", "archived"] as const);
 const PageOgTypeSchema = z.enum(["article", "website"] as const);
-const PageTemplateSchema = z.enum(["long_form"] as const); // Phase 2 adds 'composed'.
+const PageTemplateSchema = z.enum(["long_form", "composed"] as const);
+
+// Block input as accepted by the admin API. The per-block-type props
+// schema is enforced by lib/pages/blocks/registry.ts (parseBlockProps)
+// inside lib/pages/index.ts's createPage/updatePage — we only validate
+// the OUTER shape here. id is optional (new blocks); position is
+// informational (the service module rewrites position from array index).
+const BlockInputSchema = z.object({
+  id: z.string().uuid().optional(),
+  blockType: z.string().min(1).max(80),
+  position: z.number().int().min(0).optional(),
+  props: z.record(z.string(), z.unknown()).default({}),
+});
 
 // Input shape for create + update. `expectedUpdatedAt` is REQUIRED on
 // update (carries the optimistic-lock value) but absent on create.
@@ -54,6 +66,7 @@ export const PageCreateSchema = z.object({
   ),
   ogType: PageOgTypeSchema.optional(),
   lastReviewedAt: z.coerce.date().optional().nullable(),
+  blocks: z.array(BlockInputSchema).max(100).optional(),
 });
 
 export const PageUpdateSchema = PageCreateSchema.extend({

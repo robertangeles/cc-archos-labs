@@ -1,15 +1,19 @@
 import "server-only";
-import { and, desc, eq, isNull, isNotNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, isNotNull, sql } from "drizzle-orm";
 import { getDb } from "../db";
-import { page, pageRevision } from "../db/schema";
+import { page, pageBlock, pageRevision } from "../db/schema";
 import { isReservedSlug } from "./reserved-slugs";
+import { parseBlockProps } from "./blocks/registry";
 import {
   ConcurrentEditError,
   DuplicateSlugError,
+  InvalidBlockError,
   PageNotFoundError,
   ReservedSlugError,
   RevisionNotFoundError,
   type AdminPageView,
+  type BlockInputView,
+  type BlockView,
   type PageInput,
   type PageOgType,
   type PageStatus,
@@ -111,6 +115,37 @@ export async function getAdminPageById(
 }
 
 /**
+ * Load all blocks for a page in render order (position ASC). Returns
+ * an empty array for long_form pages (which have no blocks rows).
+ * Used by:
+ *   - the catch-all when page.template === 'composed' (public render)
+ *   - the admin edit view (to populate the BlocksEditor)
+ */
+export async function listBlocksForPage(
+  pageId: string,
+): Promise<BlockView[]> {
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: pageBlock.id,
+      pageId: pageBlock.pageId,
+      blockType: pageBlock.blockType,
+      position: pageBlock.position,
+      props: pageBlock.props,
+    })
+    .from(pageBlock)
+    .where(eq(pageBlock.pageId, pageId))
+    .orderBy(asc(pageBlock.position));
+  return rows.map((r) => ({
+    id: r.id,
+    pageId: r.pageId,
+    blockType: r.blockType,
+    position: r.position,
+    props: (r.props ?? {}) as Record<string, unknown>,
+  }));
+}
+
+/**
  * Revisions for a page, newest first. Drives the admin "history" view +
  * the restore flow.
  */
@@ -140,9 +175,13 @@ export async function listRevisions(pageId: string): Promise<RevisionView[]> {
 
 /**
  * Create a new page + initial revision in a single transaction.
+ * When `template === 'composed'`, blocks are inserted in the same tx
+ * (positions reassigned from array index) and snapshotted into the
+ * initial revision.
  *
  * @throws ReservedSlugError if the slug is in RESERVED_SLUGS or empty.
  * @throws DuplicateSlugError on PG 23505 (slug already exists).
+ * @throws Error if a block fails Zod validation (caller's 400 boundary).
  */
 export async function createPage(
   input: PageInput,
@@ -152,6 +191,10 @@ export async function createPage(
   if (isReservedSlug(normalisedSlug)) {
     throw new ReservedSlugError(`Slug "${normalisedSlug}" is reserved.`);
   }
+
+  const template = (input.template ?? "long_form") as PageTemplate;
+  const validatedBlocks =
+    template === "composed" ? validateBlocks(input.blocks ?? []) : [];
 
   const db = getDb();
   try {
@@ -165,7 +208,7 @@ export async function createPage(
           excerpt: input.excerpt ?? null,
           seoTitle: input.seoTitle ?? null,
           seoDescription: input.seoDescription ?? null,
-          template: (input.template ?? "long_form") as PageTemplate,
+          template,
           status: input.status,
           ogType: (input.ogType ?? "article") as PageOgType,
           publishedAt: input.status === "published" ? new Date() : null,
@@ -175,6 +218,19 @@ export async function createPage(
 
       const created = inserted[0];
 
+      // Insert blocks (composed pages only). Skip the round-trip when
+      // long_form so the create path stays cheap for legal pages.
+      if (template === "composed" && validatedBlocks.length > 0) {
+        await tx.insert(pageBlock).values(
+          validatedBlocks.map((b, idx) => ({
+            pageId: created.id,
+            blockType: b.blockType,
+            position: idx,
+            props: b.props,
+          })),
+        );
+      }
+
       await tx.insert(pageRevision).values({
         pageId: created.id,
         title: created.title,
@@ -182,6 +238,14 @@ export async function createPage(
         seoTitle: created.seoTitle,
         seoDescription: created.seoDescription,
         diffSizePct: "100.00",
+        blocksSnapshot:
+          template === "composed"
+            ? validatedBlocks.map((b, idx) => ({
+                blockType: b.blockType,
+                position: idx,
+                props: b.props,
+              }))
+            : null,
         savedBy,
       });
 
@@ -214,6 +278,10 @@ export async function updatePage(
   if (isReservedSlug(normalisedSlug)) {
     throw new ReservedSlugError(`Slug "${normalisedSlug}" is reserved.`);
   }
+
+  const template = (input.template ?? "long_form") as PageTemplate;
+  const validatedBlocks =
+    template === "composed" ? validateBlocks(input.blocks ?? []) : [];
 
   const db = getDb();
   try {
@@ -270,7 +338,7 @@ export async function updatePage(
           excerpt: input.excerpt ?? null,
           seoTitle: input.seoTitle ?? null,
           seoDescription: input.seoDescription ?? null,
-          template: (input.template ?? "long_form") as PageTemplate,
+          template,
           status: input.status,
           ogType: (input.ogType ?? "article") as PageOgType,
           publishedAt: nextPublishedAt,
@@ -282,6 +350,23 @@ export async function updatePage(
 
       const updated = updatedRows[0];
 
+      // Blocks rewrite: delete-all-then-insert is the simplest
+      // semantics for the admin "drag-to-reorder + add + remove"
+      // experience. Authors send the full current block list with
+      // every save. CASCADE-safe — no FKs into page_block exist.
+      // Phase 6 (transcluded blocks) will need a smarter diff.
+      await tx.delete(pageBlock).where(eq(pageBlock.pageId, id));
+      if (template === "composed" && validatedBlocks.length > 0) {
+        await tx.insert(pageBlock).values(
+          validatedBlocks.map((b, idx) => ({
+            pageId: id,
+            blockType: b.blockType,
+            position: idx,
+            props: b.props,
+          })),
+        );
+      }
+
       await tx.insert(pageRevision).values({
         pageId: updated.id,
         title: updated.title,
@@ -289,6 +374,14 @@ export async function updatePage(
         seoTitle: updated.seoTitle,
         seoDescription: updated.seoDescription,
         diffSizePct: diffSizePct.toFixed(2),
+        blocksSnapshot:
+          template === "composed"
+            ? validatedBlocks.map((b, idx) => ({
+                blockType: b.blockType,
+                position: idx,
+                props: b.props,
+              }))
+            : null,
         savedBy,
       });
 
@@ -473,12 +566,41 @@ function rowToAdminView(row: {
   };
 }
 
+/**
+ * Validate every block in an admin-supplied list. Each block's props
+ * is parsed against the registry's Zod schema; on failure we throw
+ * with a precise path so the admin API returns a useful 400.
+ *
+ * Returns the parsed (typed) blocks. Caller passes these into the
+ * tx insert.
+ */
+function validateBlocks(blocks: BlockInputView[]): Array<{
+  blockType: string;
+  props: Record<string, unknown>;
+}> {
+  return blocks.map((b, idx) => {
+    try {
+      const parsed = parseBlockProps(b.blockType, b.props) as Record<
+        string,
+        unknown
+      >;
+      return { blockType: b.blockType, props: parsed };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new InvalidBlockError(
+        `Block at position ${idx} (${b.blockType}): ${message}`,
+      );
+    }
+  });
+}
+
 function translateWriteError(err: unknown): Error {
   if (err instanceof ReservedSlugError) return err;
   if (err instanceof DuplicateSlugError) return err;
   if (err instanceof ConcurrentEditError) return err;
   if (err instanceof PageNotFoundError) return err;
   if (err instanceof RevisionNotFoundError) return err;
+  if (err instanceof InvalidBlockError) return err;
 
   // postgres.js exposes the SQLSTATE on `code`.
   if (

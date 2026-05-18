@@ -2,8 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { AdminPageView } from "../../../../lib/pages/types";
+import type {
+  AdminPageView,
+  BlockInputView,
+} from "../../../../lib/pages/types";
 import { CONTENT_MD_MAX_BYTES } from "../../../../lib/pages/schema";
+import { BlocksEditor } from "./blocks-editor";
 
 // Shared form for both create and edit. Mode is derived from whether
 // `initial` is provided. On save: POST to /api/admin/pages (create) or
@@ -23,6 +27,9 @@ type SaveStatus =
 
 interface PageFormProps {
   initial?: AdminPageView;
+  /** Phase 2: blocks pre-loaded server-side for composed pages. Empty
+   *  array for long_form pages or new (unsaved) pages. */
+  initialBlocks?: BlockInputView[];
 }
 
 const inputClass =
@@ -38,7 +45,7 @@ const labelClass =
 const SEO_TITLE_SOFT_LIMIT = 60;
 const SEO_DESC_SOFT_LIMIT = 160;
 
-export function PageForm({ initial }: PageFormProps) {
+export function PageForm({ initial, initialBlocks = [] }: PageFormProps) {
   const router = useRouter();
   const isEdit = initial !== undefined;
 
@@ -56,6 +63,10 @@ export function PageForm({ initial }: PageFormProps) {
   const [status, setStatus] = useState<"draft" | "published">(
     initial?.status === "archived" ? "draft" : (initial?.status ?? "draft"),
   );
+  const [template, setTemplate] = useState<"long_form" | "composed">(
+    initial?.template === "composed" ? "composed" : "long_form",
+  );
+  const [blocks, setBlocks] = useState<BlockInputView[]>(initialBlocks);
   const [lastReviewedAt, setLastReviewedAt] = useState(
     initial?.lastReviewedAt
       ? new Date(initial.lastReviewedAt).toISOString().slice(0, 10)
@@ -77,8 +88,19 @@ export function PageForm({ initial }: PageFormProps) {
       seoDescription: seoDescription || null,
       ogType,
       status,
-      template: "long_form" as const,
+      template,
       lastReviewedAt: lastReviewedAt ? new Date(lastReviewedAt).toISOString() : null,
+      // Only send blocks when composed. Server discards them when
+      // long_form anyway, but keeping the payload tight is cheaper.
+      ...(template === "composed"
+        ? {
+            blocks: blocks.map((b, idx) => ({
+              blockType: b.blockType,
+              position: idx,
+              props: b.props,
+            })),
+          }
+        : {}),
       ...(isEdit
         ? { expectedUpdatedAt: new Date(initial!.updatedAt).toISOString() }
         : {}),
@@ -184,6 +206,30 @@ export function PageForm({ initial }: PageFormProps) {
         </div>
       </div>
 
+      <div className="grid gap-x-6 gap-y-6 md:grid-cols-2">
+        <div>
+          <label className={labelClass}>Template</label>
+          <select
+            value={template}
+            onChange={(e) =>
+              setTemplate(e.target.value as "long_form" | "composed")
+            }
+            className={`${inputClass} mt-2`}
+          >
+            <option value="long_form">Long-form (markdown)</option>
+            <option value="composed">Composed (section blocks)</option>
+          </select>
+          <p className="mt-2 text-[12px] text-ink-subtle">
+            Long-form = single markdown body (legal, prose). Composed =
+            assemble the page from Hero, Proof grid, Service grid, CTA,
+            and Markdown blocks.
+          </p>
+        </div>
+        <div className="md:col-start-2">
+          {/* spacer; status moves into next grid row */}
+        </div>
+      </div>
+
       <div className="grid gap-x-6 gap-y-6 md:grid-cols-3">
         <div>
           <label className={labelClass}>Status</label>
@@ -278,28 +324,45 @@ export function PageForm({ initial }: PageFormProps) {
         </div>
       </div>
 
-      <div>
-        <div className="flex items-baseline justify-between">
-          <label className={labelClass}>Content (markdown)</label>
-          <span
-            className={`text-[11px] tabular-nums ${
-              bytesOver ? "text-red-500" : "text-ink-subtle"
-            }`}
-          >
-            {bytesUsed.toLocaleString()} / {CONTENT_MD_MAX_BYTES.toLocaleString()} bytes
-          </span>
+      {template === "long_form" ? (
+        <div>
+          <div className="flex items-baseline justify-between">
+            <label className={labelClass}>Content (markdown)</label>
+            <span
+              className={`text-[11px] tabular-nums ${
+                bytesOver ? "text-red-500" : "text-ink-subtle"
+              }`}
+            >
+              {bytesUsed.toLocaleString()} /{" "}
+              {CONTENT_MD_MAX_BYTES.toLocaleString()} bytes
+            </span>
+          </div>
+          <textarea
+            value={contentMd}
+            onChange={(e) => setContentMd(e.target.value)}
+            className={`${inputClass} mt-2 min-h-[500px] font-mono text-sm`}
+            placeholder="# Heading\n\nParagraph..."
+          />
+          <p className="mt-2 text-[12px] text-ink-subtle">
+            Markdown only — GitHub-flavoured tables and footnotes supported.
+            HTML tags are escaped (XSS posture).
+          </p>
         </div>
-        <textarea
-          value={contentMd}
-          onChange={(e) => setContentMd(e.target.value)}
-          className={`${inputClass} mt-2 min-h-[500px] font-mono text-sm`}
-          placeholder="# Heading\n\nParagraph..."
-        />
-        <p className="mt-2 text-[12px] text-ink-subtle">
-          Markdown only — GitHub-flavoured tables and footnotes supported. HTML
-          tags are escaped (XSS posture).
-        </p>
-      </div>
+      ) : (
+        <div className="rounded-md border border-hairline bg-surface-1 p-6">
+          <p className="mb-4 text-[12px] text-ink-subtle">
+            This page is <strong className="text-ink">composed</strong> from
+            section blocks. The markdown body above is ignored when the
+            template is composed. Switch the template back to long-form to
+            edit markdown again.
+          </p>
+          <BlocksEditor
+            pageId={initial?.id}
+            initial={blocks}
+            onChange={setBlocks}
+          />
+        </div>
+      )}
 
       <div className="flex items-center justify-between border-t border-hairline pt-6">
         <SaveStatusLabel status={saveStatus} />
