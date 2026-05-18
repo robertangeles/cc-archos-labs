@@ -3,7 +3,10 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAdminPageById } from "../../../../../lib/pages";
+import {
+  getAdminPageById,
+  listBlocksForPage,
+} from "../../../../../lib/pages";
 import { PageForm } from "../page-form";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +19,12 @@ export default async function AdminPagesEdit({ params }: PageProps) {
   const { id } = await params;
   const page = await getAdminPageById(id);
   if (!page) notFound();
+
+  // Preload blocks server-side for composed pages so the BlocksEditor
+  // has its initial state without a client-side fetch round-trip.
+  // Long-form pages get an empty array (no blocks rows) — cheap query.
+  const blocks =
+    page.template === "composed" ? await listBlocksForPage(id) : [];
 
   return (
     <section>
@@ -48,7 +57,7 @@ export default async function AdminPagesEdit({ params }: PageProps) {
         <p className="mt-1 font-mono text-xs text-ink-subtle">/{page.slug}</p>
       </div>
 
-      <PageForm initial={page} />
+      <PageForm initial={page} initialBlocks={blocks} />
     </section>
   );
 }

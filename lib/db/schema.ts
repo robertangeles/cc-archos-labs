@@ -750,7 +750,11 @@ export const page = pgTable(
     // Per-page overrides for SEO. NULL = fall back to title / excerpt.
     seoTitle: text("seo_title"),
     seoDescription: text("seo_description"),
-    // 'long_form' for v1. Phase 2 adds 'composed'.
+    // 'long_form' (markdown body in content_md, rendered via
+    // MarkdownArticle) OR 'composed' (page_block rows, rendered via
+    // BlocksRenderer). Mutually exclusive at render time. Switching
+    // template doesn't migrate content either direction — content_md
+    // stays put for long_form, page_block rows stay put for composed.
     template: text("template").notNull().default("long_form"),
     // 'draft' | 'published' | 'archived'. Status transitions only via
     // savePage / archivePage / restorePage — never written directly.
@@ -821,6 +825,13 @@ export const pageRevision = pgTable(
     diffSizePct: numeric("diff_size_pct", { precision: 5, scale: 2 })
       .notNull()
       .default("0"),
+    // Phase 2: snapshot of page_block rows at save time when the page is
+    // template='composed'. Shape: [{ id, block_type, position, props }].
+    // NULL when template='long_form' (the content lives in content_md).
+    // Capturing the snapshot here rather than versioning page_block
+    // separately keeps Phase 2 audit cheap: one row per save covers both
+    // markdown and composed templates uniformly.
+    blocksSnapshot: jsonb("blocks_snapshot"),
     // The admin identity that performed the save. Single-admin model
     // today; matches integration_secret_audit.actor shape so multi-admin
     // can land later as a FK without rewriting this column.
@@ -843,16 +854,85 @@ export type PageRevision = typeof pageRevision.$inferSelect;
 export type NewPageRevision = typeof pageRevision.$inferInsert;
 
 // ============================================================================
+// page_block — Pages CMS Phase 2 (composed pages)
+// ============================================================================
+// One row per block in a composed page. The `block_type` is a string key
+// into lib/pages/blocks/registry.ts which maps to:
+//   - React component (section component wrapper)
+//   - Zod schema for the props payload
+//   - default props for the block-picker UI
+//
+// `props` is jsonb validated against the Zod schema at admin save AND at
+// render. Render-time validation falls back to a placeholder ("[invalid
+// block — admin needs to fix]") so one bad block doesn't kill the page.
+//
+// `position` is a 0-based ordinal within the page. Reordering rewrites
+// the position values on every block in the page (small N — <50 blocks
+// per page in any realistic case — so this is cheaper than a sparse-
+// integer scheme or a linked-list).
+//
+// CASCADE delete on page_id: deleting a page (hard delete via DB tooling)
+// removes all blocks. Soft delete via page.archived_at preserves them.
+//
+// transclude_id (reusable blocks) deferred to Phase 6 — adding the column
+// only when the feature ships, per CLAUDE.md "no abstractions for
+// single-use code."
+
+export const pageBlock = pgTable(
+  "page_block",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    pageId: uuid("page_id")
+      .notNull()
+      .references(() => page.id, { onDelete: "cascade" }),
+    // Registry key, e.g. 'hero' | 'cta_pair' | 'service_card' | …
+    // Validated against the registry at save + render; unknown types
+    // are rejected at save and rendered as a placeholder at render.
+    blockType: text("block_type").notNull(),
+    // 0-based ordinal within the page. UNIQUE(page_id, position) keeps
+    // ordering deterministic; reordering rewrites positions in one tx.
+    position: integer("position").notNull(),
+    // Block-specific props. Validated against the Zod schema for
+    // `block_type` at both save and render.
+    props: jsonb("props").notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // Primary read: "all blocks for this page in render order."
+    index("page_block_page_id_position_idx").on(
+      table.pageId,
+      table.position,
+    ),
+  ],
+);
+
+export type PageBlock = typeof pageBlock.$inferSelect;
+export type NewPageBlock = typeof pageBlock.$inferInsert;
+
+// ============================================================================
 // Relations — Pages CMS
 // ============================================================================
 
 export const pageRelations = relations(page, ({ many }) => ({
   revisions: many(pageRevision),
+  blocks: many(pageBlock),
 }));
 
 export const pageRevisionRelations = relations(pageRevision, ({ one }) => ({
   page: one(page, {
     fields: [pageRevision.pageId],
+    references: [page.id],
+  }),
+}));
+
+export const pageBlockRelations = relations(pageBlock, ({ one }) => ({
+  page: one(page, {
+    fields: [pageBlock.pageId],
     references: [page.id],
   }),
 }));

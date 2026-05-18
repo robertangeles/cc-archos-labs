@@ -66,14 +66,14 @@ All 12 original cherry-picks accepted, plus 9 expansion items. Zero deferrals.
 
 Six PRs, each independently shippable. Phase 1 ships the compliance fix (corrected legal copy live).
 
-| Phase | Scope | Effort (human / CC) | Ships |
-|---|---|---|---|
-| 1 | Core CMS + Privacy/Terms cutover | 4-5 days / ~5h | Corrected legal copy live; CMS operational for long-form pages |
-| 2 | Section blocks (X1) | 3-4 days / ~5h | First composed marketing page (Consulting overview) |
-| 3 | AI authoring + OG auto-gen (X2 + X6) | 2-3 days / ~4h | Per-page writing time drops to ~20 min |
-| 4 | Hierarchy + audience variants + redirects (E10 + X5 + X3) | 3-4 days / ~4h | `/consulting/data-architecture` works; audience-aware copy |
-| 5 | Analytics + change notification + external review (X4 + E6 + X7) | 3 days / ~4h | Closed-loop measurement; compliance workflow; lawyer-readable links |
-| 6 | Reusable blocks + hover previews + scheduled publish (X8 + X9 + E4) | 2-3 days / ~3h | DRY content; editorial calendar |
+| Phase | Scope | Effort (human / CC) | Ships | Status |
+|---|---|---|---|---|
+| 1 | Core CMS + Privacy/Terms cutover | 4-5 days / ~5h | Corrected legal copy live; CMS operational for long-form pages | ✅ shipped 2026-05-18 (PR #58) |
+| 2 | Section blocks (X1) | 3-4 days / ~5h | Block registry + 5 block types; admin composer; `/phase-2-test` test page | ✅ shipped 2026-05-18 (feature/pages-cms-phase-2) |
+| 3 | AI authoring + OG auto-gen (X2 + X6) | 2-3 days / ~4h | Per-page writing time drops to ~20 min | open |
+| 4 | Hierarchy + audience variants + redirects (E10 + X5 + X3) | 3-4 days / ~4h | `/consulting/data-architecture` works; audience-aware copy | open |
+| 5 | Analytics + change notification + external review (X4 + E6 + X7) | 3 days / ~4h | Closed-loop measurement; compliance workflow; lawyer-readable links | open |
+| 6 | Reusable blocks + hover previews + scheduled publish (X8 + X9 + E4) | 2-3 days / ~3h | DRY content; editorial calendar | open |
 
 ## Schema (Phase-gated)
 

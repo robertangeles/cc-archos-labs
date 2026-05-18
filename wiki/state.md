@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-18T06:26:23.411Z
+generated: 2026-05-18T07:35:48.900Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -14,15 +14,15 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | Route | File | Last shipped |
 |-------|------|--------------|
 | `/` | [app/page.tsx](../app/page.tsx) | 2026-05-18 |
-| `/[...slug]` | [app/[...slug]/page.tsx](../app/[...slug]/page.tsx) | unknown |
+| `/[...slug]` | [app/[...slug]/page.tsx](../app/[...slug]/page.tsx) | 2026-05-18 |
 | `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-18 |
 | `/admin/(authed)/diagnostic` | [app/admin/(authed)/diagnostic/page.tsx](../app/admin/(authed)/diagnostic/page.tsx) | 2026-05-15 |
 | `/admin/(authed)/integrations` | [app/admin/(authed)/integrations/page.tsx](../app/admin/(authed)/integrations/page.tsx) | 2026-05-15 |
 | `/admin/(authed)/integrations/[slug]` | [app/admin/(authed)/integrations/[slug]/page.tsx](../app/admin/(authed)/integrations/[slug]/page.tsx) | 2026-05-17 |
-| `/admin/(authed)/pages` | [app/admin/(authed)/pages/page.tsx](../app/admin/(authed)/pages/page.tsx) | unknown |
-| `/admin/(authed)/pages/[id]` | [app/admin/(authed)/pages/[id]/page.tsx](../app/admin/(authed)/pages/[id]/page.tsx) | unknown |
-| `/admin/(authed)/pages/[id]/revisions` | [app/admin/(authed)/pages/[id]/revisions/page.tsx](../app/admin/(authed)/pages/[id]/revisions/page.tsx) | unknown |
-| `/admin/(authed)/pages/new` | [app/admin/(authed)/pages/new/page.tsx](../app/admin/(authed)/pages/new/page.tsx) | unknown |
+| `/admin/(authed)/pages` | [app/admin/(authed)/pages/page.tsx](../app/admin/(authed)/pages/page.tsx) | 2026-05-18 |
+| `/admin/(authed)/pages/[id]` | [app/admin/(authed)/pages/[id]/page.tsx](../app/admin/(authed)/pages/[id]/page.tsx) | 2026-05-18 |
+| `/admin/(authed)/pages/[id]/revisions` | [app/admin/(authed)/pages/[id]/revisions/page.tsx](../app/admin/(authed)/pages/[id]/revisions/page.tsx) | 2026-05-18 |
+| `/admin/(authed)/pages/new` | [app/admin/(authed)/pages/new/page.tsx](../app/admin/(authed)/pages/new/page.tsx) | 2026-05-18 |
 | `/admin/(authed)/prompts` | [app/admin/(authed)/prompts/page.tsx](../app/admin/(authed)/prompts/page.tsx) | 2026-05-17 |
 | `/admin/(authed)/prompts/[slug]` | [app/admin/(authed)/prompts/[slug]/page.tsx](../app/admin/(authed)/prompts/[slug]/page.tsx) | 2026-05-17 |
 | `/admin/(authed)/site` | [app/admin/(authed)/site/page.tsx](../app/admin/(authed)/site/page.tsx) | 2026-05-18 |
@@ -39,7 +39,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/ai-readiness/report/[sessionId]` | [app/tools/ai-readiness/report/[sessionId]/page.tsx](../app/tools/ai-readiness/report/[sessionId]/page.tsx) | 2026-05-13 |
 | `/tools/ai-readiness/share/[token]` | [app/tools/ai-readiness/share/[token]/page.tsx](../app/tools/ai-readiness/share/[token]/page.tsx) | 2026-05-13 |
 
-## API endpoints (38)
+## API endpoints (39)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -54,11 +54,12 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/integrations/test/resend` | [app/api/admin/integrations/test/resend/route.ts](../app/api/admin/integrations/test/resend/route.ts) | 2026-05-15 |
 | `/api/admin/login` | [app/api/admin/login/route.ts](../app/api/admin/login/route.ts) | 2026-05-15 |
 | `/api/admin/logout` | [app/api/admin/logout/route.ts](../app/api/admin/logout/route.ts) | 2026-05-08 |
-| `/api/admin/pages` | [app/api/admin/pages/route.ts](../app/api/admin/pages/route.ts) | unknown |
-| `/api/admin/pages/[id]` | [app/api/admin/pages/[id]/route.ts](../app/api/admin/pages/[id]/route.ts) | unknown |
-| `/api/admin/pages/[id]/restore` | [app/api/admin/pages/[id]/restore/route.ts](../app/api/admin/pages/[id]/restore/route.ts) | unknown |
-| `/api/admin/pages/[id]/revisions` | [app/api/admin/pages/[id]/revisions/route.ts](../app/api/admin/pages/[id]/revisions/route.ts) | unknown |
-| `/api/admin/pages/[id]/revisions/[revId]/restore` | [app/api/admin/pages/[id]/revisions/[revId]/restore/route.ts](../app/api/admin/pages/[id]/revisions/[revId]/restore/route.ts) | unknown |
+| `/api/admin/pages` | [app/api/admin/pages/route.ts](../app/api/admin/pages/route.ts) | 2026-05-18 |
+| `/api/admin/pages/[id]` | [app/api/admin/pages/[id]/route.ts](../app/api/admin/pages/[id]/route.ts) | 2026-05-18 |
+| `/api/admin/pages/[id]/blocks` | [app/api/admin/pages/[id]/blocks/route.ts](../app/api/admin/pages/[id]/blocks/route.ts) | unknown |
+| `/api/admin/pages/[id]/restore` | [app/api/admin/pages/[id]/restore/route.ts](../app/api/admin/pages/[id]/restore/route.ts) | 2026-05-18 |
+| `/api/admin/pages/[id]/revisions` | [app/api/admin/pages/[id]/revisions/route.ts](../app/api/admin/pages/[id]/revisions/route.ts) | 2026-05-18 |
+| `/api/admin/pages/[id]/revisions/[revId]/restore` | [app/api/admin/pages/[id]/revisions/[revId]/restore/route.ts](../app/api/admin/pages/[id]/revisions/[revId]/restore/route.ts) | 2026-05-18 |
 | `/api/admin/settings/booking-prompts` | [app/api/admin/settings/booking-prompts/route.ts](../app/api/admin/settings/booking-prompts/route.ts) | 2026-05-17 |
 | `/api/admin/settings/diagnostic-content` | [app/api/admin/settings/diagnostic-content/route.ts](../app/api/admin/settings/diagnostic-content/route.ts) | 2026-05-15 |
 | `/api/admin/settings/diagnostic-prompt` | [app/api/admin/settings/diagnostic-prompt/route.ts](../app/api/admin/settings/diagnostic-prompt/route.ts) | 2026-05-15 |
@@ -82,12 +83,12 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/events` | [app/api/events/route.ts](../app/api/events/route.ts) | 2026-05-18 |
 | `/api/health/cron` | [app/api/health/cron/route.ts](../app/api/health/cron/route.ts) | 2026-05-17 |
 
-## Components (38)
+## Components (46)
 
 | File | Last shipped |
 |------|--------------|
 | [components/admin/integrations/integrations-grid.tsx](../components/admin/integrations/integrations-grid.tsx) | 2026-05-17 |
-| [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-05-17 |
+| [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-05-18 |
 | [components/analytics/analytics-client.tsx](../components/analytics/analytics-client.tsx) | 2026-05-18 |
 | [components/booking/calendar-picker.tsx](../components/booking/calendar-picker.tsx) | 2026-05-17 |
 | [components/contact/contact-form.tsx](../components/contact/contact-form.tsx) | 2026-05-15 |
@@ -96,8 +97,16 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/layout/header.tsx](../components/layout/header.tsx) | 2026-05-15 |
 | [components/layout/lead-sign-out-button.tsx](../components/layout/lead-sign-out-button.tsx) | 2026-05-15 |
 | [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-05-18 |
-| [components/pages/markdown-article.test.tsx](../components/pages/markdown-article.test.tsx) | unknown |
-| [components/pages/markdown-article.tsx](../components/pages/markdown-article.tsx) | unknown |
+| [components/pages/block-error-boundary.tsx](../components/pages/block-error-boundary.tsx) | unknown |
+| [components/pages/blocks-renderer.test.tsx](../components/pages/blocks-renderer.test.tsx) | unknown |
+| [components/pages/blocks-renderer.tsx](../components/pages/blocks-renderer.tsx) | unknown |
+| [components/pages/blocks/cta-pair-block.tsx](../components/pages/blocks/cta-pair-block.tsx) | unknown |
+| [components/pages/blocks/hero-block.tsx](../components/pages/blocks/hero-block.tsx) | unknown |
+| [components/pages/blocks/markdown-block.tsx](../components/pages/blocks/markdown-block.tsx) | unknown |
+| [components/pages/blocks/proof-grid-block.tsx](../components/pages/blocks/proof-grid-block.tsx) | unknown |
+| [components/pages/blocks/service-grid-block.tsx](../components/pages/blocks/service-grid-block.tsx) | unknown |
+| [components/pages/markdown-article.test.tsx](../components/pages/markdown-article.test.tsx) | 2026-05-18 |
+| [components/pages/markdown-article.tsx](../components/pages/markdown-article.tsx) | 2026-05-18 |
 | [components/sections/about/index.ts](../components/sections/about/index.ts) | 2026-05-18 |
 | [components/sections/about/person-card.tsx](../components/sections/about/person-card.tsx) | 2026-05-18 |
 | [components/sections/about/philosophy-block.tsx](../components/sections/about/philosophy-block.tsx) | 2026-05-18 |

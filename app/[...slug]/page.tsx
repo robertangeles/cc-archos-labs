@@ -1,11 +1,14 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { resolvePage } from "../../lib/pages/resolver";
+import { listBlocksForPage } from "../../lib/pages";
 import { runBootCheck } from "../../lib/pages/boot-check";
 import { getSessionFromCookies } from "../../lib/auth-server";
 import { buildPageMetadata, getSiteSettings, getSiteUrl } from "../../lib/site-config";
 import { buildCmsPageWebPageLd } from "../../lib/schema-org";
 import { MarkdownArticle } from "../../components/pages/markdown-article";
+import { BlocksRenderer } from "../../components/pages/blocks-renderer";
+import type { PageBlock } from "../../lib/db/schema";
 
 // Pages CMS catch-all. Sole reader of the `page` table for public
 // traffic. Routing precedence in Next.js prefers static segments over
@@ -106,13 +109,39 @@ export default async function CatchAllPage({ params }: PageProps) {
     dateModifiedISO: (page.lastReviewedAt ?? page.updatedAt).toISOString(),
   });
 
+  // Template branching: 'long_form' uses content_md + MarkdownArticle.
+  // 'composed' loads page_block rows and renders via BlocksRenderer.
+  // Templates are mutually exclusive — switching template doesn't
+  // migrate content either direction, and the unused store is ignored
+  // at render.
+  let body: React.ReactNode;
+  if (page.template === "composed") {
+    const blockRows = await listBlocksForPage(page.id);
+    // listBlocksForPage returns BlockView; BlocksRenderer wants the
+    // raw schema row shape. Cast — the fields overlap exactly minus
+    // created_at/updated_at which the renderer doesn't read.
+    body = (
+      <BlocksRenderer
+        blocks={blockRows as unknown as PageBlock[]}
+        preview={result.kind === "preview"}
+      />
+    );
+  } else {
+    body = <MarkdownArticle page={page} preview={result.kind === "preview"} />;
+  }
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageLd) }}
       />
-      <MarkdownArticle page={page} preview={result.kind === "preview"} />
+      {result.kind === "preview" ? (
+        <div className="bg-amber-500/10 px-6 py-2 text-center text-sm text-amber-700 dark:text-amber-300">
+          Draft preview — not visible to the public.
+        </div>
+      ) : null}
+      {body}
     </>
   );
 }

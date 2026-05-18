@@ -158,16 +158,15 @@ describe("MarkdownArticle — safe rendering", () => {
     expect(html).not.toMatch(/href="mailto:[^"]*"[^>]*target="_blank"/);
   });
 
-  it("shows the draft preview banner when preview=true", () => {
+  it("renders without crashing when preview=true (banner moved to catch-all)", () => {
+    // Phase 2 moved the draft-preview banner from MarkdownArticle up to
+    // the catch-all route so composed + long_form pages get the same
+    // banner. The prop is preserved for API compatibility but is now
+    // a no-op visually.
     const html = renderToString(
       <MarkdownArticle page={mockPage("body")} preview />,
     );
-    expect(html).toMatch(/Draft preview/);
-  });
-
-  it("does not show the banner when preview is undefined", () => {
-    const html = renderToString(<MarkdownArticle page={mockPage("body")} />);
-    expect(html).not.toMatch(/Draft preview/);
+    expect(html).toContain("Test Page");
   });
 
   it("renders exactly one H1 when content starts with a markdown heading", () => {
