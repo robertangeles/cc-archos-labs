@@ -32,6 +32,14 @@ import { ProofGridBlock } from "./blocks/proof-grid-block";
 import { ServiceGridBlock } from "./blocks/service-grid-block";
 import { CtaPairBlock } from "./blocks/cta-pair-block";
 import { MarkdownBlock } from "./blocks/markdown-block";
+import { QuickDiagnosisBlock } from "./blocks/quick-diagnosis-block";
+import { EditorialEssayBlock } from "./blocks/editorial-essay-block";
+import { ProcessStepsBlock } from "./blocks/process-steps-block";
+import { EditorialFaqBlock } from "./blocks/editorial-faq-block";
+import { ClosingStatementBlock } from "./blocks/closing-statement-block";
+import { TimelineBlock } from "./blocks/timeline-block";
+import { ObjectionFaqBlock } from "./blocks/objection-faq-block";
+import { StatBandBlock } from "./blocks/stat-band-block";
 
 // Map block_type → adapter component. Keep this aligned with
 // BLOCK_REGISTRY in lib/pages/blocks/registry.ts — adding a block_type
@@ -46,6 +54,14 @@ const BLOCK_COMPONENTS: Record<
   service_grid: ServiceGridBlock,
   cta_pair: CtaPairBlock,
   markdown: MarkdownBlock,
+  quick_diagnosis: QuickDiagnosisBlock,
+  editorial_essay: EditorialEssayBlock,
+  process_steps: ProcessStepsBlock,
+  editorial_faq: EditorialFaqBlock,
+  closing_statement: ClosingStatementBlock,
+  timeline: TimelineBlock,
+  objection_faq: ObjectionFaqBlock,
+  stat_band: StatBandBlock,
 };
 
 export interface BlocksRendererProps {
