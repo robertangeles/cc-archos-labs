@@ -26,6 +26,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 - [About page section components](concepts/about-page-section-components.md) — 4 bio-oriented primitives (PersonCard, PhilosophyBlock, WayOfWorkingSteps, SelectedWorkCard) introduced for `/about`; companion family to home — together they are the design system's vocabulary for public-facing content pages
 
 ## decisions
+- [Translation Layer migration (rosy-bee) — design + Phase A1 schema](decisions/2026-05-19-translation-layer-migration.md) — absorb ~253 published posts from robertangeles.com into `/blog` as "The Translation Layer". Phase A1 schema shipped (post, author, category, post_revision, newsletter_signup + pgvector HNSW). CEO + Eng + Design reviews all cleared. Phase A4 simplified after inventory: zero shortcodes, Gutenberg-only HTML
 - [Pages CMS — SCOPE EXPANSION plan](decisions/2026-05-18-pages-cms-expansion.md) — WordPress-style Pages CMS expanded into a publishing platform (21 cherry-picks accepted, 6 phases). Phase 1 ships the core CMS + Privacy/Terms cutover with corrected legal copy (ABN 18 379 780 858, Victoria — not "Pty Ltd, Sydney")
 - [Data retention policy + enforcement](decisions/2026-05-18-data-retention-policy.md) — 30-day IP/UA purge + 24-month inactive-lead purge; constants hardcoded (not Settings) to prevent drift from `/privacy` text; explicit two-step DELETE because `assessment_session.lead_id` is `SET NULL` by design
 - [Diagnostic per-option scoring calibration (overview)](decisions/2026-05-09-diagnostic-scoring-calls.md) — meta-discipline for calibration deviations: four classes of deviation + score-vs-trigger separation pattern; specific values live in /admin/diagnostic
@@ -65,7 +66,7 @@ _(none yet)_
 - [Tailwind v4 dev server doesn't always compile new utility names on hot-reload](lessons-learned/2026-05-07-tailwind-v4-new-utilities.md) — re-save `globals.css` after introducing new `--color-*` tokens; values hot-reload, names don't
 
 ## raw-index
-_(none yet)_
+- [WordPress source inventory (robertangeles.com)](raw-index/wp-inventory-2026-05-19.md) — frozen 2026-05-19 snapshot of the WP DB used as the rosy-bee migration source: 253 published posts, Gutenberg-only HTML (zero shortcodes), 100% featured-image coverage, 4 categories + 740 tags, single author, permalink `/%postname%/`. Captures decisions that simplified Phase A4.
 
 ## runbooks
 - [Rotate the master encryption key](runbooks/rotate-master-key.md) — UI + CLI paths, half-fail recovery, post-compromise rotation of underlying secrets
