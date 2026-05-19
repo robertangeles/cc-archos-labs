@@ -304,28 +304,34 @@ export async function extractPosts(
       };
     }
 
+    // Defensive trim on every WP-sourced string. The 2026-05-19 dry-run
+    // surfaced a leading space in post_title (" AI Readiness…") — WP
+    // stores trailing whitespace inconsistently and phpMyAdmin's UI
+    // trims it on display, so it wasn't visible during the inventory.
+    // We render these verbatim downstream (h1 title, og meta, slug
+    // attributes) so any leading/trailing whitespace is a visible bug.
     out.push({
       sourceWpId: row.ID,
-      slug: row.post_name,
-      title: row.post_title,
-      rawHtml: row.post_content,
-      rawExcerpt: row.post_excerpt ?? "",
+      slug: (row.post_name ?? "").trim(),
+      title: (row.post_title ?? "").trim(),
+      rawHtml: row.post_content ?? "",
+      rawExcerpt: (row.post_excerpt ?? "").trim(),
       publishedAt: toDate(row.post_date),
       modifiedAt: toDate(row.post_modified),
       author: {
         sourceUserId: row.post_author,
-        userLogin: row.user_login,
-        displayName: row.display_name,
+        userLogin: (row.user_login ?? "").trim(),
+        displayName: (row.display_name ?? "").trim(),
       },
       category: {
         sourceTermId: category.term_id,
-        name: category.name,
-        slug: category.slug,
+        name: category.name.trim(),
+        slug: category.slug.trim(),
       },
       tags: bucket.tags.map((t) => ({
         sourceTermId: t.term_id,
-        name: t.name,
-        slug: t.slug,
+        name: t.name.trim(),
+        slug: t.slug.trim(),
       })),
       featuredImage,
       yoastFocusKeyphrase: focusKeyphrases.get(row.ID) ?? null,
