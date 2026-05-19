@@ -8,6 +8,59 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-18 — `/consulting` composed page + 6 new block types (feature/consulting-page)
+
+First real composed page using Phase 2's platform. Dogfoods the section-blocks pipeline on a revenue surface, proves the platform end-to-end without engineering work per page. Includes Feature 2 from Rob's Obsession Features Brief (interactive three-question diagnostic).
+
+**Final composition** — 9 blocks rendered via the Phase 2 catch-all:
+
+1. **Hero** — tight 5-word headline "Practitioners win the next decade." with practitioner-positioning subhead. Primary CTA → assessment, secondary → book-a-call.
+2. **Stat band** — full-width 3-column strip above the fold: `3 months / 25 years / 7 days` (COBOL lineage delivered / cross-industry delivery / sovereign AI shipped). Per [docs/stat-band-brief.md](../docs/stat-band-brief.md). Tabular-nums + uniform display-lg so digit count doesn't drive perceived weight.
+3. **Markdown essay** — "The model that built the big consulting firms is breaking." Closes with italic "Smaller. Faster. Accountable."
+4. **Service grid** — 4 services in 2×2 (Assessment / Architecture / Agent / Training), copy sourced verbatim from `app/page.tsx` SERVICES array so /consulting doesn't diverge from the canonical home descriptions.
+5. **Timeline** — 5 milestones from first call to scoped engagement (lavender dots on hairline, same as home page).
+6. **Objection FAQ** — native `<details>` disclosure for the three independent-practitioner objections (one-person accountability / cost / legacy COBOL).
+7. **Quick Diagnosis** — interactive 3-question diagnostic. Sector × stage × governance → one practitioner-voice sentence. Pure logic + 13-case test suite covers all 7 branches + 80-combo total coverage.
+8. **Markdown intro** — closing-section lead-in ("If this sounds like the engagement you have been looking for.").
+9. **CTA pair** — final assessment + book-a-call with microcopy.
+
+**Nav update:** `Consulting` link slotted between About and Contact in [components/layout/nav.tsx](../components/layout/nav.tsx).
+
+**Phase 2 registry grew from 5 to 11 block_types** to support this page + future composed marketing pages:
+- `hero`, `proof_grid`, `service_grid`, `cta_pair`, `markdown` (Phase 2 original)
+- `quick_diagnosis` (Obsession Features brief)
+- `timeline`, `objection_faq`, `stat_band` (home-page-style adapters for composed pages)
+- `editorial_essay`, `process_steps`, `editorial_faq`, `closing_statement` (early iteration's "editorial dramatic" treatment — kept in the registry but unused on /consulting; available for future pages that want a different aesthetic)
+
+**Design lesson logged separately** in [[2026-05-18-reuse-before-invent]]: the page went through three visual iterations before landing. The right move was to reuse the home page's existing section components (Hero, Timeline, ObjectionFaq, ServiceCard, ProofItem) rather than invent new editorial blocks. The home page WAS the design bar; /consulting needed to extend its vocabulary, not parallel it.
+
+**MarkdownBlock updated** to match home-page typography (h2 at text-display-md ink, body at text-body-lg ink-subtle). Earlier styling (h2 text-2xl, body text-base) read as documentation; the home-page treatment reads as the section family.
+
+**Quick Diagnosis restyled** from "full-bleed dramatic" to home-page Section pattern (text-display-md heading, body-lg subtext, pill options with generous gap-3 spacing, output rendered as a ProofItem-style card with lavender stroke).
+
+**Three feedback fixes applied** in the final pass:
+- Stat band: `tabular-nums` + reduced font-size to display-lg (was display-xl) so multi-digit numbers don't dominate single-digit ones.
+- Service descriptions: rewritten verbatim from home page SERVICES array — keeps the two pages in sync.
+- Diagnosis pills: padding bumped to `px-6 py-3` and gap to `gap-3 sm:gap-4` for desktop breathing room.
+
+**Seed:** `scripts/_seed-consulting-page.mjs` is the canonical source for /consulting content. Idempotent upsert (UPDATE + delete-then-insert blocks + revision snapshot). Re-running produces the current published state. After merge, future edits happen via /admin/pages with zero deploys.
+
+**Posture decisions logged with the work:**
+- Quick Diagnosis questions/options/logic are NOT admin-editable — tightly coupled to the AI Readiness Assessment domain. Author-editable surface = surrounding copy + CTAs only.
+- Stat band figures are admin-editable per stat but the band itself is a fixed 3-column layout (per brief).
+
+Rob owns before merging: verify /consulting renders end-to-end in browser, push when ready.
+
+Shipped on this branch:
+
+- **`/consulting` composed page** seeded via [scripts/_seed-consulting-page.mjs](../scripts/_seed-consulting-page.mjs) (idempotent, one-shot, underscore-prefixed throwaway). Five blocks: Hero → Markdown ("The honest version") → ServiceGrid (4 service lines) → Markdown ("How engagements begin") → CtaPair (closing).
+- **Voice:** practitioner. No prices per [[feedback-no-prices-on-site]]. Specific service descriptions with deliverables (Assessment / Architecture / Agent / Training). Process paragraph names exactly what happens: 30-minute call → engagement letter → fixed-fee work by the same person. CTAs route to /book/archos-labs and /ai-readiness-assessment.
+- **Nav update:** `Consulting` link slotted between About and Contact in [components/layout/nav.tsx](../components/layout/nav.tsx) so the page is discoverable from every page on the site.
+- **SEO:** `seoTitle` lives as `'Consulting'` not `'Consulting — Archos Labs'`. The root layout's title template already appends `— ${siteName}` to any non-template title, so seoTitle should never include the site name. Confirmed via curl: `<title>Consulting — Archos Labs</title>` renders correctly with no doubling. Documenting this so future composed pages don't recreate the bug.
+- **No code changes to the CMS platform** — Phase 2 already supported everything `/consulting` needed. The whole page is a database row + 5 page_block rows. Future edits happen in /admin/pages with zero deploys.
+
+Rob owns before merging: review /consulting copy in browser; tune any sentence in /admin/pages directly (no code edit needed); push when ready. After merge, `scripts/_seed-consulting-page.mjs` can stay or be removed — the page lives in the DB regardless.
+
 ## 2026-05-18 — Pages CMS Phase 2.L2: per-field forms (feature/pages-cms-phase-2)
 
 Editor UX upgrade for Phase 2 blocks. Phase 2's first commit shipped a raw-JSON props editor as the universal fallback; this commit replaces it with **per-field forms generated from the block's Zod schema**. JSON view preserved as an escape-hatch toggle.

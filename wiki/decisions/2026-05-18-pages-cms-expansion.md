@@ -69,11 +69,22 @@ Six PRs, each independently shippable. Phase 1 ships the compliance fix (correct
 | Phase | Scope | Effort (human / CC) | Ships | Status |
 |---|---|---|---|---|
 | 1 | Core CMS + Privacy/Terms cutover | 4-5 days / ~5h | Corrected legal copy live; CMS operational for long-form pages | ✅ shipped 2026-05-18 (PR #58) |
-| 2 | Section blocks (X1) | 3-4 days / ~5h | Block registry + 5 block types; admin composer; `/phase-2-test` test page | ✅ shipped 2026-05-18 (feature/pages-cms-phase-2) |
+| 2 | Section blocks (X1) | 3-4 days / ~5h | Block registry + 5 block types; admin composer; `/phase-2-test` test page | ✅ shipped 2026-05-18 (PR #59) |
+| 2.x | `/consulting` composed page + 6 additional block types | extra ~6h / ~3h CC | First real composed page; Quick Diagnosis (Obsession Features brief Feature 2); stat band; timeline, objection_faq, stat_band, editorial_essay, process_steps, editorial_faq, closing_statement block types | ⏳ in flight on feature/consulting-page |
 | 3 | AI authoring + OG auto-gen (X2 + X6) | 2-3 days / ~4h | Per-page writing time drops to ~20 min | open |
 | 4 | Hierarchy + audience variants + redirects (E10 + X5 + X3) | 3-4 days / ~4h | `/consulting/data-architecture` works; audience-aware copy | open |
-| 5 | Analytics + change notification + external review (X4 + E6 + X7) | 3 days / ~4h | Closed-loop measurement; compliance workflow; lawyer-readable links | open |
+| 5 | Analytics + change notification + external review (X4 + E6 + X7) | 3 days / ~4h | Closed-loop measurement; compliance workflow; lawyer-readable links + Sector Comparison Score (Obsession Features brief Feature 1) | open |
 | 6 | Reusable blocks + hover previews + scheduled publish (X8 + X9 + E4) | 2-3 days / ~3h | DRY content; editorial calendar | open |
+
+**Phase 2 block_type count grew from the planned 5 (`hero`, `proof_grid`, `service_grid`, `cta_pair`, `markdown`) to 11 when Phase 2.x landed on /consulting:**
+
+- Phase 2 original: 5 types (hero / proof_grid / service_grid / cta_pair / markdown)
+- Phase 2.x additions for /consulting:
+  - `quick_diagnosis` — interactive 3-question diagnostic (Obsession Features brief Feature 2)
+  - `timeline`, `objection_faq`, `stat_band` — thin wrappers around the home page's existing section components (Timeline, ObjectionFaq, custom 3-column stat strip)
+  - `editorial_essay`, `process_steps`, `editorial_faq`, `closing_statement` — bespoke editorial typography blocks from an iteration that didn't land. Kept in the registry as future options for pages that want a different aesthetic; NOT used by /consulting (see [[2026-05-18-reuse-before-invent]] for the lesson).
+
+**Design philosophy clarification logged in flight:** composed pages should EXTEND the home page's design vocabulary, not parallel it with new patterns. Each new block_type should wrap an existing approved section component before inventing a new visual treatment. The block_type registry's purpose is to make REUSE cheap, not to encourage invention.
 
 ## Schema (Phase-gated)
 

@@ -14,16 +14,32 @@
 //   5. Add a test asserting the Zod schema + render fallback path
 
 import {
+  ClosingStatementBlockSchema,
   CtaPairBlockSchema,
+  EditorialEssayBlockSchema,
+  EditorialFaqBlockSchema,
   HeroBlockSchema,
   MarkdownBlockSchema,
+  ObjectionFaqBlockSchema,
+  ProcessStepsBlockSchema,
   ProofGridBlockSchema,
+  QuickDiagnosisBlockSchema,
   ServiceGridBlockSchema,
+  StatBandBlockSchema,
+  TimelineBlockSchema,
+  type ClosingStatementBlockProps,
   type CtaPairBlockProps,
+  type EditorialEssayBlockProps,
+  type EditorialFaqBlockProps,
   type HeroBlockProps,
   type MarkdownBlockProps,
+  type ObjectionFaqBlockProps,
+  type ProcessStepsBlockProps,
   type ProofGridBlockProps,
+  type QuickDiagnosisBlockProps,
   type ServiceGridBlockProps,
+  type StatBandBlockProps,
+  type TimelineBlockProps,
 } from "./schemas";
 import type { ZodTypeAny } from "zod";
 
@@ -107,6 +123,149 @@ export const BLOCK_REGISTRY = {
     defaultProps: {
       content: "Write the prose here.\n\nSupports **GFM** markdown.",
     } as MarkdownBlockProps,
+  },
+  editorial_essay: {
+    label: "Editorial essay",
+    description:
+      "Long-form thesis section with numbered section counter, emphasised lead paragraph, body paragraphs, optional mid-essay pull-quote, and optional mono signoff. Use for thesis sections that deserve more visual weight than a plain markdown block.",
+    schema: EditorialEssayBlockSchema,
+    defaultProps: {
+      sectionNumber: "01",
+      sectionLabel: "Section label",
+      heading: "Section heading.",
+      leadParagraph:
+        "The opening sentence or two that anchor the rest of the section.",
+      bodyParagraphs: [
+        "Body paragraph one.",
+        "Body paragraph two.",
+      ],
+      pullQuote: "A short, quotable line.",
+      pullQuotePosition: "middle",
+    } as EditorialEssayBlockProps,
+  },
+  process_steps: {
+    label: "Process steps",
+    description:
+      "Numbered methodology cards (1-6 steps) with mono numeral, lavender hairline trim, eyebrow label, and body. Echoes the home page Timeline pattern as cards. Use for 'how it works' sections where each step needs more body than a Timeline milestone allows.",
+    schema: ProcessStepsBlockSchema,
+    defaultProps: {
+      sectionNumber: "02",
+      sectionLabel: "How it works",
+      heading: "Section heading.",
+      steps: [
+        { label: "Step", body: "What happens in this step." },
+        { label: "Step", body: "What happens in this step." },
+      ],
+    } as ProcessStepsBlockProps,
+  },
+  editorial_faq: {
+    label: "Editorial FAQ",
+    description:
+      "Designed Q&A for long-form questions that belong on a thesis page. Mono Q —/A — labels in lavender, question at headline scale, answer at body-lg, hairline dividers between items. Not a SaaS help center.",
+    schema: EditorialFaqBlockSchema,
+    defaultProps: {
+      sectionNumber: "03",
+      sectionLabel: "Questions",
+      heading: "The questions worth answering.",
+      items: [
+        {
+          question: "The first question that matters.",
+          answer: "A direct answer that earns the question.",
+        },
+      ],
+    } as EditorialFaqBlockProps,
+  },
+  closing_statement: {
+    label: "Closing statement",
+    description:
+      "Designed final-section block with eyebrow + heading + lead paragraph + optional pull-quote + primary/secondary CTA pair. Replaces a generic markdown + cta_pair combo when the closing wants editorial weight.",
+    schema: ClosingStatementBlockSchema,
+    defaultProps: {
+      eyebrow: "Ready",
+      heading: "Closing heading.",
+      leadParagraph: "Closing lead paragraph that earns the click.",
+      pullQuote: "A short, memorable closing line.",
+      primaryCta: { label: "Primary action", href: "/" },
+      secondaryCta: { label: "Secondary action", href: "/" },
+    } as ClosingStatementBlockProps,
+  },
+  stat_band: {
+    label: "Stat band",
+    description:
+      "Full-width 3-column stat strip. Eyebrow + big number + unit + subtext per column. Surface-1 background with hairline top/bottom and vertical dividers between columns on desktop. Stacks on mobile.",
+    schema: StatBandBlockSchema,
+    defaultProps: {
+      stats: [
+        {
+          eyebrow: "Label",
+          number: "1",
+          unit: "unit",
+          subtext: "Short supporting line.",
+        },
+        {
+          eyebrow: "Label",
+          number: "2",
+          unit: "unit",
+          subtext: "Short supporting line.",
+        },
+        {
+          eyebrow: "Label",
+          number: "3",
+          unit: "unit",
+          subtext: "Short supporting line.",
+        },
+      ],
+    } as StatBandBlockProps,
+  },
+  timeline: {
+    label: "Timeline",
+    description:
+      "Process or roadmap timeline with lavender dots on a hairline. Mirrors the home page's 90-day timeline pattern exactly. 2-8 milestones.",
+    schema: TimelineBlockSchema,
+    defaultProps: {
+      heading: "Section heading.",
+      milestones: [
+        { week: "Week 1", label: "Milestone one" },
+        { week: "Week 2", label: "Milestone two" },
+        { week: "Week 3", label: "Milestone three" },
+      ],
+    } as TimelineBlockProps,
+  },
+  objection_faq: {
+    label: "Objection FAQ",
+    description:
+      "Native <details>/<summary> disclosure FAQ matching the home page's ObjectionFaq pattern — plus icon rotates to × on open. Quiet, inline, not a SaaS help center. 1-12 Q/A items, each answer can have multiple paragraphs.",
+    schema: ObjectionFaqBlockSchema,
+    defaultProps: {
+      heading: "Section heading.",
+      items: [
+        {
+          question: "The first objection worth handling.",
+          answer: ["The honest answer to it."],
+        },
+      ],
+    } as ObjectionFaqBlockProps,
+  },
+  quick_diagnosis: {
+    label: "Quick diagnosis",
+    description:
+      "Three single-select questions (sector / program stage / data governance) → one practitioner-voice sentence naming the most likely failure mode. No email required. CTAs to the full assessment + booking. Questions and diagnosis logic are hardcoded in the adapter; only the surrounding copy is admin-editable.",
+    schema: QuickDiagnosisBlockSchema,
+    defaultProps: {
+      eyebrow: "Quick diagnosis",
+      heading: "Tell us where you are. We will tell you what is probably wrong.",
+      subtext: "Three questions. No email required. One honest answer.",
+      disclaimer:
+        "This is a general observation based on patterns across programs like yours. The full assessment takes 8 minutes and gives you a scored report your CFO can act on.",
+      primaryCta: {
+        label: "Take the full assessment",
+        href: "/ai-readiness-assessment",
+      },
+      secondaryCta: {
+        label: "Book a 30-minute call",
+        href: "/book/archos-labs",
+      },
+    } as QuickDiagnosisBlockProps,
   },
 } as const satisfies Record<string, BlockRegistryEntry>;
 

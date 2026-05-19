@@ -11,9 +11,16 @@ import type { HeroBlockProps } from "../../../lib/pages/blocks/schemas";
 // or below the hero. A future enhancement could parse a simple syntax
 // like `{accent}fail{/accent}` into ReactNode — out of scope here.
 
+// Composed CMS pages commit to a left-aligned reading axis end-to-end.
+// Every section below the hero is left-aligned; a centred hero on top
+// reads as marketing rather than authoritative. The home page imports
+// Hero directly and keeps its centred treatment — only the block adapter
+// switches alignment, so this is scoped to CMS-composed pages.
+
 export function HeroBlock(props: HeroBlockProps) {
   return (
     <Hero
+      align="left"
       eyebrow={props.eyebrow}
       headline={props.headline}
       subhead={props.subhead}

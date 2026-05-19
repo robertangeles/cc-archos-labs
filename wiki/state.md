@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-18T07:54:19.625Z
+generated: 2026-05-19T00:29:28.848Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -83,7 +83,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/events` | [app/api/events/route.ts](../app/api/events/route.ts) | 2026-05-18 |
 | `/api/health/cron` | [app/api/health/cron/route.ts](../app/api/health/cron/route.ts) | 2026-05-17 |
 
-## Components (46)
+## Components (55)
 
 | File | Last shipped |
 |------|--------------|
@@ -100,11 +100,20 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/pages/block-error-boundary.tsx](../components/pages/block-error-boundary.tsx) | 2026-05-18 |
 | [components/pages/blocks-renderer.test.tsx](../components/pages/blocks-renderer.test.tsx) | 2026-05-18 |
 | [components/pages/blocks-renderer.tsx](../components/pages/blocks-renderer.tsx) | 2026-05-18 |
+| [components/pages/blocks/closing-statement-block.tsx](../components/pages/blocks/closing-statement-block.tsx) | unknown |
 | [components/pages/blocks/cta-pair-block.tsx](../components/pages/blocks/cta-pair-block.tsx) | 2026-05-18 |
+| [components/pages/blocks/editorial-essay-block.tsx](../components/pages/blocks/editorial-essay-block.tsx) | unknown |
+| [components/pages/blocks/editorial-faq-block.tsx](../components/pages/blocks/editorial-faq-block.tsx) | unknown |
 | [components/pages/blocks/hero-block.tsx](../components/pages/blocks/hero-block.tsx) | 2026-05-18 |
 | [components/pages/blocks/markdown-block.tsx](../components/pages/blocks/markdown-block.tsx) | 2026-05-18 |
+| [components/pages/blocks/objection-faq-block.tsx](../components/pages/blocks/objection-faq-block.tsx) | unknown |
+| [components/pages/blocks/process-steps-block.tsx](../components/pages/blocks/process-steps-block.tsx) | unknown |
 | [components/pages/blocks/proof-grid-block.tsx](../components/pages/blocks/proof-grid-block.tsx) | 2026-05-18 |
+| [components/pages/blocks/quick-diagnosis-block.tsx](../components/pages/blocks/quick-diagnosis-block.tsx) | unknown |
+| [components/pages/blocks/section-counter.tsx](../components/pages/blocks/section-counter.tsx) | unknown |
 | [components/pages/blocks/service-grid-block.tsx](../components/pages/blocks/service-grid-block.tsx) | 2026-05-18 |
+| [components/pages/blocks/stat-band-block.tsx](../components/pages/blocks/stat-band-block.tsx) | unknown |
+| [components/pages/blocks/timeline-block.tsx](../components/pages/blocks/timeline-block.tsx) | unknown |
 | [components/pages/markdown-article.test.tsx](../components/pages/markdown-article.test.tsx) | 2026-05-18 |
 | [components/pages/markdown-article.tsx](../components/pages/markdown-article.tsx) | 2026-05-18 |
 | [components/sections/about/index.ts](../components/sections/about/index.ts) | 2026-05-18 |
