@@ -8,6 +8,37 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-19 — Translation Layer (rosy-bee) — Phase A1 schema + WP inventory (feature/rosy-bee-phase-a1-schema)
+
+First step of the WordPress → Archos Labs blog migration. Ran the full plan pipeline (`/plan-ceo-review` → `/plan-eng-review` → `/plan-design-review`), promoted plan to `docs/designs/translation-layer.md`, then shipped the schema and ran a live inventory of the source DB to validate assumptions before writing the migration script.
+
+**Schema shipped (commit `8b8676c`):**
+
+Five new tables in `lib/db/schema.ts` — `post`, `author`, `category`, `post_revision`, `newsletter_signup`. Migration `0013_natural_hedge_knight.sql` enables the pgvector extension and creates the HNSW index for `voyage-3-large` 1024-dim embeddings (cosine, m=16, ef_construction=64). Public routes not shipped in this PR — additive schema only.
+
+**WP inventory shipped (this commit):**
+
+Live SQL queries run via phpMyAdmin against the GoDaddy MySQL (Remote MySQL connection abandoned — GoDaddy shared hosting blocks external 3306 at the firewall regardless of allowlist). Frozen snapshot at [[wp-inventory-2026-05-19]].
+
+Headline findings:
+- **253 published posts** to migrate (not 5 from `llms.txt`, not 856 from raw count)
+- **Zero shortcodes** detected across 11 patterns — Gutenberg-only HTML, dramatically simplifies Phase A4 transform
+- **100% featured-image coverage** — no missing-image fallback needed
+- One-category-per-post in practice — schema decision holds
+- 740 tags total with heavy sprawl; Phase A4 filters to `count ≥ 2`
+- Permalink `/%postname%/` — direct slug mapping
+- Single real author (Rob, WP display_name "Sparq" — needs public-byline decision before A2 admin seeds)
+
+**Phase A4 simplifications:** drop the Turndown shortcode stripper, drop Visual Composer un-mangling, drop the edge-cpt CPT branch. Add Yoast `primary_term` lookup. Add tag-frequency filter.
+
+**Decisions docs:**
+- [[2026-05-19-translation-layer-migration]] — design + Phase A1 schema decision + Phase A4 simplifications
+- [[wp-inventory-2026-05-19]] — frozen inventory snapshot
+
+**Memory captured:** `entity_translation_layer.md` (brand split: Translation Layer = blog at `/blog`; Modelling Room = separate LinkedIn newsletter), `project_rosy_bee_migration.md` (scope, decisions, expansions accepted).
+
+**Next:** branch `feature/rosy-bee-phase-a1-schema` is 4 commits ahead of main (schema, inventory script, design doc, inventory snapshot + wiki). Awaiting Rob's go-ahead for push + PR.
+
 ## 2026-05-18 — `/consulting` composed page + 6 new block types (feature/consulting-page)
 
 First real composed page using Phase 2's platform. Dogfoods the section-blocks pipeline on a revenue surface, proves the platform end-to-end without engineering work per page. Includes Feature 2 from Rob's Obsession Features Brief (interactive three-question diagnostic).
