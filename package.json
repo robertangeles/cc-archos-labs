@@ -26,7 +26,10 @@
     "db:studio": "node --env-file=.env.local --no-warnings ./node_modules/drizzle-kit/bin.cjs studio",
     "db:seed-diagnostic-content": "node --env-file=.env.local scripts/seed-diagnostic-content.mjs",
     "wiki:state": "node scripts/wiki-state.mjs",
-    "inventory:wp": "node --env-file=.env.local scripts/inventory-wp.mjs"
+    "inventory:wp": "node --env-file=.env.local scripts/inventory-wp.mjs",
+    "migrate-wp:dry-run": "node --env-file=.env.local --import tsx scripts/migrate-wp/index.ts --dry-run",
+    "migrate-wp:apply": "node --env-file=.env.local --import tsx scripts/migrate-wp/index.ts --apply",
+    "migrate-wp:tsc": "tsc --noEmit -p tsconfig.migrate-wp.json"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",
@@ -44,11 +47,13 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.1049.0",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/turndown": "^5.0.6",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.5",
@@ -57,6 +62,9 @@
     "lint-staged": "^17.0.4",
     "mysql2": "^3.22.3",
     "tailwindcss": "^4",
+    "tsx": "^4.22.2",
+    "turndown": "^7.2.4",
+    "turndown-plugin-gfm": "^1.0.2",
     "typescript": "^5",
     "vitest": "^4.1.5"
   },
