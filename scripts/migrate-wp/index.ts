@@ -6,18 +6,47 @@
 //   pnpm migrate-wp:dry-run -- --limit 5        # first 5 posts only
 //   pnpm migrate-wp:dry-run -- --slug ai-foo    # single post by slug
 //   pnpm migrate-wp:apply  -- --skip-media      # debug: skip R2 uploads
+//   pnpm migrate-wp:apply  -- --skip-embed      # debug: skip Voyage
 //
 // Reads env from .env.local via `node --env-file=` (wired in package.json).
 //
-// Architecture: streaming-ish in spirit, batched in practice. Extract pulls
-// ALL posts into memory (small corpus — 253 rows, ~1 MB total). Each post
-// flows through the transform stages one at a time so failures are isolated
-// (one post failing doesn't abort the others).
+// Per-post pipeline: each post flows through the stages one at a time so
+// failures are isolated (one post failing doesn't abort the others).
+// Each post's progress + decisions land in the manifest.
 
 import { argv, env, exit, stdout, stderr } from "node:process";
 import { performance } from "node:perf_hooks";
-import { extractPosts, connectWp, ExtractError } from "./extract";
+import { writeFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+
+import {
+  extractPosts,
+  connectWp,
+  fetchTagFrequencies,
+  ExtractError,
+} from "./extract";
 import { transformPost } from "./transform";
+import { polishPost } from "./claude-polish";
+import { embedPost, EmbedError } from "./embed";
+import {
+  rehostMedia,
+  r2ConfigFromEnv,
+  buildR2Client,
+} from "./media-rehost";
+import { generateOgImage, wasOgGenerated } from "./og-generate";
+import {
+  connectDb,
+  closeDb,
+  ensureAuthor,
+  ensureCategory,
+  upsertPost,
+  insertRevision,
+} from "./insert";
+import { buildRedirectConfig } from "./redirect-rules";
+import {
+  buildLlmsTxt,
+  buildLlmsFullTxt,
+} from "./llms-txt";
 import {
   addEntry,
   buildEntry,
@@ -25,7 +54,16 @@ import {
   formatSummary,
   writeManifest,
 } from "./manifest";
-import type { MigrationConfig } from "./types";
+import type {
+  EmbeddedPost,
+  MediaRehostedPost,
+  MigrationConfig,
+  OgGeneratedPost,
+  PolishedPost,
+  TransformedPost,
+} from "./types";
+
+const OUTPUT_DIR = "./scripts/migrate-wp/output";
 
 // =============================================================================
 // CLI parsing
@@ -103,22 +141,45 @@ Options:
   --skip-media       skip R2 media rehost (apply mode only)
   --skip-og          skip OG image generation (apply mode only)
   --skip-embed       skip Voyage embedding (apply mode only)
-  --manifest PATH    write JSON manifest to PATH (default: ./scripts/migrate-wp/manifest-{ISO}.json)
+  --manifest PATH    write JSON manifest to PATH (default: ./scripts/migrate-wp/output/manifest-{ISO}.json)
   -h, --help         show this message
 
 Required env (.env.local):
   WP_DATABASE_URL    mysql://... source WordPress DB
   WP_TABLE_PREFIX    table prefix (e.g. uhiz_)
-  DATABASE_URL       Archos Labs Postgres (apply mode)
-  OPENROUTER_API_KEY for Claude polish (apply mode)
-  VOYAGE_API_KEY     for embeddings (apply mode)
-  R2_*               for media + OG (apply mode)
+  Apply mode also requires:
+    DATABASE_URL       Archos Labs Postgres
+    OPENROUTER_API_KEY for Claude polish
+    VOYAGE_API_KEY     for embeddings
+    R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
+    R2_BUCKET, R2_PUBLIC_URL  for media rehost
 `);
 }
 
 function die(message: string): never {
   stderr.write(`ERROR: ${message}\n`);
   exit(1);
+}
+
+// =============================================================================
+// Apply-mode env validation
+// =============================================================================
+
+function validateApplyEnv(cfg: MigrationConfig): void {
+  const missing: string[] = [];
+  if (!env.DATABASE_URL) missing.push("DATABASE_URL");
+  if (!env.OPENROUTER_API_KEY) missing.push("OPENROUTER_API_KEY");
+  if (!cfg.skipEmbed && !env.VOYAGE_API_KEY) missing.push("VOYAGE_API_KEY");
+  if (!cfg.skipMedia) {
+    if (!env.R2_ACCOUNT_ID) missing.push("R2_ACCOUNT_ID");
+    if (!env.R2_ACCESS_KEY_ID) missing.push("R2_ACCESS_KEY_ID");
+    if (!env.R2_SECRET_ACCESS_KEY) missing.push("R2_SECRET_ACCESS_KEY");
+    if (!env.R2_BUCKET) missing.push("R2_BUCKET");
+    if (!env.R2_PUBLIC_URL) missing.push("R2_PUBLIC_URL");
+  }
+  if (missing.length) {
+    die(`Apply mode requires env: ${missing.join(", ")}`);
+  }
 }
 
 // =============================================================================
@@ -132,11 +193,13 @@ async function main(): Promise<void> {
   const prefix = env.WP_TABLE_PREFIX || "wp_";
   if (!wpUrl) die("WP_DATABASE_URL is not set in .env.local");
 
+  if (cfg.mode === "apply") validateApplyEnv(cfg);
+
   stderr.write(
     `Mode: ${cfg.mode}  ${cfg.limit ? `(limit ${cfg.limit})` : ""}  ${cfg.slug ? `(slug ${cfg.slug})` : ""}\n`,
   );
 
-  const conn = await connectWp(wpUrl);
+  const wpConn = await connectWp(wpUrl);
   const sourceInfo = {
     databaseHost: extractHost(wpUrl),
     databaseName: extractDbName(wpUrl),
@@ -144,10 +207,14 @@ async function main(): Promise<void> {
   };
   const manifest = emptyManifest(cfg, sourceInfo);
 
+  // Apply-mode setup: DB handle, R2 client, tag-allowlist.
+  const applyEnv =
+    cfg.mode === "apply" ? await setupApplyResources(cfg) : null;
+
   try {
     // ---------- Stage 1: extract ----------
     stderr.write(`[extract] connecting + querying ...\n`);
-    const extracted = await extractPosts(conn, prefix, {
+    const extracted = await extractPosts(wpConn, prefix, {
       limit: cfg.limit,
       slug: cfg.slug,
     });
@@ -155,73 +222,263 @@ async function main(): Promise<void> {
 
     // ---------- Per-post pipeline ----------
     for (const post of extracted) {
-      const t0 = performance.now();
-      const entry = buildEntry(post);
-      entry.decisions.categoryResolved = post.category.slug;
-      try {
-        // ----- Stage 2: transform (HTML → markdown) -----
-        const transformed = transformPost(post);
-        entry.status = "transformed";
-
-        // Track image references (count <img> tags in markdown; rehost
-        // happens in apply mode only — stage 5).
-        const imgMatches = transformed.contentMd.match(/!\[[^\]]*\]\(/g);
-        entry.decisions.inlineImageCount = imgMatches ? imgMatches.length : 0;
-
-        if (cfg.mode === "dry_run") {
-          // Dry-run stops here. Capture what we know for the manifest.
-          entry.status = "dry_run";
-          entry.decisions.tagsKept = transformed.tags.map((t) => t.slug);
-          entry.durationMs = Math.round(performance.now() - t0);
-          addEntry(manifest, entry);
-          continue;
-        }
-
-        // Apply mode: stages 3–8 ship in Checkpoint 2 of this PR.
-        // Until then, --apply behaves like --dry-run with a warning.
-        if (cfg.mode === "apply") {
-          stderr.write(
-            `[warn] --apply pipeline (Claude/Voyage/R2/Postgres) is not yet wired in this commit. Falling through to dry-run for ${post.slug}.\n`,
-          );
-          entry.status = "dry_run";
-          entry.decisions.tagsKept = transformed.tags.map((t) => t.slug);
-          entry.durationMs = Math.round(performance.now() - t0);
-          addEntry(manifest, entry);
-          continue;
-        }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        entry.status = "failed";
-        entry.errors.push(msg);
-        if (err instanceof ExtractError) {
-          stderr.write(`[extract] post ${post.slug} failed: ${msg}\n`);
-        } else {
-          stderr.write(`[transform] post ${post.slug} failed: ${msg}\n`);
-        }
-        entry.durationMs = Math.round(performance.now() - t0);
-        addEntry(manifest, entry);
-      }
+      await processPost(post, cfg, manifest, applyEnv);
     }
   } finally {
-    await conn.end();
+    await wpConn.end();
+    if (applyEnv) await closeDb(applyEnv.dbHandle);
   }
 
-  // ---------- Output ----------
+  // ---------- Side outputs (apply mode only) ----------
+  if (cfg.mode === "apply") {
+    writeSideOutputs(manifest, applyEnv!);
+  }
+
+  // ---------- Manifest output ----------
   const outPath =
     cfg.manifestPath ||
-    `./scripts/migrate-wp/manifest-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+    join(
+      OUTPUT_DIR,
+      `manifest-${new Date().toISOString().replace(/[:.]/g, "-")}.json`,
+    );
   writeManifest(manifest, outPath);
   stderr.write(`[manifest] written to ${outPath}\n`);
 
   stdout.write(formatSummary(manifest) + "\n");
 
-  // Exit non-zero if any posts failed (helps CI detect partial-success).
   if (manifest.totals.failed > 0) {
     stderr.write(
       `[exit] ${manifest.totals.failed} post(s) failed. See manifest for details.\n`,
     );
     exit(1);
   }
+}
+
+// =============================================================================
+// Apply-mode resource setup
+// =============================================================================
+
+interface ApplyResources {
+  dbHandle: ReturnType<typeof connectDb>;
+  r2Client: ReturnType<typeof buildR2Client> | null;
+  r2Config: ReturnType<typeof r2ConfigFromEnv> | null;
+  tagAllowlist: Map<string, number>;
+}
+
+async function setupApplyResources(
+  cfg: MigrationConfig,
+): Promise<ApplyResources> {
+  const dbHandle = connectDb();
+
+  // R2 (unless skipped).
+  let r2Client: ApplyResources["r2Client"] = null;
+  let r2Config: ApplyResources["r2Config"] = null;
+  if (!cfg.skipMedia) {
+    r2Config = r2ConfigFromEnv();
+    if (!r2Config) {
+      die("R2_* env missing despite --skip-media not set");
+    }
+    r2Client = buildR2Client(r2Config);
+  }
+
+  // Tag allowlist — fetched ONCE before per-post loop (avoid 253 round-trips).
+  const wpConn = await connectWp(env.WP_DATABASE_URL!);
+  const tagAllowlist = await fetchTagFrequencies(
+    wpConn,
+    env.WP_TABLE_PREFIX || "wp_",
+  );
+  await wpConn.end();
+  stderr.write(
+    `[setup] tag allowlist: ${tagAllowlist.size} tags (filter is count >= 2)\n`,
+  );
+
+  return { dbHandle, r2Client, r2Config, tagAllowlist };
+}
+
+// =============================================================================
+// Per-post pipeline
+// =============================================================================
+
+async function processPost(
+  source: Awaited<ReturnType<typeof extractPosts>>[number],
+  cfg: MigrationConfig,
+  manifest: ReturnType<typeof emptyManifest>,
+  applyEnv: ApplyResources | null,
+): Promise<void> {
+  const t0 = performance.now();
+  const entry = buildEntry(source);
+  entry.decisions.categoryResolved = source.category.slug;
+
+  try {
+    // Stage 2: transform
+    const transformed: TransformedPost = transformPost(source);
+    entry.status = "transformed";
+    const imgMatches = transformed.contentMd.match(/!\[[^\]]*\]\(/g);
+    entry.decisions.inlineImageCount = imgMatches ? imgMatches.length : 0;
+
+    if (cfg.mode === "dry_run") {
+      entry.status = "dry_run";
+      entry.decisions.tagsKept = transformed.tags.map((t) => t.slug);
+      finalise(entry, manifest, t0);
+      return;
+    }
+
+    if (!applyEnv) throw new Error("Apply env not initialised");
+
+    // Stage 3: Claude polish
+    const polished: PolishedPost = await polishPost(transformed, {
+      tagAllowlist: applyEnv.tagAllowlist,
+    });
+    entry.status = "polished";
+    entry.decisions.excerptSource = polished.excerpt
+      ? polished.excerpt === transformed.rawExcerpt
+        ? "wp"
+        : "claude"
+      : "generated";
+    entry.decisions.currencyConcerns = polished.currencyConcerns;
+    entry.decisions.tagsKept = polished.claudeTags;
+    // Tags the WP source had that the allowlist rejected (count < 2)
+    entry.decisions.tagsFiltered = transformed.tags
+      .filter((t) => (applyEnv.tagAllowlist.get(t.slug) ?? 0) < 2)
+      .map((t) => t.slug);
+    entry.decisions.needsReview = polished.needsReview;
+
+    // Stage 4: Voyage embedding
+    let embedded: EmbeddedPost;
+    if (cfg.skipEmbed) {
+      embedded = { ...polished, embedding: [] };
+    } else {
+      embedded = await embedPost(polished);
+      entry.status = "embedded";
+      entry.decisions.embeddingDim = embedded.embedding.length;
+    }
+
+    // Stage 5: media rehost (R2)
+    let rehosted: MediaRehostedPost;
+    if (cfg.skipMedia || !applyEnv.r2Client || !applyEnv.r2Config) {
+      rehosted = {
+        ...embedded,
+        contentMdRehosted: embedded.contentMd,
+        featuredImageR2Url: embedded.featuredImage?.source_url ?? "",
+        inlineImageCount: 0,
+      };
+    } else {
+      rehosted = await rehostMedia(embedded, {
+        client: applyEnv.r2Client,
+        config: applyEnv.r2Config,
+      });
+      entry.status = "media_rehosted";
+      entry.decisions.inlineImageCount = rehosted.inlineImageCount;
+    }
+
+    // Stage 6: OG image (STUBBED — see og-generate.ts)
+    const ogGenerated: OgGeneratedPost = await generateOgImage(rehosted, {
+      enabled: !cfg.skipOg,
+    });
+    if (wasOgGenerated(ogGenerated)) {
+      entry.status = "og_generated";
+      entry.decisions.ogGenerated = true;
+    }
+
+    // Stage 7: insert (Postgres)
+    const authorId = await ensureAuthor(applyEnv.dbHandle.db, source.author);
+    const categoryId = await ensureCategory(
+      applyEnv.dbHandle.db,
+      source.category,
+    );
+    const result = await upsertPost(
+      applyEnv.dbHandle.db,
+      ogGenerated,
+      authorId,
+      categoryId,
+      polished.claudeTags,
+    );
+
+    // Stage 8: append revision
+    await insertRevision(
+      applyEnv.dbHandle.db,
+      result.postId,
+      ogGenerated,
+      ogGenerated.contentMdRehosted || ogGenerated.contentMd,
+      result.diffSizePct,
+    );
+
+    entry.status = "inserted";
+    finalise(entry, manifest, t0);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    entry.status = "failed";
+    entry.errors.push(msg);
+    entry.decisions.needsReview = true;
+    if (err instanceof ExtractError) {
+      stderr.write(`[extract] post ${source.slug} failed: ${msg}\n`);
+    } else if (err instanceof EmbedError) {
+      stderr.write(`[embed] post ${source.slug} failed: ${msg}\n`);
+    } else {
+      stderr.write(`[pipeline] post ${source.slug} failed: ${msg}\n`);
+    }
+    finalise(entry, manifest, t0);
+  }
+}
+
+function finalise(
+  entry: ReturnType<typeof buildEntry>,
+  manifest: ReturnType<typeof emptyManifest>,
+  t0: number,
+): void {
+  entry.durationMs = Math.round(performance.now() - t0);
+  addEntry(manifest, entry);
+}
+
+// =============================================================================
+// Side outputs (apply mode)
+// =============================================================================
+
+function writeSideOutputs(
+  manifest: ReturnType<typeof emptyManifest>,
+  _applyEnv: ApplyResources,
+): void {
+  mkdirSync(OUTPUT_DIR, { recursive: true });
+
+  // 1. Redirect rules — both formats, caller picks which to deploy.
+  writeFileSync(
+    join(OUTPUT_DIR, "redirect.htaccess"),
+    buildRedirectConfig("htaccess"),
+  );
+  writeFileSync(
+    join(OUTPUT_DIR, "redirect.nginx.conf"),
+    buildRedirectConfig("nginx"),
+  );
+  stderr.write(`[output] redirect rules written to ${OUTPUT_DIR}/redirect.*\n`);
+
+  // 2. /llms.txt + /llms-full.txt — built from the manifest's polished
+  //    posts (not the DB; the migration may not have flipped the feature
+  //    flag yet, so /blog isn't publicly serving). The Phase B Next.js
+  //    routes will regenerate these from the DB on every deploy.
+  //
+  //    We use the manifest's records here as a one-shot generation;
+  //    the manifest contains slug + title + excerpt for every successful
+  //    insert. For body content we don't have it in the manifest (kept
+  //    out for size). The script-written llms-full.txt is therefore a
+  //    metadata-only version; the runtime route will produce the full
+  //    body version.
+  const llmsPostsLight = manifest.posts
+    .filter((p) => p.status === "inserted")
+    .map((p) => ({
+      slug: p.slug,
+      title: p.title,
+      excerpt: null,
+      contentMd: "",
+      publishedAt: null,
+    }));
+  writeFileSync(join(OUTPUT_DIR, "llms.txt"), buildLlmsTxt(llmsPostsLight));
+  writeFileSync(
+    join(OUTPUT_DIR, "llms-full.txt"),
+    buildLlmsFullTxt(llmsPostsLight),
+  );
+  stderr.write(
+    `[output] llms.txt + llms-full.txt written to ${OUTPUT_DIR}/ (metadata-only; runtime route in Phase B serves full body)\n`,
+  );
 }
 
 // =============================================================================

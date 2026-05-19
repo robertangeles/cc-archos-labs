@@ -28,7 +28,8 @@
     "wiki:state": "node scripts/wiki-state.mjs",
     "inventory:wp": "node --env-file=.env.local scripts/inventory-wp.mjs",
     "migrate-wp:dry-run": "node --env-file=.env.local --import tsx scripts/migrate-wp/index.ts --dry-run",
-    "migrate-wp:apply": "node --env-file=.env.local --import tsx scripts/migrate-wp/index.ts --apply"
+    "migrate-wp:apply": "node --env-file=.env.local --import tsx scripts/migrate-wp/index.ts --apply",
+    "migrate-wp:tsc": "tsc --noEmit -p tsconfig.migrate-wp.json"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",
