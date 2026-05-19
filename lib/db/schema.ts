@@ -7,10 +7,11 @@ import {
   boolean,
   integer,
   numeric,
+  vector,
   index,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // All tables follow CLAUDE.md Database Design Standards: snake_case
 // singular, UUID PK, created_at + updated_at on every row, every FK
@@ -936,3 +937,392 @@ export const pageBlockRelations = relations(pageBlock, ({ one }) => ({
     references: [page.id],
   }),
 }));
+
+// ============================================================================
+// author — Translation Layer (rosy-bee)
+// ============================================================================
+// Editorial author of a `post`. Single-author today (Rob), but schema is
+// multi-author from day one so future contributors land without migration.
+// Public surfaces (post page byline, JSON-LD Person schema) read from
+// this row — never from a hardcoded constant.
+//
+// `slug` is reserved for future per-author archive pages (Phase 4+);
+// rendering today reads `name` + `bio_md` + `linkedin_url` + `photo_url`.
+
+export const author = pgTable("author", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  // Short markdown bio shown at the end of every post via the existing
+  // PersonCard component.
+  bioMd: text("bio_md").notNull().default(""),
+  // Square avatar URL. Stored as a full URL so it can point at R2/CDN
+  // without further normalisation.
+  photoUrl: text("photo_url"),
+  // Used as `sameAs` in JSON-LD Person schema for entity recognition.
+  linkedinUrl: text("linkedin_url"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type Author = typeof author.$inferSelect;
+export type NewAuthor = typeof author.$inferInsert;
+
+// ============================================================================
+// category — Translation Layer (rosy-bee)
+// ============================================================================
+// Editorial taxonomy. Migrated from robertangeles.com Yoast categories.
+// One-to-many with `post` — a post has exactly one category (matches the
+// WordPress source shape; tags are free-form JSONB on `post.tags`).
+//
+// Seed data lands at migration time: AI as Strategy, Data as a Decision
+// Infrastructure, Human-Centered Transformation, The Execution Layer.
+// Category names display verbatim on /blog/[slug] eyebrow + /blog/category/[slug].
+
+export const category = pgTable("category", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  // URL-safe slug for /blog/category/[slug]. Reserved-slug guard runs
+  // separately in lib/posts.
+  slug: text("slug").notNull().unique(),
+  // Human-readable label shown in UI (eyebrow row, category index header).
+  name: text("name").notNull(),
+  // Optional one-line description shown on the category index page.
+  description: text("description"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type Category = typeof category.$inferSelect;
+export type NewCategory = typeof category.$inferInsert;
+
+// ============================================================================
+// post — Translation Layer (rosy-bee)
+// ============================================================================
+// Time-stamped editorial published under /blog (brand: "The Translation
+// Layer"). Sibling of `page` — NOT a subtype. Page = static marketing
+// pages; Post = editorial with date, author, category, semantic embedding,
+// reading-time, last-reviewed stamp.
+//
+// Migrated from robertangeles.com WordPress (~200 posts). Future posts
+// authored directly via the admin /admin/(authed)/posts UI (Phase 3 of
+// the CMS expansion adds AI-assisted authoring on top of this table).
+//
+// Lifecycle:
+//
+//   draft ──schedule──▶ scheduled ──auto-publish (cron)──▶ published
+//     │                                                       │
+//     └──────────────────publish────────────────────────────▶ │
+//                                                              │
+//                                                              ▼
+//                                                          archive ──▶ archived
+//                                                              ▲           │
+//                                                              └─restore───┘
+//
+// Visibility (independent of status):
+//   listed   → appears in /blog index, sitemap-prominent, read-next pool
+//   unlisted → indexable via direct URL only (SEO equity preserved,
+//              editorially hidden from index + read-next + sitemap-prominent)
+//
+// Soft delete via `archived_at` (mirrors `page` pattern). Public reader:
+//   WHERE status='published' AND visibility='listed' AND archived_at IS NULL
+// Direct-URL reader (e.g. 301 from old robertangeles permalink):
+//   WHERE status='published' AND archived_at IS NULL  -- visibility ignored
+//
+// `embedding` is a 1024-dim vector from Voyage AI voyage-3-large (set at
+// migration time + every admin save). Powers the read-next widget and
+// /search ANN queries. The HNSW index `post_embedding_hnsw_idx` is created
+// in custom SQL (Drizzle has no HNSW builder yet); see the migration file.
+//
+// `source_wp_id` is the WordPress uhiz_posts.ID — used as the upsert key
+// during the migration script so re-runs are idempotent. NULL for posts
+// authored directly in admin.
+//
+// `needs_review` is the Claude polish quality flag (Phase 3 AI authoring
+// reuses the same column for "this draft needs human review before publish").
+
+export const post = pgTable(
+  "post",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: text("slug").notNull().unique(),
+    title: text("title").notNull(),
+    // Short summary used in /blog index card + JSON-LD og:description +
+    // newsletter card preview. Generated by Claude at migration time;
+    // editable in admin.
+    excerpt: text("excerpt"),
+    // Markdown source of truth. Capped at 200KB at the API layer (Zod).
+    // Migration runs WP HTML → Turndown markdown before insert.
+    contentMd: text("content_md").notNull().default(""),
+    // Per-post SEO overrides. NULL = fall back to title / excerpt.
+    seoTitle: text("seo_title"),
+    seoDescription: text("seo_description"),
+    // Path to the @vercel/og-generated branded image (E3 of the CEO plan).
+    // Format: "/og/{slug}.png" or R2 URL. NULL means no image generated yet.
+    ogImagePath: text("og_image_path"),
+    // When the OG image was last regenerated. Migration sets it; admin
+    // re-generates on title or excerpt change.
+    ogImageGeneratedAt: timestamp("og_image_generated_at", {
+      withTimezone: true,
+    }),
+    // Editorial author. Nullable for safety during migration (set NOT NULL
+    // in a follow-up after backfill); rendering treats NULL as "Archos Labs"
+    // generic byline.
+    authorId: uuid("author_id").references(() => author.id, {
+      onDelete: "set null",
+    }),
+    // Editorial category. Required for migrated posts (Yoast source always
+    // has one). Nullable here for safety during migration backfill; the
+    // admin save flow refuses NULL.
+    categoryId: uuid("category_id").references(() => category.id, {
+      onDelete: "set null",
+    }),
+    // Free-form tags array. String values, application-validated against
+    // a stable taxonomy at write time. JSONB chosen over a `post_tag`
+    // junction because the analytic need is trivial at 200-post scale.
+    tags: jsonb("tags").$type<string[]>().notNull().default([]),
+    // 'draft' | 'scheduled' | 'published' | 'archived'. Migration sets
+    // 'published' for everything successfully transformed; admin save
+    // governs transitions.
+    status: text("status").notNull().default("draft"),
+    // 'listed' | 'unlisted'. See lifecycle comment above. Default 'listed'
+    // so manually-authored new posts surface in /blog; migration script
+    // sets per-post based on editorial review.
+    visibility: text("visibility").notNull().default("listed"),
+    // Voyage voyage-3-large embedding. NULL until embed step of the
+    // migration runs (or until next admin save for hand-authored posts).
+    // Read-next + /search degrade gracefully when this is NULL.
+    embedding: vector("embedding", { dimensions: 1024 }),
+    // Computed from contentMd at save time; powers the reading-time pill
+    // displayed in the post header.
+    wordCount: integer("word_count").notNull().default(0),
+    readingTimeMin: integer("reading_time_min").notNull().default(0),
+    // Claude polish (E2) flag. TRUE means the post needs human review
+    // before going public — surfaces in the admin "Needs review" queue.
+    // Migration script sets this when Claude returns a low-confidence
+    // currency check OR malformed output.
+    needsReview: boolean("needs_review").notNull().default(false),
+    // WordPress uhiz_posts.ID — the migration idempotency key. NULL for
+    // posts authored directly in admin (no WP origin).
+    sourceWpId: integer("source_wp_id"),
+    // "Last reviewed" stamp — separate from updated_at. Migration sets to
+    // the original WP publish date; admin updates when content is refreshed.
+    // Shown in the post-header micro-row ("Last reviewed: 2026-03").
+    lastReviewedAt: timestamp("last_reviewed_at", { withTimezone: true }),
+    // First-publish timestamp. NULL until first publish; preserved across
+    // re-publishes (mirrors `page.published_at` semantics).
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    // Soft-delete. archived_at NOT NULL hides the post from public listings
+    // but preserves it (and its revisions) for restore.
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // /blog index hot path:
+    //   SELECT ... WHERE status='published' AND visibility='listed'
+    //               AND archived_at IS NULL
+    //   ORDER BY published_at DESC LIMIT ... OFFSET ...
+    index("post_status_visibility_published_at_idx").on(
+      table.status,
+      table.visibility,
+      table.publishedAt,
+    ),
+    // FK lookup: list a category's posts (/blog/category/[slug]).
+    index("post_category_id_idx").on(table.categoryId),
+    // FK lookup: list an author's posts (Phase 4 author archive).
+    index("post_author_id_idx").on(table.authorId),
+    // Admin archive view: WHERE archived_at IS NOT NULL.
+    index("post_archived_at_idx").on(table.archivedAt),
+    // Migration idempotency: upsert key during scripts/migrate-wp/. NULLs
+    // remain distinct in Postgres, so manually-authored posts coexist with
+    // migrated posts without collision.
+    index("post_source_wp_id_idx").on(table.sourceWpId),
+    // Admin "needs review" queue — partial index keeps it small (only ~5%
+    // of rows expected to be flagged at any time).
+    index("post_needs_review_idx")
+      .on(table.needsReview)
+      .where(sql`needs_review = true`),
+    // pgvector HNSW index for read-next + /search ANN queries:
+    //   SELECT ... ORDER BY embedding <=> $1 LIMIT 3
+    // Created in custom SQL (drizzle has no HNSW builder yet) — see the
+    // migration file. Parameters: m=16, ef_construction=64.
+  ],
+);
+
+export type Post = typeof post.$inferSelect;
+export type NewPost = typeof post.$inferInsert;
+
+// ============================================================================
+// post_revision — Translation Layer (rosy-bee)
+// ============================================================================
+// Immutable audit trail. One row per admin save, including the initial
+// create. Mirrors `page_revision` exactly — same diff_size_pct heuristic,
+// same cascade-delete posture, same `saved_by` text column.
+//
+// CASCADE delete on post_id: revisions vanish only when the post row
+// itself is hard-deleted (which only happens via direct DB tooling,
+// never via admin — admin uses soft-delete via archived_at).
+
+export const postRevision = pgTable(
+  "post_revision",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => post.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    contentMd: text("content_md").notNull(),
+    excerpt: text("excerpt"),
+    seoTitle: text("seo_title"),
+    seoDescription: text("seo_description"),
+    // 0-100. Percentage change in content_md vs the prior revision. First
+    // revision (create) is always 100.00. Mirrors page_revision shape.
+    diffSizePct: numeric("diff_size_pct", { precision: 5, scale: 2 })
+      .notNull()
+      .default("0"),
+    // Admin identity that performed the save. Single-admin model today;
+    // matches pageRevision shape so multi-admin can land later as a FK
+    // without rewriting this column.
+    savedBy: text("saved_by").notNull().default("admin"),
+    savedAt: timestamp("saved_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // Primary query: "show revisions for this post, newest first."
+    // Admin revision-history view + restore flow.
+    index("post_revision_post_id_saved_at_idx").on(
+      table.postId,
+      table.savedAt,
+    ),
+  ],
+);
+
+export type PostRevision = typeof postRevision.$inferSelect;
+export type NewPostRevision = typeof postRevision.$inferInsert;
+
+// ============================================================================
+// newsletter_signup — Translation Layer (rosy-bee)
+// ============================================================================
+// Newsletter capture for "The Translation Layer" — email list owned by
+// Archos Labs (vendor: Resend Audiences per CEO plan E6.1). One row per
+// email address, double-opt-in confirmation gate before send.
+//
+// Lifecycle:
+//
+//   (signup form) ──INSERT──▶ pending ─(click confirm link)─▶ confirmed
+//                                │                              │
+//                                │ token >72h old               │
+//                                ▼                              ▼
+//                            expired ──re-send──▶ pending     active
+//                                                              (Resend sync)
+//
+// `source_post_id` tracks which post drove the signup (for attribution
+// analytics) — NULL for footer signups or homepage form. CASCADE delete on
+// source post: signup row survives the post being hard-deleted (the email
+// belongs to the list, not the post) — use SET NULL.
+//
+// `confirmed_at` NULL means pending; NOT NULL means confirmed and synced
+// to Resend Audiences. Idempotent on email: a second signup of an already-
+// confirmed email returns 200 with "already subscribed" friendly message.
+
+export const newsletterSignup = pgTable(
+  "newsletter_signup",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull().unique(),
+    // Post that drove the signup; SET NULL on post deletion (the email
+    // belongs to the list, not the post).
+    sourcePostId: uuid("source_post_id").references(
+      (): AnyPgColumn => post.id,
+      { onDelete: "set null" },
+    ),
+    // NULL until the user clicks the double-opt-in confirmation link.
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    // Random 32-byte token, hex-encoded. Used in the confirmation link
+    // sent via Resend. NULL after confirm.
+    doubleOptInToken: text("double_opt_in_token"),
+    // When the token was issued; used to enforce a 72-hour expiry on the
+    // confirm link.
+    tokenIssuedAt: timestamp("token_issued_at", { withTimezone: true }),
+    // Optional UTM-style fields for source attribution beyond source_post.
+    utmSource: text("utm_source"),
+    utmCampaign: text("utm_campaign"),
+    // Privacy: IP/UA stored hashed (sha256, no salt) so we can rate-limit
+    // and detect abuse without keeping raw identifiers. Existing retention
+    // job purges these at 30 days (see scripts/purge-old-ip-ua.mjs).
+    ipHash: text("ip_hash"),
+    uaHash: text("ua_hash"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // FK lookup: list signups attributed to a given post.
+    index("newsletter_signup_source_post_id_idx").on(table.sourcePostId),
+    // Confirm endpoint: WHERE double_opt_in_token = $1.
+    index("newsletter_signup_token_idx").on(table.doubleOptInToken),
+    // Admin filter: WHERE confirmed_at IS NULL — pending list.
+    index("newsletter_signup_confirmed_at_idx").on(table.confirmedAt),
+  ],
+);
+
+export type NewsletterSignup = typeof newsletterSignup.$inferSelect;
+export type NewNewsletterSignup = typeof newsletterSignup.$inferInsert;
+
+// ============================================================================
+// Relations — Translation Layer
+// ============================================================================
+
+export const authorRelations = relations(author, ({ many }) => ({
+  posts: many(post),
+}));
+
+export const categoryRelations = relations(category, ({ many }) => ({
+  posts: many(post),
+}));
+
+export const postRelations = relations(post, ({ one, many }) => ({
+  author: one(author, {
+    fields: [post.authorId],
+    references: [author.id],
+  }),
+  category: one(category, {
+    fields: [post.categoryId],
+    references: [category.id],
+  }),
+  revisions: many(postRevision),
+  newsletterSignups: many(newsletterSignup),
+}));
+
+export const postRevisionRelations = relations(postRevision, ({ one }) => ({
+  post: one(post, {
+    fields: [postRevision.postId],
+    references: [post.id],
+  }),
+}));
+
+export const newsletterSignupRelations = relations(
+  newsletterSignup,
+  ({ one }) => ({
+    sourcePost: one(post, {
+      fields: [newsletterSignup.sourcePostId],
+      references: [post.id],
+    }),
+  }),
+);
