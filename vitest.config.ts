@@ -8,6 +8,7 @@ export default defineConfig({
       "lib/**/*.test.ts",
       "components/**/*.test.{ts,tsx}",
       "tests/**/*.test.ts",
+      "scripts/migrate-wp/**/*.test.ts",
     ],
     // Eval suites under tests/eval/ make LIVE Claude calls and incur API
     // cost. They run via `pnpm eval` (a separate vitest config), never
