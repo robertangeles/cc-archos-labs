@@ -1,54 +1,78 @@
 // media-rehost.ts — download images from WP host, upload to Cloudflare R2,
 // rewrite image URLs in the post's markdown.
 //
-// Uses Cloudflare's R2 REST API (api.cloudflare.com/client/v4/...) with
-// Bearer auth, NOT the S3-compatible SDK. Cloudflare migrated to a unified
-// Account API token model where new accounts only expose Bearer tokens
-// (cfat_...); the legacy Access Key ID + Secret Access Key pair flow is
-// no longer surfaced in their UI. Bearer + REST API works fine for our
-// use case (PUT + DELETE).
+// Auth: Cloudflare's S3-compatible API at {account_id}.r2.cloudflarestorage.com
+// with AWS SigV4 signing. The credentials come directly from the per-bucket
+// R2 token creation flow at:
+//   Cloudflare dashboard → R2 Object Storage → API Tokens → Create Account API token
+// That flow returns three things we use:
+//   Access Key ID     (R2_ACCESS_KEY_ID)
+//   Secret Access Key (R2_SECRET_ACCESS_KEY)
+//   Endpoint URL      — implicit from R2_ACCOUNT_ID
+//
+// Do NOT use the top-level Account API tokens page — those tokens have a
+// "Workers R2 Storage Bucket Item" permission that does not authorise the
+// S3 endpoint regardless of how you derive the secret. We tried every hash
+// variant; all 401. The R2-Object-Storage-scoped token IS the right kind.
 //
 // R2 layout (one key per post):
 //   {bucket}/blog/{slug}/featured.{ext}
 //   {bucket}/blog/{slug}/inline-{index}.{ext}
 //
-// Each post gets its own folder so deletes are atomic and audits are easy.
-//
-// Idempotency: PUT overwrites by default. Re-running the migration uploads
+// Idempotency: S3 PutObject overwrites by default. Re-running uploads
 // the same bytes; no duplicates.
 
 import { extname } from "node:path";
 import { Buffer } from "node:buffer";
+import {
+  DeleteObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import type { EmbeddedPost, MediaRehostedPost } from "./types";
 
-const CF_API_BASE = "https://api.cloudflare.com/client/v4";
-
 // =============================================================================
-// R2 config (Bearer-token based)
+// R2 config
 // =============================================================================
 
 export interface R2Config {
   accountId: string;
-  apiToken: string;
+  accessKeyId: string;
+  secretAccessKey: string;
   bucket: string;
-  /** Public URL the bucket serves at (pub-{hash}.r2.dev OR custom domain). */
   publicUrl: string;
 }
 
 export function r2ConfigFromEnv(): R2Config | null {
   const accountId = process.env.R2_ACCOUNT_ID;
-  const apiToken = process.env.R2_API_TOKEN;
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
   const bucket = process.env.R2_BUCKET;
   const publicUrl = process.env.R2_PUBLIC_URL;
-  if (!accountId || !apiToken || !bucket || !publicUrl) {
+  if (!accountId || !accessKeyId || !secretAccessKey || !bucket || !publicUrl) {
     return null;
   }
   return {
     accountId,
-    apiToken,
+    accessKeyId,
+    secretAccessKey,
     bucket,
-    publicUrl: publicUrl.replace(/\/+$/, ""), // strip trailing slash
+    publicUrl: publicUrl.replace(/\/+$/, ""),
   };
+}
+
+/**
+ * Build an S3 client pointed at Cloudflare R2 with the derived credentials.
+ */
+export function buildR2Client(config: R2Config): S3Client {
+  return new S3Client({
+    region: "auto",
+    endpoint: `https://${config.accountId}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: config.accessKeyId,
+      secretAccessKey: config.secretAccessKey,
+    },
+  });
 }
 
 // =============================================================================
@@ -57,6 +81,7 @@ export function r2ConfigFromEnv(): R2Config | null {
 
 export interface RehostOptions {
   config: R2Config;
+  client: S3Client;
 }
 
 export async function rehostMedia(
@@ -71,13 +96,14 @@ export async function rehostMedia(
       sourceUrl: post.featuredImage.source_url,
       key,
       contentTypeHint: guessContentType(post.featuredImage.source_url),
-      config: opts.config,
+      client: opts.client,
+      bucket: opts.config.bucket,
     });
     featuredImageR2Url = `${opts.config.publicUrl}/${key}`;
   }
 
-  // 2. Inline images: scan the markdown, find ![alt](url) where url is
-  //    on robertangeles.com, download + upload each, rewrite URL.
+  // 2. Inline images — scan markdown for ![alt](url) where url is on the
+  //    WP host, download + upload each, rewrite URL.
   const { rewritten, count } = await rewriteInlineImages(post, opts);
 
   return {
@@ -103,12 +129,10 @@ async function rewriteInlineImages(
     urls.add(m[2]);
   }
 
-  // Only rehost images that look like they came from the WP host. Skip
-  // external images (e.g. a Slack screenshot embed) — leave them as-is.
+  // Only rehost images that look like they came from the WP host.
   const wpHost = inferWpHost();
   const targets = [...urls].filter((u) => isWpImage(u, wpHost));
 
-  // Upload each. Sequential to keep R2 load gentle.
   const urlMap = new Map<string, string>();
   let index = 0;
   for (const url of targets) {
@@ -118,13 +142,11 @@ async function rewriteInlineImages(
         sourceUrl: url,
         key,
         contentTypeHint: guessContentType(url),
-        config: opts.config,
+        client: opts.client,
+        bucket: opts.config.bucket,
       });
       urlMap.set(url, `${opts.config.publicUrl}/${key}`);
     } catch (err) {
-      // Don't fail the post for a single missing image. Leave the URL
-      // pointing at the original (will 404 once WP is decommissioned);
-      // flag in manifest via the inlineImageCount stat downstream.
       console.warn(
         `[media-rehost] post=${post.slug} url=${url} skipped: ${(err as Error).message}`,
       );
@@ -132,7 +154,6 @@ async function rewriteInlineImages(
     index++;
   }
 
-  // Rewrite the markdown.
   const rewritten = post.contentMd.replace(IMG_RE, (whole, alt, url) => {
     const newUrl = urlMap.get(url);
     return newUrl ? `![${alt}](${newUrl})` : whole;
@@ -142,16 +163,16 @@ async function rewriteInlineImages(
 }
 
 // =============================================================================
-// Download from WP + Upload to R2 via Cloudflare REST API
+// Download from WP + Upload to R2 via S3 SDK
 // =============================================================================
 
 async function downloadAndUpload(args: {
   sourceUrl: string;
   key: string;
   contentTypeHint: string;
-  config: R2Config;
+  client: S3Client;
+  bucket: string;
 }): Promise<void> {
-  // 1. Download from WP host.
   const response = await fetch(args.sourceUrl, {
     signal: AbortSignal.timeout(30_000),
     headers: { "User-Agent": "Mozilla/5.0 ArchosLabs-MigrateWp/1.0" },
@@ -165,36 +186,18 @@ async function downloadAndUpload(args: {
   const contentType =
     response.headers.get("content-type") ?? args.contentTypeHint;
 
-  // 2. Upload to R2 via Cloudflare REST API.
-  // Path: PUT /accounts/{id}/r2/buckets/{bucket}/objects/{key}
-  // Key segments are URL-encoded individually so slashes remain path
-  // separators but other special chars are escaped.
-  const url = `${CF_API_BASE}/accounts/${args.config.accountId}/r2/buckets/${args.config.bucket}/objects/${encodeKey(args.key)}`;
-  const putResponse = await fetch(url, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${args.config.apiToken}`,
-      "Content-Type": contentType,
-    },
-    body: buf,
-    signal: AbortSignal.timeout(60_000),
-  });
-  if (!putResponse.ok) {
-    const body = await putResponse.text();
-    throw new Error(
-      `R2 PUT ${putResponse.status} for key=${args.key}: ${body.slice(0, 200)}`,
-    );
-  }
+  await args.client.send(
+    new PutObjectCommand({
+      Bucket: args.bucket,
+      Key: args.key,
+      Body: buf,
+      ContentType: contentType,
+    }),
+  );
 }
 
-/**
- * URL-encode each path segment of an R2 key. Preserves "/" as path
- * separators (Cloudflare's R2 REST API expects keys-with-slashes in the
- * URL path verbatim).
- */
-function encodeKey(key: string): string {
-  return key.split("/").map(encodeURIComponent).join("/");
-}
+// Re-exported for the smoke test + Phase C teardown tooling.
+export { DeleteObjectCommand, PutObjectCommand };
 
 // =============================================================================
 // Helpers
@@ -227,11 +230,6 @@ function guessContentType(url: string): string {
   }
 }
 
-/**
- * Infer the WP host from a known constant — the migration is specifically
- * for robertangeles.com. If the migration ever runs against a different
- * WP source, this becomes a config flag.
- */
 function inferWpHost(): string {
   return "robertangeles.com";
 }
