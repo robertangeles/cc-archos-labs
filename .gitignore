@@ -17,6 +17,9 @@
 /test-results
 /tmp
 
+# migrate-wp run artefacts (regenerable manifests + preview outputs)
+/scripts/migrate-wp/output/
+
 # next.js
 /.next/
 /out/

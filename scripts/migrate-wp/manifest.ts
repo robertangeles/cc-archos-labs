@@ -115,8 +115,8 @@ export function formatSummary(manifest: Manifest): string {
   lines.push(`| Extracted | ${manifest.totals.extracted} |`);
   lines.push(`| Transformed | ${manifest.totals.transformed} |`);
   lines.push(`| Polished (Claude) | ${manifest.totals.polished} |`);
-  lines.push(`| Embedded (Voyage) | ${manifest.totals.embedded} |`);
-  lines.push(`| Media rehosted (R2) | ${manifest.totals.mediaRehosted} |`);
+  lines.push(`| Embedded (OpenRouter) | ${manifest.totals.embedded} |`);
+  lines.push(`| Media rehosted (Cloudflare R2) | ${manifest.totals.mediaRehosted} |`);
   lines.push(`| OG images generated | ${manifest.totals.ogGenerated} |`);
   lines.push(`| Inserted (Postgres) | ${manifest.totals.inserted} |`);
   lines.push(`| **Needs review** | **${manifest.totals.needsReview}** |`);
