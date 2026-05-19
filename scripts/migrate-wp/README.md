@@ -60,27 +60,58 @@ See [`.env.example`](../../.env.example) for the full list. Migration-specific:
 
 ## Local MySQL setup (one-time)
 
-GoDaddy shared hosting blocks external port 3306 at the firewall, so we run MySQL locally and import the WP dump.
+GoDaddy shared hosting blocks external port 3306 at the firewall (verified 2026-05-19), so we run MySQL locally and import the WP dump.
+
+Two equally good paths — pick whichever fits your machine:
+
+### Path A — WSL2 + MariaDB (recommended on Windows if WSL is set up)
 
 ```powershell
-# 1. Spin up an ephemeral MySQL 8 via Docker
-docker run --name rosy-bee-mysql `
-  -e MYSQL_ROOT_PASSWORD=local `
-  -e MYSQL_DATABASE=i3664903_x7et1 `
-  -p 3306:3306 -d mysql:8
-
-# 2. Wait ~10 seconds for MySQL to finish booting
-
-# 3. Import the dump (path from .env.local: $env:WP_DUMP_PATH)
-Get-Content "$env:WP_DUMP_PATH" | docker exec -i rosy-bee-mysql `
-  mysql -uroot -plocal i3664903_x7et1
-
-# 4. Confirm in .env.local:
-#    WP_DATABASE_URL=mysql://root:local@127.0.0.1:3306/i3664903_x7et1
-
-# 5. Tear down when done (keeps your machine clean):
-docker rm -f rosy-bee-mysql
+# Windows: ensure WSL is installed (one-time, may require reboot)
+wsl --install              # installs WSL2 + Ubuntu by default
+wsl --status               # confirm WSL2 + a distro is registered
 ```
+
+Then inside WSL:
+
+```bash
+# Install MariaDB
+sudo apt update
+sudo apt install -y mariadb-server
+sudo service mariadb start
+
+# Set the root password (or run sudo mysql_secure_installation for a guided flow)
+sudo mariadb -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'local';"
+sudo mariadb -e "CREATE DATABASE i3664903_x7et1;"
+
+# Import the dump (Windows paths are exposed under /mnt/c/...)
+mysql -u root -plocal i3664903_x7et1 < /mnt/c/path/to/i3664903_x7et1.sql
+```
+
+WSL's MariaDB binds to `127.0.0.1` on the Windows side too. Add to `.env.local`:
+
+```
+WP_DATABASE_URL=mysql://root:local@127.0.0.1:3306/i3664903_x7et1
+WP_TABLE_PREFIX=uhiz_
+```
+
+### Path B — MariaDB native Windows installer (if you don't want WSL)
+
+1. Download the MSI from https://mariadb.org/download (latest stable, ~50 MB)
+2. Run the installer; set a root password; install as a Windows service
+3. From PowerShell (after install):
+
+```powershell
+mysql -u root -p -e "CREATE DATABASE i3664903_x7et1;"
+mysql -u root -p i3664903_x7et1 < "C:\path\to\i3664903_x7et1.sql"
+```
+
+4. Same `.env.local` shape as Path A (substitute your root password).
+
+### Tear down
+
+WSL: `sudo service mariadb stop` (keeps the DB; safe to restart later) or `sudo apt purge mariadb-server` (full removal).
+Native Windows: uninstall MariaDB from Windows Settings → Apps.
 
 ## Idempotency
 
