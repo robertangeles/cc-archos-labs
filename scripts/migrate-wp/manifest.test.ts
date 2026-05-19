@@ -87,6 +87,24 @@ describe("addEntry — totals rollup", () => {
     expect(m.totals.failed).toBe(1);
   });
 
+  it("counts dry_run as having reached the transformed stage", () => {
+    // Regression: dry_run was originally treated as a separate stage
+    // with no rollup branch, so every total stayed at zero even when
+    // posts were successfully extracted + transformed (the first
+    // pnpm migrate-wp:dry-run run showed Extracted=0 / Transformed=0
+    // despite "[extract] 1 posts pulled" in stderr).
+    const m = emptyManifest(config, source);
+    const e = buildEntry({ sourceWpId: 1, slug: "a", title: "A" });
+    e.status = "dry_run";
+    addEntry(m, e);
+    expect(m.totals.extracted).toBe(1);
+    expect(m.totals.transformed).toBe(1);
+    expect(m.totals.polished).toBe(0);
+    expect(m.totals.embedded).toBe(0);
+    expect(m.totals.inserted).toBe(0);
+    expect(m.totals.failed).toBe(0);
+  });
+
   it("rolls up needsReview separately from status", () => {
     const m = emptyManifest(config, source);
     const e = buildEntry({ sourceWpId: 1, slug: "a", title: "A" });

@@ -48,8 +48,10 @@ export function addEntry(manifest: Manifest, entry: PostManifestEntry): void {
   // Roll up totals based on the entry's status.
   const t = manifest.totals;
   // Status is the FURTHEST stage reached. Increment every stage <= it.
+  // `dry_run` is a sentinel meaning the post reached the `transformed`
+  // stage and then stopped (because mode=dry-run). Map it onto the
+  // linear-progress chain at the transformed position.
   const order: PostManifestEntry["status"][] = [
-    "dry_run",
     "extracted",
     "transformed",
     "polished",
@@ -58,7 +60,9 @@ export function addEntry(manifest: Manifest, entry: PostManifestEntry): void {
     "og_generated",
     "inserted",
   ];
-  const reachedIdx = order.indexOf(entry.status);
+  const effectiveStatus =
+    entry.status === "dry_run" ? "transformed" : entry.status;
+  const reachedIdx = order.indexOf(effectiveStatus);
   for (let i = 0; i <= reachedIdx; i++) {
     const stage = order[i];
     if (stage === "extracted") t.extracted++;
