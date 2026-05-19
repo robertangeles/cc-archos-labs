@@ -28,11 +28,7 @@ import {
 import { transformPost } from "./transform";
 import { polishPost } from "./claude-polish";
 import { embedPost, EmbedError } from "./embed";
-import {
-  rehostMedia,
-  r2ConfigFromEnv,
-  buildR2Client,
-} from "./media-rehost";
+import { rehostMedia, r2ConfigFromEnv } from "./media-rehost";
 import { generateOgImage, wasOgGenerated } from "./og-generate";
 import {
   connectDb,
@@ -172,8 +168,7 @@ function validateApplyEnv(cfg: MigrationConfig): void {
   if (!cfg.skipEmbed && !env.VOYAGE_API_KEY) missing.push("VOYAGE_API_KEY");
   if (!cfg.skipMedia) {
     if (!env.R2_ACCOUNT_ID) missing.push("R2_ACCOUNT_ID");
-    if (!env.R2_ACCESS_KEY_ID) missing.push("R2_ACCESS_KEY_ID");
-    if (!env.R2_SECRET_ACCESS_KEY) missing.push("R2_SECRET_ACCESS_KEY");
+    if (!env.R2_API_TOKEN) missing.push("R2_API_TOKEN");
     if (!env.R2_BUCKET) missing.push("R2_BUCKET");
     if (!env.R2_PUBLIC_URL) missing.push("R2_PUBLIC_URL");
   }
@@ -260,7 +255,6 @@ async function main(): Promise<void> {
 
 interface ApplyResources {
   dbHandle: ReturnType<typeof connectDb>;
-  r2Client: ReturnType<typeof buildR2Client> | null;
   r2Config: ReturnType<typeof r2ConfigFromEnv> | null;
   tagAllowlist: Map<string, number>;
 }
@@ -270,15 +264,13 @@ async function setupApplyResources(
 ): Promise<ApplyResources> {
   const dbHandle = connectDb();
 
-  // R2 (unless skipped).
-  let r2Client: ApplyResources["r2Client"] = null;
+  // R2 (unless skipped). Bearer-auth via Cloudflare REST API — no SDK client.
   let r2Config: ApplyResources["r2Config"] = null;
   if (!cfg.skipMedia) {
     r2Config = r2ConfigFromEnv();
     if (!r2Config) {
       die("R2_* env missing despite --skip-media not set");
     }
-    r2Client = buildR2Client(r2Config);
   }
 
   // Tag allowlist — fetched ONCE before per-post loop (avoid 253 round-trips).
@@ -292,7 +284,7 @@ async function setupApplyResources(
     `[setup] tag allowlist: ${tagAllowlist.size} tags (filter is count >= 2)\n`,
   );
 
-  return { dbHandle, r2Client, r2Config, tagAllowlist };
+  return { dbHandle, r2Config, tagAllowlist };
 }
 
 // =============================================================================
@@ -353,9 +345,9 @@ async function processPost(
       entry.decisions.embeddingDim = embedded.embedding.length;
     }
 
-    // Stage 5: media rehost (R2)
+    // Stage 5: media rehost (R2 via Bearer auth + Cloudflare REST API)
     let rehosted: MediaRehostedPost;
-    if (cfg.skipMedia || !applyEnv.r2Client || !applyEnv.r2Config) {
+    if (cfg.skipMedia || !applyEnv.r2Config) {
       rehosted = {
         ...embedded,
         contentMdRehosted: embedded.contentMd,
@@ -364,7 +356,6 @@ async function processPost(
       };
     } else {
       rehosted = await rehostMedia(embedded, {
-        client: applyEnv.r2Client,
         config: applyEnv.r2Config,
       });
       entry.status = "media_rehosted";
