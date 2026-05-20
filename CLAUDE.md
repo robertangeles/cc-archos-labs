@@ -1019,10 +1019,10 @@ Update `wiki/log.md` with a summary of what was done and decided today.
 - `wiki/concepts/` — patterns and ideas: technical architecture, data flow, fine-tuning approach, RAG architecture, voice persona design
 - `wiki/decisions/` — architectural decisions with date and rationale
 - `wiki/synthesis/` — cross-cutting analysis, lessons, open questions
-- `wiki/raw-index/` — pointer pages to source content that lives elsewhere. The wiki documents these without owning or relocating them.
+- `wiki/raw-index/` — pointer pages to source content that lives elsewhere (Drive, Notion, private systems, large PDFs, client material). The wiki documents these without owning or relocating them.
+- `wiki/raw/` — Karpathy Layer 1 sources checked into the repo verbatim (small, public, worth preserving). See `wiki/raw/README.md` for the placement rule.
 - `wiki/backlog/` - a prioritised list of work that needs to be done, ordered by what matters most right now. Every component we need to build will be listed here. Always read this when sessions start.
 - `wiki/lessons-learned/` - After ANY correction from the user: update `wiki/lessons-learned/`. After ANY significant implementation, architectural decision, or non-obvious bug fix: record it in `wiki/essons-learned/`. Format: Problem / Fix / Rule. Write rules that prevent repeating mistakes. Review lessons-learned at session start
-- `raw/` is conceptual — there is no literal `raw/` folder. 
 - Always update `wiki/index.md` when creating a new wiki page
 - Always append to `wiki/log.md` when modifying the wiki
 
@@ -1045,24 +1045,66 @@ related: [[page-name]], [[page-name]]
 
 ## Wiki tooling (use BEFORE reading full pages)
 
-The wiki ships with two small Node scripts. Reach for them whenever the wiki has more than a handful of pages — they keep token use down by narrowing what you have to `Read` in full.
+The wiki ships with five small Node scripts wired to `pnpm` aliases. Reach for them whenever the wiki has more than a handful of pages — they keep token use down by narrowing what you have to `Read` in full.
 
-**Level 2 — local search (`scripts/wiki-search.mjs`)**
+**Search (`pnpm wiki:search`)**
 ```
-node scripts/wiki-search.mjs <query>            # list matching wiki page paths
-node scripts/wiki-search.mjs -c <query>         # show 2 lines of context per match
-```
-
-**Level 4 — graph relationships (`scripts/wiki-graph.mjs`)**
-```
-node scripts/wiki-graph.mjs build               # rebuild wiki/.graph.json from frontmatter + [[refs]]
-node scripts/wiki-graph.mjs stats               # node/edge counts, category breakdown
-node scripts/wiki-graph.mjs neighbors <slug>    # outgoing + incoming edges for a page
-node scripts/wiki-graph.mjs orphans             # pages with no edges (likely under-linked)
-node scripts/wiki-graph.mjs category <name>     # all pages in a category
-node scripts/wiki-graph.mjs broken              # [[slug]] refs that point to missing pages
+pnpm wiki:search <query>            # list matching wiki page paths
+pnpm wiki:search -c <query>         # show 2 lines of context per match
 ```
 
-The graph is rebuilt on demand. After adding or editing a wiki page's `related:` frontmatter or any `[[slug]]` body reference, run `build` again. `wiki/.graph.json` is gitignored — it is a regenerable artefact.
+**Graph (`pnpm wiki:graph`)**
+```
+pnpm wiki:graph build               # rebuild wiki/.graph.json from frontmatter + [[refs]]
+pnpm wiki:graph stats               # node/edge counts, category breakdown
+pnpm wiki:graph neighbors <slug>    # outgoing + incoming edges for a page
+pnpm wiki:graph orphans             # pages with no edges (likely under-linked)
+pnpm wiki:graph category <name>     # all pages in a category
+pnpm wiki:graph broken              # [[slug]] refs that point to missing pages
+```
+
+**Ingest + Lint** are documented in their own sections below — these are the Karpathy Layer 1 → Layer 2 + periodic health-check ops.
+
+The graph is rebuilt on demand (and by `pnpm wiki:lint` automatically before each run). After adding or editing a wiki page's `related:` frontmatter or any `[[slug]]` body reference, run `pnpm wiki:graph build` again. `wiki/.graph.json` is gitignored — it is a regenerable artefact.
 
 When the graph crosses ~1000 nodes, swap the JSON store for SQLite via Node's built-in `node:sqlite` (Node 22+, no new deps). The `nodes` and `edges` arrays map cleanly to two tables.
+
+## Ingest workflow (Karpathy Layer 1 → Layer 2)
+
+When the user shares an external source — URL, PDF, gist, article, transcript, pasted note — and says "ingest this" (or asks to record it in the wiki):
+
+1. Run `pnpm wiki:ingest --url <url>` (or `--file <path>`, or `--paste --slug <slug>`).
+2. Pass `--in-repo` if the source is small, public, and worth preserving verbatim — full text lands in `wiki/raw/<slug>.md`. Otherwise the default is `--external` and a pointer page lands in `wiki/raw-index/<slug>.md`.
+3. The script writes the raw page + prints a checklist. Read the placed page in full.
+4. Read the checklist's "overlapping pages" list. Open each and decide whether the source actually shifts what's written there. Update those pages — preserve existing content, add a `[[<slug>]]` cross-ref to the new raw page, and bump the `updated:` date.
+5. If the source introduces a new entity or concept worth its own page, create it under `wiki/entities/` or `wiki/concepts/` (or `wiki/synthesis/` for cross-cutting analysis).
+6. Update `wiki/index.md` — add an entry for the new raw page + any new entity/concept/synthesis pages.
+7. Append `wiki/log.md` with an `## YYYY-MM-DD — Ingest: <title>` entry. List the touched pages.
+8. Run `pnpm wiki:graph build` to refresh the graph.
+9. Run `pnpm wiki:lint` to confirm no broken refs were introduced.
+
+A single ingest typically touches 3–10 pages (Karpathy: 10–15). If you're not touching any other pages, the source probably belongs in `wiki/raw-index/` only.
+
+## Lint workflow (periodic health check)
+
+Run `pnpm wiki:lint` at:
+- **Session start** when the wiki has more than ~50 pages — surfaces drift accumulated across recent sessions.
+- **Before any PR that touches `wiki/`** — catches broken refs, missing frontmatter, and index drift before review.
+- **After every ingest** — already wired into step 9 of the Ingest workflow.
+
+The lint report has two sections:
+- **Hard errors** — broken `[[refs]]`, missing required frontmatter, `created > updated`, index drift (pages listed but missing from disk). Exit code 1. These must be fixed.
+- **Warnings** — orphan pages, stale pages still linked from recent work, empty category folders, future-dated frontmatter, pages on disk not in `wiki/index.md`. Exit code 0. Triage but don't block.
+
+When you read a lint report:
+1. Fix every hard error first.
+2. For each warning, decide: is this a real gap (page should be linked, refreshed, or indexed) or accepted drift (orphan README, intentional placeholder)? Most warnings are real.
+3. If the report flags a contradiction or stale claim that needs a judgement call (e.g. a decision page that may be superseded), surface it to the user — don't silently overwrite.
+
+## Query workflow (synthesise from the wiki)
+
+When answering a question that draws on wiki knowledge:
+
+1. Use `pnpm wiki:search` and `pnpm wiki:graph neighbors <slug>` BEFORE opening full pages — narrow the working set first.
+2. Cite the pages used. Format: `[title](wiki/path/page.md)` or `[[slug]]`.
+3. If the synthesis is itself reusable — answers a question the next session might also ask — write it to `wiki/synthesis/`. Karpathy's pattern compounds because good answers become new pages.

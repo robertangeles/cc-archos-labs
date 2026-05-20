@@ -8,6 +8,33 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-20 — Wiki Karpathy ops (feature/wiki-karpathy-ops)
+
+Rob asked whether the wiki implementation matches [the Karpathy gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f). Audit found the *shape* was aligned (three-layer split, index + log, entity/concept pages, `[[refs]]`) but the *ops* were missing: no Ingest workflow, no Lint workflow, no Query workflow, no Layer 1 sources. Also discovered CLAUDE.md documented `wiki-search.mjs` and `wiki-graph.mjs` as if they existed — they didn't.
+
+This PR closes both gaps. Decision doc: [[2026-05-20-wiki-karpathy-ops]].
+
+**What shipped:**
+
+- `scripts/wiki-search.mjs` + `scripts/wiki-graph.mjs` — the foundation tooling CLAUDE.md already documented but never had. Graph parses frontmatter `related:` + body `[[slug]]` refs into nodes + edges; subcommands `build / stats / neighbors / orphans / category / broken`.
+- `scripts/wiki-ingest.mjs` — Karpathy Layer 1 → Layer 2 scaffolder. Accepts `--url` (fetches + turndown-converts), `--file`, or `--paste`. Placement is `--in-repo` (full text into `wiki/raw/`) or `--external` (pointer into `wiki/raw-index/`). Prints a checklist of overlapping pages for the LLM to update.
+- `scripts/wiki-lint.mjs` — periodic health check. Auto-rebuilds the graph, then checks broken refs, orphans, frontmatter validation, index drift, stale-page heuristic, empty category folders, future-dated frontmatter. Exit 1 on hard errors, exit 0 on warnings.
+- `package.json` — `pnpm wiki:search / graph / ingest / lint`.
+- CLAUDE.md — three new workflow sections (Ingest / Lint / Query), tooling section refreshed to use `pnpm` aliases, `wiki/raw/` added to the folder rules.
+- `wiki/raw/README.md` — Layer 1 placement rule (small + public + worth preserving → `raw/`; everything else → `raw-index/` pointer).
+- `wiki/.graph.json` added to `.gitignore` (regenerable artefact).
+
+**Live test — ingested the Karpathy gist itself** as the first real Layer 1 source. The first run pulled the full GitHub-rendered HTML (noisy); re-ran against the gist's `/raw` URL for clean content. Slug collision surfaced when the raw page and concept page both wanted `karpathy-llm-wiki-pattern` — renamed the raw to `karpathy-llm-wiki-gist`. Final state:
+
+- `wiki/raw/karpathy-llm-wiki-gist.md` — verbatim source from `gist.githubusercontent.com/karpathy/.../raw`.
+- `wiki/concepts/karpathy-llm-wiki-pattern.md` — the synthesis: three-layer architecture, three operations, how Archos Labs instantiates it, where we extend.
+- `wiki/index.md` — new concept entry + new raw entry.
+- `wiki/decisions/2026-05-20-wiki-karpathy-ops.md` already cross-referenced `[[karpathy-llm-wiki-pattern]]` ahead of the ingest; no edit needed.
+
+Lint clean of new errors after the ingest. The pre-existing 5 broken refs + 1 missing-from-index warning surfaced by `pnpm wiki:lint` are wiki drift this PR did not introduce — flagged to Rob for follow-up.
+
+Pure tooling + documentation — zero application code touched.
+
 ## 2026-05-20 — Consolidate pending work in backlog (chore/document-pending-backlog)
 
 Following the Translation Layer launch wrap-up, Rob asked for a single source of truth for every pending item so housekeeping can be scheduled. Audit of what was documented vs scattered:
