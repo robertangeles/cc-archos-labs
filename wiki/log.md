@@ -8,6 +8,21 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-20 — Translation Layer (rosy-bee) — Phase C cutover scaffold (feature/rosy-bee-phase-c-cutover)
+
+Phase C is operational, not code-heavy — flip the flag, run the migration on prod, set the apex 301. This PR ships only the safety scaffolding needed to run those operations without prod creds touching `.env.local` or git history:
+
+- `scripts/migrate-wp/index.ts` + `types.ts` — `--prod` + `--confirm-prod` flag pair. Reads `PROD_DATABASE_URL` from the shell environment when `--prod` is passed; refuses to run without `--confirm-prod`; refuses to run if `PROD_DATABASE_URL === DATABASE_URL`; prints a `TARGET: PRODUCTION DB (host)` banner before any writes.
+- `scripts/seed/blog-author-backfill.ts` — idempotent UPDATE on the author row (name = "Rob Angeles", photo = `/images/ran-square.png`, LinkedIn, bio paragraph). Same `--prod` + `--confirm-prod` safety gate as the migration.
+- `package.json` — `pnpm migrate-wp:apply-prod`, `pnpm seed:blog-author`.
+- `wiki/decisions/2026-05-20-phase-c-cutover.md` — full step-by-step runbook (set the URL in your shell, dry-curl prod, run migration, backfill author, flip the flag, smoke prod, submit sitemap, set apex 301, cleanup, calendar reminders for the WP decommission). PowerShell + bash forms for every shell command.
+
+Why double-flag: a single typo can't fire against prod. `pnpm migrate-wp:apply` reads `DATABASE_URL` (dev) by default; `--prod` switches the read to `PROD_DATABASE_URL`; `--confirm-prod` is the explicit "yes I mean it" signal.
+
+Verified all 4 safety gates fire correctly without prod creds present, and the dev seed runs idempotently. tsc clean on both `pnpm tsc` and `pnpm migrate-wp:tsc`.
+
+**Not** in this PR: any application code, schema changes, or Phase D features (newsletter capture, /search, admin needs_review queue). Phase B already shipped everything that runs on prod.
+
 ## 2026-05-20 — Translation Layer (rosy-bee) — Phase B public render (feature/rosy-bee-phase-b-public-render)
 
 Continued from 2026-05-19. Phase B1–B5 of the migration: the public render layer + AIEO foundations + admin toggle, all behind a `blog_enabled` feature flag. Decision doc: [[2026-05-20-translation-layer-public-render]].

@@ -79,6 +79,8 @@ function parseCli(): MigrationConfig {
     skipOg: false,
     skipEmbed: false,
     manifestPath: null,
+    prod: false,
+    confirmProd: false,
   };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
@@ -118,6 +120,12 @@ function parseCli(): MigrationConfig {
         cfg.manifestPath = args[++i] ?? null;
         if (!cfg.manifestPath) die("--manifest requires a path");
         break;
+      case "--prod":
+        cfg.prod = true;
+        break;
+      case "--confirm-prod":
+        cfg.confirmProd = true;
+        break;
       case "--help":
       case "-h":
         printUsage();
@@ -139,22 +147,24 @@ Usage:
 
 Options:
   --dry-run          extract + transform only; no writes anywhere (default)
-  --apply            full pipeline (Claude polish, Voyage, R2, Postgres)
+  --apply            full pipeline (Claude polish, OpenRouter embed, R2, Postgres)
   --limit N          only first N posts (post-date DESC)
   --slug NAME        only the post with this post_name (WP slug)
   --skip-media       skip R2 media rehost (apply mode only)
   --skip-og          skip OG image generation (apply mode only)
-  --skip-embed       skip Voyage embedding (apply mode only)
+  --skip-embed       skip embedding (apply mode only)
   --manifest PATH    write JSON manifest to PATH (default: ./scripts/migrate-wp/output/manifest-{ISO}.json)
+  --prod             target the prod DB (reads PROD_DATABASE_URL, NOT DATABASE_URL)
+  --confirm-prod     required alongside --prod; the double-flag is the safety gate
   -h, --help         show this message
 
-Required env (.env.local):
-  WP_DATABASE_URL    mysql://... source WordPress DB
+Required env:
+  WP_DATABASE_URL    mysql://... source WordPress DB (always your local WSL)
   WP_TABLE_PREFIX    table prefix (e.g. uhiz_)
   Apply mode also requires:
-    DATABASE_URL       Archos Labs Postgres
-    OPENROUTER_API_KEY for Claude polish
-    VOYAGE_API_KEY     for embeddings
+    DATABASE_URL       Archos Labs Postgres (dev)        [non-prod runs]
+    PROD_DATABASE_URL  Archos Labs Postgres (prod)       [--prod runs only]
+    OPENROUTER_API_KEY (used for Claude polish + OpenAI embeddings via OpenRouter)
     R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
     R2_BUCKET, R2_PUBLIC_URL  for media rehost
 `);
@@ -170,11 +180,42 @@ function die(message: string): never {
 // =============================================================================
 
 function validateApplyEnv(cfg: MigrationConfig): void {
+  // Prod-target safety gate (double-flag required) before any creds-loaded
+  // script touches the prod DB. Order matters: validate flag pairing FIRST
+  // so a missing PROD_DATABASE_URL doesn't get the credit for blocking us.
+  if (cfg.prod) {
+    if (!cfg.confirmProd) {
+      die(
+        "--prod requires --confirm-prod as an explicit safety gate. " +
+          "Add `--confirm-prod` to the command if you really mean to write to prod.",
+      );
+    }
+    if (!env.PROD_DATABASE_URL) {
+      die(
+        "--prod is set but PROD_DATABASE_URL is empty. Export it in your " +
+          "shell before running (e.g. `$env:PROD_DATABASE_URL='postgres://...'` " +
+          "in PowerShell, or `export PROD_DATABASE_URL='postgres://...'` in bash). " +
+          "Do NOT put prod creds in .env.local.",
+      );
+    }
+    if (
+      env.DATABASE_URL &&
+      env.PROD_DATABASE_URL === env.DATABASE_URL
+    ) {
+      die(
+        "PROD_DATABASE_URL and DATABASE_URL resolve to the same connection " +
+          "string. That defeats the safety gate — make sure PROD_DATABASE_URL " +
+          "actually points at prod.",
+      );
+    }
+    // Substitute so all downstream code paths read DATABASE_URL transparently.
+    env.DATABASE_URL = env.PROD_DATABASE_URL;
+  }
+
   const missing: string[] = [];
-  if (!env.DATABASE_URL) missing.push("DATABASE_URL");
+  if (!env.DATABASE_URL) missing.push(cfg.prod ? "PROD_DATABASE_URL" : "DATABASE_URL");
   // OPENROUTER_API_KEY is used by BOTH Claude polish AND OpenAI embeddings
-  // (via OpenRouter) — one key, two uses. No separate VOYAGE_API_KEY since
-  // we route embeddings through OpenRouter too.
+  // (via OpenRouter) — one key, two uses.
   if (!env.OPENROUTER_API_KEY) missing.push("OPENROUTER_API_KEY");
   if (!cfg.skipMedia) {
     if (!env.R2_ACCOUNT_ID) missing.push("R2_ACCOUNT_ID");
@@ -204,6 +245,17 @@ async function main(): Promise<void> {
   stderr.write(
     `Mode: ${cfg.mode}  ${cfg.limit ? `(limit ${cfg.limit})` : ""}  ${cfg.slug ? `(slug ${cfg.slug})` : ""}\n`,
   );
+
+  if (cfg.prod) {
+    const target = extractHost(env.DATABASE_URL ?? "");
+    stderr.write(
+      `\n` +
+        `============================================================\n` +
+        `  TARGET: PRODUCTION DB (${target})\n` +
+        `  Both --prod and --confirm-prod were passed. Proceeding.\n` +
+        `============================================================\n\n`,
+    );
+  }
 
   const wpConn = await connectWp(wpUrl);
   const sourceInfo = {
