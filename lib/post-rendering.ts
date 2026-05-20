@@ -80,3 +80,19 @@ export function formatPublishedDate(d: Date): string {
     year: "numeric",
   });
 }
+
+/**
+ * Truncate a string at a word boundary, appending an ellipsis when the
+ * truncation actually happens. Default 160 matches the WordPress
+ * "Excerpt" convention + the Google SERP meta-description cutoff.
+ * Idempotent on inputs already at-or-below the limit.
+ */
+export function truncateExcerpt(text: string, maxLength = 160): string {
+  if (text.length <= maxLength) return text;
+  const slice = text.slice(0, maxLength);
+  // Cut at the last whitespace so we never break a word mid-character.
+  const lastSpace = slice.lastIndexOf(" ");
+  const cut = lastSpace > 0 ? slice.slice(0, lastSpace) : slice;
+  // Strip trailing punctuation so "word, …" reads cleaner than "word,…".
+  return cut.replace(/[,;:.\-—]+$/, "") + "…";
+}

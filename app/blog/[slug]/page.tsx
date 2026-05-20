@@ -23,6 +23,7 @@ import {
   getSiteSettings,
   getSiteUrl,
 } from "../../../lib/site-config";
+import Image from "next/image";
 import { PostHeader } from "../../../components/blog/post-header";
 import { PostBody } from "../../../components/blog/post-body";
 import { Toc } from "../../../components/blog/toc";
@@ -108,6 +109,21 @@ export default async function PostPage({
               publishedAt={post.publishedAt}
               lastReviewedAt={post.lastReviewedAt}
             />
+
+            {post.ogImagePath ? (
+              <figure className="mt-12 overflow-hidden rounded-lg border border-hairline bg-surface-1">
+                <div className="relative aspect-[29/10] w-full">
+                  <Image
+                    src={post.ogImagePath}
+                    alt=""
+                    fill
+                    priority
+                    sizes="(min-width: 1024px) 760px, 100vw"
+                    className="object-cover"
+                  />
+                </div>
+              </figure>
+            ) : null}
 
             <div className="mt-12">
               <PostBody contentMd={post.contentMd} />

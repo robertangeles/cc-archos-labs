@@ -4,6 +4,7 @@ import {
   formatPublishedDate,
   generateToc,
   slugifyHeading,
+  truncateExcerpt,
 } from "./post-rendering";
 
 describe("slugifyHeading", () => {
@@ -77,5 +78,38 @@ describe("formatPublishedDate", () => {
   it("formats day month year", () => {
     const d = new Date("2025-12-25T00:00:00Z");
     expect(formatPublishedDate(d)).toMatch(/25.*Dec.*2025/);
+  });
+});
+
+describe("truncateExcerpt", () => {
+  it("returns text unchanged when shorter than maxLength", () => {
+    expect(truncateExcerpt("short", 160)).toBe("short");
+  });
+  it("returns text unchanged when exactly maxLength", () => {
+    const s = "x".repeat(160);
+    expect(truncateExcerpt(s, 160)).toBe(s);
+  });
+  it("truncates at a word boundary and appends an ellipsis", () => {
+    const s = "Citigroup paid $136 million for a governance failure that nobody on the board had been formally accountable for, and the ripple effects continue to widen for boards that delayed.";
+    const out = truncateExcerpt(s, 80);
+    expect(out.length).toBeLessThanOrEqual(82); // 80 + "…" + edge
+    expect(out.endsWith("…")).toBe(true);
+    expect(out).not.toMatch(/\s…$/); // no whitespace before ellipsis
+    // Word-boundary check: every word before the ellipsis should appear in the source.
+    const words = out.slice(0, -1).trim().split(/\s+/);
+    for (const w of words) {
+      expect(s).toContain(w);
+    }
+  });
+  it("defaults to 160", () => {
+    const long = "x".repeat(300);
+    const out = truncateExcerpt(long);
+    expect(out.length).toBeLessThanOrEqual(161);
+  });
+  it("strips trailing punctuation before the ellipsis", () => {
+    const s = "Lots of stuff, more stuff, and even more stuff to fill the buffer beyond the limit, more, comma, and another, plus, dash — and, finally, the end.";
+    const out = truncateExcerpt(s, 40);
+    expect(out).not.toMatch(/[,;:.\-—]+…$/);
+    expect(out.endsWith("…")).toBe(true);
   });
 });

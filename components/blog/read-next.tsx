@@ -1,14 +1,18 @@
+import Image from "next/image";
 import Link from "next/link";
+import { truncateExcerpt } from "../../lib/post-rendering";
 import type { ReadNextItem } from "../../lib/posts";
 
 // Read-next widget — 3-card grid at the bottom of every /blog/[slug] page.
-// AI-slop-resistant per DES-1 of the plan:
-//   - NO icons in coloured circles
-//   - NO centered text
-//   - NO drop shadows or glow
-//   - NO bold border-left accent stripe
-//   - NO "Read more →" pseudo-CTA
-//   - Eyebrow + title + one-line excerpt only
+// AI-slop-resistant variant of the standard 3-card content widget:
+//   - No icons in coloured circles
+//   - No centered text
+//   - No drop shadows or glow
+//   - No bold border-left accent stripe
+//   - No "Read more →" pseudo-CTA
+//   - Eyebrow + title + one-line excerpt + reading time only
+//   - Featured-image thumbnail at the top of each card (banner aspect,
+//     matches the source-image dimensions from robertangeles.com)
 //   - Whole card clickable; title underlines on hover
 //   - bg-surface-1 → bg-surface-2 on hover (token-system hover ladder)
 //   - Single-column stack on mobile (NOT awkward 2-up)
@@ -54,24 +58,40 @@ export function ReadNext({ items }: ReadNextProps) {
             <li key={item.id}>
               <Link
                 href={`/blog/${item.slug}`}
-                className="block h-full rounded-lg border border-hairline bg-surface-1 p-6 transition-colors duration-150 hover:bg-surface-2"
+                className="group block h-full overflow-hidden rounded-lg border border-hairline bg-surface-1 transition-colors duration-150 hover:bg-surface-2"
               >
-                {item.categoryName ? (
-                  <p className="text-eyebrow uppercase tracking-[0.08em] text-ink-subtle">
-                    {item.categoryName}
-                  </p>
+                {item.ogImagePath ? (
+                  <div
+                    className="relative aspect-[29/10] w-full overflow-hidden bg-surface-2"
+                    aria-hidden
+                  >
+                    <Image
+                      src={item.ogImagePath}
+                      alt=""
+                      fill
+                      sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                      className="object-cover"
+                    />
+                  </div>
                 ) : null}
-                <h3 className="mt-3 text-card-title text-ink visited:text-ink-muted">
-                  {item.title}
-                </h3>
-                {item.excerpt ? (
-                  <p className="mt-3 line-clamp-2 text-body-sm text-ink-subtle">
-                    {item.excerpt}
+                <div className="p-6">
+                  {item.categoryName ? (
+                    <p className="text-eyebrow uppercase tracking-[0.08em] text-ink-subtle">
+                      {item.categoryName}
+                    </p>
+                  ) : null}
+                  <h3 className="mt-3 text-card-title text-ink visited:text-ink-muted">
+                    {item.title}
+                  </h3>
+                  {item.excerpt ? (
+                    <p className="mt-3 text-body-sm text-ink-subtle">
+                      {truncateExcerpt(item.excerpt, 160)}
+                    </p>
+                  ) : null}
+                  <p className="mt-4 text-caption text-ink-tertiary">
+                    {item.readingTimeMin} min read
                   </p>
-                ) : null}
-                <p className="mt-4 text-caption text-ink-tertiary">
-                  {item.readingTimeMin} min read
-                </p>
+                </div>
               </Link>
             </li>
           ))}

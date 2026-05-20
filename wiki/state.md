@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-20T00:56:43.086Z
+generated: 2026-05-20T02:39:05.724Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -16,7 +16,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/` | [app/page.tsx](../app/page.tsx) | 2026-05-18 |
 | `/[...slug]` | [app/[...slug]/page.tsx](../app/[...slug]/page.tsx) | 2026-05-18 |
 | `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-18 |
-| `/admin/(authed)/blog` | [app/admin/(authed)/blog/page.tsx](../app/admin/(authed)/blog/page.tsx) | unknown |
+| `/admin/(authed)/blog` | [app/admin/(authed)/blog/page.tsx](../app/admin/(authed)/blog/page.tsx) | 2026-05-20 |
 | `/admin/(authed)/diagnostic` | [app/admin/(authed)/diagnostic/page.tsx](../app/admin/(authed)/diagnostic/page.tsx) | 2026-05-15 |
 | `/admin/(authed)/integrations` | [app/admin/(authed)/integrations/page.tsx](../app/admin/(authed)/integrations/page.tsx) | 2026-05-15 |
 | `/admin/(authed)/integrations/[slug]` | [app/admin/(authed)/integrations/[slug]/page.tsx](../app/admin/(authed)/integrations/[slug]/page.tsx) | 2026-05-17 |
@@ -29,9 +29,9 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/admin/(authed)/site` | [app/admin/(authed)/site/page.tsx](../app/admin/(authed)/site/page.tsx) | 2026-05-18 |
 | `/admin/login` | [app/admin/login/page.tsx](../app/admin/login/page.tsx) | 2026-05-15 |
 | `/ai-readiness-assessment` | [app/ai-readiness-assessment/page.tsx](../app/ai-readiness-assessment/page.tsx) | 2026-05-15 |
-| `/blog` | [app/blog/page.tsx](../app/blog/page.tsx) | unknown |
-| `/blog/[slug]` | [app/blog/[slug]/page.tsx](../app/blog/[slug]/page.tsx) | unknown |
-| `/blog/category/[slug]` | [app/blog/category/[slug]/page.tsx](../app/blog/category/[slug]/page.tsx) | unknown |
+| `/blog` | [app/blog/page.tsx](../app/blog/page.tsx) | 2026-05-20 |
+| `/blog/[slug]` | [app/blog/[slug]/page.tsx](../app/blog/[slug]/page.tsx) | 2026-05-20 |
+| `/blog/category/[slug]` | [app/blog/category/[slug]/page.tsx](../app/blog/category/[slug]/page.tsx) | 2026-05-20 |
 | `/book/[slug]` | [app/book/[slug]/page.tsx](../app/book/[slug]/page.tsx) | 2026-05-17 |
 | `/book/[slug]/confirmation/[bookingId]` | [app/book/[slug]/confirmation/[bookingId]/page.tsx](../app/book/[slug]/confirmation/[bookingId]/page.tsx) | 2026-05-17 |
 | `/book/manage/[token]` | [app/book/manage/[token]/page.tsx](../app/book/manage/[token]/page.tsx) | 2026-05-17 |
@@ -64,7 +64,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/pages/[id]/restore` | [app/api/admin/pages/[id]/restore/route.ts](../app/api/admin/pages/[id]/restore/route.ts) | 2026-05-18 |
 | `/api/admin/pages/[id]/revisions` | [app/api/admin/pages/[id]/revisions/route.ts](../app/api/admin/pages/[id]/revisions/route.ts) | 2026-05-18 |
 | `/api/admin/pages/[id]/revisions/[revId]/restore` | [app/api/admin/pages/[id]/revisions/[revId]/restore/route.ts](../app/api/admin/pages/[id]/revisions/[revId]/restore/route.ts) | 2026-05-18 |
-| `/api/admin/settings/blog-enabled` | [app/api/admin/settings/blog-enabled/route.ts](../app/api/admin/settings/blog-enabled/route.ts) | unknown |
+| `/api/admin/settings/blog-enabled` | [app/api/admin/settings/blog-enabled/route.ts](../app/api/admin/settings/blog-enabled/route.ts) | 2026-05-20 |
 | `/api/admin/settings/booking-prompts` | [app/api/admin/settings/booking-prompts/route.ts](../app/api/admin/settings/booking-prompts/route.ts) | 2026-05-17 |
 | `/api/admin/settings/diagnostic-content` | [app/api/admin/settings/diagnostic-content/route.ts](../app/api/admin/settings/diagnostic-content/route.ts) | 2026-05-15 |
 | `/api/admin/settings/diagnostic-prompt` | [app/api/admin/settings/diagnostic-prompt/route.ts](../app/api/admin/settings/diagnostic-prompt/route.ts) | 2026-05-15 |
@@ -95,15 +95,15 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/admin/integrations/integrations-grid.tsx](../components/admin/integrations/integrations-grid.tsx) | 2026-05-17 |
 | [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-05-18 |
 | [components/analytics/analytics-client.tsx](../components/analytics/analytics-client.tsx) | 2026-05-18 |
-| [components/blog/author-bio.tsx](../components/blog/author-bio.tsx) | unknown |
-| [components/blog/category-chips.tsx](../components/blog/category-chips.tsx) | unknown |
-| [components/blog/editorial-list-row.tsx](../components/blog/editorial-list-row.tsx) | unknown |
-| [components/blog/heading-copy-link-button.tsx](../components/blog/heading-copy-link-button.tsx) | unknown |
-| [components/blog/pagination.tsx](../components/blog/pagination.tsx) | unknown |
-| [components/blog/post-body.tsx](../components/blog/post-body.tsx) | unknown |
-| [components/blog/post-header.tsx](../components/blog/post-header.tsx) | unknown |
-| [components/blog/read-next.tsx](../components/blog/read-next.tsx) | unknown |
-| [components/blog/toc.tsx](../components/blog/toc.tsx) | unknown |
+| [components/blog/author-bio.tsx](../components/blog/author-bio.tsx) | 2026-05-20 |
+| [components/blog/category-chips.tsx](../components/blog/category-chips.tsx) | 2026-05-20 |
+| [components/blog/editorial-list-row.tsx](../components/blog/editorial-list-row.tsx) | 2026-05-20 |
+| [components/blog/heading-copy-link-button.tsx](../components/blog/heading-copy-link-button.tsx) | 2026-05-20 |
+| [components/blog/pagination.tsx](../components/blog/pagination.tsx) | 2026-05-20 |
+| [components/blog/post-body.tsx](../components/blog/post-body.tsx) | 2026-05-20 |
+| [components/blog/post-header.tsx](../components/blog/post-header.tsx) | 2026-05-20 |
+| [components/blog/read-next.tsx](../components/blog/read-next.tsx) | 2026-05-20 |
+| [components/blog/toc.tsx](../components/blog/toc.tsx) | 2026-05-20 |
 | [components/booking/calendar-picker.tsx](../components/booking/calendar-picker.tsx) | 2026-05-17 |
 | [components/contact/contact-form.tsx](../components/contact/contact-form.tsx) | 2026-05-15 |
 | [components/icons/social.tsx](../components/icons/social.tsx) | 2026-05-18 |

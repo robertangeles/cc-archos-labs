@@ -56,11 +56,12 @@ export default async function BlogIndexPage({
             The Translation Layer
           </p>
           <h1 className="text-display-md text-ink md:text-display-lg">
-            Essays on AI program risk.
+            Where AI programs break.
           </h1>
           <p className="max-w-[640px] text-body-lg leading-[1.6] text-ink-subtle">
-            What actually breaks in transformation, written from inside
-            enterprise programs. No vendor pitches. No Big Four padding.
+            The Translation Layer is the only AI newsletter written by
+            someone who has broken these programs from the inside and is
+            building the replacements.
           </p>
         </header>
 

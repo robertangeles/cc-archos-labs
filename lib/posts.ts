@@ -55,6 +55,7 @@ export interface ReadNextItem {
   excerpt: string | null;
   categoryName: string | null;
   readingTimeMin: number;
+  ogImagePath: string | null;
 }
 
 const PUBLIC_LISTED_FILTER = and(
@@ -263,6 +264,7 @@ export async function getReadNext(
       excerpt: post.excerpt,
       readingTimeMin: post.readingTimeMin,
       categoryName: category.name,
+      ogImagePath: post.ogImagePath,
     })
     .from(post)
     .leftJoin(category, eq(post.categoryId, category.id))
@@ -282,6 +284,7 @@ export async function getReadNext(
         excerpt: post.excerpt,
         readingTimeMin: post.readingTimeMin,
         categoryName: category.name,
+        ogImagePath: post.ogImagePath,
       })
       .from(post)
       .leftJoin(category, eq(post.categoryId, category.id))
@@ -302,6 +305,7 @@ export async function getReadNext(
     excerpt: r.excerpt,
     categoryName: r.categoryName,
     readingTimeMin: r.readingTimeMin,
+    ogImagePath: r.ogImagePath,
   }));
 }
 
@@ -325,6 +329,7 @@ export async function getRecentPosts(
       excerpt: post.excerpt,
       readingTimeMin: post.readingTimeMin,
       categoryName: category.name,
+      ogImagePath: post.ogImagePath,
     })
     .from(post)
     .leftJoin(category, eq(post.categoryId, category.id))
@@ -338,6 +343,7 @@ export async function getRecentPosts(
     excerpt: r.excerpt,
     categoryName: r.categoryName,
     readingTimeMin: r.readingTimeMin,
+    ogImagePath: r.ogImagePath,
   }));
 }
 
