@@ -2,14 +2,15 @@
 title: Wiki Index
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-18
-related: [[state]], [[backlog]], [[shipped]], [[book-a-call-architecture]], [[booking-prompts-in-db]], [[claude-eval-suites]], [[lead-session-and-owner-only-reports]], [[magic-link-sign-in]], [[transactional-email-rendering]], [[integration-config]], [[design-system]]
+updated: 2026-05-20
+related: [[state]], [[backlog]], [[shipped]], [[book-a-call-architecture]], [[booking-prompts-in-db]], [[claude-eval-suites]], [[lead-session-and-owner-only-reports]], [[magic-link-sign-in]], [[transactional-email-rendering]], [[integration-config]], [[design-system]], [[2026-05-20-wiki-karpathy-ops]]
 ---
 
 Master catalog of all wiki pages. Read this at the start of every session. For current ship state by route / endpoint / component, read [[state]] first (auto-generated, always fresh). For runtime topology and the (unusual) single-environment, single-DB posture, read [[deployment-architecture]] before suggesting any deploy / migration / cutover runbook.
 
 ## entities
 - [Deployment architecture](entities/deployment-architecture.md) — single Render web service + single Render Postgres + single R2 bucket + single Resend account. `.env.local` and the Render runtime point at the SAME DATABASE_URL. No dev/staging/prod separation. Read before recommending any operational runbook.
+- [The Translation Layer](entities/translation-layer.md) — publication brand at `/blog`; 253 posts migrated from robertangeles.com (rosy-bee). Distinct from The Modelling Room (LinkedIn newsletter) — never conflate the two.
 - [About page](entities/about-page.md) — `/about` route; practitioner dossier composed from the home + about section primitives. Anchors Rob as the credibility surface a sceptical exec lands on before the assessment or call.
 
 ## concepts
@@ -25,8 +26,10 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 - [Booking prompts in the DB — soft-fallback by design](concepts/booking-prompts-in-db.md) — three Claude prompts (followup, brief, blogMatch) in one `booking_prompts` site_setting row; admin edits at /admin/prompts; soft-fallback to hardcoded starters when row missing/malformed (vs diagnostic's hard-fail)
 - [Home page section components — reusable pattern](concepts/home-page-section-components.md) — 10 reusable section components (Hero, Section, CtaPair, ProofItem, ServiceCard, AudienceList, Timeline, ObjectionFaq, AnchorNav, StickyMobileCta) extracted in PR #53; pattern is the foundation for the Consulting page, Modelling Room, and Tools index
 - [About page section components](concepts/about-page-section-components.md) — 4 bio-oriented primitives (PersonCard, PhilosophyBlock, WayOfWorkingSteps, SelectedWorkCard) introduced for `/about`; companion family to home — together they are the design system's vocabulary for public-facing content pages
+- [Karpathy LLM wiki pattern](concepts/karpathy-llm-wiki-pattern.md) — three-layer pattern (raw sources / LLM-owned wiki / schema) + three operations (Ingest / Query / Lint); how Archos Labs instantiates it and where we extend (decisions, lessons-learned, state.md, backlog). Source: [the original gist](raw/karpathy-llm-wiki-gist.md).
 
 ## decisions
+- [Wiki Karpathy ops — ingest + lint + foundation tooling](decisions/2026-05-20-wiki-karpathy-ops.md) — added `pnpm wiki:search / graph / ingest / lint` to make the wiki actually run on Karpathy's three-layer pattern. New `wiki/raw/` Layer 1 folder, three new CLAUDE.md workflow sections (Ingest / Lint / Query), and the Karpathy gist itself ingested as the first live test.
 - [Translation Layer — Phase C cutover runbook](decisions/2026-05-20-phase-c-cutover.md) — prod migration + author backfill + flag flip + apex 301. Two scripts get `--prod` + `--confirm-prod` safety gates that read `PROD_DATABASE_URL` from the shell env, never from `.env.local`.
 - [Translation Layer — Phase B public render](decisions/2026-05-20-translation-layer-public-render.md) — /blog, /blog/[slug], /blog/category/[slug] + llms.txt + AIEO/JSON-LD + admin toggle, all behind a `blog_enabled` flag defaulting to FALSE. One PR for B1–B5 because they form a coherent renderable unit.
 - [Translation Layer migration (rosy-bee) — design + Phase A1 schema](decisions/2026-05-19-translation-layer-migration.md) — absorb ~253 published posts from robertangeles.com into `/blog` as "The Translation Layer". Phase A1 schema shipped (post, author, category, post_revision, newsletter_signup + pgvector HNSW). CEO + Eng + Design reviews all cleared. Phase A4 simplified after inventory: zero shortcodes, Gutenberg-only HTML
@@ -55,6 +58,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 _(none yet)_
 
 ## lessons-learned
+- [Don't assume multi-environment architecture — read deployment-architecture first](lessons-learned/2026-05-20-single-db-architecture.md) — Phase C debacle post-mortem; the conventional dev/staging/prod assumption broke when reality was single-env, single-DB. Rule: when the user names architecture, accept it at face value; don't reinterpret through a conventional lens.
 - [Drizzle raw `sql` template rejects Date bind parameters](lessons-learned/2026-05-18-drizzle-raw-sql-rejects-date-params.md) — postgres.js's `.str()` throws `ERR_INVALID_ARG_TYPE` on Date params via raw `sql` template; use the typed query builder, or convert Date → ISO string + `::timestamptz` cast; unit-mocking `getDb` does not exercise the driver
 - [Reuse before invent (when a working reference exists in the codebase)](lessons-learned/2026-05-18-reuse-before-invent.md) — three rounds of /consulting design iteration thrown out before realising the home page was the standard; rule: scan `components/sections/*` and analogous patterns BEFORE writing new ones
 - [Email CTA buttons need the bulletproof pattern from the first attempt](lessons-learned/2026-05-13-email-buttons-need-the-bulletproof-pattern.md) — Outlook desktop strips display:inline-block on `<a>`; Outlook web dark mode rewrites `<a>` color after inline styles resolve; only `<td bgcolor>` + VML + `[data-ogsc]` overrides survive both
@@ -70,6 +74,9 @@ _(none yet)_
 
 ## raw-index
 - [WordPress source inventory (robertangeles.com)](raw-index/wp-inventory-2026-05-19.md) — frozen 2026-05-19 snapshot of the WP DB used as the rosy-bee migration source: 253 published posts, Gutenberg-only HTML (zero shortcodes), 100% featured-image coverage, 4 categories + 740 tags, single author, permalink `/%postname%/`. Captures decisions that simplified Phase A4.
+
+## raw
+- [LLM Wiki (Karpathy gist)](raw/karpathy-llm-wiki-gist.md) — full text of Andrej Karpathy's gist describing the LLM-maintained wiki pattern; ingested 2026-05-20 as the first Layer 1 source after the Karpathy ops shipped. Synthesised at [Karpathy LLM wiki pattern](concepts/karpathy-llm-wiki-pattern.md).
 
 ## runbooks
 - [Rotate the master encryption key](runbooks/rotate-master-key.md) — UI + CLI paths, half-fail recovery, post-compromise rotation of underlying secrets

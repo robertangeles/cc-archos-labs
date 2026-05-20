@@ -3,7 +3,7 @@ title: Deployment architecture
 category: entity
 created: 2026-05-20
 updated: 2026-05-20
-related: [[render-postgres-over-neon]], [[integration-config]], [[index]], [[state]]
+related: [[2026-05-08-render-postgres-over-neon]], [[integration-config]], [[index]], [[state]]
 ---
 
 The runtime topology of Archos Labs. **Single environment, single database** — there is no dev / staging / prod separation at the data layer. This is unusual relative to industry convention; documenting it explicitly so future sessions don't assume a multi-env setup and build elaborate machinery to bridge it.
@@ -71,12 +71,12 @@ The integration-secrets pattern ([[integration-config]]) stores all of the above
 
 ## Why the project is wired this way
 
-Pre-launch posture for a solo operator with an 11-day revenue deadline ([[project-revenue-deadline]]): one environment, one DB, ship credibly fast, harden later. The single-env decision was implicit in the bootstrap — there is no decision doc framing it because no alternative was ever considered. This wiki page is the after-the-fact record.
+Pre-launch posture for a solo operator with an 11-day revenue deadline (May 2026 — consulting is the only immediate revenue path): one environment, one DB, ship credibly fast, harden later. The single-env decision was implicit in the bootstrap — there is no decision doc framing it because no alternative was ever considered. This wiki page is the after-the-fact record.
 
 If/when the project ever needs a staging environment (scale: a second contributor, or a destructive schema change that warrants a rehearsal), the right move is a separate Render Postgres + a `PROD_DATABASE_URL` pattern. **Until that moment, don't pre-build for it.**
 
 ## Related
 
-- [[render-postgres-over-neon]] — why Render Postgres in the first place
+- [[2026-05-08-render-postgres-over-neon]] — why Render Postgres in the first place
 - [[integration-config]] — the shared secrets-at-rest store sitting in this single DB
 - [[state]] — auto-generated register of what's actually shipped (always read this first)

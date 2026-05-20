@@ -98,9 +98,9 @@ The pieces that turn a stranger into a paid consulting conversation. Home page a
 
 ## Phase 3 — Growth (publication + brand)
 
-**Status update 2026-05-20:** The publication side of Phase 3 shipped as the **Translation Layer** at `/blog` (253 migrated posts, full AIEO chrome, admin toggle, top-nav link). Items 21 and 24 below are superseded by [[2026-05-20-translation-layer-public-render]] + the new Phase 3 follow-ups section further down. Items 22 (Tools index) and 23 (Analytics) remain open. Translation Layer architectural detail: [[entity-translation-layer]] and [[deployment-architecture]].
+**Status update 2026-05-20:** The publication side of Phase 3 shipped as the **Translation Layer** at `/blog` (253 migrated posts, full AIEO chrome, admin toggle, top-nav link). Items 21 and 24 below are superseded by [[2026-05-20-translation-layer-public-render]] + the new Phase 3 follow-ups section further down. Items 22 (Tools index) and 23 (Analytics) remain open. Translation Layer architectural detail: [[translation-layer]] and [[deployment-architecture]].
 
-21. **Modelling Room page (`/modelling-room`)** — ⚠️ **SUPERSEDED.** The locked architectural decision is that The Modelling Room stays a LinkedIn-native newsletter (separate channel, no on-site page); The Translation Layer at `/blog` is the owned publication surface. See [[entity-translation-layer]].
+21. **Modelling Room page (`/modelling-room`)** — ⚠️ **SUPERSEDED.** The locked architectural decision is that The Modelling Room stays a LinkedIn-native newsletter (separate channel, no on-site page); The Translation Layer at `/blog` is the owned publication surface. See [[translation-layer]].
 22. **Tools index (`/tools`)** — Executive AI Diagnostic listed; placeholder for future tools. Verify: page exists, structured for additions.
 23. **Analytics** — privacy-respecting (Plausible or similar). Track conversion funnel: visit → contact submit, visit → diagnostic complete, diagnostic complete → call booked. Verify: events fire on staging. **(Moved into Phase 3 follow-ups below as item 41 with current context.)**
 24. **Newsletter signup** — ⚠️ **SUPERSEDED** by Translation Layer Phase D item 35 (newsletter capture wired to the `/blog` surface, double-opt-in via Resend, `newsletter_signup` table — schema already shipped in PR #61). See Phase 3 follow-ups below.

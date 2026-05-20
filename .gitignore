@@ -52,3 +52,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# wiki graph — regenerable from frontmatter + [[refs]] via `pnpm wiki:graph build`
+wiki/.graph.json
