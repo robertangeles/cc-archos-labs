@@ -31,7 +31,24 @@ This PR closes both gaps. Decision doc: [[2026-05-20-wiki-karpathy-ops]].
 - `wiki/index.md` — new concept entry + new raw entry.
 - `wiki/decisions/2026-05-20-wiki-karpathy-ops.md` already cross-referenced `[[karpathy-llm-wiki-pattern]]` ahead of the ingest; no edit needed.
 
-Lint clean of new errors after the ingest. The pre-existing 5 broken refs + 1 missing-from-index warning surfaced by `pnpm wiki:lint` are wiki drift this PR did not introduce — flagged to Rob for follow-up.
+Lint clean of new errors after the ingest. The pre-existing 5 broken refs + 1 missing-from-index warning surfaced by `pnpm wiki:lint` are wiki drift this PR did not introduce — fixed in the follow-up cleanup commit on the same branch (see next entry).
+
+## 2026-05-20 — Wiki cleanup: resolve pre-existing drift (feature/wiki-karpathy-ops, follow-up)
+
+Follow-up commit after the Karpathy ops landed. The new lint surfaced 5 broken refs + 1 missing-from-index warning that were pre-existing drift. Fixed surgically:
+
+- `[[render-postgres-over-neon]]` → `[[2026-05-08-render-postgres-over-neon]]` in `deployment-architecture.md` (missing date prefix on the decision-doc slug).
+- `[[project-revenue-deadline]]` removed from `deployment-architecture.md` — that slug references an auto-memory entry, not a wiki page. The 11-day-deadline context now lives inline as plain prose.
+- `[[feedback-no-prices-on-site]]` in the older consulting-page log entry — same problem, same fix: replaced with plain prose ("No prices on the site (pricing happens in conversation…)") since the rule belongs in auto-memory + CLAUDE.md, not as a wiki ref.
+- `[[rosy-bee]]` in `wp-inventory-2026-05-19.md` → `[[translation-layer]]`. "rosy-bee" is the internal project codename for the migration; the *entity* is The Translation Layer.
+- `[[entity-translation-layer]]` × 2 in `backlog.md` → `[[translation-layer]]`. Same root cause — the wiki ref was reaching for an auto-memory-style slug. Resolved by creating the entity page proper.
+- New `wiki/entities/translation-layer.md` — the entity is referenced by multiple pages and is a real concept worth its own home. Captures what the Translation Layer is, what it isn't (not The Modelling Room — those are separate channels), and the rosy-bee codename history.
+- `wiki/index.md` — added the new entity entry + the missing `lessons-learned/2026-05-20-single-db-architecture.md` entry.
+- `wiki/synthesis/README.md` — structural doc explaining when synthesis pages emerge (mirrors `wiki/raw/README.md`). Avoids permanent "empty folder" lint noise while preserving Karpathy's principle that synthesis pages emerge when reusable synthesis emerges, not as placeholders.
+
+Adding the synthesis README surfaced a structural detail in the foundation tooling: README files were being counted as content nodes in the graph (causing slug collisions when more than one folder had a README) and the empty-folder lint warning fired even when a README signalled the folder was intentionally tracked. Both refinements landed in the previous commit's scripts before staging — `scripts/wiki-graph.mjs` now skips README slugs entirely, and `scripts/wiki-lint.mjs` treats "has README" as "not empty".
+
+Final state: **0 hard errors, 0 warnings.** 63 content nodes, 226 edges. Wiki is now self-clean.
 
 Pure tooling + documentation — zero application code touched.
 
@@ -195,7 +212,7 @@ Rob owns before merging: verify /consulting renders end-to-end in browser, push 
 Shipped on this branch:
 
 - **`/consulting` composed page** seeded via [scripts/_seed-consulting-page.mjs](../scripts/_seed-consulting-page.mjs) (idempotent, one-shot, underscore-prefixed throwaway). Five blocks: Hero → Markdown ("The honest version") → ServiceGrid (4 service lines) → Markdown ("How engagements begin") → CtaPair (closing).
-- **Voice:** practitioner. No prices per [[feedback-no-prices-on-site]]. Specific service descriptions with deliverables (Assessment / Architecture / Agent / Training). Process paragraph names exactly what happens: 30-minute call → engagement letter → fixed-fee work by the same person. CTAs route to /book/archos-labs and /ai-readiness-assessment.
+- **Voice:** practitioner. No prices on the site (pricing happens in conversation, never on a marketing page). Specific service descriptions with deliverables (Assessment / Architecture / Agent / Training). Process paragraph names exactly what happens: 30-minute call → engagement letter → fixed-fee work by the same person. CTAs route to /book/archos-labs and /ai-readiness-assessment.
 - **Nav update:** `Consulting` link slotted between About and Contact in [components/layout/nav.tsx](../components/layout/nav.tsx) so the page is discoverable from every page on the site.
 - **SEO:** `seoTitle` lives as `'Consulting'` not `'Consulting — Archos Labs'`. The root layout's title template already appends `— ${siteName}` to any non-template title, so seoTitle should never include the site name. Confirmed via curl: `<title>Consulting — Archos Labs</title>` renders correctly with no doubling. Documenting this so future composed pages don't recreate the bug.
 - **No code changes to the CMS platform** — Phase 2 already supported everything `/consulting` needed. The whole page is a database row + 5 page_block rows. Future edits happen in /admin/pages with zero deploys.

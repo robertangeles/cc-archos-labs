@@ -10,6 +10,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 
 ## entities
 - [Deployment architecture](entities/deployment-architecture.md) — single Render web service + single Render Postgres + single R2 bucket + single Resend account. `.env.local` and the Render runtime point at the SAME DATABASE_URL. No dev/staging/prod separation. Read before recommending any operational runbook.
+- [The Translation Layer](entities/translation-layer.md) — publication brand at `/blog`; 253 posts migrated from robertangeles.com (rosy-bee). Distinct from The Modelling Room (LinkedIn newsletter) — never conflate the two.
 - [About page](entities/about-page.md) — `/about` route; practitioner dossier composed from the home + about section primitives. Anchors Rob as the credibility surface a sceptical exec lands on before the assessment or call.
 
 ## concepts
@@ -57,6 +58,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 _(none yet)_
 
 ## lessons-learned
+- [Don't assume multi-environment architecture — read deployment-architecture first](lessons-learned/2026-05-20-single-db-architecture.md) — Phase C debacle post-mortem; the conventional dev/staging/prod assumption broke when reality was single-env, single-DB. Rule: when the user names architecture, accept it at face value; don't reinterpret through a conventional lens.
 - [Drizzle raw `sql` template rejects Date bind parameters](lessons-learned/2026-05-18-drizzle-raw-sql-rejects-date-params.md) — postgres.js's `.str()` throws `ERR_INVALID_ARG_TYPE` on Date params via raw `sql` template; use the typed query builder, or convert Date → ISO string + `::timestamptz` cast; unit-mocking `getDb` does not exercise the driver
 - [Reuse before invent (when a working reference exists in the codebase)](lessons-learned/2026-05-18-reuse-before-invent.md) — three rounds of /consulting design iteration thrown out before realising the home page was the standard; rule: scan `components/sections/*` and analogous patterns BEFORE writing new ones
 - [Email CTA buttons need the bulletproof pattern from the first attempt](lessons-learned/2026-05-13-email-buttons-need-the-bulletproof-pattern.md) — Outlook desktop strips display:inline-block on `<a>`; Outlook web dark mode rewrites `<a>` color after inline styles resolve; only `<td bgcolor>` + VML + `[data-ogsc]` overrides survive both
