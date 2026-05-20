@@ -248,4 +248,12 @@ export interface MigrationConfig {
   // Optional manifest output path. Defaults to
   // scripts/migrate-wp/manifest-{ISO}.json next to the script.
   manifestPath: string | null;
+  // Prod target. When true, the script reads PROD_DATABASE_URL instead
+  // of DATABASE_URL and refuses to run unless --confirm-prod is also
+  // passed. Designed so accidentally invoking `pnpm migrate-wp:apply`
+  // from a shell that has prod creds loaded can never fire against
+  // prod — the explicit double-flag is the safety gate.
+  prod: boolean;
+  // Required when prod=true. Without it the script halts.
+  confirmProd: boolean;
 }

@@ -17,6 +17,8 @@ const config: MigrationConfig = {
   skipOg: false,
   skipEmbed: false,
   manifestPath: null,
+  prod: false,
+  confirmProd: false,
 };
 const source = {
   databaseHost: "127.0.0.1:3306",
