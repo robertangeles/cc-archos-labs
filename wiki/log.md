@@ -8,6 +8,30 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-20 — Posts Admin Phase D backend slice (feature/posts-admin)
+
+Backend-only PR for the per-post admin (backlog items 37 + 38). Cathedral approach (Pages-CMS pattern + needs_review queue filter + AI-assist + scheduled publishing), HOLD SCOPE, sliced backend/UI because the full surface is ~4-5k lines and CLAUDE.md is strict about not shipping half-built code.
+
+**What shipped:**
+- Schema migration `0014_post_scheduled_publish_at.sql` — adds `scheduledPublishAt` column + partial index `post_due_for_publish_idx WHERE status='scheduled'`.
+- `lib/og.ts` extracted from `scripts/migrate-wp/og-generate.ts` (still stub-renderer — see [[2026-05-19-translation-layer-migration]] DES-3 for the deferred satori work). Migration script becomes a typed adapter.
+- `lib/embeddings.ts` extracted from `scripts/migrate-wp/embed.ts` (OpenRouter `text-embedding-3-large`, 1024 dims, 3x retry, 30s timeout). Migration script becomes a typed adapter that preserves `sourceWpId` in error messages.
+- `lib/posts-admin/{index,types,schema,word-count,similarity,scheduled-publisher}.ts` — full admin service layer mirroring `lib/pages/` shape, with optimistic locking, named error classes, side-effect orchestration (Promise.allSettled after tx commit), `scheduledPublishAt` invariants enforced at both Zod + service layers.
+- 7 admin API routes: list/create at `/api/admin/posts`, get/put/delete at `/[id]`, soft-restore at `/[id]/restore`, revisions list at `/[id]/revisions`, revision-restore at `/[id]/revisions/[revId]/restore`, AI-assist at `/[id]/regenerate-og` (30/hr rate limit) + `/[id]/suggest-links` (60/hr rate limit, OpenRouter embedding + pgvector cosine).
+- Cron route `/api/cron/process-scheduled-posts` — Bearer-auth via `CRON_SECRET`, `cron_heartbeat` row `id='posts-publisher'`, `FOR UPDATE SKIP LOCKED` poll, atomic publish with `WHERE status='scheduled'` race-guard, per-publish `post_revision` row tagged `savedBy='scheduler-cron'`.
+- 5 unit test files (40 files / 526 tests / all green).
+
+**Smoke tests:** 10× admin routes return 401 unauthenticated (proxy.ts gating verified). Cron returns 503 when `CRON_SECRET` missing (same behaviour as the existing booking cron). Authenticated happy-path cases documented as a curl runbook in the PR description (rather than reading the admin password from chat).
+
+**Deferred to Slice B (next session):** reshape `/admin/blog` into tabbed layout (Settings + Posts), list view with filter pills + needs_review queue tab, editor with split-pane live preview + side panel + AI buttons, link-suggestions drawer, revisions diff view, Playwright E2E. Architecture: [[2026-05-20-posts-admin-phase-d-backend]].
+
+**Operational follow-ups for the user after merge:**
+1. `pnpm db:migrate` to apply the migration against the single Postgres ([[deployment-architecture]] confirms there is no staging — first run is the only run).
+2. Add the new cron in Render dashboard: every minute, POST to `/api/cron/process-scheduled-posts` with the existing `CRON_SECRET`.
+3. Run the curl runbook in the PR description to validate authenticated routes end-to-end.
+
+Branch: `feature/posts-admin`. Single PR.
+
 ## 2026-05-20 — CI: gate PRs on wiki:lint (chore/ci-wiki-lint)
 
 Follow-up to the Karpathy ops PR. Adds a `Wiki lint` step to `.github/workflows/ci.yml` between `Lint` and `Typecheck`. Hard errors (broken `[[refs]]`, missing frontmatter, index drift, `created > updated`) now fail CI; warnings (orphans, stale pages, empty categories) stay exit 0 and don't block.

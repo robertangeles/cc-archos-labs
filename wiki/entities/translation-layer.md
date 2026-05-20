@@ -3,7 +3,7 @@ title: The Translation Layer
 category: entity
 created: 2026-05-20
 updated: 2026-05-20
-related: [[2026-05-19-translation-layer-migration]], [[2026-05-20-translation-layer-public-render]], [[2026-05-20-phase-c-cutover]], [[deployment-architecture]], [[wp-inventory-2026-05-19]]
+related: [[2026-05-19-translation-layer-migration]], [[2026-05-20-translation-layer-public-render]], [[2026-05-20-phase-c-cutover]], [[2026-05-20-posts-admin-phase-d-backend]], [[deployment-architecture]], [[wp-inventory-2026-05-19]]
 ---
 
 The Translation Layer is the publication brand at `/blog` on archoslabs.xyz — Archos Labs' owned content surface, populated by the 253 posts migrated from robertangeles.com (the rosy-bee migration). It is **distinct** from The Modelling Room, which stays as a LinkedIn-native newsletter. Never conflate the two.
@@ -36,3 +36,7 @@ The Translation Layer is the publication brand at `/blog` on archoslabs.xyz — 
 ## Phase D (post-launch follow-ups)
 
 Listed in the [backlog](../backlog/backlog.md) under "Phase 3 — Translation Layer follow-ups": newsletter capture, /search + Cmd-K, admin needs_review queue (120 posts flagged), RSS feed, per-post editor.
+
+**Status update — per-post editor (items 37 + 38):**
+- **Slice A (backend)** shipped: schema migration (`scheduledPublishAt` + partial index), service layer at [`lib/posts-admin/`](../../lib/posts-admin/), full admin API surface at [`app/api/admin/posts/`](../../app/api/admin/posts/), scheduled-publisher cron at [`/api/cron/process-scheduled-posts`](../../app/api/cron/process-scheduled-posts/route.ts) (heartbeat row `id='posts-publisher'`), AI-assist routes (regenerate OG + suggest internal links via existing post embeddings), unit tests. See [[2026-05-20-posts-admin-phase-d-backend]] for the architecture decision.
+- **Slice B (UI)** deferred to a follow-up PR: list view + editor + live preview + link suggestions drawer + revisions page + Playwright E2E. The `/admin/blog` toggle page will be reshaped into a tabbed parent (Settings + Posts).
