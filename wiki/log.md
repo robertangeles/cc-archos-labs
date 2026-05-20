@@ -8,6 +8,18 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-20 — Document single-DB architecture (chore/document-single-db-architecture)
+
+Post-mortem fix following the Phase C debacle. The Phase C PR (#65) was built on the assumption that Archos Labs has a separate prod database — it doesn't. `.env.local`'s `DATABASE_URL` and Render's runtime env point at the same Postgres. PR #66 stripped the wrong scaffolding; this PR documents the architecture so it doesn't recur:
+
+- [[deployment-architecture]] — new wiki entity. Single Render web service + single Render Postgres + single R2 bucket + single Resend account. Includes the ASCII topology, the practical implications for tooling (migrations + seed scripts write to prod by definition), and the "if/when staging is ever genuinely needed" caveat.
+- [[2026-05-20-single-db-architecture]] — new lessons-learned entry. Problem / Fix / Rule format. Specifically names the four tells that signal drift into imaginary-architecture territory.
+- CLAUDE.md — new section "Before suggesting any operational runbook" gates the read of [[deployment-architecture]] for any session touching migration / deploy / env / cutover language. Same shape as the existing "Before claiming a feature is unbuilt" rule that gates [[state]].
+- wiki/index.md — surfaces [[deployment-architecture]] in the first line + the entities section.
+- Auto-memory `project_single_db_architecture.md` saved so the rule survives across sessions even if the wiki is skipped.
+
+No application code changes. Pure documentation + behavioural gating.
+
 ## 2026-05-20 — Translation Layer (rosy-bee) — Phase C cutover scaffold (feature/rosy-bee-phase-c-cutover)
 
 Phase C is operational, not code-heavy — flip the flag, run the migration on prod, set the apex 301. This PR ships only the safety scaffolding needed to run those operations without prod creds touching `.env.local` or git history:

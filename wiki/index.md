@@ -6,9 +6,10 @@ updated: 2026-05-18
 related: [[state]], [[backlog]], [[shipped]], [[book-a-call-architecture]], [[booking-prompts-in-db]], [[claude-eval-suites]], [[lead-session-and-owner-only-reports]], [[magic-link-sign-in]], [[transactional-email-rendering]], [[integration-config]], [[design-system]]
 ---
 
-Master catalog of all wiki pages. Read this at the start of every session. For current ship state by route / endpoint / component, read [[state]] first (auto-generated, always fresh).
+Master catalog of all wiki pages. Read this at the start of every session. For current ship state by route / endpoint / component, read [[state]] first (auto-generated, always fresh). For runtime topology and the (unusual) single-environment, single-DB posture, read [[deployment-architecture]] before suggesting any deploy / migration / cutover runbook.
 
 ## entities
+- [Deployment architecture](entities/deployment-architecture.md) — single Render web service + single Render Postgres + single R2 bucket + single Resend account. `.env.local` and the Render runtime point at the SAME DATABASE_URL. No dev/staging/prod separation. Read before recommending any operational runbook.
 - [About page](entities/about-page.md) — `/about` route; practitioner dossier composed from the home + about section primitives. Anchors Rob as the credibility surface a sceptical exec lands on before the assessment or call.
 
 ## concepts

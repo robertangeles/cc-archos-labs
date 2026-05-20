@@ -1000,6 +1000,13 @@ Before claiming a route, API endpoint, or component does not exist:
 
 The same rule applies to subagents you dispatch. Tell every Explore subagent to verify backlog status against `wiki/state.md` (or the filesystem) before reporting a feature as unbuilt.
 
+## Before suggesting any operational runbook
+**`wiki/entities/deployment-architecture.md` is the source of truth for the runtime topology.** Read it at the start of any session that involves the words "migration", "deploy", "environment", "staging", "prod cutover", "promote", or "release" — and before recommending any runbook that touches shell env vars, dashboards, DNS, or registry settings.
+
+Archos Labs runs on a **single environment, single database** — `.env.local` and Render both point at the same Postgres. This is unusual relative to industry convention. Do not assume dev/staging/prod separation; do not propose `PROD_*` env var patterns; do not write safety scaffolding to bridge environments that do not exist.
+
+If the user contradicts your architectural assumption (e.g. "DEV and PROD DB are the same", "we don't have staging", "X is already deployed"), treat that statement as the architecture rewriting itself. Stop, re-read `wiki/entities/deployment-architecture.md`, and update your mental model. Do not try to fit the user's words into the assumed conventional pattern. See `wiki/lessons-learned/2026-05-20-single-db-architecture.md` for the post-mortem of the failure that prompted this rule.
+
 ## During the session
 When you make a significant decision, discover a non-obvious pattern, or implement
 something architecturally important — write it to the appropriate wiki folder.
