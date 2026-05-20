@@ -2,8 +2,8 @@
 title: Archos Labs HQ — Build Backlog
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-17
-related: [[index]], [[log]], [[state]], [[shipped]], [[2026-05-08-phase2-ceo-review]]
+updated: 2026-05-20
+related: [[index]], [[log]], [[state]], [[shipped]], [[2026-05-08-phase2-ceo-review]], [[2026-05-20-translation-layer-public-render]], [[2026-05-20-phase-c-cutover]]
 ---
 
 Prioritised build list for the Archos Labs HQ at archoslabs.xyz. Ordered by what unblocks revenue and reduces risk, not by what is most fun to build.
@@ -98,10 +98,12 @@ The pieces that turn a stranger into a paid consulting conversation. Home page a
 
 ## Phase 3 — Growth (publication + brand)
 
-21. **Modelling Room page (`/modelling-room`)** — initially just a styled link out to the LinkedIn newsletter. Verify: page exists, link tracked.
+**Status update 2026-05-20:** The publication side of Phase 3 shipped as the **Translation Layer** at `/blog` (253 migrated posts, full AIEO chrome, admin toggle, top-nav link). Items 21 and 24 below are superseded by [[2026-05-20-translation-layer-public-render]] + the new Phase 3 follow-ups section further down. Items 22 (Tools index) and 23 (Analytics) remain open. Translation Layer architectural detail: [[entity-translation-layer]] and [[deployment-architecture]].
+
+21. **Modelling Room page (`/modelling-room`)** — ⚠️ **SUPERSEDED.** The locked architectural decision is that The Modelling Room stays a LinkedIn-native newsletter (separate channel, no on-site page); The Translation Layer at `/blog` is the owned publication surface. See [[entity-translation-layer]].
 22. **Tools index (`/tools`)** — Executive AI Diagnostic listed; placeholder for future tools. Verify: page exists, structured for additions.
-23. **Analytics** — privacy-respecting (Plausible or similar). Track conversion funnel: visit → contact submit, visit → diagnostic complete, diagnostic complete → call booked. Verify: events fire on staging.
-24. **Newsletter signup** — separate from contact form. Verify: integration test + real signup lands in destination.
+23. **Analytics** — privacy-respecting (Plausible or similar). Track conversion funnel: visit → contact submit, visit → diagnostic complete, diagnostic complete → call booked. Verify: events fire on staging. **(Moved into Phase 3 follow-ups below as item 41 with current context.)**
+24. **Newsletter signup** — ⚠️ **SUPERSEDED** by Translation Layer Phase D item 35 (newsletter capture wired to the `/blog` surface, double-opt-in via Resend, `newsletter_signup` table — schema already shipped in PR #61). See Phase 3 follow-ups below.
 
 ---
 
@@ -111,6 +113,13 @@ The pieces that turn a stranger into a paid consulting conversation. Home page a
 - **Wiki updates** before any feature is marked complete (CLAUDE.md `wiki/` mandate).
 - **Lessons learned** entries for any non-obvious bug fix or architectural decision.
 - **No DB** until a feature genuinely requires persistence — defer until lead capture or diagnostic submissions need it. When added, follow CLAUDE.md Database Design Standards (2NF, indexed FKs, naming conventions).
+
+### Open housekeeping (added 2026-05-20)
+
+These are small, standalone, can be picked up in spare minutes:
+
+- **`/about` photo decision** — `/about` page still uses the original `/images/about-me.png` (1856×2304 portrait) while the Translation Layer Written By card uses `/images/ran-square.png` (737×739 square) which crops cleanly to the circular avatar. Decide whether to swap `/about` to the square too (one-line code change in `app/about/page.tsx` const `PHOTO_SRC`), keep both, or replace the portrait file. Currently the two photos are different headshots — readers visiting both surfaces see two different Robs.
+- **Tense update on `wiki/decisions/2026-05-19-translation-layer-migration.md`** — reads as future-tense plan even though Phases A1, A4, B, C are all shipped. Either rewrite to past-tense + cross-link to the Phase B / Phase C decision docs, or leave as a pre-launch snapshot. Cheap either way; record the choice rather than letting it bit-rot silently.
 
 ---
 
@@ -160,7 +169,63 @@ Per the CEO + design + eng plan review locked 2026-05-12, the home page's `mailt
 
 ---
 
+## Phase 3 — Translation Layer follow-ups (added 2026-05-20)
+
+**Status:** Phase A (schema), Phase B (public render), Phase C (cutover ops scaffold) all shipped — PRs #61 → #68. The Translation Layer is live at `archoslabs.xyz/blog`. Items below are the deliberate-deferrals from those phases plus operational ops that need scheduling. Decision context: [[2026-05-19-translation-layer-migration]] (architecture + plan), [[2026-05-20-translation-layer-public-render]] (Phase B), [[2026-05-20-phase-c-cutover]] (Phase C post-mortem + remaining ops).
+
+### Phase D — feature work (each gets its own PR when prioritised)
+
+35. **Newsletter capture + Resend integration (D1)** — signup card at the 60% scroll mark on `/blog/[slug]` + footer variant, `/api/newsletter/subscribe` + `/api/newsletter/confirm`, double-opt-in flow via Resend, rate-limit 5/min/IP, idempotent for already-subscribed addresses, admin list at `/admin/newsletter`. `newsletter_signup` schema already shipped in PR #61. Verify: real signup arrives in inbox; confirmation link consume idempotent; admin list paginates.
+
+36. **`/search` page + Cmd-K modal (D2)** — semantic search over the 1024-dim post embeddings via HNSW ANN, FTS fallback on provider failure. `/search?q=...` shareable URL surface + `Cmd-K` / `Ctrl-K` modal that reuses the same result component. Mobile: slide-up sheet. Empty-state fallback: "No matches for '[query]'. Try [3 popular categories as chips]." Verify: typing returns debounced ranked results in <200ms p99; Cmd-K opens from any page; keyboard nav works.
+
+37. **Admin `needs_review` queue UI** — filter post list by `needs_review = true` (currently 120 posts from migration), inline edit excerpt + tags + visibility, mark resolved button. Surfaces the Claude-flagged currency issues and `[PERSON_NAME]` / `[ADDRESS]` template artefacts so they can be triaged in one place rather than per-post. Verify: queue counts match SQL; marking resolved removes from queue; admin save invalidates the public ISR cache for that slug.
+
+38. **Per-post admin editor** — `/admin/posts` listing + `/admin/posts/[id]/edit` editor. Status (draft / scheduled / published / archived), visibility (listed / unlisted), tags, body, OG override. Schema exists; UI doesn't. Pages-CMS-Phase-3 territory but specific to posts. Verify: edit a post in admin → public `/blog/[slug]` reflects on next request; `post_revision` row created per save.
+
+39. **RSS `/blog/feed.xml` route** — for readers who follow via RSS reader + LinkedIn newsletter sync. Last 20 listed posts, full excerpt + link back. Verify: validates at validator.w3.org/feed; LinkedIn newsletter import succeeds.
+
+### Phase 3 polish (smaller items)
+
+40. **Admin "Embeddings Model ID" field in `/admin/integrations`** — currently `OPENROUTER_EMBED_MODEL` is env-only override; promised as an admin-managed setting so the model can be swapped without a redeploy (e.g. when OpenAI ships a successor to `text-embedding-3-large`). Same encryption-at-rest + audit-log treatment as the other integration secrets. Verify: change in admin → next embedding generation uses the new model id without restart.
+
+41. **Plausible analytics integration (E7 deferred)** — privacy-respecting analytics for the conversion funnels: `/` → `/blog`, `/blog/[slug]` → `/book/[slug]`, `/tools/ai-readiness` → registration → call. ~$9/mo. Lightweight script tag in layout, custom events for the booking + newsletter signup paths. **Deferred per the plan's E7 deferral** — was below the cut line for the launch but should land before any backlink-outreach campaign so we can measure citations + referral conversion. Verify: events fire on staging; dashboard shows funnel data within 24h.
+
+### Phase 3 operational ops (your move, no code)
+
+42. **Submit `https://archoslabs.xyz/sitemap.xml` to Google Search Console** — archoslabs.xyz property → Sitemaps → submit URL. Verify: GSC reports all 257 /blog-prefixed URLs discovered within 7 days.
+
+43. **Submit same URL to Bing Webmaster Tools** — archoslabs.xyz property → Sitemaps → submit. Bing → Copilot → ChatGPT pipeline means Bing indexing is indirect AIEO surface. Verify: Bing dashboard reports sitemap processed.
+
+44. **Apex 301 from `robertangeles.com/*` → `https://archoslabs.xyz/blog`** — in the domain registrar's forwarding settings. Pick **Permanent (301)**, not 302. Single-line forward, no per-slug redirect map needed. Verify: `curl -sI https://robertangeles.com/some-old-path` returns HTTP 301 + correct Location header.
+
+45. **Calendar reminders for `robertangeles.com` non-renewal** — T+30 days post-step-44, review redirect traffic. T+60 days, schedule the domain for non-renewal and decommission the WP install (keep one offline SQL dump as an archive — never published anywhere). Verify: reminder exists in calendar; both checkpoints have an owner.
+
+### Phase 3 content sweep (only Rob can do)
+
+46. **Review the 120 `needs_review` posts** — Claude flagged 120 of the 253 migrated posts during the polish step. Two distinct buckets in the manifest:
+    - **Currency flags** — dated 2024/2025 citations whose enforcement dates / forecast windows have now elapsed (EU AI Act phases, Gartner forecasts, etc.). Worth re-stating or re-anchoring.
+    - **Template artefacts** — un-resolved `[PERSON_NAME]` and `[ADDRESS]` placeholders in the original WordPress source content (pre-existing content debt, not migration damage).
+    Verify: every post in the queue is either edited + `needs_review` cleared, or marked `unlisted` if the content debt is unfixable. Best done in batches alongside item 37 once the admin queue UI exists.
+
+---
+
 ## What's deliberately not on this list
+
+- Admin panel — deferred per [[2026-05-08-admin-deferred]] until Phase 2 ships and there's content to manage.
+- Internationalisation — single-language launch.
+- Custom CMS — content lives in code or markdown until volume demands otherwise.
+- Multiple tools — only the AI Readiness Assessment is in scope at Phase 2. The platform is structured for more, not built for more.
+- Multi-Claude-call architecture — the spec's three concurrent calls collapsed to one structured-JSON call (cost, latency, coherence).
+- Sector benchmark bars — fake numeric data on a credibility-driven tool. Replace with verdict statement only at MVP. Earn back when there are 100+ real submissions to derive actual benchmarks.
+- Supabase — replaced with Render Postgres + Drizzle + Resend magic-link per CLAUDE.md standards (see [[2026-05-08-render-postgres-over-neon]] for the later Neon → Render Postgres swap).
+- Separate staging environment — single-DB posture per [[deployment-architecture]]; revisit only when a second contributor lands or a destructive schema change warrants rehearsal.
+- TTS / audio versions of posts — bling without demand signal; revisit when post analytics suggest audio-first readers exist.
+- "Mentioned in" cross-post backlinks — useful for a 200-post library but cosmetic until the search + admin queue are in.
+
+---
+
+
 
 - Admin panel — deferred per [[2026-05-08-admin-deferred]] until Phase 2 ships and there's content to manage.
 - Internationalisation — single-language launch.

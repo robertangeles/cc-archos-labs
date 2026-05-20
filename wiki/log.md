@@ -8,6 +8,24 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-20 — Consolidate pending work in backlog (chore/document-pending-backlog)
+
+Following the Translation Layer launch wrap-up, Rob asked for a single source of truth for every pending item so housekeeping can be scheduled. Audit of what was documented vs scattered:
+
+- **Documented:** sitemap submit / apex 301 / WP decommission (in [[2026-05-20-phase-c-cutover]]), Phase D items (in [[2026-05-20-translation-layer-public-render]] + the plan file).
+- **Not documented anywhere followable:** admin "Embeddings Model ID" field, /about photo swap decision, doc tense update on the 2026-05-19 decision page, Plausible analytics, the 120 needs_review post review queue.
+
+This commit consolidates everything into `wiki/backlog/backlog.md` — the file CLAUDE.md mandates as the read-this-at-session-start list of pending work:
+
+- Phase 3 header annotated with what shipped + cross-link to the Translation Layer decision docs.
+- Item 21 (Modelling Room page) marked superseded — locked decision is the Modelling Room stays LinkedIn-native.
+- Item 24 (Newsletter signup) marked superseded by new Phase D item 35 (newsletter capture wired to the `/blog` surface).
+- New section "Phase 3 — Translation Layer follow-ups (added 2026-05-20)" with items 35–46 covering Phase D feature work (newsletter, /search + Cmd-K, admin needs_review queue, RSS, per-post editor), Phase 3 polish (admin embeddings model field, Plausible), operational ops (GSC sitemap, Bing sitemap, apex 301, calendar reminder), and content sweep (120 needs_review posts).
+- Cross-cutting "Open housekeeping" sub-section for the /about photo decision + the doc-tense update.
+- "What's deliberately not on this list" extended with three more items grounded in the Translation Layer post-mortem: separate staging environment, TTS audio versions, "mentioned in" cross-post backlinks.
+
+The backlog file is now a complete inventory of pending work — every item this session surfaced is recorded in a place future sessions read at startup.
+
 ## 2026-05-20 — Document single-DB architecture (chore/document-single-db-architecture)
 
 Post-mortem fix following the Phase C debacle. The Phase C PR (#65) was built on the assumption that Archos Labs has a separate prod database — it doesn't. `.env.local`'s `DATABASE_URL` and Render's runtime env point at the same Postgres. PR #66 stripped the wrong scaffolding; this PR documents the architecture so it doesn't recur:
