@@ -2,11 +2,49 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-18
+updated: 2026-05-20
 related:
 ---
 
 Append-only log of sessions. Newest entry at the top.
+
+## 2026-05-20 — Translation Layer (rosy-bee) — Phase B public render (feature/rosy-bee-phase-b-public-render)
+
+Continued from 2026-05-19. Phase B1–B5 of the migration: the public render layer + AIEO foundations + admin toggle, all behind a `blog_enabled` feature flag. Decision doc: [[2026-05-20-translation-layer-public-render]].
+
+**What shipped (one PR, branch above):**
+
+- **Feature flag** `lib/blog/feature-flag.ts` — clone of `lib/pages/feature-flag.ts` but **fails closed** (defaults to false, so a transient DB blip can never accidentally publish unfinished content).
+- **Read queries** `lib/posts.ts` — `getPostBySlug`, `listPosts` (paginated, listed-only), `listByCategory`, `getReadNext` (HNSW ANN over the post embedding column, falls back to most-recent when ANN has <3 candidates), `getRecentPosts`, `getCategoryBySlug`, `listAllCategories`, `listAllPostsForFeeds`, `listAllPostsForLlmsFull`.
+- **Render helpers** `lib/post-rendering.ts` — `generateToc`, `slugifyHeading`, `formatLastReviewed`. Pure functions, fully unit-tested.
+- **JSON-LD emitters** `lib/structured-data.ts` — Article + Person + BreadcrumbList + Organization. `</script>`-defensive serialiser.
+- **AIEO body** `lib/llms-txt.ts` — `buildLlmsTxt` (top-20 listed posts), `buildLlmsFullTxt` (every listed post with body — 1.1 MB at 253 posts).
+- **Routes** — `/blog` (paginated index), `/blog/[slug]` (article + TOC + JSON-LD + author bio + read-next), `/blog/category/[slug]` (filtered index), `/llms.txt`, `/llms-full.txt`.
+- **SEO/AIEO chrome** — `app/sitemap.ts` `force-dynamic`'d and extended to include all listed posts + categories with `<lastmod>` priority boost for <60-day-old posts; `app/robots.ts` extended to explicitly name 10 AI crawlers (GPTBot, ClaudeBot, PerplexityBot, Google-Extended, Bingbot, Applebot-Extended, CCBot, anthropic-ai, Cohere-ai).
+- **Components** `components/blog/*` (9 files) — PostHeader, PostBody (markdown with `rehype-slug` heading IDs + auto copy-link buttons), Toc (sticky desktop, drawer mobile, IntersectionObserver active-heading tracking), ReadNext (3-card grid, **DES-1 AI-slop-resistant** — no icon circles, no centered text, no border-left accent stripe, no "Read more →"), EditorialListRow (hairline-separated /blog index pattern), CategoryChips, AuthorBio, Pagination, HeadingCopyLinkButton.
+- **Admin** — new `/admin/blog` tab with a simple toggle for `blog_enabled` (POST to `/api/admin/settings/blog-enabled`, invalidates the in-memory cache on save).
+- **Static `public/llms.txt` deleted** — superseded by the dynamic route that now serves a richer corpus.
+- **Dep added** — `rehype-slug` (3 KB) for h2/h3 heading ID generation in `PostBody`.
+
+**Verified end-to-end:**
+
+- `pnpm tsc --noEmit` — clean
+- `pnpm test --run` — 450 tests pass, including 25+ new tests for TOC generation, JSON-LD emission, llms.txt builders
+- `pnpm build` — all new routes in route manifest; sitemap.xml now `ƒ Dynamic`
+- `pnpm lint` — clean (single pre-existing warning in `tmp/walkthrough.mjs`, untouched)
+- Manual smoke against `localhost:3007` with `blog_enabled = true` in dev DB: `/blog` 200, `/blog/ai-change-management` 200 with 3× `<script type="application/ld+json">` tags, `/blog/category/ai-as-strategy` 200, `/blog?page=2` 200, `/blog/nonexistent-slug` 404, `/llms.txt` 200 with top-10 posts, `/llms-full.txt` 200 (1.1 MB), `/robots.txt` 200 naming all 10 AI bots, `/sitemap.xml` 200 with 257 /blog-prefixed entries.
+
+**Cache semantics caveat:** flipping `blog_enabled` via direct SQL does NOT invalidate the in-memory `cachedPromise` — matches the Pages CMS pattern; admin PUT is the only invalidation path. Dev testing required either restart or admin save.
+
+**Local commit only. NOT pushed.** Per the project's solo-with-Claude-Code rule, push waits for Rob's morning review.
+
+**Out of scope for this PR (deferred to Phase D per plan):**
+
+- Newsletter capture + Resend integration (D1)
+- `/search` + Cmd-K (D2)
+- Admin "needs review" queue UI for the 120 flagged posts
+- RSS `feed.xml`
+- Per-post admin (status/visibility/tags edit) — schema exists, UI is Pages-CMS-Phase-3 territory
 
 ## 2026-05-19 — Translation Layer (rosy-bee) — Phase A1 schema + WP inventory (feature/rosy-bee-phase-a1-schema)
 

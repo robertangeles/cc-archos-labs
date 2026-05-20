@@ -20,6 +20,9 @@
 # migrate-wp run artefacts (regenerable manifests + preview outputs)
 /scripts/migrate-wp/output/
 
+# Throwaway DB-verification scripts (leading underscore convention)
+/scripts/_*.mjs
+
 # next.js
 /.next/
 /out/
