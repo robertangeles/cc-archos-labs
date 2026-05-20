@@ -49,6 +49,13 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      # Karpathy wiki ops health check. Hard errors (broken [[refs]],
+      # missing frontmatter, index drift, created > updated) fail the
+      # build. Warnings (orphans, stale pages, empty categories) are
+      # exit 0 and don't block. See wiki/decisions/2026-05-20-wiki-karpathy-ops.md
+      - name: Wiki lint
+        run: pnpm wiki:lint
+
       - name: Typecheck
         run: pnpm tsc
 
