@@ -8,19 +8,17 @@
 //
 //   name           = "Rob Angeles"
 //   photo_url      = "/images/ran-square.png"  (square crops cleanly to circle)
-//   linkedin_url   = the prod LinkedIn URL
+//   linkedin_url   = the LinkedIn URL
 //   bio_md         = one-paragraph practitioner bio
 //
-// Idempotent: re-running on a row that's already correct is a no-op
-// (UPDATE returns 0 rows changed). Safe to run as many times as needed.
+// Idempotent: re-running on a row that already matches is a no-op
+// (UPDATE returns 1 row affected but the values don't change). Safe to
+// run as many times as needed.
 //
 // Run via:
-//   pnpm seed:blog-author                                # dev DB
-//   pnpm seed:blog-author --prod --confirm-prod          # prod DB (requires
-//                                                        # PROD_DATABASE_URL
-//                                                        # in shell env)
+//   pnpm seed:blog-author
 
-import { argv, env, exit, stderr, stdout } from "node:process";
+import { env, exit, stderr } from "node:process";
 import postgres from "postgres";
 
 const AUTHOR_SLUG = "robangeles";
@@ -35,92 +33,13 @@ const AUTHOR_FIELDS = {
     "assessment, the architecture, and the delivery.",
 } as const;
 
-interface Args {
-  prod: boolean;
-  confirmProd: boolean;
-}
-
-function parseArgs(): Args {
-  const args = argv.slice(2);
-  const out: Args = { prod: false, confirmProd: false };
-  for (const a of args) {
-    if (a === "--") continue;
-    if (a === "--prod") out.prod = true;
-    else if (a === "--confirm-prod") out.confirmProd = true;
-    else if (a === "-h" || a === "--help") {
-      printUsage();
-      exit(0);
-    } else {
-      die(`Unknown flag: ${a}`);
-    }
-  }
-  return out;
-}
-
-function printUsage(): void {
-  stdout.write(`
-scripts/seed/blog-author-backfill — idempotent author UPDATE.
-
-Usage:
-  pnpm seed:blog-author                              # dev DB (reads DATABASE_URL)
-  pnpm seed:blog-author --prod --confirm-prod        # prod DB (reads PROD_DATABASE_URL)
-
-Required env:
-  DATABASE_URL        Archos Labs Postgres (dev)         [non-prod runs]
-  PROD_DATABASE_URL   Archos Labs Postgres (prod)        [--prod runs only;
-                                                          MUST be set in shell,
-                                                          NOT .env.local]
-`);
-}
-
-function die(msg: string): never {
-  stderr.write(`ERROR: ${msg}\n`);
-  exit(1);
-}
-
 async function main(): Promise<void> {
-  const args = parseArgs();
-
-  // Resolve target connection string with the same safety gate as
-  // migrate-wp: --prod must be paired with --confirm-prod, PROD_DATABASE_URL
-  // must be set, and it must differ from DATABASE_URL.
-  let connectionString: string;
-  let target: string;
-  if (args.prod) {
-    if (!args.confirmProd) {
-      die("--prod requires --confirm-prod as an explicit safety gate.");
-    }
-    if (!env.PROD_DATABASE_URL) {
-      die(
-        "--prod is set but PROD_DATABASE_URL is empty. Export it in your " +
-          "shell before running (do NOT put prod creds in .env.local).",
-      );
-    }
-    if (env.DATABASE_URL && env.PROD_DATABASE_URL === env.DATABASE_URL) {
-      die(
-        "PROD_DATABASE_URL and DATABASE_URL resolve to the same connection " +
-          "string. That defeats the safety gate.",
-      );
-    }
-    connectionString = env.PROD_DATABASE_URL;
-    target = extractHost(connectionString);
-    stderr.write(
-      `\n` +
-        `============================================================\n` +
-        `  TARGET: PRODUCTION DB (${target})\n` +
-        `  Both --prod and --confirm-prod were passed. Proceeding.\n` +
-        `============================================================\n\n`,
-    );
-  } else {
-    if (!env.DATABASE_URL) {
-      die("DATABASE_URL is not set. (Did you mean to pass --prod?)");
-    }
-    connectionString = env.DATABASE_URL;
-    target = extractHost(connectionString);
-    stderr.write(`Target: dev (${target})\n`);
+  if (!env.DATABASE_URL) {
+    stderr.write("ERROR: DATABASE_URL is not set in .env.local\n");
+    exit(1);
   }
 
-  const sql = postgres(connectionString, { ssl: "require", max: 1 });
+  const sql = postgres(env.DATABASE_URL, { ssl: "require", max: 1 });
   try {
     const before = await sql<
       Array<{ id: string; name: string; photo_url: string | null }>
@@ -128,10 +47,11 @@ async function main(): Promise<void> {
       SELECT id, name, photo_url FROM author WHERE slug = ${AUTHOR_SLUG}
     `;
     if (before.length === 0) {
-      die(
-        `No author row with slug '${AUTHOR_SLUG}' on this DB. Run the ` +
-          `migration first so ensureAuthor creates the row.`,
+      stderr.write(
+        `ERROR: No author row with slug '${AUTHOR_SLUG}'. Run the migration ` +
+          `first so ensureAuthor creates the row.\n`,
       );
+      exit(1);
     }
     stderr.write(
       `Before: name='${before[0].name}', photo_url='${before[0].photo_url ?? "(null)"}'\n`,
@@ -159,15 +79,6 @@ async function main(): Promise<void> {
     stderr.write(`Done.\n`);
   } finally {
     await sql.end();
-  }
-}
-
-function extractHost(connectionString: string): string {
-  try {
-    const u = new URL(connectionString);
-    return u.host || "(unknown host)";
-  } catch {
-    return "(unparseable)";
   }
 }
 
