@@ -8,6 +8,14 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-20 — CI: gate PRs on wiki:lint (chore/ci-wiki-lint)
+
+Follow-up to the Karpathy ops PR. Adds a `Wiki lint` step to `.github/workflows/ci.yml` between `Lint` and `Typecheck`. Hard errors (broken `[[refs]]`, missing frontmatter, index drift, `created > updated`) now fail CI; warnings (orphans, stale pages, empty categories) stay exit 0 and don't block.
+
+Placement rationale: wiki-lint is itself a lint (same conceptual layer as eslint), and it's fast (~1s) — fast-fails before the heavier `tsc` / `test` / `build` chain. Triggers on both `push: main` and `pull_request: main`, matching the existing CI gate posture.
+
+No other changes — single-line addition + a comment block explaining the hard-vs-warning gate behaviour for future readers.
+
 ## 2026-05-20 — Wiki Karpathy ops (feature/wiki-karpathy-ops)
 
 Rob asked whether the wiki implementation matches [the Karpathy gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f). Audit found the *shape* was aligned (three-layer split, index + log, entity/concept pages, `[[refs]]`) but the *ops* were missing: no Ingest workflow, no Lint workflow, no Query workflow, no Layer 1 sources. Also discovered CLAUDE.md documented `wiki-search.mjs` and `wiki-graph.mjs` as if they existed — they didn't.
