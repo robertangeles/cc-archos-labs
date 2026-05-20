@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-19T00:29:28.848Z
+generated: 2026-05-20T00:56:43.086Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -9,13 +9,14 @@ Auto-generated snapshot of what is currently shipped. **Source of truth for ship
 
 Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `app/` or `components/` to fire the pre-commit hook.
 
-## Routes (25)
+## Routes (29)
 
 | Route | File | Last shipped |
 |-------|------|--------------|
 | `/` | [app/page.tsx](../app/page.tsx) | 2026-05-18 |
 | `/[...slug]` | [app/[...slug]/page.tsx](../app/[...slug]/page.tsx) | 2026-05-18 |
 | `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-18 |
+| `/admin/(authed)/blog` | [app/admin/(authed)/blog/page.tsx](../app/admin/(authed)/blog/page.tsx) | unknown |
 | `/admin/(authed)/diagnostic` | [app/admin/(authed)/diagnostic/page.tsx](../app/admin/(authed)/diagnostic/page.tsx) | 2026-05-15 |
 | `/admin/(authed)/integrations` | [app/admin/(authed)/integrations/page.tsx](../app/admin/(authed)/integrations/page.tsx) | 2026-05-15 |
 | `/admin/(authed)/integrations/[slug]` | [app/admin/(authed)/integrations/[slug]/page.tsx](../app/admin/(authed)/integrations/[slug]/page.tsx) | 2026-05-17 |
@@ -28,6 +29,9 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/admin/(authed)/site` | [app/admin/(authed)/site/page.tsx](../app/admin/(authed)/site/page.tsx) | 2026-05-18 |
 | `/admin/login` | [app/admin/login/page.tsx](../app/admin/login/page.tsx) | 2026-05-15 |
 | `/ai-readiness-assessment` | [app/ai-readiness-assessment/page.tsx](../app/ai-readiness-assessment/page.tsx) | 2026-05-15 |
+| `/blog` | [app/blog/page.tsx](../app/blog/page.tsx) | unknown |
+| `/blog/[slug]` | [app/blog/[slug]/page.tsx](../app/blog/[slug]/page.tsx) | unknown |
+| `/blog/category/[slug]` | [app/blog/category/[slug]/page.tsx](../app/blog/category/[slug]/page.tsx) | unknown |
 | `/book/[slug]` | [app/book/[slug]/page.tsx](../app/book/[slug]/page.tsx) | 2026-05-17 |
 | `/book/[slug]/confirmation/[bookingId]` | [app/book/[slug]/confirmation/[bookingId]/page.tsx](../app/book/[slug]/confirmation/[bookingId]/page.tsx) | 2026-05-17 |
 | `/book/manage/[token]` | [app/book/manage/[token]/page.tsx](../app/book/manage/[token]/page.tsx) | 2026-05-17 |
@@ -39,7 +43,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/ai-readiness/report/[sessionId]` | [app/tools/ai-readiness/report/[sessionId]/page.tsx](../app/tools/ai-readiness/report/[sessionId]/page.tsx) | 2026-05-13 |
 | `/tools/ai-readiness/share/[token]` | [app/tools/ai-readiness/share/[token]/page.tsx](../app/tools/ai-readiness/share/[token]/page.tsx) | 2026-05-13 |
 
-## API endpoints (39)
+## API endpoints (40)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -60,6 +64,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/pages/[id]/restore` | [app/api/admin/pages/[id]/restore/route.ts](../app/api/admin/pages/[id]/restore/route.ts) | 2026-05-18 |
 | `/api/admin/pages/[id]/revisions` | [app/api/admin/pages/[id]/revisions/route.ts](../app/api/admin/pages/[id]/revisions/route.ts) | 2026-05-18 |
 | `/api/admin/pages/[id]/revisions/[revId]/restore` | [app/api/admin/pages/[id]/revisions/[revId]/restore/route.ts](../app/api/admin/pages/[id]/revisions/[revId]/restore/route.ts) | 2026-05-18 |
+| `/api/admin/settings/blog-enabled` | [app/api/admin/settings/blog-enabled/route.ts](../app/api/admin/settings/blog-enabled/route.ts) | unknown |
 | `/api/admin/settings/booking-prompts` | [app/api/admin/settings/booking-prompts/route.ts](../app/api/admin/settings/booking-prompts/route.ts) | 2026-05-17 |
 | `/api/admin/settings/diagnostic-content` | [app/api/admin/settings/diagnostic-content/route.ts](../app/api/admin/settings/diagnostic-content/route.ts) | 2026-05-15 |
 | `/api/admin/settings/diagnostic-prompt` | [app/api/admin/settings/diagnostic-prompt/route.ts](../app/api/admin/settings/diagnostic-prompt/route.ts) | 2026-05-15 |
@@ -83,37 +88,46 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/events` | [app/api/events/route.ts](../app/api/events/route.ts) | 2026-05-18 |
 | `/api/health/cron` | [app/api/health/cron/route.ts](../app/api/health/cron/route.ts) | 2026-05-17 |
 
-## Components (55)
+## Components (64)
 
 | File | Last shipped |
 |------|--------------|
 | [components/admin/integrations/integrations-grid.tsx](../components/admin/integrations/integrations-grid.tsx) | 2026-05-17 |
 | [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-05-18 |
 | [components/analytics/analytics-client.tsx](../components/analytics/analytics-client.tsx) | 2026-05-18 |
+| [components/blog/author-bio.tsx](../components/blog/author-bio.tsx) | unknown |
+| [components/blog/category-chips.tsx](../components/blog/category-chips.tsx) | unknown |
+| [components/blog/editorial-list-row.tsx](../components/blog/editorial-list-row.tsx) | unknown |
+| [components/blog/heading-copy-link-button.tsx](../components/blog/heading-copy-link-button.tsx) | unknown |
+| [components/blog/pagination.tsx](../components/blog/pagination.tsx) | unknown |
+| [components/blog/post-body.tsx](../components/blog/post-body.tsx) | unknown |
+| [components/blog/post-header.tsx](../components/blog/post-header.tsx) | unknown |
+| [components/blog/read-next.tsx](../components/blog/read-next.tsx) | unknown |
+| [components/blog/toc.tsx](../components/blog/toc.tsx) | unknown |
 | [components/booking/calendar-picker.tsx](../components/booking/calendar-picker.tsx) | 2026-05-17 |
 | [components/contact/contact-form.tsx](../components/contact/contact-form.tsx) | 2026-05-15 |
 | [components/icons/social.tsx](../components/icons/social.tsx) | 2026-05-18 |
 | [components/layout/footer.tsx](../components/layout/footer.tsx) | 2026-05-18 |
 | [components/layout/header.tsx](../components/layout/header.tsx) | 2026-05-15 |
 | [components/layout/lead-sign-out-button.tsx](../components/layout/lead-sign-out-button.tsx) | 2026-05-15 |
-| [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-05-18 |
+| [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-05-19 |
 | [components/pages/block-error-boundary.tsx](../components/pages/block-error-boundary.tsx) | 2026-05-18 |
 | [components/pages/blocks-renderer.test.tsx](../components/pages/blocks-renderer.test.tsx) | 2026-05-18 |
-| [components/pages/blocks-renderer.tsx](../components/pages/blocks-renderer.tsx) | 2026-05-18 |
-| [components/pages/blocks/closing-statement-block.tsx](../components/pages/blocks/closing-statement-block.tsx) | unknown |
+| [components/pages/blocks-renderer.tsx](../components/pages/blocks-renderer.tsx) | 2026-05-19 |
+| [components/pages/blocks/closing-statement-block.tsx](../components/pages/blocks/closing-statement-block.tsx) | 2026-05-19 |
 | [components/pages/blocks/cta-pair-block.tsx](../components/pages/blocks/cta-pair-block.tsx) | 2026-05-18 |
-| [components/pages/blocks/editorial-essay-block.tsx](../components/pages/blocks/editorial-essay-block.tsx) | unknown |
-| [components/pages/blocks/editorial-faq-block.tsx](../components/pages/blocks/editorial-faq-block.tsx) | unknown |
-| [components/pages/blocks/hero-block.tsx](../components/pages/blocks/hero-block.tsx) | 2026-05-18 |
-| [components/pages/blocks/markdown-block.tsx](../components/pages/blocks/markdown-block.tsx) | 2026-05-18 |
-| [components/pages/blocks/objection-faq-block.tsx](../components/pages/blocks/objection-faq-block.tsx) | unknown |
-| [components/pages/blocks/process-steps-block.tsx](../components/pages/blocks/process-steps-block.tsx) | unknown |
+| [components/pages/blocks/editorial-essay-block.tsx](../components/pages/blocks/editorial-essay-block.tsx) | 2026-05-19 |
+| [components/pages/blocks/editorial-faq-block.tsx](../components/pages/blocks/editorial-faq-block.tsx) | 2026-05-19 |
+| [components/pages/blocks/hero-block.tsx](../components/pages/blocks/hero-block.tsx) | 2026-05-19 |
+| [components/pages/blocks/markdown-block.tsx](../components/pages/blocks/markdown-block.tsx) | 2026-05-19 |
+| [components/pages/blocks/objection-faq-block.tsx](../components/pages/blocks/objection-faq-block.tsx) | 2026-05-19 |
+| [components/pages/blocks/process-steps-block.tsx](../components/pages/blocks/process-steps-block.tsx) | 2026-05-19 |
 | [components/pages/blocks/proof-grid-block.tsx](../components/pages/blocks/proof-grid-block.tsx) | 2026-05-18 |
-| [components/pages/blocks/quick-diagnosis-block.tsx](../components/pages/blocks/quick-diagnosis-block.tsx) | unknown |
-| [components/pages/blocks/section-counter.tsx](../components/pages/blocks/section-counter.tsx) | unknown |
+| [components/pages/blocks/quick-diagnosis-block.tsx](../components/pages/blocks/quick-diagnosis-block.tsx) | 2026-05-19 |
+| [components/pages/blocks/section-counter.tsx](../components/pages/blocks/section-counter.tsx) | 2026-05-19 |
 | [components/pages/blocks/service-grid-block.tsx](../components/pages/blocks/service-grid-block.tsx) | 2026-05-18 |
-| [components/pages/blocks/stat-band-block.tsx](../components/pages/blocks/stat-band-block.tsx) | unknown |
-| [components/pages/blocks/timeline-block.tsx](../components/pages/blocks/timeline-block.tsx) | unknown |
+| [components/pages/blocks/stat-band-block.tsx](../components/pages/blocks/stat-band-block.tsx) | 2026-05-19 |
+| [components/pages/blocks/timeline-block.tsx](../components/pages/blocks/timeline-block.tsx) | 2026-05-19 |
 | [components/pages/markdown-article.test.tsx](../components/pages/markdown-article.test.tsx) | 2026-05-18 |
 | [components/pages/markdown-article.tsx](../components/pages/markdown-article.tsx) | 2026-05-18 |
 | [components/sections/about/index.ts](../components/sections/about/index.ts) | 2026-05-18 |
@@ -124,7 +138,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/sections/home/anchor-nav.tsx](../components/sections/home/anchor-nav.tsx) | 2026-05-18 |
 | [components/sections/home/audience-list.tsx](../components/sections/home/audience-list.tsx) | 2026-05-18 |
 | [components/sections/home/cta-pair.tsx](../components/sections/home/cta-pair.tsx) | 2026-05-18 |
-| [components/sections/home/hero.tsx](../components/sections/home/hero.tsx) | 2026-05-18 |
+| [components/sections/home/hero.tsx](../components/sections/home/hero.tsx) | 2026-05-19 |
 | [components/sections/home/index.ts](../components/sections/home/index.ts) | 2026-05-18 |
 | [components/sections/home/objection-faq.tsx](../components/sections/home/objection-faq.tsx) | 2026-05-18 |
 | [components/sections/home/proof-item.tsx](../components/sections/home/proof-item.tsx) | 2026-05-18 |

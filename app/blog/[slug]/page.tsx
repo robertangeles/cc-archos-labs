@@ -1,0 +1,133 @@
+// /blog/[slug] — single article. Renders PostHeader + PostBody + Toc +
+// AuthorBio + ReadNext. Emits JSON-LD (Article + Person + Breadcrumb)
+// in <head> via dangerouslySetInnerHTML. Feature-flagged at the route
+// level — returns notFound() when blog_enabled is false.
+//
+// Visibility-permissive: unlisted posts ARE rendered when accessed by
+// direct URL (preserves SEO equity for old links). The unlisted filter
+// only excludes them from /blog index + sitemap + read-next pool.
+
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { isBlogEnabled } from "../../../lib/blog/feature-flag";
+import { getPostBySlug, getReadNext } from "../../../lib/posts";
+import { generateToc } from "../../../lib/post-rendering";
+import {
+  articleSchema,
+  breadcrumbSchema,
+  jsonLdScript,
+  personSchema,
+} from "../../../lib/structured-data";
+import {
+  buildPageMetadata,
+  getSiteSettings,
+  getSiteUrl,
+} from "../../../lib/site-config";
+import { PostHeader } from "../../../components/blog/post-header";
+import { PostBody } from "../../../components/blog/post-body";
+import { Toc } from "../../../components/blog/toc";
+import { AuthorBio } from "../../../components/blog/author-bio";
+import { ReadNext } from "../../../components/blog/read-next";
+
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await getPostBySlug(slug);
+  if (!post) {
+    return buildPageMetadata({ title: "Post not found", path: `/blog/${slug}` });
+  }
+  return buildPageMetadata({
+    title: post.seoTitle ?? post.title,
+    description: post.seoDescription ?? post.excerpt ?? undefined,
+    path: `/blog/${post.slug}`,
+    ogType: "article",
+    lastUpdatedISO: (post.lastReviewedAt ?? post.publishedAt).toISOString(),
+    articleSection: post.categoryName ?? undefined,
+  });
+}
+
+export default async function PostPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const enabled = await isBlogEnabled();
+  if (!enabled) notFound();
+
+  const { slug } = await params;
+  const post = await getPostBySlug(slug);
+  if (!post) notFound();
+
+  const [settings, readNext] = await Promise.all([
+    getSiteSettings(),
+    getReadNext(post.id, 3),
+  ]);
+  const siteUrl = getSiteUrl();
+  const headings = generateToc(post.contentMd);
+  const authorName = post.authorName ?? settings.siteName;
+
+  const articleLd = articleSchema(post, siteUrl, settings);
+  const personLd = personSchema(
+    authorName,
+    post.authorLinkedinUrl,
+    post.authorPhotoUrl,
+    siteUrl,
+    settings,
+  );
+  const breadcrumbLd = breadcrumbSchema(post, siteUrl);
+
+  return (
+    <main className="flex flex-1 flex-col bg-canvas">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(articleLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(personLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(breadcrumbLd) }}
+      />
+
+      <article className="mx-auto w-full max-w-[1200px] px-6 pt-24 pb-32 md:px-12">
+        <div className="grid gap-12 lg:grid-cols-[760px_minmax(0,1fr)]">
+          <div className="min-w-0">
+            <PostHeader
+              title={post.title}
+              authorName={authorName}
+              categorySlug={post.categorySlug}
+              categoryName={post.categoryName}
+              readingTimeMin={post.readingTimeMin}
+              publishedAt={post.publishedAt}
+              lastReviewedAt={post.lastReviewedAt}
+            />
+
+            <div className="mt-12">
+              <PostBody contentMd={post.contentMd} />
+            </div>
+
+            <AuthorBio
+              name={authorName}
+              bioMd={post.authorBioMd ?? ""}
+              photoUrl={post.authorPhotoUrl}
+              linkedinUrl={post.authorLinkedinUrl}
+            />
+
+            <ReadNext items={readNext} />
+          </div>
+
+          <div>
+            <Toc headings={headings} />
+          </div>
+        </div>
+      </article>
+    </main>
+  );
+}
