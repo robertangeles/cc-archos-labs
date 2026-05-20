@@ -75,8 +75,24 @@ Pre-launch posture for a solo operator with an 11-day revenue deadline (May 2026
 
 If/when the project ever needs a staging environment (scale: a second contributor, or a destructive schema change that warrants a rehearsal), the right move is a separate Render Postgres + a `PROD_DATABASE_URL` pattern. **Until that moment, don't pre-build for it.**
 
+## Operational runbooks
+
+### Render Cron jobs
+
+Two cron jobs are configured in the Render dashboard (not in repo — there is no `render.yaml`). Both POST to authenticated endpoints with `Authorization: Bearer ${CRON_SECRET}` (single secret shared across cron + runtime):
+
+| Cron | Schedule | Endpoint | Purpose | Heartbeat row id |
+|---|---|---|---|---|
+| `process-scheduled` | every minute | `POST /api/cron/process-scheduled` | Drains the `scheduled_job` queue (booking reminders, pre-call briefs, post-call follow-ups, no-show recovery) | `singleton` |
+| `process-scheduled-posts` | every minute | `POST /api/cron/process-scheduled-posts` | Flips `post.status='scheduled' AND scheduled_publish_at <= now()` rows to `published`. Writes a `post_revision` row tagged `savedBy='scheduler-cron'` per publish. | `posts-publisher` |
+
+If `CRON_SECRET` is missing / shorter than 16 chars, both routes return 503 (cron not configured) BEFORE checking the bearer. Same behaviour locally + in prod — local dev rarely needs the cron running.
+
+When adding a new cron, copy the auth + heartbeat pattern from `app/api/cron/process-scheduled-posts/route.ts`; each cron should write to its own `cron_heartbeat` row id so monitoring can distinguish per-cron health.
+
 ## Related
 
 - [[2026-05-08-render-postgres-over-neon]] — why Render Postgres in the first place
 - [[integration-config]] — the shared secrets-at-rest store sitting in this single DB
 - [[state]] — auto-generated register of what's actually shipped (always read this first)
+- [[2026-05-20-posts-admin-phase-d-backend]] — the second cron (`process-scheduled-posts`) shipped here

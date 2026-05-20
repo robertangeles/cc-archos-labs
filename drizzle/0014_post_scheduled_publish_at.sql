@@ -1,0 +1,34 @@
+-- Posts Admin (Phase D) — scheduled publishing.
+--
+-- Adds the `scheduled_publish_at` column to `post` so the admin editor can
+-- pick a future datetime and the publisher cron can flip the row to
+-- 'published' when the moment arrives.
+--
+-- Column semantics:
+--   - NULL for every status other than 'scheduled'
+--   - When status='scheduled': MUST be set, MUST be in the future at save
+--     time (Zod + service-layer enforced — not a check constraint because
+--     the "future" anchor changes with every wall-clock tick)
+--   - Cleared whenever status flips off 'scheduled'
+--
+-- The partial index serves a single hot-path query, run every minute by
+-- the publisher cron:
+--
+--   SELECT id FROM post
+--     WHERE status='scheduled' AND scheduled_publish_at <= now()
+--     ORDER BY scheduled_publish_at
+--     FOR UPDATE SKIP LOCKED
+--     LIMIT 20
+--
+-- Partial WHERE keeps the index small — rows in 'draft' / 'published' /
+-- 'archived' status don't appear in it at all. With ~253 posts at migration
+-- + low scheduled-post density expected, the index stays in the low
+-- kilobytes.
+--
+-- Additive + reversible: the column is nullable and the index is
+-- independent, so a rollback (`ALTER TABLE post DROP COLUMN ...` +
+-- `DROP INDEX ...`) is safe even after data lands.
+
+ALTER TABLE "post" ADD COLUMN "scheduled_publish_at" timestamp with time zone;
+--> statement-breakpoint
+CREATE INDEX "post_due_for_publish_idx" ON "post" USING btree ("scheduled_publish_at") WHERE status = 'scheduled';

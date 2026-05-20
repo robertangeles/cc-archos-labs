@@ -1119,6 +1119,13 @@ export const post = pgTable(
     // First-publish timestamp. NULL until first publish; preserved across
     // re-publishes (mirrors `page.published_at` semantics).
     publishedAt: timestamp("published_at", { withTimezone: true }),
+    // When `status='scheduled'`, the UTC instant at which the publisher
+    // cron should flip status to 'published'. NULL for every other status.
+    // Validated at the admin save boundary (Zod + service): must be in the
+    // future, cleared when status flips off 'scheduled'.
+    scheduledPublishAt: timestamp("scheduled_publish_at", {
+      withTimezone: true,
+    }),
     // Soft-delete. archived_at NOT NULL hides the post from public listings
     // but preserves it (and its revisions) for restore.
     archivedAt: timestamp("archived_at", { withTimezone: true }),
@@ -1154,6 +1161,15 @@ export const post = pgTable(
     index("post_needs_review_idx")
       .on(table.needsReview)
       .where(sql`needs_review = true`),
+    // Publisher cron hot path:
+    //   SELECT id FROM post
+    //     WHERE status='scheduled' AND scheduled_publish_at <= now()
+    //     ORDER BY scheduled_publish_at FOR UPDATE SKIP LOCKED LIMIT 20
+    // Partial index keeps it tiny — rows with status != 'scheduled' don't
+    // appear in this index at all.
+    index("post_due_for_publish_idx")
+      .on(table.scheduledPublishAt)
+      .where(sql`status = 'scheduled'`),
     // pgvector HNSW index for read-next + /search ANN queries:
     //   SELECT ... ORDER BY embedding <=> $1 LIMIT 3
     // Created in custom SQL (drizzle has no HNSW builder yet) — see the

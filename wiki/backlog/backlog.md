@@ -179,9 +179,25 @@ Per the CEO + design + eng plan review locked 2026-05-12, the home page's `mailt
 
 36. **`/search` page + Cmd-K modal (D2)** — semantic search over the 1024-dim post embeddings via HNSW ANN, FTS fallback on provider failure. `/search?q=...` shareable URL surface + `Cmd-K` / `Ctrl-K` modal that reuses the same result component. Mobile: slide-up sheet. Empty-state fallback: "No matches for '[query]'. Try [3 popular categories as chips]." Verify: typing returns debounced ranked results in <200ms p99; Cmd-K opens from any page; keyboard nav works.
 
-37. **Admin `needs_review` queue UI** — filter post list by `needs_review = true` (currently 120 posts from migration), inline edit excerpt + tags + visibility, mark resolved button. Surfaces the Claude-flagged currency issues and `[PERSON_NAME]` / `[ADDRESS]` template artefacts so they can be triaged in one place rather than per-post. Verify: queue counts match SQL; marking resolved removes from queue; admin save invalidates the public ISR cache for that slug.
+37. **Admin `needs_review` queue UI** — 🟡 **BACKEND SHIPPED (Slice A 2026-05-20), UI deferred to Slice B.** Backend filter exposed via `GET /api/admin/posts?status=needs_review` returns 120 flagged rows. UI tab + "Mark reviewed" button still pending. See [[2026-05-20-posts-admin-phase-d-backend]] for the locked architecture + Slice B scope.
 
-38. **Per-post admin editor** — `/admin/posts` listing + `/admin/posts/[id]/edit` editor. Status (draft / scheduled / published / archived), visibility (listed / unlisted), tags, body, OG override. Schema exists; UI doesn't. Pages-CMS-Phase-3 territory but specific to posts. Verify: edit a post in admin → public `/blog/[slug]` reflects on next request; `post_revision` row created per save.
+38. **Per-post admin editor** — 🟡 **BACKEND SHIPPED (Slice A 2026-05-20), UI deferred to Slice B.** Full admin API surface (CRUD + revisions + restore + AI-assist + scheduled-publish cron) live at `/api/admin/posts/*` + `/api/cron/process-scheduled-posts`. Optimistic locking via `expectedUpdatedAt` round-trip mirrors the Pages CMS pattern; `scheduledPublishAt` column + partial index added in migration `0014_post_scheduled_publish_at.sql`. Slice B brings the list view + editor (with live preview, AI-assist buttons, link-suggestions drawer, revisions diff) + Playwright E2E. URL placement: `/admin/blog/posts/*` nested under the existing `/admin/blog` toggle page (which becomes a tabbed parent: Settings + Posts).
+
+### Phase D — explicit deferrals beyond Slice B (added 2026-05-20)
+
+These came up in the Slice A planning but were deliberately excluded from the cathedral so the surface ships at all. Each is a discrete v2 candidate:
+
+- **Featured-image upload UI** to override `post.ogImagePath` manually (currently the OG image is auto-generated only).
+- **AI-generate-excerpt button** in the editor — would call Claude per click, costs $ per use, easy to add once Slice B is in and we know the editor ergonomics.
+- **Draft auto-archive (>90 days)** to keep the list view clean as drafts accumulate.
+- **RSS/sitemap auto-regen on publish** — currently sitemap is rebuilt on every `/blog` request; RSS doesn't exist yet (item 39 below).
+- **Multi-author UX** — `post.authorId` exists but only one admin today; multi-author needs author management UI + per-user auth.
+- **Inline image upload in editor** — separate R2 endpoint work; the AI-assist "Suggest internal links" feature partially mitigates by helping the author cross-link existing posts.
+- **Internal-link auto-insertion** — suggestions are manual-insert only in Slice B; smart auto-insertion is hard UX to get right and warrants its own iteration.
+- **Post-performance analytics dashboard** — view counts, scroll depth, engagement — depends on item 41 (Plausible) being live first.
+- **Comments / discussion** — not a planned surface for this brand.
+- **A/B title testing** — premature for current readership scale.
+- **LinkedIn auto-cross-post on publish** — Modelling Room ≠ Translation Layer per [[translation-layer]]; these are deliberately separate channels.
 
 39. **RSS `/blog/feed.xml` route** — for readers who follow via RSS reader + LinkedIn newsletter sync. Last 20 listed posts, full excerpt + link back. Verify: validates at validator.w3.org/feed; LinkedIn newsletter import succeeds.
 
