@@ -55,10 +55,12 @@ describe("pingIndexNow", () => {
       (init?.headers as Record<string, string>)["Content-Type"],
     ).toContain("application/json");
     const body = JSON.parse(init?.body as string);
+    // No `keyLocation` — Option 1 (key file at the canonical
+    // /{key}.txt URL) means engines auto-fetch and don't need the path
+    // hinted in the payload.
     expect(body).toEqual({
       host: "archoslabs.xyz",
       key: KEY,
-      keyLocation: "https://archoslabs.xyz/indexnow.txt",
       urlList: [
         "https://archoslabs.xyz/blog/post-a",
         "https://archoslabs.xyz/blog/post-b",
