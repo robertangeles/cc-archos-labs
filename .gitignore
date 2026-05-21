@@ -34,7 +34,12 @@
 .DS_Store
 *.pem
 # Claude Code local cache (per-session artifacts; never repo content)
-.claude/
+.claude/*
+# Exceptions: gstack team-mode files are shared across the team
+!.claude/hooks/
+.claude/hooks/*
+!.claude/hooks/check-gstack.sh
+!.claude/settings.json
 
 # debug
 npm-debug.log*
