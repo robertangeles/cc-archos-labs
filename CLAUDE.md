@@ -1108,3 +1108,27 @@ When answering a question that draws on wiki knowledge:
 1. Use `pnpm wiki:search` and `pnpm wiki:graph neighbors <slug>` BEFORE opening full pages — narrow the working set first.
 2. Cite the pages used. Format: `[title](wiki/path/page.md)` or `[[slug]]`.
 3. If the synthesis is itself reusable — answers a question the next session might also ask — write it to `wiki/synthesis/`. Karpathy's pattern compounds because good answers become new pages.
+
+## gstack (REQUIRED — global install)
+
+**Before doing ANY work, verify gstack is installed:**
+
+```bash
+test -d ~/.claude/skills/gstack/bin && echo "GSTACK_OK" || echo "GSTACK_MISSING"
+```
+
+If GSTACK_MISSING: STOP. Do not proceed. Tell the user:
+
+> gstack is required for all AI-assisted work in this repo.
+> Install it:
+> ```bash
+> git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
+> cd ~/.claude/skills/gstack && ./setup --team
+> ```
+> Then restart your AI coding tool.
+
+Do not skip skills, ignore gstack errors, or work around missing gstack.
+
+Using gstack skills: After install, skills like /qa, /ship, /review, /investigate,
+and /browse are available. Use /browse for all web browsing.
+Use ~/.claude/skills/gstack/... for gstack file paths (the global path).

@@ -2,7 +2,7 @@
 title: Wiki Index
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-21
+updated: 2026-05-22
 related: [[state]], [[backlog]], [[shipped]], [[book-a-call-architecture]], [[booking-prompts-in-db]], [[claude-eval-suites]], [[lead-session-and-owner-only-reports]], [[magic-link-sign-in]], [[transactional-email-rendering]], [[integration-config]], [[design-system]], [[2026-05-20-wiki-karpathy-ops]], [[2026-05-20-posts-admin-phase-d-backend]], [[2026-05-20-posts-admin-phase-d-ui]], [[2026-05-21-sitemap-aieo-fixes]], [[2026-05-21-indexnow]]
 ---
 
@@ -12,6 +12,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 - [Deployment architecture](entities/deployment-architecture.md) — single Render web service + single Render Postgres + single R2 bucket + single Resend account. `.env.local` and the Render runtime point at the SAME DATABASE_URL. No dev/staging/prod separation. Read before recommending any operational runbook.
 - [The Translation Layer](entities/translation-layer.md) — publication brand at `/blog`; 253 posts migrated from robertangeles.com (rosy-bee). Distinct from The Modelling Room (LinkedIn newsletter) — never conflate the two.
 - [About page](entities/about-page.md) — `/about` route; practitioner dossier composed from the home + about section primitives. Anchors Rob as the credibility surface a sceptical exec lands on before the assessment or call.
+- [gstack — Claude Code skill pack](entities/gstack-tooling.md) — Garry Tan's 50-skill pack installed 2026-05-21 (user-level + team mode in this repo). PreToolUse hook denies skill use when gstack is missing globally. `/browse` is the required web-browsing skill; never use `mcp__claude-in-chrome__*`.
 
 ## concepts
 - [AI Readiness Assessment — Scoring Logic](concepts/diagnostic-scoring-logic.md) — engine architecture: pipeline, branch resolution, domain weighting, tier derivation, risk flags, priority triggers; calibrated values live in /admin/diagnostic
@@ -62,6 +63,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 _(none yet)_
 
 ## lessons-learned
+- [Inspect third-party installer scripts before running them](lessons-learned/2026-05-21-third-party-installer-inspection.md) — gstack install surfaced three gotchas the one-liner hid: Bun prerequisite, nested-negation gitignore trap, PowerShell-only SessionStart hook on Linux. Rule: `gh api .../contents/setup | base64 -d` BEFORE running any third-party installer.
 - [Adding a top-level app/ route requires updating RESERVED_SLUGS (or 404s become 500s)](lessons-learned/2026-05-21-reserved-slugs-drift-causes-500s.md) — Pages CMS catch-all's boot check throws if any top-level app/ dir is missing from RESERVED_SLUGS. Static routes hide the bug from normal traffic; only catch-all renders surface it. Rule: every new app/ folder gets a RESERVED_SLUGS entry in the same PR.
 - [Don't assume multi-environment architecture — read deployment-architecture first](lessons-learned/2026-05-20-single-db-architecture.md) — Phase C debacle post-mortem; the conventional dev/staging/prod assumption broke when reality was single-env, single-DB. Rule: when the user names architecture, accept it at face value; don't reinterpret through a conventional lens.
 - [Drizzle raw `sql` template rejects Date bind parameters](lessons-learned/2026-05-18-drizzle-raw-sql-rejects-date-params.md) — postgres.js's `.str()` throws `ERR_INVALID_ARG_TYPE` on Date params via raw `sql` template; use the typed query builder, or convert Date → ISO string + `::timestamptz` cast; unit-mocking `getDb` does not exercise the driver
