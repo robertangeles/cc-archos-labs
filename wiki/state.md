@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-21T01:39:05.131Z
+generated: 2026-05-21T01:53:27.434Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -17,10 +17,10 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/[...slug]` | [app/[...slug]/page.tsx](../app/[...slug]/page.tsx) | 2026-05-18 |
 | `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-18 |
 | `/admin/(authed)/blog` | [app/admin/(authed)/blog/page.tsx](../app/admin/(authed)/blog/page.tsx) | 2026-05-20 |
-| `/admin/(authed)/blog/posts` | [app/admin/(authed)/blog/posts/page.tsx](../app/admin/(authed)/blog/posts/page.tsx) | unknown |
-| `/admin/(authed)/blog/posts/[id]` | [app/admin/(authed)/blog/posts/[id]/page.tsx](../app/admin/(authed)/blog/posts/[id]/page.tsx) | unknown |
-| `/admin/(authed)/blog/posts/[id]/revisions` | [app/admin/(authed)/blog/posts/[id]/revisions/page.tsx](../app/admin/(authed)/blog/posts/[id]/revisions/page.tsx) | unknown |
-| `/admin/(authed)/blog/posts/new` | [app/admin/(authed)/blog/posts/new/page.tsx](../app/admin/(authed)/blog/posts/new/page.tsx) | unknown |
+| `/admin/(authed)/blog/posts` | [app/admin/(authed)/blog/posts/page.tsx](../app/admin/(authed)/blog/posts/page.tsx) | 2026-05-21 |
+| `/admin/(authed)/blog/posts/[id]` | [app/admin/(authed)/blog/posts/[id]/page.tsx](../app/admin/(authed)/blog/posts/[id]/page.tsx) | 2026-05-21 |
+| `/admin/(authed)/blog/posts/[id]/revisions` | [app/admin/(authed)/blog/posts/[id]/revisions/page.tsx](../app/admin/(authed)/blog/posts/[id]/revisions/page.tsx) | 2026-05-21 |
+| `/admin/(authed)/blog/posts/new` | [app/admin/(authed)/blog/posts/new/page.tsx](../app/admin/(authed)/blog/posts/new/page.tsx) | 2026-05-21 |
 | `/admin/(authed)/diagnostic` | [app/admin/(authed)/diagnostic/page.tsx](../app/admin/(authed)/diagnostic/page.tsx) | 2026-05-15 |
 | `/admin/(authed)/integrations` | [app/admin/(authed)/integrations/page.tsx](../app/admin/(authed)/integrations/page.tsx) | 2026-05-15 |
 | `/admin/(authed)/integrations/[slug]` | [app/admin/(authed)/integrations/[slug]/page.tsx](../app/admin/(authed)/integrations/[slug]/page.tsx) | 2026-05-17 |
@@ -34,7 +34,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/admin/login` | [app/admin/login/page.tsx](../app/admin/login/page.tsx) | 2026-05-15 |
 | `/ai-readiness-assessment` | [app/ai-readiness-assessment/page.tsx](../app/ai-readiness-assessment/page.tsx) | 2026-05-15 |
 | `/blog` | [app/blog/page.tsx](../app/blog/page.tsx) | 2026-05-20 |
-| `/blog/[slug]` | [app/blog/[slug]/page.tsx](../app/blog/[slug]/page.tsx) | 2026-05-20 |
+| `/blog/[slug]` | [app/blog/[slug]/page.tsx](../app/blog/[slug]/page.tsx) | 2026-05-21 |
 | `/blog/category/[slug]` | [app/blog/category/[slug]/page.tsx](../app/blog/category/[slug]/page.tsx) | 2026-05-20 |
 | `/book/[slug]` | [app/book/[slug]/page.tsx](../app/book/[slug]/page.tsx) | 2026-05-17 |
 | `/book/[slug]/confirmation/[bookingId]` | [app/book/[slug]/confirmation/[bookingId]/page.tsx](../app/book/[slug]/confirmation/[bookingId]/page.tsx) | 2026-05-17 |
@@ -70,7 +70,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/pages/[id]/revisions/[revId]/restore` | [app/api/admin/pages/[id]/revisions/[revId]/restore/route.ts](../app/api/admin/pages/[id]/revisions/[revId]/restore/route.ts) | 2026-05-18 |
 | `/api/admin/posts` | [app/api/admin/posts/route.ts](../app/api/admin/posts/route.ts) | 2026-05-20 |
 | `/api/admin/posts/[id]` | [app/api/admin/posts/[id]/route.ts](../app/api/admin/posts/[id]/route.ts) | 2026-05-20 |
-| `/api/admin/posts/[id]/image` | [app/api/admin/posts/[id]/image/route.ts](../app/api/admin/posts/[id]/image/route.ts) | unknown |
+| `/api/admin/posts/[id]/image` | [app/api/admin/posts/[id]/image/route.ts](../app/api/admin/posts/[id]/image/route.ts) | 2026-05-21 |
 | `/api/admin/posts/[id]/regenerate-og` | [app/api/admin/posts/[id]/regenerate-og/route.ts](../app/api/admin/posts/[id]/regenerate-og/route.ts) | 2026-05-20 |
 | `/api/admin/posts/[id]/restore` | [app/api/admin/posts/[id]/restore/route.ts](../app/api/admin/posts/[id]/restore/route.ts) | 2026-05-20 |
 | `/api/admin/posts/[id]/revisions` | [app/api/admin/posts/[id]/revisions/route.ts](../app/api/admin/posts/[id]/revisions/route.ts) | 2026-05-20 |
@@ -110,12 +110,12 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/analytics/analytics-client.tsx](../components/analytics/analytics-client.tsx) | 2026-05-18 |
 | [components/blog/author-bio.tsx](../components/blog/author-bio.tsx) | 2026-05-20 |
 | [components/blog/category-chips.tsx](../components/blog/category-chips.tsx) | 2026-05-20 |
-| [components/blog/editorial-list-row.tsx](../components/blog/editorial-list-row.tsx) | 2026-05-20 |
+| [components/blog/editorial-list-row.tsx](../components/blog/editorial-list-row.tsx) | 2026-05-21 |
 | [components/blog/heading-copy-link-button.tsx](../components/blog/heading-copy-link-button.tsx) | 2026-05-20 |
 | [components/blog/pagination.tsx](../components/blog/pagination.tsx) | 2026-05-20 |
 | [components/blog/post-body.tsx](../components/blog/post-body.tsx) | 2026-05-20 |
 | [components/blog/post-header.tsx](../components/blog/post-header.tsx) | 2026-05-20 |
-| [components/blog/read-next.tsx](../components/blog/read-next.tsx) | 2026-05-20 |
+| [components/blog/read-next.tsx](../components/blog/read-next.tsx) | 2026-05-21 |
 | [components/blog/toc.tsx](../components/blog/toc.tsx) | 2026-05-20 |
 | [components/booking/calendar-picker.tsx](../components/booking/calendar-picker.tsx) | 2026-05-17 |
 | [components/contact/contact-form.tsx](../components/contact/contact-form.tsx) | 2026-05-15 |

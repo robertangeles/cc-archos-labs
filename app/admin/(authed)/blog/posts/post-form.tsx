@@ -773,12 +773,21 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
 
             {ogImagePath ? (
               <div className="mt-6 flex flex-wrap items-start gap-x-6 gap-y-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={ogImagePath}
-                  alt={ogImageAlt || "Featured image preview"}
-                  className="h-32 w-auto rounded-md border border-hairline object-cover"
-                />
+                {/* Preview matches the public-blog render exactly: 29:10
+                    letterbox + object-cover. Whatever crop readers see
+                    on /blog and /blog/[slug] is what shows here. If the
+                    crop loses important detail, the author knows before
+                    publish, not after. */}
+                <div className="relative aspect-[29/10] w-80 overflow-hidden rounded-md border border-hairline bg-surface-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={ogImagePath}
+                    alt={ogImageAlt || "Featured image preview"}
+                    width={ogImageWidth ?? undefined}
+                    height={ogImageHeight ?? undefined}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                </div>
                 <div className="flex flex-col gap-y-2">
                   <button
                     type="button"
