@@ -31,6 +31,18 @@ describe("isReservedSlug", () => {
     expect(isReservedSlug("modelling-room")).toBe(false);
     expect(isReservedSlug("case-study-acme")).toBe(false);
   });
+
+  // Regression guard for the 2026-05-21 hotfix: these top-level app/
+  // routes existed on disk for weeks before being added to the set,
+  // which caused the catch-all to throw 500 for any 404-class request
+  // (every unknown URL hit runBootCheck, which surfaced the drift).
+  // If any of these are removed from the set without also removing the
+  // app/ directory, the deploy will start 500-ing again.
+  it("includes static top-level routes that existed but were missing", () => {
+    expect(isReservedSlug("blog")).toBe(true);
+    expect(isReservedSlug("llms.txt")).toBe(true);
+    expect(isReservedSlug("llms-full.txt")).toBe(true);
+  });
 });
 
 describe("listAppTopLevelRoutes (filesystem reflection)", () => {

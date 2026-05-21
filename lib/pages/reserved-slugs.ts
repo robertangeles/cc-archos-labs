@@ -23,8 +23,11 @@ export const RESERVED_SLUGS = new Set<string>([
   "admin",
   "ai-readiness-assessment",
   "api",
+  "blog",
   "book",
   "contact",
+  "llms-full.txt",
+  "llms.txt",
   "sign-in",
   "tools",
 ]);

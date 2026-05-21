@@ -62,6 +62,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 _(none yet)_
 
 ## lessons-learned
+- [Adding a top-level app/ route requires updating RESERVED_SLUGS (or 404s become 500s)](lessons-learned/2026-05-21-reserved-slugs-drift-causes-500s.md) — Pages CMS catch-all's boot check throws if any top-level app/ dir is missing from RESERVED_SLUGS. Static routes hide the bug from normal traffic; only catch-all renders surface it. Rule: every new app/ folder gets a RESERVED_SLUGS entry in the same PR.
 - [Don't assume multi-environment architecture — read deployment-architecture first](lessons-learned/2026-05-20-single-db-architecture.md) — Phase C debacle post-mortem; the conventional dev/staging/prod assumption broke when reality was single-env, single-DB. Rule: when the user names architecture, accept it at face value; don't reinterpret through a conventional lens.
 - [Drizzle raw `sql` template rejects Date bind parameters](lessons-learned/2026-05-18-drizzle-raw-sql-rejects-date-params.md) — postgres.js's `.str()` throws `ERR_INVALID_ARG_TYPE` on Date params via raw `sql` template; use the typed query builder, or convert Date → ISO string + `::timestamptz` cast; unit-mocking `getDb` does not exercise the driver
 - [Reuse before invent (when a working reference exists in the codebase)](lessons-learned/2026-05-18-reuse-before-invent.md) — three rounds of /consulting design iteration thrown out before realising the home page was the standard; rule: scan `components/sections/*` and analogous patterns BEFORE writing new ones

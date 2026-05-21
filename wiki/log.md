@@ -8,6 +8,51 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-21 — RESERVED_SLUGS hotfix (feature/fix-reserved-slugs)
+
+Pre-existing bug surfaced by today's IndexNow deploys: every 404-class
+URL on `archoslabs.xyz` was returning HTTP 500 because the Pages CMS
+catch-all's boot check found three top-level `app/` routes
+(`blog`, `llms.txt`, `llms-full.txt`) missing from `RESERVED_SLUGS`.
+Static routes always took precedence so legitimate URLs worked — but
+typos, link rot, and the now-deleted `/indexnow.txt` all 500-ed.
+
+**What shipped:**
+- `lib/pages/reserved-slugs.ts` — three entries added.
+- `lib/pages/reserved-slugs.test.ts` — regression-guard test pinning the
+  three slugs (one failed assertion = noisy CI before the deploy 500s).
+- `wiki/lessons-learned/2026-05-21-reserved-slugs-drift-causes-500s.md`
+  — rule: any new top-level `app/` route requires a `RESERVED_SLUGS`
+  entry in the SAME PR.
+
+**Verification:** tsc clean, lint clean, 539/539 tests pass (one new),
+post-merge prod will be re-verified by curling `/no-such-path` for 404.
+
+## 2026-05-21 — IndexNow Option 1 switch (feature/indexnow-option-1)
+
+Same-day follow-up to the IndexNow client PR — switched key file URL
+from `/indexnow.txt` + `keyLocation` (Option 2) to `/{key}.txt` at root
+(Option 1), matching the canonical example in Bing's getting-started
+docs. Both shapes are spec-compliant per the FAQ; Option 1 reduces
+"why doesn't ours look like the docs" friction for operators verifying
+the integration.
+
+**What shipped:**
+- `scripts/write-indexnow-keyfile.mjs` writes `public/{INDEXNOW_KEY}.txt`
+  at `prebuild`. Validates 8-128 chars from `[a-zA-Z0-9-]`. No-ops
+  silently when env unset.
+- `package.json` wires the script as `prebuild` so Render generates the
+  file from env at every deploy.
+- `public/*.txt` gitignored — key never lands in repo. Rotation = env
+  var change only.
+- `app/indexnow.txt/route.ts` deleted. `lib/indexnow.ts` drops
+  `keyLocation` from payload — engines auto-fetch under Option 1.
+- Test fixture updated; `.env.example` + decision doc reworded.
+
+**Verification:** prod `https://archoslabs.xyz/{key}.txt` returns 200 +
+key body, `Content-Type: text/plain; charset=UTF-8`. Existing
+`INDEXNOW_KEY` env var reused; Bing verification stayed valid.
+
 ## 2026-05-21 — IndexNow push-indexing client (feature/indexnow)
 
 Push-side counterpart to the morning's sitemap fix. Submits content
