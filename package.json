@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "node --env-file-if-exists=.env.local scripts/dev.mjs",
     "dev:fresh": "node --env-file-if-exists=.env.local scripts/dev-fresh.mjs",
+    "prebuild": "node scripts/write-indexnow-keyfile.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

@@ -29,11 +29,13 @@ import { getSiteUrl } from "./site-config";
 //     In-memory Map; resets on container restart, which is acceptable —
 //     worst case is one extra ping after deploy.
 //
-// Key file: served at /indexnow.txt by `app/indexnow.txt/route.ts`,
-// reading from the same INDEXNOW_KEY env var this module reads. The
-// keyLocation parameter is sent in every payload so the engines can
-// fetch + verify the key without it needing to be at the literal
-// {key}.txt root path.
+// Key file: written to `public/{INDEXNOW_KEY}.txt` at build time by
+// `scripts/write-indexnow-keyfile.mjs` (wired via `prebuild` in
+// package.json). Engines fetch `https://<host>/{key}.txt` automatically
+// when they receive a ping containing `key` — no `keyLocation` needed
+// (IndexNow "Option 1" per the Bing getting-started docs). The
+// build-time generation keeps the key out of git: only env-var changes,
+// no file commits, are required to rotate.
 
 const ENDPOINT = "https://api.indexnow.org/indexnow";
 const DEBOUNCE_MS = 5 * 60 * 1000;
@@ -111,7 +113,6 @@ export async function pingIndexNow(urls: string[]): Promise<PingResult> {
 
   const siteUrl = getSiteUrl();
   const host = new URL(siteUrl).host;
-  const keyLocation = `${siteUrl}/indexnow.txt`;
 
   try {
     const res = await fetch(ENDPOINT, {
@@ -120,7 +121,6 @@ export async function pingIndexNow(urls: string[]): Promise<PingResult> {
       body: JSON.stringify({
         host,
         key,
-        keyLocation,
         urlList: toSubmit,
       }),
     });
