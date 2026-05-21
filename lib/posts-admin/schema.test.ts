@@ -189,10 +189,18 @@ describe("PostCreateSchema — tags", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects more than 32 tags", () => {
+  it("accepts exactly 8 tags (the cap)", () => {
     const result = PostCreateSchema.safeParse({
       ...baseValidInput,
-      tags: Array.from({ length: 33 }, (_, i) => `tag${i}`),
+      tags: Array.from({ length: 8 }, (_, i) => `tag${i}`),
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects more than 8 tags", () => {
+    const result = PostCreateSchema.safeParse({
+      ...baseValidInput,
+      tags: Array.from({ length: 9 }, (_, i) => `tag${i}`),
     });
     expect(result.success).toBe(false);
   });

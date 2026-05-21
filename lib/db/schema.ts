@@ -1047,6 +1047,37 @@ export type NewCategory = typeof category.$inferInsert;
 //
 // `needs_review` is the Claude polish quality flag (Phase 3 AI authoring
 // reuses the same column for "this draft needs human review before publish").
+//
+// `og_image_*` columns expanded in migration 0016 to capture full image
+// metadata (alt, dimensions, mime, size, uploader, checksum, R2 key,
+// soft-delete) — required for accessibility (WCAG alt text), CLS
+// prevention (width/height), and orphaned-file cleanup (R2 key registry).
+
+// ============================================================================
+// users — multi-user admin scaffold (migration 0015)
+// ============================================================================
+// Foundation for multi-user admin. Single seeded row today (email='admin',
+// role='admin') matches the JWT subject claim minted by lib/auth.ts.
+// Auth itself is unchanged — this table exists so uploaded-by /
+// saved-by / authored-by FKs have somewhere to point. Per-user login
+// lands in a follow-up PR.
+
+export const users = pgTable("users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull().unique(),
+  displayName: text("display_name"),
+  // Free-form text (not enum) for forward flexibility — promote to a
+  // pgEnum once we know which other roles we need (author, reviewer,
+  // viewer, etc.).
+  role: text("role").notNull().default("admin"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+});
+
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
 
 export const post = pgTable(
   "post",
@@ -1070,6 +1101,50 @@ export const post = pgTable(
     // When the OG image was last regenerated. Migration sets it; admin
     // re-generates on title or excerpt change.
     ogImageGeneratedAt: timestamp("og_image_generated_at", {
+      withTimezone: true,
+    }),
+    // ---- Phase D image metadata (migration 0016) ----
+    // Alt text for a11y + SEO. Enforced as required at the upload route
+    // layer (not as a DB CHECK constraint) so the 253 migrated rows
+    // could be grandfathered + backfilled separately. Render layer
+    // falls back to post.title when NULL.
+    ogImageAlt: text("og_image_alt"),
+    // Intrinsic pixel dimensions — read from file at upload time. Used
+    // by next/image to avoid CLS (cumulative layout shift). NULL on
+    // migrated rows until backfilled.
+    ogImageWidth: integer("og_image_width"),
+    ogImageHeight: integer("og_image_height"),
+    // Original filename built from slug: `{slug}-featured-01.{ext}`.
+    // Lowercased, no spaces.
+    ogImageFilename: text("og_image_filename"),
+    // Mime type — CHECK-constrained to 'image/png' | 'image/jpeg' |
+    // 'image/webp'. Validated at upload before R2 write.
+    ogImageMimeType: text("og_image_mime_type"),
+    // File size in kilobytes (integer). CHECK-constrained <= 500.
+    // Application layer warns at 150 KB.
+    ogImageSizeKb: integer("og_image_size_kb"),
+    // FK to users.id (the seeded 'admin' row, until per-user login).
+    // ON DELETE SET NULL so deleting a user doesn't blank the metadata.
+    ogImageUploadedBy: uuid("og_image_uploaded_by").references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    // Upload timestamp. Separate from og_image_generated_at (which
+    // tracks satori-renderer output, a different concern).
+    ogImageUploadedAt: timestamp("og_image_uploaded_at", {
+      withTimezone: true,
+    }),
+    // Sha256 of the file bytes — for dedupe + integrity. Partial index
+    // exists for lookup.
+    ogImageChecksum: text("og_image_checksum"),
+    // Full R2 key (path inside the bucket, no leading slash). Kept
+    // separate from the public URL so the future cleanup job can
+    // identify + reap orphaned R2 objects.
+    ogImageR2Key: text("og_image_r2_key"),
+    // Soft-delete stamp. When admin removes an image, this is set but
+    // og_image_path stays populated for a grace period before the
+    // cleanup job nullifies it + deletes the R2 object.
+    ogImageDeletedAt: timestamp("og_image_deleted_at", {
       withTimezone: true,
     }),
     // Editorial author. Nullable for safety during migration (set NOT NULL
@@ -1170,6 +1245,19 @@ export const post = pgTable(
     index("post_due_for_publish_idx")
       .on(table.scheduledPublishAt)
       .where(sql`status = 'scheduled'`),
+    // Phase D image metadata indexes (migration 0016).
+    // FK lookup (mandatory per CLAUDE.md): "list a user's uploads".
+    index("post_og_image_uploaded_by_idx").on(table.ogImageUploadedBy),
+    // Dedupe lookups on re-upload. Partial — only rows with a checksum
+    // participate so the index stays tiny at 253-post scale.
+    index("post_og_image_checksum_idx")
+      .on(table.ogImageChecksum)
+      .where(sql`og_image_checksum IS NOT NULL`),
+    // Future R2 cleanup job query — "find images soft-deleted past
+    // grace period". Partial — only soft-deleted rows participate.
+    index("post_og_image_deleted_at_idx")
+      .on(table.ogImageDeletedAt)
+      .where(sql`og_image_deleted_at IS NOT NULL`),
     // pgvector HNSW index for read-next + /search ANN queries:
     //   SELECT ... ORDER BY embedding <=> $1 LIMIT 3
     // Created in custom SQL (drizzle has no HNSW builder yet) — see the

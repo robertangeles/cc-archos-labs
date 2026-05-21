@@ -35,11 +35,13 @@ const PostStatusSchema = z.enum([
 ] as const);
 const PostVisibilitySchema = z.enum(["listed", "unlisted"] as const);
 
-// Tags: free-form string array, 0-32 items, each 1-64 chars. Validated
-// against a taxonomy allowlist server-side (lib/posts-admin/index.ts).
+// Tags: free-form string array, 0-8 items, each 1-64 chars. The cap is
+// editorial — 8 is plenty for a single post; more becomes noise on the
+// public render. If a migrated post arrived with >8 tags, the form
+// surfaces the count + asks the author to trim before save.
 const TagsSchema = z
   .array(z.string().min(1).max(64).trim())
-  .max(32, "A post can have at most 32 tags.")
+  .max(8, "A post can have at most 8 tags.")
   .optional()
   .default([]);
 
@@ -69,6 +71,12 @@ const PostBaseSchema = z
     needsReview: z.boolean().optional(),
     lastReviewedAt: z.coerce.date().optional().nullable(),
     scheduledPublishAt: z.coerce.date().optional().nullable(),
+    ogImageAlt: z
+      .string()
+      .trim()
+      .max(125, "Alt text must be 125 characters or fewer.")
+      .optional()
+      .nullable(),
   })
   .superRefine((data, ctx) => {
     // Invariant: status='scheduled' ↔ scheduledPublishAt is set AND
@@ -132,6 +140,12 @@ export const PostUpdateSchema = z
     needsReview: z.boolean().optional(),
     lastReviewedAt: z.coerce.date().optional().nullable(),
     scheduledPublishAt: z.coerce.date().optional().nullable(),
+    ogImageAlt: z
+      .string()
+      .trim()
+      .max(125, "Alt text must be 125 characters or fewer.")
+      .optional()
+      .nullable(),
     expectedUpdatedAt: z.coerce.date({
       error: "expectedUpdatedAt is required for updates (optimistic locking).",
     }),

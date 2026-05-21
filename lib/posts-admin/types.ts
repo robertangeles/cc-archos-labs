@@ -31,6 +31,19 @@ export interface AdminPostView {
   seoDescription: string | null;
   ogImagePath: string | null;
   ogImageGeneratedAt: Date | null;
+  // Phase D image metadata (migration 0016). All NULL on migrated rows
+  // until backfilled or re-uploaded via the admin.
+  ogImageAlt: string | null;
+  ogImageWidth: number | null;
+  ogImageHeight: number | null;
+  ogImageFilename: string | null;
+  ogImageMimeType: string | null;
+  ogImageSizeKb: number | null;
+  ogImageUploadedBy: string | null; // FK to users.id (UUID)
+  ogImageUploadedAt: Date | null;
+  ogImageChecksum: string | null;
+  ogImageR2Key: string | null;
+  ogImageDeletedAt: Date | null;
   authorId: string | null;
   categoryId: string | null;
   tags: string[];
@@ -83,6 +96,13 @@ export interface PostInput {
    * because the wall clock advanced).
    */
   scheduledPublishAt?: Date | null;
+  /**
+   * Optional on the main post save — the upload route is the primary
+   * writer (which also requires + validates alt for new uploads). This
+   * lets the admin EDIT alt text without re-uploading the image file.
+   * Max 125 chars; trimmed; rejected if it would exceed length.
+   */
+  ogImageAlt?: string | null;
 }
 
 /**
@@ -115,6 +135,26 @@ export type AdminListFilter =
   | "published"
   | "needs_review"
   | "archived";
+
+/**
+ * Author lookup row for the editor's Author dropdown. Slim projection —
+ * we don't need bio / photo / linkedin for the form.
+ */
+export interface AuthorLookup {
+  id: string;
+  slug: string;
+  name: string;
+}
+
+/**
+ * Category lookup row for the editor's Category dropdown. Slim
+ * projection — description isn't needed for the form.
+ */
+export interface CategoryLookup {
+  id: string;
+  slug: string;
+  name: string;
+}
 
 // ---------------------------------------------------------------------------
 // Named errors. Routes translate these to HTTP status codes; tests

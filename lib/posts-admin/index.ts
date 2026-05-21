@@ -12,6 +12,8 @@ import {
   PostNotFoundError,
   RevisionNotFoundError,
   type AdminPostView,
+  type AuthorLookup,
+  type CategoryLookup,
   type PostInput,
   type PostStatus,
   type PostVisibility,
@@ -164,6 +166,17 @@ export async function listPostsForAdmin(
       seoDescription: post.seoDescription,
       ogImagePath: post.ogImagePath,
       ogImageGeneratedAt: post.ogImageGeneratedAt,
+      ogImageAlt: post.ogImageAlt,
+      ogImageWidth: post.ogImageWidth,
+      ogImageHeight: post.ogImageHeight,
+      ogImageFilename: post.ogImageFilename,
+      ogImageMimeType: post.ogImageMimeType,
+      ogImageSizeKb: post.ogImageSizeKb,
+      ogImageUploadedBy: post.ogImageUploadedBy,
+      ogImageUploadedAt: post.ogImageUploadedAt,
+      ogImageChecksum: post.ogImageChecksum,
+      ogImageR2Key: post.ogImageR2Key,
+      ogImageDeletedAt: post.ogImageDeletedAt,
       authorId: post.authorId,
       categoryId: post.categoryId,
       tags: post.tags,
@@ -233,6 +246,17 @@ export async function getAdminPostById(
       seoDescription: post.seoDescription,
       ogImagePath: post.ogImagePath,
       ogImageGeneratedAt: post.ogImageGeneratedAt,
+      ogImageAlt: post.ogImageAlt,
+      ogImageWidth: post.ogImageWidth,
+      ogImageHeight: post.ogImageHeight,
+      ogImageFilename: post.ogImageFilename,
+      ogImageMimeType: post.ogImageMimeType,
+      ogImageSizeKb: post.ogImageSizeKb,
+      ogImageUploadedBy: post.ogImageUploadedBy,
+      ogImageUploadedAt: post.ogImageUploadedAt,
+      ogImageChecksum: post.ogImageChecksum,
+      ogImageR2Key: post.ogImageR2Key,
+      ogImageDeletedAt: post.ogImageDeletedAt,
       authorId: post.authorId,
       categoryId: post.categoryId,
       tags: post.tags,
@@ -261,6 +285,39 @@ export async function getAdminPostById(
 
   if (rows.length === 0) return null;
   return rowToAdminView(rows[0]);
+}
+
+/**
+ * Slim author list for the editor's Author dropdown. Ordered by name.
+ */
+export async function listAuthorsForAdmin(): Promise<AuthorLookup[]> {
+  const db = getDb();
+  return db
+    .select({
+      id: author.id,
+      slug: author.slug,
+      name: author.name,
+    })
+    .from(author)
+    .orderBy(asc(author.name));
+}
+
+/**
+ * Slim category list for the editor's Category dropdown. Ordered by
+ * name. (lib/posts.ts has a fatter `listAllCategories()` that includes
+ * description — kept separate so admin and public reader stay
+ * decoupled.)
+ */
+export async function listCategoriesForAdmin(): Promise<CategoryLookup[]> {
+  const db = getDb();
+  return db
+    .select({
+      id: category.id,
+      slug: category.slug,
+      name: category.name,
+    })
+    .from(category)
+    .orderBy(asc(category.name));
 }
 
 /**
@@ -333,6 +390,7 @@ export async function createPost(
           needsReview: normalised.needsReview,
           lastReviewedAt: normalised.lastReviewedAt,
           scheduledPublishAt: normalised.scheduledPublishAt,
+          ogImageAlt: normalised.ogImageAlt,
           // Publish semantics on create:
           //   - draft / scheduled / archived: publishedAt stays NULL
           //   - published: stamp publishedAt = now()
@@ -483,6 +541,7 @@ export async function updatePost(
           needsReview: normalised.needsReview,
           lastReviewedAt: normalised.lastReviewedAt,
           scheduledPublishAt: normalised.scheduledPublishAt,
+          ogImageAlt: normalised.ogImageAlt,
           publishedAt: nextPublishedAt,
           wordCount,
           readingTimeMin,
@@ -761,6 +820,16 @@ export async function regenerateOgForPost(
     excerpt: rows[0].excerpt,
   });
 
+  // Stub-guard: lib/og.ts currently returns "" + epoch when the satori
+  // pipeline hasn't shipped yet. Writing that empty path would CLOBBER
+  // the migrated WP featured image URL that today serves as the post's
+  // hero + OG card. Skip the DB write when the generator is stubbed —
+  // when the real renderer lands and returns a real R2 URL, this branch
+  // falls through and the update runs.
+  if (!result.ogImagePath || result.ogImageGeneratedAt.getTime() === 0) {
+    return result;
+  }
+
   // Update WITHOUT bumping updatedAt — OG path is derived, not
   // user-facing content. No revision row either.
   await db
@@ -851,6 +920,7 @@ function normalisePostInput(input: PostInput): {
   needsReview: boolean;
   lastReviewedAt: Date | null;
   scheduledPublishAt: Date | null;
+  ogImageAlt: string | null;
 } {
   return {
     slug: input.slug.trim().toLowerCase(),
@@ -868,7 +938,17 @@ function normalisePostInput(input: PostInput): {
     lastReviewedAt: input.lastReviewedAt ?? null,
     scheduledPublishAt:
       input.status === "scheduled" ? (input.scheduledPublishAt ?? null) : null,
+    // Trim + truncate; reject empty string in favour of null (so
+    // optional UI omission stays distinguishable from explicit empty).
+    ogImageAlt: normaliseAltText(input.ogImageAlt),
   };
+}
+
+function normaliseAltText(raw: string | null | undefined): string | null {
+  if (raw == null) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  return trimmed.slice(0, 125);
 }
 
 /**
@@ -903,6 +983,17 @@ interface PostRowForView {
   seoDescription: string | null;
   ogImagePath: string | null;
   ogImageGeneratedAt: Date | null;
+  ogImageAlt: string | null;
+  ogImageWidth: number | null;
+  ogImageHeight: number | null;
+  ogImageFilename: string | null;
+  ogImageMimeType: string | null;
+  ogImageSizeKb: number | null;
+  ogImageUploadedBy: string | null;
+  ogImageUploadedAt: Date | null;
+  ogImageChecksum: string | null;
+  ogImageR2Key: string | null;
+  ogImageDeletedAt: Date | null;
   authorId: string | null;
   categoryId: string | null;
   tags: unknown;
@@ -935,6 +1026,17 @@ function rowToAdminView(row: PostRowForView): AdminPostView {
     seoDescription: row.seoDescription,
     ogImagePath: row.ogImagePath,
     ogImageGeneratedAt: row.ogImageGeneratedAt,
+    ogImageAlt: row.ogImageAlt,
+    ogImageWidth: row.ogImageWidth,
+    ogImageHeight: row.ogImageHeight,
+    ogImageFilename: row.ogImageFilename,
+    ogImageMimeType: row.ogImageMimeType,
+    ogImageSizeKb: row.ogImageSizeKb,
+    ogImageUploadedBy: row.ogImageUploadedBy,
+    ogImageUploadedAt: row.ogImageUploadedAt,
+    ogImageChecksum: row.ogImageChecksum,
+    ogImageR2Key: row.ogImageR2Key,
+    ogImageDeletedAt: row.ogImageDeletedAt,
     authorId: row.authorId,
     categoryId: row.categoryId,
     tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],

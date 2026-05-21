@@ -60,14 +60,13 @@ export function ReadNext({ items }: ReadNextProps) {
                 href={`/blog/${item.slug}`}
                 className="group block h-full overflow-hidden rounded-lg border border-hairline bg-surface-1 transition-colors duration-150 hover:bg-surface-2"
               >
-                {item.ogImagePath ? (
-                  <div
-                    className="relative aspect-[29/10] w-full overflow-hidden bg-surface-2"
-                    aria-hidden
-                  >
+                {item.ogImagePath && !item.ogImageDeletedAt ? (
+                  <div className="relative aspect-[29/10] w-full overflow-hidden bg-surface-2">
                     <Image
                       src={item.ogImagePath}
-                      alt=""
+                      // Alt from item.og_image_alt; falls back to
+                      // post title for legacy rows lacking alt.
+                      alt={item.ogImageAlt ?? item.title}
                       fill
                       sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
                       className="object-cover"
