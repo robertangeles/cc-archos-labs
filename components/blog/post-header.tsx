@@ -1,10 +1,15 @@
 import Link from "next/link";
-import { formatLastReviewed } from "../../lib/post-rendering";
+import { formatPublishedDate } from "../../lib/post-rendering";
 
 // Post header — eyebrow (category link) + title + micro-row (byline +
-// reading time + last reviewed). Renders above the article body.
+// reading time + published date). Renders above the article body.
 // Magazine-intentional: left-aligned, no centered text, no banner image
 // (the OG image is a share artefact, not a hero).
+//
+// `lastReviewedAt` is still accepted on the props for API stability +
+// future use (e.g. tooltip "Last reviewed: …" on hover of the date),
+// but the visible micro-row says "Published <date>" to match the
+// /blog index listing's labeling.
 
 export interface PostHeaderProps {
   title: string;
@@ -23,9 +28,9 @@ export function PostHeader({
   categoryName,
   readingTimeMin,
   publishedAt,
-  lastReviewedAt,
+  lastReviewedAt: _lastReviewedAt,
 }: PostHeaderProps) {
-  const lastReviewed = formatLastReviewed(lastReviewedAt, publishedAt);
+  const publishedDate = formatPublishedDate(publishedAt);
   return (
     <header className="flex flex-col gap-y-6">
       {categoryName && categorySlug ? (
@@ -49,10 +54,8 @@ export function PostHeader({
         <span>{readingTimeMin} min read</span>
         <span aria-hidden>·</span>
         <span>
-          Last reviewed{" "}
-          <time dateTime={(lastReviewedAt ?? publishedAt).toISOString()}>
-            {lastReviewed}
-          </time>
+          Published{" "}
+          <time dateTime={publishedAt.toISOString()}>{publishedDate}</time>
         </span>
       </div>
     </header>
