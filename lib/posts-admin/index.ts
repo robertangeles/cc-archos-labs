@@ -4,6 +4,8 @@ import { generateOgImage } from "../og";
 import { embedPostContent, EmbeddingError } from "../embeddings";
 import { getDb } from "../db";
 import { author, category, post, postRevision } from "../db/schema";
+import { pingIndexNow } from "../indexnow";
+import { getSiteUrl } from "../site-config";
 import { computeWordCount, readingTimeMinutes } from "./word-count";
 import {
   ConcurrentEditError,
@@ -445,6 +447,7 @@ export async function createPost(
   // Re-read so the response reflects any side-effect column updates
   // (ogImagePath, ogImageGeneratedAt). Cheap single-row lookup.
   const refreshed = (await getAdminPostById(created.id)) ?? created;
+  pingPostIfPublic(refreshed);
   return { post: refreshed, sideEffects };
 }
 
@@ -475,14 +478,18 @@ export async function updatePost(
   let updated: AdminPostView;
   let titleOrExcerptChanged = false;
   let embeddingShouldRefresh = false;
+  let previousSlug: string | null = null;
 
   try {
     updated = await db.transaction(async (tx) => {
       // Lock the row for the rest of the tx (defends against the
-      // read-then-write race window).
+      // read-then-write race window). `slug` is included so the
+      // post-commit IndexNow ping can also notify engines of an old
+      // slug now returning 404 when the admin renames.
       const existingRows = await tx
         .select({
           id: post.id,
+          slug: post.slug,
           title: post.title,
           excerpt: post.excerpt,
           contentMd: post.contentMd,
@@ -508,6 +515,8 @@ export async function updatePost(
           existing.updatedAt,
         );
       }
+
+      previousSlug = existing.slug;
 
       const diffSizePct = computeDiffSizePct(
         existing.contentMd,
@@ -590,6 +599,7 @@ export async function updatePost(
   });
 
   const refreshed = (await getAdminPostById(updated.id)) ?? updated;
+  pingPostIfPublic(refreshed, previousSlug);
   return { post: refreshed, sideEffects };
 }
 
@@ -612,6 +622,10 @@ export async function archivePost(id: string): Promise<AdminPostView> {
   }
   const refreshed = await getAdminPostById(id);
   if (!refreshed) throw new PostNotFoundError(`Post "${id}" disappeared.`);
+  // The archive just made the public URL return 404; ping IndexNow so
+  // engines drop it from their index. This is the same FAQ-recommended
+  // pattern as submitting a redirected URL.
+  pingPostUrl(refreshed.slug);
   return refreshed;
 }
 
@@ -633,7 +647,40 @@ export async function restoreFromArchive(
   }
   const refreshed = await getAdminPostById(id);
   if (!refreshed) throw new PostNotFoundError(`Post "${id}" disappeared.`);
+  pingPostIfPublic(refreshed);
   return refreshed;
+}
+
+// ----- IndexNow helpers ----------------------------------------------------
+// Localised here (rather than in lib/indexnow.ts) because the predicate
+// "is this post currently public" is post-domain knowledge — listed +
+// published + not archived. URL shape `/blog/<slug>` is also a post
+// concern. Fire-and-forget: callers do not await.
+
+function pingPostIfPublic(
+  view: AdminPostView,
+  previousSlug?: string | null,
+): void {
+  const siteUrl = getSiteUrl();
+  const urls: string[] = [];
+  const isPublic =
+    view.status === "published" &&
+    view.visibility === "listed" &&
+    view.archivedAt === null;
+  if (isPublic) urls.push(`${siteUrl}/blog/${view.slug}`);
+  // Slug rename — ping the old URL so engines see the now-404 and drop
+  // it. Skipped when the post wasn't previously public (no signal worth
+  // sending) or when the slug didn't change.
+  if (previousSlug && previousSlug !== view.slug) {
+    urls.push(`${siteUrl}/blog/${previousSlug}`);
+  }
+  if (urls.length === 0) return;
+  void pingIndexNow(urls).catch(() => {});
+}
+
+function pingPostUrl(slug: string): void {
+  const siteUrl = getSiteUrl();
+  void pingIndexNow([`${siteUrl}/blog/${slug}`]).catch(() => {});
 }
 
 /**

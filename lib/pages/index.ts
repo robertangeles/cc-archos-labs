@@ -2,6 +2,8 @@ import "server-only";
 import { and, asc, desc, eq, isNull, isNotNull, sql } from "drizzle-orm";
 import { getDb } from "../db";
 import { page, pageBlock, pageRevision } from "../db/schema";
+import { pingIndexNow } from "../indexnow";
+import { getSiteUrl } from "../site-config";
 import { isReservedSlug } from "./reserved-slugs";
 import { parseBlockProps } from "./blocks/registry";
 import {
@@ -230,8 +232,9 @@ export async function createPage(
     template === "composed" ? validateBlocks(input.blocks ?? []) : [];
 
   const db = getDb();
+  let result: AdminPageView;
   try {
-    return await db.transaction(async (tx) => {
+    result = await db.transaction(async (tx) => {
       const inserted = await tx
         .insert(page)
         .values({
@@ -287,6 +290,8 @@ export async function createPage(
   } catch (err) {
     throw translateWriteError(err);
   }
+  pingPageIfPublic(result);
+  return result;
 }
 
 /**
@@ -317,13 +322,18 @@ export async function updatePage(
     template === "composed" ? validateBlocks(input.blocks ?? []) : [];
 
   const db = getDb();
+  let result: AdminPageView;
+  let previousSlug: string | null = null;
   try {
-    return await db.transaction(async (tx) => {
+    result = await db.transaction(async (tx) => {
       // Lock the row for the rest of the tx (defends against the
-      // read-then-write race window).
+      // read-then-write race window). `slug` is included so the
+      // post-commit IndexNow ping can notify engines about a renamed
+      // old URL that now 404s.
       const existingRows = await tx
         .select({
           id: page.id,
+          slug: page.slug,
           contentMd: page.contentMd,
           updatedAt: page.updatedAt,
           publishedAt: page.publishedAt,
@@ -347,6 +357,8 @@ export async function updatePage(
           existing.updatedAt,
         );
       }
+
+      previousSlug = existing.slug;
 
       const diffSizePct = computeDiffSizePct(
         existing.contentMd,
@@ -423,6 +435,8 @@ export async function updatePage(
   } catch (err) {
     throw translateWriteError(err);
   }
+  pingPageIfPublic(result, previousSlug);
+  return result;
 }
 
 /**
@@ -442,7 +456,10 @@ export async function archivePage(id: string): Promise<AdminPageView> {
       `Page "${id}" not found (or already archived).`,
     );
   }
-  return rowToAdminView(rows[0]);
+  const view = rowToAdminView(rows[0]);
+  // Page is now archived — public URL 404s. Ping so engines drop it.
+  pingPageUrl(view.slug);
+  return view;
 }
 
 /**
@@ -462,7 +479,33 @@ export async function restoreFromArchive(id: string): Promise<AdminPageView> {
       `Page "${id}" not found (or not archived).`,
     );
   }
-  return rowToAdminView(rows[0]);
+  const view = rowToAdminView(rows[0]);
+  pingPageIfPublic(view);
+  return view;
+}
+
+// ----- IndexNow helpers ----------------------------------------------------
+// Predicate + URL shape are page-domain concerns; localised here rather
+// than in lib/indexnow.ts. Fire-and-forget — callers do not await.
+
+function pingPageIfPublic(
+  view: AdminPageView,
+  previousSlug?: string | null,
+): void {
+  const siteUrl = getSiteUrl();
+  const urls: string[] = [];
+  const isPublic = view.status === "published" && view.archivedAt === null;
+  if (isPublic) urls.push(`${siteUrl}/${view.slug}`);
+  if (previousSlug && previousSlug !== view.slug) {
+    urls.push(`${siteUrl}/${previousSlug}`);
+  }
+  if (urls.length === 0) return;
+  void pingIndexNow(urls).catch(() => {});
+}
+
+function pingPageUrl(slug: string): void {
+  const siteUrl = getSiteUrl();
+  void pingIndexNow([`${siteUrl}/${slug}`]).catch(() => {});
 }
 
 /**

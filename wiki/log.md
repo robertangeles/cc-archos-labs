@@ -8,6 +8,40 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-21 — IndexNow push-indexing client (feature/indexnow)
+
+Push-side counterpart to the morning's sitemap fix. Submits content
+events to `api.indexnow.org` so participating engines (Bing, Yandex,
+Naver, Seznam.cz, Yep, Amazon) learn about publish/update/archive in
+minutes rather than waiting for the next crawl. Google does not
+participate — this is purely the Bing-stack AIEO surface.
+
+See [[2026-05-21-indexnow]] for full decision record.
+
+**What shipped:**
+- `lib/indexnow.ts` — `pingIndexNow(urls)` service. Fire-and-forget,
+  in-memory 5-minute same-URL debounce per FAQ guidance, dev short-
+  circuit, dedup within a single batch, 200/202 success / 429-422 fail
+  logging, 11-case test suite.
+- `app/indexnow.txt/route.ts` — serves the `INDEXNOW_KEY` env var as
+  plain text for engine verification. Returns 503 when unset.
+- Wired into every write path that affects public URL state:
+  `lib/posts-admin/index.ts` (createPost / updatePost with slug-rename
+  handling / archivePost / restoreFromArchive) and `lib/pages/index.ts`
+  (same four). Plus `scheduled-publisher.ts` batch-pings everything the
+  cron just flipped to public.
+- `.env.example` documents `INDEXNOW_KEY` with key-generation command +
+  rollout note.
+
+**Verification:**
+- `pnpm tsc --noEmit` clean. `pnpm lint` clean. `pnpm test` 538/538 pass.
+- `pnpm build` succeeded; `/indexnow.txt` registered as a dynamic route.
+- Local `curl /indexnow.txt` returns 503 (env unset). Will return 200 +
+  plain text after Render env-var setup.
+
+**Closes** backlog item #48. Bing sitemap status flipped Processing →
+Success same day with 314 URLs accepted, 0 errors, 0 warnings.
+
 ## 2026-05-21 — Sitemap AIEO fixes (feature/sitemap-fixes)
 
 Audit + rewrite of `app/sitemap.ts` to feed the freshly-shipped image
