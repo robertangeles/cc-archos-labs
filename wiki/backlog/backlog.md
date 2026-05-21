@@ -2,7 +2,7 @@
 title: Archos Labs HQ — Build Backlog
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-20
+updated: 2026-05-21
 related: [[index]], [[log]], [[state]], [[shipped]], [[2026-05-08-phase2-ceo-review]], [[2026-05-20-translation-layer-public-render]], [[2026-05-20-phase-c-cutover]]
 ---
 
@@ -224,6 +224,13 @@ These came up in the Slice A planning but were deliberately excluded from the ca
 44. **Apex 301 from `robertangeles.com/*` → `https://archoslabs.xyz/blog`** — in the domain registrar's forwarding settings. Pick **Permanent (301)**, not 302. Single-line forward, no per-slug redirect map needed. Verify: `curl -sI https://robertangeles.com/some-old-path` returns HTTP 301 + correct Location header.
 
 45. **Calendar reminders for `robertangeles.com` non-renewal** — T+30 days post-step-44, review redirect traffic. T+60 days, schedule the domain for non-renewal and decommission the WP install (keep one offline SQL dump as an archive — never published anywhere). Verify: reminder exists in calendar; both checkpoints have an owner.
+
+### Phase 3 SEO follow-ups (code work)
+
+47. **Per-slug 301 redirect mechanism** — the WP migration produced one malformed slug (`ai-workforce-strategy-without-people-plansai-workforce-strategy-without-people-plans`, fixed in DB 2026-05-21). The old URL had been in the live sitemap before the fix, so external indexers may have it cached. There is currently NO in-codebase redirect mechanism — no `middleware.ts`, no `next.config.ts` `redirects()` block, no `lib/redirects/`. Two acceptable shapes:
+    - **Static `redirects()` in `next.config.ts`** — fine for the one entry today, simplest possible thing.
+    - **DB-backed `redirect` table read by middleware** — right shape if/when more slug renames happen (e.g. operator-driven slug edits in the admin). Schema: `from_path text PK, to_path text NOT NULL, status int default 301, created_at timestamptz`. Middleware reads cache, falls through to the route handler.
+    Verify: `curl -sI https://archoslabs.xyz/blog/ai-workforce-strategy-without-people-plansai-workforce-strategy-without-people-plans` returns `301` + correct `Location` header. Pick whichever shape fits the size of the problem when it lands (start static; promote to DB-backed only when the second rename happens).
 
 ### Phase 3 content sweep (only Rob can do)
 

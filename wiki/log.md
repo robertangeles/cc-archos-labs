@@ -2,11 +2,49 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-20
+updated: 2026-05-21
 related:
 ---
 
 Append-only log of sessions. Newest entry at the top.
+
+## 2026-05-21 — Sitemap AIEO fixes (feature/sitemap-fixes)
+
+Audit + rewrite of `app/sitemap.ts` to feed the freshly-shipped image
+metadata into Google Image search + AI crawlers, and to fix six honesty
+gaps surfaced by the audit. See [[2026-05-21-sitemap-aieo-fixes]] for the
+full decision record.
+
+**What shipped:**
+- `app/sitemap.ts` — image extension on every post (where featured image
+  exists and is not soft-deleted), stable `STATIC_PAGES_LAST_MOD` on
+  marketing pages, `/about` + `/tools/ai-readiness` added, CMS pages
+  pulled from the `page` table (auto-includes `/privacy`, `/terms`,
+  `/consulting`), paginated `/blog?page=2..N` and category pagination,
+  category `changefreq` derived from most-recent post age.
+- `app/blog/page.tsx` + `app/blog/category/[slug]/page.tsx` —
+  `generateMetadata` reads `searchParams` and builds a self-canonical
+  including `?page=N`. Required so the rendered HTML stops contradicting
+  the sitemap entries.
+- `lib/posts.ts` — `PostSitemapEntry` extended with `ogImagePath`,
+  `ogImageDeletedAt`, `ogImageAlt`. New `listAllCategoriesForSitemap()`
+  aggregate (postCount + max(publishedAt) per category) with explicit
+  `Number()` / `new Date()` coercion at the map step (postgres.js returns
+  raw aggregates as strings; `sql<T>` is a TS-only assertion).
+- `lib/pages/index.ts` — new `listPublishedPagesForFeeds()` returning
+  the minimal slug + timestamp projection the sitemap needs.
+- `lib/llms-txt.test.ts` — three new null fields added to fixtures to
+  keep `PostSitemapEntry` non-optional fields honest.
+
+**Verification:**
+- `pnpm tsc --noEmit` clean. `pnpm lint` clean. `pnpm test` 527/527 pass.
+- `pnpm build` succeeded.
+- Local `curl /sitemap.xml`: 314 entries, 253 image:loc entries. Canonical
+  agreement verified for `/blog`, `/blog?page=2`, and
+  `/blog/category/<slug>?page=2`.
+
+**Unblocks** backlog items 42 + 43 (submit sitemap to Google Search Console
+and Bing Webmaster Tools — wait for merge + deploy before submitting).
 
 ## 2026-05-20 — Posts Admin Phase D UI slice (feature/posts-admin-ui)
 

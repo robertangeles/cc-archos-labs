@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-21T03:06:55.985Z
+generated: 2026-05-21T04:13:20.067Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -114,7 +114,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/blog/heading-copy-link-button.tsx](../components/blog/heading-copy-link-button.tsx) | 2026-05-20 |
 | [components/blog/pagination.tsx](../components/blog/pagination.tsx) | 2026-05-20 |
 | [components/blog/post-body.tsx](../components/blog/post-body.tsx) | 2026-05-20 |
-| [components/blog/post-header.tsx](../components/blog/post-header.tsx) | 2026-05-20 |
+| [components/blog/post-header.tsx](../components/blog/post-header.tsx) | 2026-05-21 |
 | [components/blog/read-next.tsx](../components/blog/read-next.tsx) | 2026-05-21 |
 | [components/blog/toc.tsx](../components/blog/toc.tsx) | 2026-05-20 |
 | [components/booking/calendar-picker.tsx](../components/booking/calendar-picker.tsx) | 2026-05-17 |

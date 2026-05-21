@@ -146,6 +146,39 @@ export async function listBlocksForPage(
 }
 
 /**
+ * Minimal projection for sitemap.xml. Listed = status='published' AND
+ * archived_at IS NULL — same filter the catch-all uses for public reads.
+ * Newest-updated first.
+ */
+export interface PageSitemapEntry {
+  slug: string;
+  publishedAt: Date;
+  lastReviewedAt: Date | null;
+  updatedAt: Date;
+}
+
+export async function listPublishedPagesForFeeds(): Promise<PageSitemapEntry[]> {
+  const db = getDb();
+  const rows = await db
+    .select({
+      slug: page.slug,
+      publishedAt: page.publishedAt,
+      lastReviewedAt: page.lastReviewedAt,
+      updatedAt: page.updatedAt,
+    })
+    .from(page)
+    .where(and(eq(page.status, "published"), isNull(page.archivedAt)))
+    .orderBy(desc(page.updatedAt));
+  return rows.map((r) => ({
+    slug: r.slug,
+    // publishedAt is non-null when status='published' (write-side invariant).
+    publishedAt: r.publishedAt ?? r.updatedAt,
+    lastReviewedAt: r.lastReviewedAt,
+    updatedAt: r.updatedAt,
+  }));
+}
+
+/**
  * Revisions for a page, newest first. Drives the admin "history" view +
  * the restore flow.
  */

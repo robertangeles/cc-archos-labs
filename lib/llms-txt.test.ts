@@ -20,6 +20,9 @@ const posts: PostSitemapEntry[] = [
     publishedAt: new Date("2026-01-01"),
     lastReviewedAt: new Date("2026-03-01"),
     categoryName: "AI as Strategy",
+    ogImagePath: null,
+    ogImageDeletedAt: null,
+    ogImageAlt: null,
   },
   {
     slug: "beta",
@@ -28,6 +31,9 @@ const posts: PostSitemapEntry[] = [
     publishedAt: new Date("2026-02-01"),
     lastReviewedAt: null,
     categoryName: "Data as a Decision Infrastructure",
+    ogImagePath: null,
+    ogImageDeletedAt: null,
+    ogImageAlt: null,
   },
 ];
 
@@ -49,6 +55,9 @@ describe("buildLlmsTxt", () => {
       publishedAt: new Date(),
       lastReviewedAt: null,
       categoryName: null,
+      ogImagePath: null,
+      ogImageDeletedAt: null,
+      ogImageAlt: null,
     }));
     const out = buildLlmsTxt({ settings, siteUrl, posts: many, topN: 5 });
     expect(out).toContain("[Post 0]");
