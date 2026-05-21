@@ -19,18 +19,29 @@ export const dynamic = "force-dynamic";
 // make dynamic the safer default for now. Phase D adds ISR + on-demand
 // revalidate from admin save.
 
-export async function generateMetadata(): Promise<Metadata> {
+interface SearchParams {
+  page?: string;
+}
+
+// generateMetadata reads searchParams so paginated /blog?page=N URLs get
+// a self-canonical (otherwise both /blog and /blog?page=N declared
+// canonical=/blog, which contradicts the paginated URLs being submitted
+// to the sitemap).
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}): Promise<Metadata> {
+  const params = await searchParams;
+  const pageNum = parsePage(params.page);
+  const path = pageNum > 1 ? `/blog?page=${pageNum}` : "/blog";
   return buildPageMetadata({
     title: "The Translation Layer",
     description:
       "Essays on AI program risk, data architecture, and what actually breaks in transformation. By Rob Angeles, Archos Labs.",
-    path: "/blog",
+    path,
     ogType: "website",
   });
-}
-
-interface SearchParams {
-  page?: string;
 }
 
 export default async function BlogIndexPage({

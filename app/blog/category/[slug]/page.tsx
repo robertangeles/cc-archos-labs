@@ -19,20 +19,28 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ page?: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
   const category = await getCategoryBySlug(slug);
   if (!category) {
     return buildPageMetadata({ title: "Category not found" });
   }
+  // Paginated category URLs get a self-canonical so the sitemap can submit
+  // /blog/category/x?page=N without contradicting the rendered HTML.
+  const { page: pageParam } = await searchParams;
+  const pageNum = parsePage(pageParam);
+  const basePath = `/blog/category/${category.slug}`;
+  const path = pageNum > 1 ? `${basePath}?page=${pageNum}` : basePath;
   return buildPageMetadata({
     title: category.name,
     description:
       category.description ??
       `Essays on ${category.name.toLowerCase()} from The Translation Layer.`,
-    path: `/blog/category/${category.slug}`,
+    path,
     ogType: "website",
   });
 }

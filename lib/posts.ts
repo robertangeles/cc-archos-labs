@@ -439,6 +439,10 @@ export async function listAllCategories(): Promise<CategoryView[]> {
 /**
  * Minimal projection for sitemap.xml and llms-full.txt. Listed-only —
  * unlisted posts stay out of sitemap-prominent surfaces.
+ *
+ * Image fields are sitemap-only consumers. llms.txt and llms-full.txt
+ * ignore them. They are nullable on legacy migrated rows that never had
+ * a featured image.
  */
 export interface PostSitemapEntry {
   slug: string;
@@ -447,6 +451,12 @@ export interface PostSitemapEntry {
   lastReviewedAt: Date | null;
   excerpt: string | null;
   categoryName: string | null;
+  /** Path or absolute URL of the featured image; null when none. */
+  ogImagePath: string | null;
+  /** Soft-delete stamp; when non-null treat the image as absent. */
+  ogImageDeletedAt: Date | null;
+  /** Alt text — surfaced by the image sitemap extension if available. */
+  ogImageAlt: string | null;
 }
 
 /**
@@ -465,6 +475,9 @@ export async function listAllPostsForLlmsFull(): Promise<
       lastReviewedAt: post.lastReviewedAt,
       excerpt: post.excerpt,
       categoryName: category.name,
+      ogImagePath: post.ogImagePath,
+      ogImageDeletedAt: post.ogImageDeletedAt,
+      ogImageAlt: post.ogImageAlt,
       contentMd: post.contentMd,
     })
     .from(post)
@@ -478,6 +491,9 @@ export async function listAllPostsForLlmsFull(): Promise<
     lastReviewedAt: r.lastReviewedAt,
     excerpt: r.excerpt,
     categoryName: r.categoryName,
+    ogImagePath: r.ogImagePath,
+    ogImageDeletedAt: r.ogImageDeletedAt,
+    ogImageAlt: r.ogImageAlt,
     contentMd: r.contentMd,
   }));
 }
@@ -492,6 +508,9 @@ export async function listAllPostsForFeeds(): Promise<PostSitemapEntry[]> {
       lastReviewedAt: post.lastReviewedAt,
       excerpt: post.excerpt,
       categoryName: category.name,
+      ogImagePath: post.ogImagePath,
+      ogImageDeletedAt: post.ogImageDeletedAt,
+      ogImageAlt: post.ogImageAlt,
     })
     .from(post)
     .leftJoin(category, eq(post.categoryId, category.id))
@@ -504,5 +523,52 @@ export async function listAllPostsForFeeds(): Promise<PostSitemapEntry[]> {
     lastReviewedAt: r.lastReviewedAt,
     excerpt: r.excerpt,
     categoryName: r.categoryName,
+    ogImagePath: r.ogImagePath,
+    ogImageDeletedAt: r.ogImageDeletedAt,
+    ogImageAlt: r.ogImageAlt,
   }));
+}
+
+/**
+ * Per-category aggregate for the sitemap. Returns:
+ *   - slug
+ *   - postCount (drives pagination — Math.ceil(count / pageSize))
+ *   - mostRecentPublishedAt (drives lastmod + changefreq honesty —
+ *     dormant categories report `yearly` instead of always `weekly`)
+ *
+ * Listed-only filter mirrors PUBLIC_LISTED_FILTER. Categories with zero
+ * listed posts are excluded — there's nothing to point a crawler at.
+ */
+export interface CategorySitemapEntry {
+  slug: string;
+  postCount: number;
+  mostRecentPublishedAt: Date;
+}
+
+export async function listAllCategoriesForSitemap(): Promise<
+  CategorySitemapEntry[]
+> {
+  const db = getDb();
+  // postgres.js returns aggregate columns (max/count) as strings unless
+  // an explicit cast is applied — even when the source column is a
+  // timestamptz. The drizzle `sql<T>` template is a TS-only assertion;
+  // we coerce at the map step.
+  const rows = await db
+    .select({
+      slug: category.slug,
+      postCount: sql<number | string>`count(${post.id})::int`,
+      mostRecentPublishedAt: sql<Date | string | null>`max(${post.publishedAt})`,
+    })
+    .from(category)
+    .innerJoin(post, eq(post.categoryId, category.id))
+    .where(PUBLIC_LISTED_FILTER)
+    .groupBy(category.id, category.slug)
+    .orderBy(category.slug);
+  return rows
+    .filter((r) => Number(r.postCount) > 0 && r.mostRecentPublishedAt !== null)
+    .map((r) => ({
+      slug: r.slug,
+      postCount: Number(r.postCount),
+      mostRecentPublishedAt: new Date(r.mostRecentPublishedAt as string | Date),
+    }));
 }
