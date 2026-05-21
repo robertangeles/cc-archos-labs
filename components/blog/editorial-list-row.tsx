@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { formatLastReviewed, truncateExcerpt } from "../../lib/post-rendering";
+import { formatPublishedDate, truncateExcerpt } from "../../lib/post-rendering";
 import type { PublishedPostListItem } from "../../lib/posts";
 
 // /blog index row pattern. Editorial-list (NOT cards) — hairline-separated
@@ -17,7 +17,7 @@ export interface EditorialListRowProps {
 }
 
 export function EditorialListRow({ post }: EditorialListRowProps) {
-  const lastReviewed = formatLastReviewed(post.lastReviewedAt, post.publishedAt);
+  const publishedDate = formatPublishedDate(post.publishedAt);
   return (
     <li className="border-b border-hairline">
       <Link
@@ -39,11 +39,9 @@ export function EditorialListRow({ post }: EditorialListRowProps) {
             </p>
           ) : null}
           <p className="mt-4 text-caption text-ink-tertiary">
-            {post.readingTimeMin} min read · Updated{" "}
-            <time
-              dateTime={(post.lastReviewedAt ?? post.publishedAt).toISOString()}
-            >
-              {lastReviewed}
+            {post.readingTimeMin} min read · Published{" "}
+            <time dateTime={post.publishedAt.toISOString()}>
+              {publishedDate}
             </time>
           </p>
         </div>
