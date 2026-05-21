@@ -2,11 +2,55 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-21
+updated: 2026-05-22
 related:
 ---
 
 Append-only log of sessions. Newest entry at the top.
+
+## 2026-05-21 — Install gstack (chore/install-gstack)
+
+Installed [gstack](https://github.com/garrytan/gstack) — Garry Tan's 50-skill
+pack for Claude Code — at the user level and in team mode for this repo.
+
+**What shipped (branch `chore/install-gstack`, commit `de026e0`, NOT pushed):**
+- [.claude/settings.json](../.claude/settings.json) — PreToolUse hook on the
+  Skill matcher, runs the enforcement script below.
+- [.claude/hooks/check-gstack.sh](../.claude/hooks/check-gstack.sh) — bash
+  hook that denies skill use and prints an install message when
+  `~/.claude/skills/gstack/bin` is missing.
+- [CLAUDE.md](../CLAUDE.md) — 24-line "gstack (REQUIRED — global install)"
+  section appended at the bottom.
+- [.gitignore](../.gitignore) — pattern changed from `.claude/` to `.claude/*`
+  so the two team-mode files can be re-included via `!` exceptions while
+  `settings.local.json` and other per-session artefacts stay ignored.
+
+**What changed on this machine (not in git):**
+- `~/.bun/bin/bun` (1.3.14) — gstack prerequisite, PATH wired in `~/.bashrc`.
+- `~/.claude/skills/gstack` — gstack clone with 50+ skills linked.
+- `~/.claude/CLAUDE.md` — created with the gstack section + `/browse` rule.
+
+**Three gotchas surfaced — captured as a lessons-learned page:**
+1. Bun is a hidden prerequisite. The setup script exits 1 without it; the
+   one-line install prompt doesn't mention it.
+2. `.claude/` was gitignored with a trailing slash. `!` exceptions cannot
+   escape a directory-level ignore — had to switch to `.claude/*` first.
+3. `gstack-team-init` emitted a PowerShell-only `SessionStart` hook running
+   `pnpm wiki:lint`. Broken on Linux/macOS. Removed before commit.
+
+See [[2026-05-21-third-party-installer-inspection]] for the full rule:
+**read every third-party installer script before executing it**. The
+five-second cost of `gh api ... contents/setup | base64 -d` is always lower
+than the cost of unexpected runtime/platform/state surprises mid-install.
+
+**New wiki pages:**
+- [Inspect third-party installer scripts before running them](lessons-learned/2026-05-21-third-party-installer-inspection.md)
+- [gstack — Claude Code skill pack](entities/gstack-tooling.md)
+
+**Next:** open a new shell (PATH refresh for `bun`), restart Claude Code, then
+push `chore/install-gstack` → PR → CI → merge per the post-pre-launch
+workflow. Test one skill end-to-end (`/review` on a trivial change) before
+relying on the pack.
 
 ## 2026-05-21 — RESERVED_SLUGS hotfix (feature/fix-reserved-slugs)
 
