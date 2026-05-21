@@ -227,6 +227,8 @@ These came up in the Slice A planning but were deliberately excluded from the ca
 
 ### Phase 3 SEO follow-ups (code work)
 
+48. **IndexNow push-indexing client — ✅ SHIPPED 2026-05-21.** `lib/indexnow.ts` + `app/indexnow.txt/route.ts` + write-path wiring across posts admin, pages admin, and scheduled-publisher cron. Submits to `api.indexnow.org` (Bing/Yandex/Naver/Seznam/Yep/Amazon); Google doesn't participate. Fire-and-forget with 5-min same-URL debounce. See [[2026-05-21-indexnow]] for the full record. Operator step: set `INDEXNOW_KEY` in Render env.
+
 47. **Per-slug 301 redirect mechanism** — the WP migration produced one malformed slug (`ai-workforce-strategy-without-people-plansai-workforce-strategy-without-people-plans`, fixed in DB 2026-05-21). The old URL had been in the live sitemap before the fix, so external indexers may have it cached. There is currently NO in-codebase redirect mechanism — no `middleware.ts`, no `next.config.ts` `redirects()` block, no `lib/redirects/`. Two acceptable shapes:
     - **Static `redirects()` in `next.config.ts`** — fine for the one entry today, simplest possible thing.
     - **DB-backed `redirect` table read by middleware** — right shape if/when more slug renames happen (e.g. operator-driven slug edits in the admin). Schema: `from_path text PK, to_path text NOT NULL, status int default 301, created_at timestamptz`. Middleware reads cache, falls through to the route handler.

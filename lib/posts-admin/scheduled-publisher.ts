@@ -2,6 +2,8 @@ import "server-only";
 import { and, eq, lte, sql } from "drizzle-orm";
 import { getDb } from "../db";
 import { post, postRevision } from "../db/schema";
+import { pingIndexNow } from "../indexnow";
+import { getSiteUrl } from "../site-config";
 
 // Service backing /api/cron/process-scheduled-posts.
 //
@@ -55,11 +57,14 @@ export async function publishScheduledPosts(
   const db = getDb();
 
   // Stage 1: pull a locked batch of due-now scheduled rows. The partial
-  // index `post_due_for_publish_idx` serves this query.
+  // index `post_due_for_publish_idx` serves this query. `slug` is
+  // selected so the post-batch IndexNow ping can address each
+  // newly-public URL by its full path.
   const dueRows = await db.transaction(async (tx) => {
     return tx
       .select({
         id: post.id,
+        slug: post.slug,
         title: post.title,
         contentMd: post.contentMd,
         excerpt: post.excerpt,
@@ -94,6 +99,7 @@ export async function publishScheduledPosts(
   // by `WHERE status='scheduled'`. Write a revision row so the audit
   // trail shows when + by whom (savedBy='scheduler-cron').
   const details: PublishResultDetail[] = [];
+  const publishedSlugs: string[] = [];
   let published = 0;
   let raced = 0;
   let failed = 0;
@@ -147,6 +153,7 @@ export async function publishScheduledPosts(
         });
       } else {
         published++;
+        publishedSlugs.push(row.slug);
         details.push({ id: row.id, outcome: "published" });
       }
     } catch (err) {
@@ -158,6 +165,17 @@ export async function publishScheduledPosts(
       );
       details.push({ id: row.id, outcome: "failed", detail });
     }
+  }
+
+  // Batch-ping IndexNow for everything we just flipped to public. One
+  // POST regardless of batch size — fits the global endpoint's
+  // urlList[] shape. Cron may publish 1-20 posts per tick, so coalescing
+  // saves request count when a clustered schedule fires.
+  if (publishedSlugs.length > 0) {
+    const siteUrl = getSiteUrl();
+    void pingIndexNow(
+      publishedSlugs.map((s) => `${siteUrl}/blog/${s}`),
+    ).catch(() => {});
   }
 
   return {
