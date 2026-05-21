@@ -201,9 +201,17 @@ export async function listPostsForAdmin(
     .leftJoin(author, eq(post.authorId, author.id))
     .leftJoin(category, eq(post.categoryId, category.id))
     .where(where)
+    // Sort: scheduled posts soonest-first at top, then everything else
+    // by publication date desc. publishedAt is the original WP date for
+    // migrated rows + the admin-publish moment for new rows — far more
+    // meaningful for chronological browsing than updatedAt, which is
+    // identical across all 253 migrated posts (= migration timestamp).
+    // NULLS LAST so drafts (no publishedAt) fall to the bottom; tied on
+    // publishedAt, latest updatedAt wins.
     .orderBy(
       sql`CASE WHEN ${post.status} = 'scheduled' THEN 0 ELSE 1 END`,
       asc(post.scheduledPublishAt),
+      sql`${post.publishedAt} DESC NULLS LAST`,
       desc(post.updatedAt),
     )
     .limit(pageSize)

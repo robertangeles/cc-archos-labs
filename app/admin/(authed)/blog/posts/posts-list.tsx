@@ -228,7 +228,7 @@ function PostsTable({
           <th className="py-2 pr-4 font-semibold text-ink">Title</th>
           <th className="py-2 pr-4 font-semibold text-ink">Status</th>
           <th className="py-2 pr-4 font-semibold text-ink">Category</th>
-          <th className="py-2 pr-4 font-semibold text-ink">Updated</th>
+          <th className="py-2 pr-4 font-semibold text-ink">Date</th>
           <th className="py-2 text-right font-semibold text-ink">Actions</th>
         </tr>
       </thead>
@@ -254,7 +254,7 @@ function PostsTable({
                 {p.categoryName ?? "—"}
               </td>
               <td className="py-3 pr-4 text-xs text-ink-subtle">
-                {formatDate(p.updatedAt)}
+                <DateCell post={p} />
               </td>
               <td className="py-3 text-right">
                 <div className="flex items-center justify-end gap-x-2 text-xs">
@@ -403,6 +403,44 @@ function Pagination({
 function formatDate(d: Date): string {
   const iso = new Date(d).toISOString();
   return iso.slice(0, 10) + " " + iso.slice(11, 16);
+}
+
+/**
+ * Date cell that picks the most meaningful date for the row's status:
+ *   - scheduled  → scheduledPublishAt (when it WILL go live)
+ *   - published  → publishedAt (original WP date for migrated rows;
+ *                  admin publish date for new rows)
+ *   - archived   → archivedAt
+ *   - draft      → updatedAt (last admin touch)
+ * The small label above the value tells you which date it is, so you
+ * don't have to remember the column convention. Migration date
+ * (created_at / updated_at) is hidden — for the 253 migrated posts
+ * those all point at 2026-05-20 and tell you nothing about the post.
+ */
+function DateCell({ post }: { post: AdminPostView }) {
+  let label = "Updated";
+  let date: Date | null = post.updatedAt;
+  if (post.archivedAt) {
+    label = "Archived";
+    date = post.archivedAt;
+  } else if (post.status === "scheduled" && post.scheduledPublishAt) {
+    label = "Scheduled";
+    date = post.scheduledPublishAt;
+  } else if (post.status === "published" && post.publishedAt) {
+    label = "Published";
+    date = post.publishedAt;
+  } else if (post.status === "draft") {
+    label = "Edited";
+    date = post.updatedAt;
+  }
+  return (
+    <div className="flex flex-col">
+      <span className="text-[10px] uppercase tracking-[0.06em] text-ink-subtle/70">
+        {label}
+      </span>
+      <span>{date ? formatDate(date) : "—"}</span>
+    </div>
+  );
 }
 
 function formatScheduleShort(d: Date): string {
