@@ -48,14 +48,14 @@ export function EditorialListRow({ post }: EditorialListRowProps) {
           </p>
         </div>
 
-        {post.ogImagePath ? (
-          <div
-            className="relative aspect-[29/10] w-full overflow-hidden rounded border border-hairline bg-surface-1 md:order-last md:w-[240px]"
-            aria-hidden
-          >
+        {post.ogImagePath && !post.ogImageDeletedAt ? (
+          <div className="relative aspect-[29/10] w-full overflow-hidden rounded border border-hairline bg-surface-1 md:order-last md:w-[240px]">
             <Image
               src={post.ogImagePath}
-              alt=""
+              // Alt text comes from post.og_image_alt (populated by
+              // backfill / upload). Falls back to post title when null
+              // (legacy migrated rows that lacked a WP alt).
+              alt={post.ogImageAlt ?? post.title}
               fill
               sizes="(min-width: 768px) 240px, 100vw"
               className="object-cover"

@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-20T06:55:26.435Z
+generated: 2026-05-21T01:53:58.413Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -9,7 +9,7 @@ Auto-generated snapshot of what is currently shipped. **Source of truth for ship
 
 Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `app/` or `components/` to fire the pre-commit hook.
 
-## Routes (29)
+## Routes (33)
 
 | Route | File | Last shipped |
 |-------|------|--------------|
@@ -17,6 +17,10 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/[...slug]` | [app/[...slug]/page.tsx](../app/[...slug]/page.tsx) | 2026-05-18 |
 | `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-18 |
 | `/admin/(authed)/blog` | [app/admin/(authed)/blog/page.tsx](../app/admin/(authed)/blog/page.tsx) | 2026-05-20 |
+| `/admin/(authed)/blog/posts` | [app/admin/(authed)/blog/posts/page.tsx](../app/admin/(authed)/blog/posts/page.tsx) | 2026-05-21 |
+| `/admin/(authed)/blog/posts/[id]` | [app/admin/(authed)/blog/posts/[id]/page.tsx](../app/admin/(authed)/blog/posts/[id]/page.tsx) | 2026-05-21 |
+| `/admin/(authed)/blog/posts/[id]/revisions` | [app/admin/(authed)/blog/posts/[id]/revisions/page.tsx](../app/admin/(authed)/blog/posts/[id]/revisions/page.tsx) | 2026-05-21 |
+| `/admin/(authed)/blog/posts/new` | [app/admin/(authed)/blog/posts/new/page.tsx](../app/admin/(authed)/blog/posts/new/page.tsx) | 2026-05-21 |
 | `/admin/(authed)/diagnostic` | [app/admin/(authed)/diagnostic/page.tsx](../app/admin/(authed)/diagnostic/page.tsx) | 2026-05-15 |
 | `/admin/(authed)/integrations` | [app/admin/(authed)/integrations/page.tsx](../app/admin/(authed)/integrations/page.tsx) | 2026-05-15 |
 | `/admin/(authed)/integrations/[slug]` | [app/admin/(authed)/integrations/[slug]/page.tsx](../app/admin/(authed)/integrations/[slug]/page.tsx) | 2026-05-17 |
@@ -30,7 +34,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/admin/login` | [app/admin/login/page.tsx](../app/admin/login/page.tsx) | 2026-05-15 |
 | `/ai-readiness-assessment` | [app/ai-readiness-assessment/page.tsx](../app/ai-readiness-assessment/page.tsx) | 2026-05-15 |
 | `/blog` | [app/blog/page.tsx](../app/blog/page.tsx) | 2026-05-20 |
-| `/blog/[slug]` | [app/blog/[slug]/page.tsx](../app/blog/[slug]/page.tsx) | 2026-05-20 |
+| `/blog/[slug]` | [app/blog/[slug]/page.tsx](../app/blog/[slug]/page.tsx) | 2026-05-21 |
 | `/blog/category/[slug]` | [app/blog/category/[slug]/page.tsx](../app/blog/category/[slug]/page.tsx) | 2026-05-20 |
 | `/book/[slug]` | [app/book/[slug]/page.tsx](../app/book/[slug]/page.tsx) | 2026-05-17 |
 | `/book/[slug]/confirmation/[bookingId]` | [app/book/[slug]/confirmation/[bookingId]/page.tsx](../app/book/[slug]/confirmation/[bookingId]/page.tsx) | 2026-05-17 |
@@ -43,7 +47,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/ai-readiness/report/[sessionId]` | [app/tools/ai-readiness/report/[sessionId]/page.tsx](../app/tools/ai-readiness/report/[sessionId]/page.tsx) | 2026-05-13 |
 | `/tools/ai-readiness/share/[token]` | [app/tools/ai-readiness/share/[token]/page.tsx](../app/tools/ai-readiness/share/[token]/page.tsx) | 2026-05-13 |
 
-## API endpoints (48)
+## API endpoints (49)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -64,13 +68,14 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/pages/[id]/restore` | [app/api/admin/pages/[id]/restore/route.ts](../app/api/admin/pages/[id]/restore/route.ts) | 2026-05-18 |
 | `/api/admin/pages/[id]/revisions` | [app/api/admin/pages/[id]/revisions/route.ts](../app/api/admin/pages/[id]/revisions/route.ts) | 2026-05-18 |
 | `/api/admin/pages/[id]/revisions/[revId]/restore` | [app/api/admin/pages/[id]/revisions/[revId]/restore/route.ts](../app/api/admin/pages/[id]/revisions/[revId]/restore/route.ts) | 2026-05-18 |
-| `/api/admin/posts` | [app/api/admin/posts/route.ts](../app/api/admin/posts/route.ts) | unknown |
-| `/api/admin/posts/[id]` | [app/api/admin/posts/[id]/route.ts](../app/api/admin/posts/[id]/route.ts) | unknown |
-| `/api/admin/posts/[id]/regenerate-og` | [app/api/admin/posts/[id]/regenerate-og/route.ts](../app/api/admin/posts/[id]/regenerate-og/route.ts) | unknown |
-| `/api/admin/posts/[id]/restore` | [app/api/admin/posts/[id]/restore/route.ts](../app/api/admin/posts/[id]/restore/route.ts) | unknown |
-| `/api/admin/posts/[id]/revisions` | [app/api/admin/posts/[id]/revisions/route.ts](../app/api/admin/posts/[id]/revisions/route.ts) | unknown |
-| `/api/admin/posts/[id]/revisions/[revId]/restore` | [app/api/admin/posts/[id]/revisions/[revId]/restore/route.ts](../app/api/admin/posts/[id]/revisions/[revId]/restore/route.ts) | unknown |
-| `/api/admin/posts/[id]/suggest-links` | [app/api/admin/posts/[id]/suggest-links/route.ts](../app/api/admin/posts/[id]/suggest-links/route.ts) | unknown |
+| `/api/admin/posts` | [app/api/admin/posts/route.ts](../app/api/admin/posts/route.ts) | 2026-05-20 |
+| `/api/admin/posts/[id]` | [app/api/admin/posts/[id]/route.ts](../app/api/admin/posts/[id]/route.ts) | 2026-05-20 |
+| `/api/admin/posts/[id]/image` | [app/api/admin/posts/[id]/image/route.ts](../app/api/admin/posts/[id]/image/route.ts) | 2026-05-21 |
+| `/api/admin/posts/[id]/regenerate-og` | [app/api/admin/posts/[id]/regenerate-og/route.ts](../app/api/admin/posts/[id]/regenerate-og/route.ts) | 2026-05-20 |
+| `/api/admin/posts/[id]/restore` | [app/api/admin/posts/[id]/restore/route.ts](../app/api/admin/posts/[id]/restore/route.ts) | 2026-05-20 |
+| `/api/admin/posts/[id]/revisions` | [app/api/admin/posts/[id]/revisions/route.ts](../app/api/admin/posts/[id]/revisions/route.ts) | 2026-05-20 |
+| `/api/admin/posts/[id]/revisions/[revId]/restore` | [app/api/admin/posts/[id]/revisions/[revId]/restore/route.ts](../app/api/admin/posts/[id]/revisions/[revId]/restore/route.ts) | 2026-05-20 |
+| `/api/admin/posts/[id]/suggest-links` | [app/api/admin/posts/[id]/suggest-links/route.ts](../app/api/admin/posts/[id]/suggest-links/route.ts) | 2026-05-20 |
 | `/api/admin/settings/blog-enabled` | [app/api/admin/settings/blog-enabled/route.ts](../app/api/admin/settings/blog-enabled/route.ts) | 2026-05-20 |
 | `/api/admin/settings/booking-prompts` | [app/api/admin/settings/booking-prompts/route.ts](../app/api/admin/settings/booking-prompts/route.ts) | 2026-05-17 |
 | `/api/admin/settings/diagnostic-content` | [app/api/admin/settings/diagnostic-content/route.ts](../app/api/admin/settings/diagnostic-content/route.ts) | 2026-05-15 |
@@ -86,7 +91,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/booking/reschedule` | [app/api/booking/reschedule/route.ts](../app/api/booking/reschedule/route.ts) | 2026-05-17 |
 | `/api/contact` | [app/api/contact/route.ts](../app/api/contact/route.ts) | 2026-05-15 |
 | `/api/cron/process-scheduled` | [app/api/cron/process-scheduled/route.ts](../app/api/cron/process-scheduled/route.ts) | 2026-05-17 |
-| `/api/cron/process-scheduled-posts` | [app/api/cron/process-scheduled-posts/route.ts](../app/api/cron/process-scheduled-posts/route.ts) | unknown |
+| `/api/cron/process-scheduled-posts` | [app/api/cron/process-scheduled-posts/route.ts](../app/api/cron/process-scheduled-posts/route.ts) | 2026-05-20 |
 | `/api/cron/purge-inactive-leads` | [app/api/cron/purge-inactive-leads/route.ts](../app/api/cron/purge-inactive-leads/route.ts) | 2026-05-18 |
 | `/api/cron/purge-session-metadata` | [app/api/cron/purge-session-metadata/route.ts](../app/api/cron/purge-session-metadata/route.ts) | 2026-05-18 |
 | `/api/diagnostic/generate` | [app/api/diagnostic/generate/route.ts](../app/api/diagnostic/generate/route.ts) | 2026-05-13 |
@@ -105,12 +110,12 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/analytics/analytics-client.tsx](../components/analytics/analytics-client.tsx) | 2026-05-18 |
 | [components/blog/author-bio.tsx](../components/blog/author-bio.tsx) | 2026-05-20 |
 | [components/blog/category-chips.tsx](../components/blog/category-chips.tsx) | 2026-05-20 |
-| [components/blog/editorial-list-row.tsx](../components/blog/editorial-list-row.tsx) | 2026-05-20 |
+| [components/blog/editorial-list-row.tsx](../components/blog/editorial-list-row.tsx) | 2026-05-21 |
 | [components/blog/heading-copy-link-button.tsx](../components/blog/heading-copy-link-button.tsx) | 2026-05-20 |
 | [components/blog/pagination.tsx](../components/blog/pagination.tsx) | 2026-05-20 |
 | [components/blog/post-body.tsx](../components/blog/post-body.tsx) | 2026-05-20 |
 | [components/blog/post-header.tsx](../components/blog/post-header.tsx) | 2026-05-20 |
-| [components/blog/read-next.tsx](../components/blog/read-next.tsx) | 2026-05-20 |
+| [components/blog/read-next.tsx](../components/blog/read-next.tsx) | 2026-05-21 |
 | [components/blog/toc.tsx](../components/blog/toc.tsx) | 2026-05-20 |
 | [components/booking/calendar-picker.tsx](../components/booking/calendar-picker.tsx) | 2026-05-17 |
 | [components/contact/contact-form.tsx](../components/contact/contact-form.tsx) | 2026-05-15 |

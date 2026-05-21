@@ -110,12 +110,15 @@ export default async function PostPage({
               lastReviewedAt={post.lastReviewedAt}
             />
 
-            {post.ogImagePath ? (
+            {post.ogImagePath && !post.ogImageDeletedAt ? (
               <figure className="mt-12 overflow-hidden rounded-lg border border-hairline bg-surface-1">
                 <div className="relative aspect-[29/10] w-full">
                   <Image
                     src={post.ogImagePath}
-                    alt=""
+                    // Alt from post.og_image_alt (backfilled + enforced
+                    // on new uploads); falls back to title for legacy
+                    // rows. Hero image — `priority` keeps LCP fast.
+                    alt={post.ogImageAlt ?? post.title}
                     fill
                     priority
                     sizes="(min-width: 1024px) 760px, 100vw"

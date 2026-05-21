@@ -8,6 +8,31 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-20 — Posts Admin Phase D UI slice (feature/posts-admin-ui)
+
+Slice B of Phase D. Backend (Slice A, PR #72) shipped earlier today; this is the UI surface that closes out items 37 + 38 of the backlog.
+
+**What shipped:**
+- `/admin/blog/layout.tsx` + `blog-sub-nav.tsx` reshape `/admin/blog` into a tabbed parent (Settings | Posts). Existing toggle page keeps working as-is — the layout wraps it.
+- `/admin/blog/posts/page.tsx` + `posts-list.tsx` — server-rendered table driven by URL `searchParams` (status / search / page). Filter pills (All | Draft | Scheduled | Published | Needs review | Archived), per-row archive/restore, pagination.
+- `/admin/blog/posts/new/page.tsx` + `[id]/page.tsx` — both preload author + category lookups server-side, wrap the shared `PostForm`.
+- `post-form.tsx` — single form for create + edit. Optimistic locking via `expectedUpdatedAt` (mirrors Pages CMS), datetime-local schedule picker with HTML5 `min` for past-time defence, AI-assist side panel (regenerate OG, suggest internal links, mark reviewed), side-effect summary surfaced inline on save (✓ Saved · new revision created · OG regen failed (…)).
+- `preview-pane.tsx` — client-side react-markdown that mirrors `PostBody`'s component overrides (no `rehype-slug`, no `HeadingCopyLinkButton`, same XSS posture). `useDeferredValue` keeps typing fast.
+- `link-suggestions-drawer.tsx` — slide-in overlay calling `/api/admin/posts/[id]/suggest-links`, top-5 similar published posts, insert at cursor or wrap selected text.
+- `[id]/revisions/page.tsx` + `revisions-client.tsx` — newest-first list, expand for content preview, restore action, tags revisions as `current` / `material change · N%` / `auto-published`.
+- `lib/posts-admin/`: added `listAuthorsForAdmin` + `listCategoriesForAdmin` + `AuthorLookup` / `CategoryLookup` types for the editor dropdowns.
+
+**Verification:** `pnpm tsc` + `pnpm test` (40 files / 526 tests / all green) + `pnpm lint` (clean) + `pnpm wiki:lint` (0 errors, 0 warnings) + `pnpm build` (5 new admin/blog routes compiled). Hit two lint errors on first pass — both were impurity issues (`Date.now()` in render, `useRef` initialiser running fresh `new Date()` on every render); both fixed by moving to `useState(() => ...)` initialiser. Stale `.next/dev/types` cache caused a phantom tsc failure once (dev server had been running through the session); fixed by killing the dev server + `rm -rf .next`.
+
+**Deferred to follow-up PRs:**
+- Playwright E2E setup — no existing config to mirror; deserves its own PR for the infra (auth fixtures, test-data lifecycle, base config).
+- Authenticated visual QA via `scripts/screenshot.mjs` — needs an admin session cookie I can't acquire from chat.
+- All Slice-A-deferred items remain deferred (featured-image upload, AI-generate-excerpt, draft auto-archive, RSS regen on publish, multi-author UX, etc.).
+
+**Operational follow-ups for the user after merge:** none — the migration + cron from Slice A are already live, and the UI is purely additive (new pages under `/admin/blog/posts/*`).
+
+Architecture: [[2026-05-20-posts-admin-phase-d-ui]]. Branch: `feature/posts-admin-ui`.
+
 ## 2026-05-20 — Posts Admin Phase D backend slice (feature/posts-admin)
 
 Backend-only PR for the per-post admin (backlog items 37 + 38). Cathedral approach (Pages-CMS pattern + needs_review queue filter + AI-assist + scheduled publishing), HOLD SCOPE, sliced backend/UI because the full surface is ~4-5k lines and CLAUDE.md is strict about not shipping half-built code.

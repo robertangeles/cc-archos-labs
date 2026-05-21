@@ -39,6 +39,7 @@
   "dependencies": {
     "drizzle-orm": "^0.45.2",
     "framer-motion": "^12.38.0",
+    "image-size": "^2.0.2",
     "jose": "^6.2.3",
     "next": "16.2.5",
     "postgres": "^3.4.9",

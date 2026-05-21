@@ -17,7 +17,7 @@ export default function AuthedAdminLayout({
 }) {
   return (
     <main className="flex flex-1 flex-col bg-canvas">
-      <div className="mx-auto w-full max-w-[1080px] px-6 pt-16 pb-32 md:px-12">
+      <div className="mx-auto w-full max-w-[1400px] px-6 pt-16 pb-32 md:px-12">
         <div className="mb-12 flex items-center justify-between gap-x-4">
           <p className="uppercase text-eyebrow text-ink-subtle">
             Admin

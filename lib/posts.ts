@@ -25,6 +25,18 @@ export interface PublishedPostListItem {
   title: string;
   excerpt: string | null;
   ogImagePath: string | null;
+  /** Soft-delete stamp on the image. When non-null, the public render
+   *  treats the image as absent (path may still be populated for the
+   *  grace-period cleanup job to act on). Surfaced so consumers can do
+   *  `path && !deletedAt` checks. */
+  ogImageDeletedAt: Date | null;
+  /** Alt text for the featured image. Render layer falls back to
+   *  post.title when null (legacy migrated rows lacking alt). */
+  ogImageAlt: string | null;
+  /** Intrinsic pixel dimensions for CLS-safe <Image> rendering. NULL
+   *  on migrated rows until re-uploaded via the admin. */
+  ogImageWidth: number | null;
+  ogImageHeight: number | null;
   readingTimeMin: number;
   publishedAt: Date;
   lastReviewedAt: Date | null;
@@ -56,6 +68,10 @@ export interface ReadNextItem {
   categoryName: string | null;
   readingTimeMin: number;
   ogImagePath: string | null;
+  ogImageDeletedAt: Date | null;
+  ogImageAlt: string | null;
+  ogImageWidth: number | null;
+  ogImageHeight: number | null;
 }
 
 const PUBLIC_LISTED_FILTER = and(
@@ -90,6 +106,10 @@ export async function getPostBySlug(
       seoDescription: post.seoDescription,
       ogImagePath: post.ogImagePath,
       ogImageGeneratedAt: post.ogImageGeneratedAt,
+      ogImageDeletedAt: post.ogImageDeletedAt,
+      ogImageAlt: post.ogImageAlt,
+      ogImageWidth: post.ogImageWidth,
+      ogImageHeight: post.ogImageHeight,
       tags: post.tags,
       wordCount: post.wordCount,
       readingTimeMin: post.readingTimeMin,
@@ -123,6 +143,10 @@ export async function getPostBySlug(
     seoDescription: r.seoDescription,
     ogImagePath: r.ogImagePath,
     ogImageGeneratedAt: r.ogImageGeneratedAt,
+    ogImageDeletedAt: r.ogImageDeletedAt,
+    ogImageAlt: r.ogImageAlt,
+    ogImageWidth: r.ogImageWidth,
+    ogImageHeight: r.ogImageHeight,
     tags: r.tags ?? [],
     wordCount: r.wordCount,
     readingTimeMin: r.readingTimeMin,
@@ -180,6 +204,10 @@ export async function listPosts(
       title: post.title,
       excerpt: post.excerpt,
       ogImagePath: post.ogImagePath,
+      ogImageDeletedAt: post.ogImageDeletedAt,
+      ogImageAlt: post.ogImageAlt,
+      ogImageWidth: post.ogImageWidth,
+      ogImageHeight: post.ogImageHeight,
       readingTimeMin: post.readingTimeMin,
       publishedAt: post.publishedAt,
       lastReviewedAt: post.lastReviewedAt,
@@ -211,6 +239,10 @@ export async function listPosts(
       title: r.title,
       excerpt: r.excerpt,
       ogImagePath: r.ogImagePath,
+      ogImageDeletedAt: r.ogImageDeletedAt,
+      ogImageAlt: r.ogImageAlt,
+      ogImageWidth: r.ogImageWidth,
+      ogImageHeight: r.ogImageHeight,
       readingTimeMin: r.readingTimeMin,
       publishedAt: r.publishedAt ?? new Date(0),
       lastReviewedAt: r.lastReviewedAt,
@@ -265,6 +297,10 @@ export async function getReadNext(
       readingTimeMin: post.readingTimeMin,
       categoryName: category.name,
       ogImagePath: post.ogImagePath,
+      ogImageDeletedAt: post.ogImageDeletedAt,
+      ogImageAlt: post.ogImageAlt,
+      ogImageWidth: post.ogImageWidth,
+      ogImageHeight: post.ogImageHeight,
     })
     .from(post)
     .leftJoin(category, eq(post.categoryId, category.id))
@@ -285,6 +321,10 @@ export async function getReadNext(
         readingTimeMin: post.readingTimeMin,
         categoryName: category.name,
         ogImagePath: post.ogImagePath,
+        ogImageDeletedAt: post.ogImageDeletedAt,
+        ogImageAlt: post.ogImageAlt,
+        ogImageWidth: post.ogImageWidth,
+        ogImageHeight: post.ogImageHeight,
       })
       .from(post)
       .leftJoin(category, eq(post.categoryId, category.id))
@@ -306,6 +346,10 @@ export async function getReadNext(
     categoryName: r.categoryName,
     readingTimeMin: r.readingTimeMin,
     ogImagePath: r.ogImagePath,
+    ogImageDeletedAt: r.ogImageDeletedAt,
+    ogImageAlt: r.ogImageAlt,
+    ogImageWidth: r.ogImageWidth,
+    ogImageHeight: r.ogImageHeight,
   }));
 }
 
@@ -330,6 +374,10 @@ export async function getRecentPosts(
       readingTimeMin: post.readingTimeMin,
       categoryName: category.name,
       ogImagePath: post.ogImagePath,
+      ogImageDeletedAt: post.ogImageDeletedAt,
+      ogImageAlt: post.ogImageAlt,
+      ogImageWidth: post.ogImageWidth,
+      ogImageHeight: post.ogImageHeight,
     })
     .from(post)
     .leftJoin(category, eq(post.categoryId, category.id))
@@ -344,6 +392,10 @@ export async function getRecentPosts(
     categoryName: r.categoryName,
     readingTimeMin: r.readingTimeMin,
     ogImagePath: r.ogImagePath,
+    ogImageDeletedAt: r.ogImageDeletedAt,
+    ogImageAlt: r.ogImageAlt,
+    ogImageWidth: r.ogImageWidth,
+    ogImageHeight: r.ogImageHeight,
   }));
 }
 
