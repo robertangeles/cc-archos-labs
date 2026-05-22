@@ -51,6 +51,21 @@ export function getSiteUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL ?? "https://archoslabs.xyz";
 }
 
+// Normalises whatever the admin pasted into the twitter handle field
+// down to the bare handle — no `@`, no URL prefix, no path/query. The
+// admin field is a single text input, so historically it has held a
+// mix of "@handle", "handle", and full profile URLs. Without this,
+// `@${stored}` produced strings like "@https://x.com/handle" which X
+// silently ignored for attribution. Returns "" if nothing usable
+// remains so the caller can branch on truthiness.
+export function normalizeTwitterHandle(input: string): string {
+  let handle = input.trim();
+  handle = handle.replace(/^https?:\/\/(www\.)?(x|twitter)\.com\//i, "");
+  handle = handle.replace(/^@+/, "");
+  handle = handle.replace(/[/?#].*$/, "");
+  return handle;
+}
+
 // Centralised metadata builder used by every page.tsx so the site_setting
 // admin row is the single source of truth for OG / Twitter / canonical
 // URLs. Page passes only what's specific to that page (title, description,
@@ -124,12 +139,12 @@ export async function buildPageMetadata({
       title: effectiveTitle,
       description: effectiveDescription,
       images: [ogImageUrl],
-      ...(settings.twitterHandle
-        ? {
-            creator: `@${settings.twitterHandle}`,
-            site: `@${settings.twitterHandle}`,
-          }
-        : {}),
+      ...(() => {
+        const handle = normalizeTwitterHandle(settings.twitterHandle);
+        return handle
+          ? { creator: `@${handle}`, site: `@${handle}` }
+          : {};
+      })(),
     },
   };
 }
