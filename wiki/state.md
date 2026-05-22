@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-22T01:56:35.093Z
+generated: 2026-05-22T02:26:06.571Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -101,7 +101,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/events` | [app/api/events/route.ts](../app/api/events/route.ts) | 2026-05-18 |
 | `/api/health/cron` | [app/api/health/cron/route.ts](../app/api/health/cron/route.ts) | 2026-05-17 |
 
-## Components (65)
+## Components (64)
 
 | File | Last shipped |
 |------|--------------|
@@ -116,7 +116,6 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/blog/post-body.tsx](../components/blog/post-body.tsx) | 2026-05-20 |
 | [components/blog/post-header.tsx](../components/blog/post-header.tsx) | 2026-05-21 |
 | [components/blog/read-next.tsx](../components/blog/read-next.tsx) | 2026-05-21 |
-| [components/blog/social-share.tsx](../components/blog/social-share.tsx) | 2026-05-22 |
 | [components/blog/toc.tsx](../components/blog/toc.tsx) | 2026-05-20 |
 | [components/booking/calendar-picker.tsx](../components/booking/calendar-picker.tsx) | 2026-05-17 |
 | [components/contact/contact-form.tsx](../components/contact/contact-form.tsx) | 2026-05-15 |

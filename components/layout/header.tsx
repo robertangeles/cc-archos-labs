@@ -18,7 +18,7 @@ export function Header({ lead }: { lead: NavLeadProps | null }) {
     <header
       className={`sticky top-0 z-50 transition-colors duration-150 print:hidden ${
         scrolled
-          ? "border-b border-hairline bg-canvas"
+          ? "border-b border-hairline bg-canvas/80 backdrop-blur-md"
           : "border-b border-transparent bg-transparent"
       }`}
     >

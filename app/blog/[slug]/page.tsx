@@ -29,7 +29,6 @@ import { PostBody } from "../../../components/blog/post-body";
 import { Toc } from "../../../components/blog/toc";
 import { AuthorBio } from "../../../components/blog/author-bio";
 import { ReadNext } from "../../../components/blog/read-next";
-import { SocialShare } from "../../../components/blog/social-share";
 
 export const dynamic = "force-dynamic";
 
@@ -111,12 +110,6 @@ export default async function PostPage({
               lastReviewedAt={post.lastReviewedAt}
             />
 
-            <SocialShare
-              url={`${siteUrl}/blog/${post.slug}`}
-              title={post.title}
-              variant="top"
-            />
-
             {post.ogImagePath && !post.ogImageDeletedAt ? (
               <figure className="mt-12 overflow-hidden rounded-lg border border-hairline bg-surface-1">
                 <div className="relative aspect-[29/10] w-full">
@@ -138,12 +131,6 @@ export default async function PostPage({
             <div className="mt-12">
               <PostBody contentMd={post.contentMd} />
             </div>
-
-            <SocialShare
-              url={`${siteUrl}/blog/${post.slug}`}
-              title={post.title}
-              variant="post-body"
-            />
 
             <AuthorBio
               name={authorName}
