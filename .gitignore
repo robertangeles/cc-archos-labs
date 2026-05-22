@@ -67,3 +67,4 @@ wiki/.graph.json
 # The filename IS the key value per IndexNow Option 1; if you ever commit
 # a real .txt file under public/, name it explicitly in a !-include below.
 public/*.txt
+.gstack/
