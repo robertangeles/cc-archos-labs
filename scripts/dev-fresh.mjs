@@ -28,9 +28,14 @@ try {
   // Nothing was on the port — fine.
 }
 
+// `--hostname ::` binds the IPv6 wildcard. On Linux with the kernel
+// default IPV6_V6ONLY=0, that socket accepts IPv4 connections too
+// (IPv4-mapped IPv6), so loopback works whether the browser resolves
+// localhost to 127.0.0.1 or ::1. Without this, modern Chromium/Firefox
+// can pick ::1 and silently fail when Next's default is IPv4-only.
 const child = spawn(
   process.execPath,
-  ["node_modules/next/dist/bin/next", "dev"],
+  ["node_modules/next/dist/bin/next", "dev", "--hostname", "::"],
   { stdio: "inherit", env: process.env },
 );
 
