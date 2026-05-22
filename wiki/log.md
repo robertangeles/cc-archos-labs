@@ -8,27 +8,74 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
-## 2026-05-22 — Social share row on /blog/[slug]
+## 2026-05-22 — Blog share row, header polish, dev unblockers
+
+Four discrete things shipped today, all on `main`. Captured together
+because they all landed in one session.
+
+**1. Social share row on `/blog/[slug]`**
 
 Added a Share row (LinkedIn, X, Facebook) to the article page, rendered
-twice: between the post body and the author bio, and again below the
-author bio. Plain anchor tags, `target="_blank" rel="noopener noreferrer"`,
-no client JS, no analytics.
+twice: at the top of the article (below the byline, above the hero
+image) and again between the post body and the author bio. Plain anchor
+tags, `target="_blank" rel="noopener noreferrer"`, no client JS, no
+analytics.
 
-**Shipped:**
-- [components/blog/social-share.tsx](../components/blog/social-share.tsx) — new server component, two variants (`post-body` adds top hairline, `footer` is unbordered).
-- [components/icons/social.tsx](../components/icons/social.tsx) — added `FacebookIcon` (24x24, currentColor, matches existing pattern).
-- [app/blog/[slug]/page.tsx](../app/blog/[slug]/page.tsx) — wired two `<SocialShare>` instances around `<AuthorBio>`.
+The placement landed after one revision — initial attempt put both rows
+around the author bio (above + below). That read as redundant since
+the rows were only a few hundred pixels apart. Final pattern is the
+standard "top of article + end of body" split, mirroring how Medium /
+Substack / NYT place share affordances.
 
-**Share URLs** are constructed inline in the component:
-- LinkedIn: `https://www.linkedin.com/sharing/share-offsite/?url={encoded}` (LinkedIn fetches OG tags from the URL, no title param)
+- [components/blog/social-share.tsx](../components/blog/social-share.tsx) — new server component, two variants (`top` is unbordered with `mt-10`; `post-body` adds a top hairline + `pt-8`).
+- [components/icons/social.tsx](../components/icons/social.tsx) — added `FacebookIcon` (24×24, currentColor, matches existing `LinkedinIcon` / `XIcon` pattern).
+- [app/blog/[slug]/page.tsx](../app/blog/[slug]/page.tsx) — wired `<SocialShare variant="top">` between `<PostHeader>` and the hero image, plus `<SocialShare variant="post-body">` between `<PostBody>` and `<AuthorBio>`.
+
+Share URLs are constructed inline (no helper module — three template
+strings in one component file):
+- LinkedIn: `https://www.linkedin.com/sharing/share-offsite/?url={encoded}` — LinkedIn fetches OG tags from the URL; no title param accepted.
 - X: `https://x.com/intent/post?url={encoded}&text={title}`
 - Facebook: `https://www.facebook.com/sharer/sharer.php?u={encoded}`
 
 Canonical URL: `${siteUrl}/blog/${post.slug}` — same `getSiteUrl()` already used for JSON-LD.
 
-**Also fixed in this session — pnpm dev:fresh blocker:**
-`pnpm-workspace.yaml` had pnpm 11's `allowBuilds:` template with placeholder strings ("set this to true or false") which pnpm reads as "not approved" — blocked every `pnpm install`. Set the four affected packages (esbuild, puppeteer, sharp, unrs-resolver) to `true`. Kept the existing `onlyBuiltDependencies:` list as belt-and-braces.
+**Pre-existing Twitter handle bug surfaced while inspecting OG tags**
+(NOT fixed in this session — left for a follow-up): the site_setting
+that drives `<meta name="twitter:site|creator">` currently stores the
+full URL (`https://x.com/archoslabsxyz`) instead of just the handle.
+Resulting tag renders as `content="@https://x.com/archoslabsxyz"`,
+which X silently ignores. Fix is to edit the value in
+`/admin/(authed)/site` to the bare handle.
+
+**2. Sticky header bleed-through on scroll**
+
+The `Header` component used `bg-canvas/80 backdrop-blur-md` in the
+scrolled state. The 80%-opaque + blur pattern is fine over photos
+but failed over dense article text — title text was clearly visible
+behind the nav while scrolling. Replaced with solid `bg-canvas` and
+dropped the now-redundant `backdrop-blur-md`. Unscrolled state
+(transparent over hero) is unchanged. See [components/layout/header.tsx](../components/layout/header.tsx).
+
+**3. `pnpm dev:fresh` blocker (ERR_PNPM_IGNORED_BUILDS)**
+
+`pnpm-workspace.yaml` had pnpm 11's `allowBuilds:` template with
+placeholder strings (`set this to true or false`) which pnpm reads
+as "not approved" — blocked every `pnpm install`. Set the four
+affected packages (`esbuild`, `puppeteer`, `sharp`, `unrs-resolver`)
+to `true`. Kept the existing `onlyBuiltDependencies:` list as
+belt-and-braces.
+
+**4. Dev server IPv4-only loopback**
+
+`scripts/dev.mjs` and `scripts/dev-fresh.mjs` now pass
+`--hostname ::` to `next dev` so the IPv6 wildcard socket accepts
+both IPv4 and IPv6 loopback (via `IPV6_V6ONLY=0` kernel default).
+Without this, modern Chromium/Firefox can resolve `localhost` to
+`::1`, get connection refused, and silently fail to load the dev
+site. Note: on this Ubuntu 24.04 host, Turbopack still appears to
+fall back to IPv4-only at the socket level despite the flag — but
+`localhost` resolves to `127.0.0.1` first via curl/glibc, so dev
+works. Patch is future-proof for when Turbopack fixes its bind.
 
 ## 2026-05-21 — Install gstack (chore/install-gstack)
 

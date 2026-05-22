@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-22T01:16:36.860Z
+generated: 2026-05-22T01:56:35.093Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -122,7 +122,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/contact/contact-form.tsx](../components/contact/contact-form.tsx) | 2026-05-15 |
 | [components/icons/social.tsx](../components/icons/social.tsx) | 2026-05-22 |
 | [components/layout/footer.tsx](../components/layout/footer.tsx) | 2026-05-18 |
-| [components/layout/header.tsx](../components/layout/header.tsx) | 2026-05-15 |
+| [components/layout/header.tsx](../components/layout/header.tsx) | 2026-05-22 |
 | [components/layout/lead-sign-out-button.tsx](../components/layout/lead-sign-out-button.tsx) | 2026-05-15 |
 | [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-05-20 |
 | [components/pages/block-error-boundary.tsx](../components/pages/block-error-boundary.tsx) | 2026-05-18 |

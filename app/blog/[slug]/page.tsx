@@ -111,6 +111,12 @@ export default async function PostPage({
               lastReviewedAt={post.lastReviewedAt}
             />
 
+            <SocialShare
+              url={`${siteUrl}/blog/${post.slug}`}
+              title={post.title}
+              variant="top"
+            />
+
             {post.ogImagePath && !post.ogImageDeletedAt ? (
               <figure className="mt-12 overflow-hidden rounded-lg border border-hairline bg-surface-1">
                 <div className="relative aspect-[29/10] w-full">
@@ -144,12 +150,6 @@ export default async function PostPage({
               bioMd={post.authorBioMd ?? ""}
               photoUrl={post.authorPhotoUrl}
               linkedinUrl={post.authorLinkedinUrl}
-            />
-
-            <SocialShare
-              url={`${siteUrl}/blog/${post.slug}`}
-              title={post.title}
-              variant="footer"
             />
 
             <ReadNext items={readNext} />

@@ -3,20 +3,22 @@ import { FacebookIcon, LinkedinIcon, XIcon } from "../icons/social";
 // Article share row. Plain anchor tags — no JS, no analytics, no popup
 // window sizing. The respective platforms handle the share dialog.
 //
-// Rendered twice on a post page (above + below the author bio) so both
-// the skimmer and the finisher get a share moment without the row
-// feeling heavy in either spot.
+// Rendered twice on a post page (top + mid) so both the skimmer who
+// wants to share before reading and the finisher who reads through
+// get a share moment.
 //
 // `variant` controls only the surrounding spacing/border so the two
 // placements read as distinct rather than identical:
-//   - "post-body" — tight top border, sits between body and author bio
-//   - "footer"    — no border, sits below the author bio inside the
-//                   same article column
+//   - "top"       — sits below the byline + above the hero image; no
+//                   border, modest top margin so it reads as a light
+//                   affordance under the post header
+//   - "post-body" — tight top border, sits between the body and the
+//                   author bio
 
 export interface SocialShareProps {
   url: string;
   title: string;
-  variant?: "post-body" | "footer";
+  variant?: "top" | "post-body";
 }
 
 export function SocialShare({
@@ -34,7 +36,7 @@ export function SocialShare({
   const containerCls =
     variant === "post-body"
       ? "mt-16 flex items-center gap-4 border-t border-hairline pt-8"
-      : "mt-12 flex items-center gap-4";
+      : "mt-10 flex items-center gap-4";
 
   const iconCls =
     "inline-flex h-10 w-10 items-center justify-center rounded-full border border-hairline text-ink-subtle transition-colors hover:border-primary hover:text-primary focus-visible:border-primary focus-visible:text-primary focus-visible:outline-none";
