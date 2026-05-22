@@ -1,5 +1,10 @@
-ignoredBuiltDependencies:
+allowBuilds:
+  esbuild: true
+  puppeteer: true
+  sharp: true
+  unrs-resolver: true
+onlyBuiltDependencies:
+  - esbuild
+  - puppeteer
   - sharp
   - unrs-resolver
-onlyBuiltDependencies:
-  - puppeteer
