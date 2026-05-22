@@ -8,6 +8,28 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-22 — Social share row on /blog/[slug]
+
+Added a Share row (LinkedIn, X, Facebook) to the article page, rendered
+twice: between the post body and the author bio, and again below the
+author bio. Plain anchor tags, `target="_blank" rel="noopener noreferrer"`,
+no client JS, no analytics.
+
+**Shipped:**
+- [components/blog/social-share.tsx](../components/blog/social-share.tsx) — new server component, two variants (`post-body` adds top hairline, `footer` is unbordered).
+- [components/icons/social.tsx](../components/icons/social.tsx) — added `FacebookIcon` (24x24, currentColor, matches existing pattern).
+- [app/blog/[slug]/page.tsx](../app/blog/[slug]/page.tsx) — wired two `<SocialShare>` instances around `<AuthorBio>`.
+
+**Share URLs** are constructed inline in the component:
+- LinkedIn: `https://www.linkedin.com/sharing/share-offsite/?url={encoded}` (LinkedIn fetches OG tags from the URL, no title param)
+- X: `https://x.com/intent/post?url={encoded}&text={title}`
+- Facebook: `https://www.facebook.com/sharer/sharer.php?u={encoded}`
+
+Canonical URL: `${siteUrl}/blog/${post.slug}` — same `getSiteUrl()` already used for JSON-LD.
+
+**Also fixed in this session — pnpm dev:fresh blocker:**
+`pnpm-workspace.yaml` had pnpm 11's `allowBuilds:` template with placeholder strings ("set this to true or false") which pnpm reads as "not approved" — blocked every `pnpm install`. Set the four affected packages (esbuild, puppeteer, sharp, unrs-resolver) to `true`. Kept the existing `onlyBuiltDependencies:` list as belt-and-braces.
+
 ## 2026-05-21 — Install gstack (chore/install-gstack)
 
 Installed [gstack](https://github.com/garrytan/gstack) — Garry Tan's 50-skill
