@@ -8,6 +8,35 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-22 — Confidentiality + NDA trust signal across booking, home FAQ, contact
+
+Rob raised that trust is the biggest currency — prospects need to know
+conversations are confidential and that he's happy to sign an NDA if
+one is required. Surfaced the stance on three pre-share surfaces:
+
+- `app/book/[slug]/page.tsx` — small subhead under the intake intro.
+  Lands the reassurance the moment someone is about to type a sensitive
+  brief. `text-body-sm text-ink-subtle` so it reads as quiet
+  reassurance, not a feature pitch.
+- `app/page.tsx` (Objection FAQ) — new entry "Is what we discuss
+  confidential?" slotted between cost and "why not your team" so it
+  sits with the trust-posture questions. Two short paragraphs matching
+  the existing FAQ rhythm: yes-by-default + NDA-on-request.
+- `app/contact/page.tsx` — small follow-up paragraph below the
+  "tell us what's broken" intro. `text-[15px] text-ink-tertiary` so it
+  doesn't out-shout the ask.
+
+Wording held to two sentences everywhere: "Conversations are
+confidential. Happy to sign an NDA if you need one in place first."
+The FAQ answer expands on this with the no-marketing-name-drop
+posture and the NDA logistics ("send yours through and we will sign
+it"). No new component, no new copy block — just the existing
+patterns.
+
+**Not surfaced:** confirmation page (`/book/[slug]/confirmation/...`),
+because by then the user has already submitted — the trust signal
+needs to land *before* they share, not after.
+
 ## 2026-05-22 — Blog share row + supporting fixes
 
 Four discrete things shipped on `main` via separate PRs after a

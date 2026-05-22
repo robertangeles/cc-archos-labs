@@ -68,6 +68,10 @@ export default async function BookCallPage({ params }: PageProps) {
           Tell me what&apos;s stuck. I&apos;ll read your intake before we talk,
           then we&apos;ll spend the call on what&apos;s actually in your way.
         </p>
+        <p className="mt-3 max-w-2xl text-body-sm text-ink-subtle">
+          Conversations are confidential. Happy to sign an NDA if you need one
+          in place first.
+        </p>
       </header>
 
       {consultant.googleStatus !== "ok" ? (

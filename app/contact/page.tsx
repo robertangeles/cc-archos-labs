@@ -26,6 +26,10 @@ export default function ContactPage() {
           first reply will be. If we can&rsquo;t help, we&rsquo;ll tell you
           that too.
         </p>
+        <p className="mt-4 max-w-[560px] text-[15px] leading-[1.6] text-ink-tertiary">
+          Conversations are confidential. Happy to sign an NDA if you need one
+          in place first.
+        </p>
 
         <div className="mt-12">
           <ContactForm />
