@@ -119,6 +119,13 @@ const OBJECTIONS = [
     ],
   },
   {
+    question: "Is what we discuss confidential?",
+    answer: [
+      "Yes. Everything you share before, during, and after the call stays between us. We do not reference clients by name without permission and we do not reuse your situation as marketing material.",
+      "If your organisation requires an NDA in place before the first conversation, send yours through and we will sign it. We would rather you talk freely than hedge.",
+    ],
+  },
+  {
     question: "Why not just use our existing team?",
     answer: [
       "Your team knows the domain. We know what breaks AI programs at the data layer, and we have fixed it across healthcare, financial services, government, and retail. Those are not the same things.",
