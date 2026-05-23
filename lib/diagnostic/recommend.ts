@@ -86,6 +86,15 @@ export function buildActionQueryText(action: ActionItem): {
 export async function recommendForReport(
   input: RecommendForReportInput,
 ): Promise<RecommendedReading[]> {
+  const startedAt = Date.now();
+  console.info(
+    "[recommend] start",
+    JSON.stringify({
+      actions: input.actionPlan.length,
+      threshold: SIMILARITY_THRESHOLD,
+    }),
+  );
+
   // Phase 1: parallel per-action ANN. Promise.allSettled ensures a
   // single failed action (embedding outage, DB blip) doesn't lose the
   // entire readings block — only that action's recommendation is lost.
@@ -99,6 +108,14 @@ export async function recommendForReport(
       }),
     ),
   );
+
+  const failedActions = perAction.filter((r) => r.status === "rejected").length;
+  if (failedActions > 0) {
+    console.warn(
+      "[recommend] per-action failures",
+      JSON.stringify({ failed: failedActions, total: perAction.length }),
+    );
+  }
 
   // Phase 2: collect first match per action, deduping across actions.
   const seen = new Set<string>();
@@ -118,7 +135,25 @@ export async function recommendForReport(
     if (recs.length >= MAX_PER_REPORT) break;
   }
 
-  if (recs.length > 0) return recs;
+  if (recs.length > 0) {
+    console.info(
+      "[recommend] complete",
+      JSON.stringify({
+        recs: recs.length,
+        source: "per_action",
+        latencyMs: Date.now() - startedAt,
+      }),
+    );
+    return recs;
+  }
+
+  // Cold-start signal: no per-action match cleared the threshold.
+  // Surface for the observability dashboard — high cold-start rate
+  // suggests we need more diverse blog content.
+  console.warn(
+    "[recommend] cold_start",
+    JSON.stringify({ actions: input.actionPlan.length }),
+  );
 
   // Phase 3: fallback — no action found a strong match. Embed the
   // verdict + narrative as a per-report query and surface up to
@@ -136,12 +171,24 @@ export async function recommendForReport(
       limit: MAX_FALLBACK,
       visibility: "public",
     });
-  } catch {
+  } catch (err) {
+    console.warn(
+      "[recommend] fallback_failed",
+      JSON.stringify({ err: err instanceof Error ? err.message : String(err) }),
+    );
     // If even the fallback errors, return empty — render layer hides
     // the readings block (quiet fail per D8 cold-start handling).
     return [];
   }
 
+  console.info(
+    "[recommend] complete",
+    JSON.stringify({
+      recs: fallback.length,
+      source: "fallback",
+      latencyMs: Date.now() - startedAt,
+    }),
+  );
   return fallback.map((p) => ({
     actionIndex: -1,
     postId: p.id,
@@ -178,6 +225,7 @@ export async function populateRecommendedReadings(
   reportId: string,
   content: ReportContent,
 ): Promise<void> {
+  const startedAt = Date.now();
   try {
     // 1. Per-action retrieval (with fallback per recommendForReport).
     const recs = await recommendForReport({
@@ -187,7 +235,8 @@ export async function populateRecommendedReadings(
     });
     if (recs.length === 0) {
       // No matches above threshold — leave NULL. Render layer hides
-      // the readings block. Cold-start path.
+      // the readings block. Cold-start path. Already logged by
+      // recommendForReport (cold_start + fallback_failed).
       return;
     }
 
@@ -234,6 +283,17 @@ export async function populateRecommendedReadings(
         updatedAt: new Date(),
       })
       .where(eq(reportOutput.id, reportId));
+
+    const glossedCount = withGloss.filter((r) => r.gloss.length > 0).length;
+    console.info(
+      "[diagnostic] readings_persisted",
+      JSON.stringify({
+        reportId,
+        recs: withGloss.length,
+        glossed: glossedCount,
+        totalLatencyMs: Date.now() - startedAt,
+      }),
+    );
   } catch (err) {
     // Logged at WARN, not ERROR — the report itself succeeded; readings
     // are a supplement, not a precondition.

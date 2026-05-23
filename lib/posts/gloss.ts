@@ -70,6 +70,7 @@ export async function generatePostGlosses(
 ): Promise<Record<string, string>> {
   if (input.posts.length === 0) return {};
 
+  const startedAt = Date.now();
   const prompts = await getPostGlossPrompts();
   const validIds = new Set(input.posts.map((p) => p.id));
 
@@ -114,12 +115,26 @@ export async function generatePostGlosses(
   // is a post id we actually sent. Same belt-and-braces pattern as
   // lib/claude-booking.ts#matchBlogPosts.
   const cleaned: Record<string, string> = {};
+  let hallucinated = 0;
   for (const [id, gloss] of Object.entries(parsed.data.glosses)) {
-    if (!validIds.has(id)) continue;
+    if (!validIds.has(id)) {
+      hallucinated++;
+      continue;
+    }
     if (typeof gloss !== "string") continue;
     const trimmed = gloss.trim();
     if (trimmed.length === 0) continue;
     cleaned[id] = trimmed;
   }
+
+  console.info(
+    "[post-gloss] complete",
+    JSON.stringify({
+      requested: input.posts.length,
+      glossed: Object.keys(cleaned).length,
+      hallucinated,
+      latencyMs: Date.now() - startedAt,
+    }),
+  );
   return cleaned;
 }
