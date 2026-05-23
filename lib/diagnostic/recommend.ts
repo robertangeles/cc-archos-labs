@@ -1,7 +1,12 @@
 import "server-only";
+import { eq, inArray } from "drizzle-orm";
 import { findSimilarPosts, type SimilarPost } from "../posts/find-similar";
+import { generatePostGlosses } from "../posts/gloss";
+import { getDb } from "../db";
+import { post, reportOutput } from "../db/schema";
 import {
   type ActionItem,
+  type ReportContent,
   SERVICE_LINE_LABELS,
 } from "./report-types";
 import type { RecommendedReading } from "../db/schema";
@@ -142,4 +147,99 @@ export async function recommendForReport(
     postId: p.id,
     gloss: "",
   }));
+}
+
+// ============================================================================
+// Side-effecting orchestration: retrieve → gloss → UPDATE report_output.
+// Called from lib/diagnostic/report.ts#generateReport AFTER the report row
+// has been inserted with NULL recommended_readings, gated by the
+// RECOMMENDED_READINGS_ENABLED feature flag (D12).
+//
+// Fail-soft contract: this function NEVER throws. Any error logs and
+// returns; the report row keeps its NULL recommended_readings and the
+// render layer hides the readings block. The diagnostic generate
+// response is unaffected.
+// ============================================================================
+
+/**
+ * Build the context string sent to the gloss LLM. Joins verdict +
+ * narrative + a compact list of action titles + explanations. The
+ * gloss prompt uses this to tailor relevance notes to the reader's
+ * actual situation.
+ */
+export function buildGlossContext(content: ReportContent): string {
+  const actionsBlock = content.action_plan
+    .map((a, i) => `${i + 1}. ${a.title}: ${a.explanation}`)
+    .join("\n");
+  return `${content.verdict}\n\n${content.narrative}\n\nActions:\n${actionsBlock}`;
+}
+
+export async function populateRecommendedReadings(
+  reportId: string,
+  content: ReportContent,
+): Promise<void> {
+  try {
+    // 1. Per-action retrieval (with fallback per recommendForReport).
+    const recs = await recommendForReport({
+      verdict: content.verdict,
+      narrative: content.narrative,
+      actionPlan: content.action_plan,
+    });
+    if (recs.length === 0) {
+      // No matches above threshold — leave NULL. Render layer hides
+      // the readings block. Cold-start path.
+      return;
+    }
+
+    // 2. Load post titles + excerpts so the gloss LLM has enough to
+    //    write a relevance note. We already know the IDs from retrieval.
+    const db = getDb();
+    const postIds = Array.from(new Set(recs.map((r) => r.postId)));
+    const postRows = await db
+      .select({
+        id: post.id,
+        title: post.title,
+        excerpt: post.excerpt,
+      })
+      .from(post)
+      .where(inArray(post.id, postIds));
+
+    // 3. Batched gloss call. Returns {} on any Claude error — caller
+    //    must tolerate missing entries.
+    const glossMap = await generatePostGlosses({
+      context: buildGlossContext(content),
+      posts: postRows.map((p) => ({
+        id: p.id,
+        title: p.title,
+        excerpt: p.excerpt,
+      })),
+    });
+
+    // 4. Merge glosses into the rec entries. Posts whose gloss the
+    //    LLM omitted or hallucinated get an empty string — UI renders
+    //    them without the subtitle.
+    const withGloss: RecommendedReading[] = recs.map((r) => ({
+      actionIndex: r.actionIndex,
+      postId: r.postId,
+      gloss: glossMap[r.postId] ?? "",
+    }));
+
+    // 5. Persist to report_output. Single UPDATE; if the row was
+    //    deleted between INSERT and now (impossible in practice; the
+    //    same caller just inserted it), the UPDATE is a no-op.
+    await db
+      .update(reportOutput)
+      .set({
+        recommendedReadings: withGloss,
+        updatedAt: new Date(),
+      })
+      .where(eq(reportOutput.id, reportId));
+  } catch (err) {
+    // Logged at WARN, not ERROR — the report itself succeeded; readings
+    // are a supplement, not a precondition.
+    console.warn(
+      "[diagnostic] populateRecommendedReadings failed; report saved without readings:",
+      err instanceof Error ? err.message : err,
+    );
+  }
 }
