@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-22T11:07:19.750Z
+generated: 2026-05-23T23:14:42.524Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -13,7 +13,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 
 | Route | File | Last shipped |
 |-------|------|--------------|
-| `/` | [app/page.tsx](../app/page.tsx) | 2026-05-18 |
+| `/` | [app/page.tsx](../app/page.tsx) | 2026-05-22 |
 | `/[...slug]` | [app/[...slug]/page.tsx](../app/[...slug]/page.tsx) | 2026-05-18 |
 | `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-18 |
 | `/admin/(authed)/blog` | [app/admin/(authed)/blog/page.tsx](../app/admin/(authed)/blog/page.tsx) | 2026-05-20 |
@@ -36,11 +36,11 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/blog` | [app/blog/page.tsx](../app/blog/page.tsx) | 2026-05-21 |
 | `/blog/[slug]` | [app/blog/[slug]/page.tsx](../app/blog/[slug]/page.tsx) | 2026-05-22 |
 | `/blog/category/[slug]` | [app/blog/category/[slug]/page.tsx](../app/blog/category/[slug]/page.tsx) | 2026-05-21 |
-| `/book/[slug]` | [app/book/[slug]/page.tsx](../app/book/[slug]/page.tsx) | 2026-05-17 |
+| `/book/[slug]` | [app/book/[slug]/page.tsx](../app/book/[slug]/page.tsx) | 2026-05-22 |
 | `/book/[slug]/confirmation/[bookingId]` | [app/book/[slug]/confirmation/[bookingId]/page.tsx](../app/book/[slug]/confirmation/[bookingId]/page.tsx) | 2026-05-17 |
 | `/book/manage/[token]` | [app/book/manage/[token]/page.tsx](../app/book/manage/[token]/page.tsx) | 2026-05-17 |
 | `/book/manage/[token]/reschedule` | [app/book/manage/[token]/reschedule/page.tsx](../app/book/manage/[token]/reschedule/page.tsx) | 2026-05-17 |
-| `/contact` | [app/contact/page.tsx](../app/contact/page.tsx) | 2026-05-15 |
+| `/contact` | [app/contact/page.tsx](../app/contact/page.tsx) | 2026-05-22 |
 | `/sign-in` | [app/sign-in/page.tsx](../app/sign-in/page.tsx) | 2026-05-12 |
 | `/sign-in/check-email` | [app/sign-in/check-email/page.tsx](../app/sign-in/check-email/page.tsx) | 2026-05-15 |
 | `/tools/ai-readiness` | [app/tools/ai-readiness/page.tsx](../app/tools/ai-readiness/page.tsx) | 2026-05-13 |
@@ -101,7 +101,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/events` | [app/api/events/route.ts](../app/api/events/route.ts) | 2026-05-18 |
 | `/api/health/cron` | [app/api/health/cron/route.ts](../app/api/health/cron/route.ts) | 2026-05-17 |
 
-## Components (65)
+## Components (66)
 
 | File | Last shipped |
 |------|--------------|
@@ -120,6 +120,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/blog/toc.tsx](../components/blog/toc.tsx) | 2026-05-20 |
 | [components/booking/calendar-picker.tsx](../components/booking/calendar-picker.tsx) | 2026-05-17 |
 | [components/contact/contact-form.tsx](../components/contact/contact-form.tsx) | 2026-05-15 |
+| [components/diagnostic/recommended-readings.tsx](../components/diagnostic/recommended-readings.tsx) | unknown |
 | [components/icons/social.tsx](../components/icons/social.tsx) | 2026-05-22 |
 | [components/layout/footer.tsx](../components/layout/footer.tsx) | 2026-05-18 |
 | [components/layout/header.tsx](../components/layout/header.tsx) | 2026-05-22 |

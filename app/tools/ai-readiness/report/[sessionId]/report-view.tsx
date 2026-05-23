@@ -12,6 +12,7 @@ import {
 import type { LoadedReport } from "../../../../../lib/diagnostic/report";
 import type { ShareTokenSummary } from "../../../../../lib/share-tokens";
 import { BOOK_A_CALL_URL } from "../../../../../lib/cta-urls";
+import { RecommendedReadings } from "../../../../../components/diagnostic/recommended-readings";
 import { PrintButton } from "./print-button";
 import { ShareControls } from "./share-controls";
 
@@ -274,6 +275,21 @@ export function ReportView({
           </ol>
         </div>
       </section>
+
+      {/* ====================================================================
+          Section 5b — Recommended Reading (Translation Layer posts that
+          argue the case for each action above). Quiet-renders nothing
+          when the rec list is empty (feature flag was off when this
+          report generated, OR retrieval/gloss degraded, OR all matched
+          posts have since been unpublished).
+          ==================================================================== */}
+      {report.recommendedReadings.length > 0 ? (
+        <section className="border-b border-hairline px-6 py-12 md:px-12 md:py-16 print:py-6">
+          <div className="mx-auto w-full max-w-[840px]">
+            <RecommendedReadings items={report.recommendedReadings} />
+          </div>
+        </section>
+      ) : null}
 
       {/* ====================================================================
           Owner share controls — only rendered for the owner view, not

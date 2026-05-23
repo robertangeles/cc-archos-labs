@@ -3,7 +3,7 @@ import { eq, inArray } from "drizzle-orm";
 import { findSimilarPosts, type SimilarPost } from "../posts/find-similar";
 import { generatePostGlosses } from "../posts/gloss";
 import { getDb } from "../db";
-import { post, reportOutput } from "../db/schema";
+import { category, post, reportOutput } from "../db/schema";
 import {
   type ActionItem,
   type ReportContent,
@@ -242,4 +242,112 @@ export async function populateRecommendedReadings(
       err instanceof Error ? err.message : err,
     );
   }
+}
+
+// ============================================================================
+// Hydration: turn the persisted RecommendedReading[] (just IDs + gloss +
+// actionIndex) into UI-ready rows by joining against post + action_plan.
+//
+// Called from loadReport at render time, NOT at generation time. This way
+// the UI always shows current post titles/excerpts/og-images — if an
+// editor renames a post or replaces its image after the rec was persisted,
+// the change is reflected without re-running retrieval. (D7 stability is
+// about WHICH posts are recommended, not their display content.)
+//
+// Posts that no longer exist or are no longer published are filtered out
+// silently — the render layer just shows fewer cards.
+// ============================================================================
+
+export interface HydratedRecommendedReading {
+  postId: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  readingTimeMin: number;
+  ogImagePath: string | null;
+  ogImageDeletedAt: Date | null;
+  ogImageAlt: string | null;
+  categoryName: string | null;
+  /** 0..N-1 = supports action_plan[i]; -1 = general recommendation. */
+  actionIndex: number;
+  /** action_plan[actionIndex].title when actionIndex >= 0; null otherwise. */
+  actionTitle: string | null;
+  /** One-sentence relevance note; "" when the gloss LLM degraded. */
+  gloss: string;
+}
+
+export async function hydrateRecommendedReadings(
+  rawReadings: RecommendedReading[] | null,
+  actionPlan: ActionItem[],
+): Promise<HydratedRecommendedReading[]> {
+  if (!rawReadings || rawReadings.length === 0) return [];
+
+  const db = getDb();
+  const postIds = Array.from(new Set(rawReadings.map((r) => r.postId)));
+
+  // One JOIN query for all referenced posts. Filters to published +
+  // not-archived so unpublishing a post since the rec was persisted
+  // silently drops that rec from the rendered list.
+  const postRows = await db
+    .select({
+      id: post.id,
+      slug: post.slug,
+      title: post.title,
+      excerpt: post.excerpt,
+      readingTimeMin: post.readingTimeMin,
+      ogImagePath: post.ogImagePath,
+      ogImageDeletedAt: post.ogImageDeletedAt,
+      ogImageAlt: post.ogImageAlt,
+      status: post.status,
+      archivedAt: post.archivedAt,
+      categoryId: post.categoryId,
+    })
+    .from(post)
+    .where(inArray(post.id, postIds));
+
+  // Build category map separately to avoid a LEFT JOIN that complicates
+  // the select shape. Categories are small (<20 rows in production); one
+  // extra SELECT is cheaper than a join.
+  const categoryIds = postRows
+    .map((p) => p.categoryId)
+    .filter((id): id is string => id !== null);
+  const categoryRows =
+    categoryIds.length > 0
+      ? await db
+          .select({ id: category.id, name: category.name })
+          .from(category)
+          .where(inArray(category.id, categoryIds))
+      : [];
+  const categoryById = new Map(categoryRows.map((c) => [c.id, c.name]));
+
+  const postById = new Map(postRows.map((p) => [p.id, p]));
+
+  const out: HydratedRecommendedReading[] = [];
+  for (const r of rawReadings) {
+    const p = postById.get(r.postId);
+    if (!p) continue; // post deleted since rec was persisted — drop
+    if (p.status !== "published") continue; // unpublished — drop
+    if (p.archivedAt !== null) continue; // archived — drop
+
+    const actionTitle =
+      r.actionIndex >= 0 && r.actionIndex < actionPlan.length
+        ? actionPlan[r.actionIndex].title
+        : null;
+
+    out.push({
+      postId: p.id,
+      slug: p.slug,
+      title: p.title,
+      excerpt: p.excerpt,
+      readingTimeMin: p.readingTimeMin,
+      ogImagePath: p.ogImagePath,
+      ogImageDeletedAt: p.ogImageDeletedAt,
+      ogImageAlt: p.ogImageAlt,
+      categoryName: p.categoryId ? categoryById.get(p.categoryId) ?? null : null,
+      actionIndex: r.actionIndex,
+      actionTitle,
+      gloss: r.gloss,
+    });
+  }
+  return out;
 }

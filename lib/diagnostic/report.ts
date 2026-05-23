@@ -7,7 +7,11 @@ import { evaluateSession, evaluatePriorityTriggers } from "./scoring";
 import { buildUserPrompt } from "./prompts";
 import { getDiagnosticPrompt } from "./prompt-config";
 import { getDiagnosticContent } from "./content-config";
-import { populateRecommendedReadings } from "./recommend";
+import {
+  hydrateRecommendedReadings,
+  populateRecommendedReadings,
+  type HydratedRecommendedReading,
+} from "./recommend";
 import {
   isValidReportContent,
   type ReportContent,
@@ -214,6 +218,13 @@ export interface LoadedReport {
   } | null;
   result: SessionResult;
   content: ReportContent;
+  /**
+   * Hydrated recommended readings ready to render. Empty array when the
+   * column was NULL (feature flag off when the report generated, or the
+   * retrieval/gloss step degraded). UI hides the readings block entirely
+   * on empty.
+   */
+  recommendedReadings: HydratedRecommendedReading[];
   generatedAt: Date;
 }
 
@@ -238,6 +249,7 @@ export async function loadReport(
       verdict: reportOutput.verdict,
       narrative: reportOutput.narrative,
       actionPlan: reportOutput.actionPlan,
+      recommendedReadings: reportOutput.recommendedReadings,
       generatedAt: reportOutput.generatedAt,
       leadFirstName: lead.firstName,
       leadLastName: lead.lastName,
@@ -294,6 +306,17 @@ export async function loadReport(
         }
       : null;
 
+  const actionPlan = row.actionPlan as ReportContent["action_plan"];
+
+  // Hydrate recommended_readings (JSON-stored postIds + glosses) into
+  // UI-ready rows by joining against the current state of post + action
+  // plan. Posts that are no longer published are dropped silently — see
+  // hydrateRecommendedReadings docstring.
+  const recommendedReadings = await hydrateRecommendedReadings(
+    row.recommendedReadings ?? null,
+    actionPlan,
+  );
+
   return {
     sessionId: row.sessionId,
     leadId: row.leadId,
@@ -302,8 +325,9 @@ export async function loadReport(
     content: {
       verdict: row.verdict,
       narrative: row.narrative,
-      action_plan: row.actionPlan as ReportContent["action_plan"],
+      action_plan: actionPlan,
     },
+    recommendedReadings,
     generatedAt: row.generatedAt,
   };
 }
