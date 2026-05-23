@@ -1,0 +1,24 @@
+-- ============================================================================
+-- 0017_dashing_sabra — report_output.recommended_readings (PR1 T2)
+-- ============================================================================
+-- Adds the JSONB column that holds curated post recommendations on each
+-- generated Executive AI Diagnostic report. Shape is documented in
+-- lib/db/schema.ts via the RecommendedReading interface:
+--
+--   [{ actionIndex: number,  -- 0..N-1 = action_plan[i]; -1 = fallback
+--      postId: string,       -- references post.id (no FK; app-level)
+--      gloss: string }]      -- one-sentence relevance note
+--
+-- Nullable for backward compatibility — reports generated before this
+-- column existed render with no readings block. Feature-flagged via
+-- RECOMMENDED_READINGS_ENABLED (D12); off by default, so even after the
+-- column exists, new reports still leave it NULL until the flag flips.
+--
+-- Drizzle's auto-generated 0017 also picked up content from 0014/0015/0016
+-- because their snapshot JSONs were never created (those migrations were
+-- hand-written, not generated via drizzle-kit). That content is already
+-- in prod from when 0014/0015/0016 were applied via db:migrate. This
+-- migration only contains the truly new column.
+-- ============================================================================
+
+ALTER TABLE "report_output" ADD COLUMN "recommended_readings" jsonb;

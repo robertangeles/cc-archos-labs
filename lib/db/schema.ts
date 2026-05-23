@@ -144,6 +144,30 @@ export type NewAssessmentSession = typeof assessmentSession.$inferInsert;
 // reproducibility. CASCADE delete: if a session is purged the report
 // goes with it.
 
+/**
+ * Shape of report_output.recommended_readings JSONB column.
+ *
+ * Each entry pairs a Translation Layer post with the action_plan item
+ * it supports, plus a one-sentence "why this matters to your situation"
+ * gloss. Persisted at report-generation time so the shareable artefact
+ * is deterministic across re-opens (D7: never refresh).
+ *
+ * actionIndex semantics:
+ *   - 0..N-1 → the post supports action_plan[actionIndex]
+ *   - -1     → per-report fallback (verdict + narrative ANN), surfaced
+ *              only when no individual action returned a result above
+ *              the similarity threshold
+ *
+ * gloss may be empty string when the gloss LLM call degraded (per the
+ * fail-soft path in lib/posts/gloss.ts) — UI renders the post without
+ * the relevance note rather than hiding the recommendation entirely.
+ */
+export interface RecommendedReading {
+  actionIndex: number;
+  postId: string;
+  gloss: string;
+}
+
 export const reportOutput = pgTable("report_output", {
   id: uuid("id").primaryKey().defaultRandom(),
   // unique() ensures one report per session — retake-flow (W5) creates
@@ -159,6 +183,15 @@ export const reportOutput = pgTable("report_output", {
   // [{ title: string, time_horizon: '0-30d' | '30-90d' | '90d+',
   //    body: string }]. 3–5 actions per spec §6.4.
   actionPlan: jsonb("action_plan").notNull(),
+  // JSONB exception per CLAUDE.md Database Design §1: structured
+  // metadata column with documented shape (RecommendedReading[] above).
+  // Nullable for backward compatibility with reports generated before
+  // PR1 landed — render layer treats NULL as "no readings block".
+  // Re-population is gated by RECOMMENDED_READINGS_ENABLED (D12) and
+  // happens at report-generation time only (D7: never refresh).
+  recommendedReadings: jsonb("recommended_readings").$type<
+    RecommendedReading[]
+  >(),
   // 'claude-sonnet-4-6' etc. Stored for observability — when prompts
   // change behaviour, we can correlate by model version.
   modelId: text("model_id").notNull(),
