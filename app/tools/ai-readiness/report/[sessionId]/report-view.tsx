@@ -143,7 +143,7 @@ export function ReportView({
           Section 2 — Risk flags (only shown when triggered)
           ==================================================================== */}
       {result.riskFlags.length > 0 ? (
-        <section className="border-b border-hairline px-6 py-12 md:px-12 md:py-16 print:py-4">
+        <section className="border-b border-hairline px-6 py-12 md:px-12 md:py-16 print:border-b-0 print:py-4">
           <div className="mx-auto w-full max-w-[840px]">
             <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
               {result.riskFlags.length === 1
@@ -177,7 +177,7 @@ export function ReportView({
           Closes out the page-1 summary (cover + risk flags + domain
           breakdown). Section 4 below forces a new page.
           ==================================================================== */}
-      <section className="border-b border-hairline px-6 py-12 md:px-12 md:py-16 print:py-4">
+      <section className="border-b border-hairline px-6 py-12 md:px-12 md:py-16 print:border-b-0 print:py-4">
         <div className="mx-auto w-full max-w-[840px]">
           <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
             Domain breakdown
@@ -221,7 +221,7 @@ export function ReportView({
           Forced new page in print — the analysis is a full read that
           deserves its own page, not the tail of the summary.
           ==================================================================== */}
-      <section className="border-b border-hairline px-6 py-16 md:px-12 md:py-20 print:py-6 print:break-before-page">
+      <section className="border-b border-hairline px-6 py-16 md:px-12 md:py-20 print:border-b-0 print:py-6 print:break-before-page">
         <div className="mx-auto w-full max-w-[840px]">
           <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
             Practitioner analysis
@@ -240,7 +240,7 @@ export function ReportView({
           individual actions don't split mid-card if the list itself
           overflows to a second page.
           ==================================================================== */}
-      <section className="border-b border-hairline px-6 py-12 md:px-12 md:py-16 print:py-6 print:break-before-page">
+      <section className="border-b border-hairline px-6 py-12 md:px-12 md:py-16 print:border-b-0 print:py-6 print:break-before-page">
         <div className="mx-auto w-full max-w-[840px]">
           <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
             Priority action sequence
@@ -263,7 +263,7 @@ export function ReportView({
           page (which is exactly what was happening before).
           ==================================================================== */}
       {report.recommendedReadings.length > 0 ? (
-        <section className="border-b border-hairline px-6 py-12 md:px-12 md:py-16 print:py-6 print:break-before-page">
+        <section className="border-b border-hairline px-6 py-12 md:px-12 md:py-16 print:border-b-0 print:py-6 print:break-before-page">
           <div className="mx-auto w-full max-w-[840px]">
             <RecommendedReadings items={report.recommendedReadings} />
           </div>
