@@ -4,49 +4,62 @@
 //   pnpm calibrate:threshold
 //
 // Loads .env.local for DATABASE_URL + OPENROUTER_API_KEY via Node 22's
-// --env-file-if-exists. Runs a
-// representative set of query texts through findSimilarPosts with
-// NO threshold (i.e. always top-N), prints the distance histogram,
-// and prints a recommended threshold based on the gap between
-// "obvious good matches" and the long tail.
+// --env-file-if-exists. Runs a representative set of diagnostic-shaped
+// queries through ANN against the live post.embedding column. Prints:
 //
-// SIMILARITY_THRESHOLD in lib/diagnostic/recommend.ts is initially
-// set to 0.6 as a reasonable starting point. Run this script after
-// migration 0017 lands in prod (so the column exists and the feature
-// is live) and against the actual 253-post corpus — bump the constant
-// if the data suggests a different cutoff at the elbow of YOUR
-// distribution.
+//   - Top-N hits per query (slug + distance) — useful for filling in
+//     the expectInTop3 slug placeholders in
+//     tests/eval/recommend.eval.test.ts
+//   - Aggregate distance histogram + p25/p50/p75 — useful for picking
+//     SIMILARITY_THRESHOLD in lib/diagnostic/recommend.ts (currently 0.6)
 //
-// What "obvious good" looks like:
-//   - distances ≤ 0.35 → semantically very close (the post directly
-//     addresses the query's topic)
-//   - 0.35–0.55       → relevant but broader; still worth showing
-//   - 0.55–0.70       → tenuous; would erode CFO trust at scale
-//   - > 0.70          → unrelated
+// Self-contained: does NOT import from lib/. The lib/ chain pulls in
+// `server-only`, which throws under tsx (no Next.js RSC context). This
+// script speaks Postgres + OpenRouter directly using the same model
+// IDs + dimensions as the production embedder.
 //
-// Pick the threshold at the elbow of YOUR distribution, not the
-// industry-average numbers above.
+// Embed model + dimensions kept in sync with lib/embeddings.ts:
+//   - openai/text-embedding-3-large via OpenRouter
+//   - 1024 dimensions (matches post.embedding vector(1024))
+// If those constants change in lib/embeddings.ts, change them here too.
 
-import { findSimilarPosts } from "../lib/posts/find-similar";
+import postgres from "postgres";
 
-// Representative queries spanning the diagnostic surface. Add more
-// here if the histogram from a representative set looks bimodal or
-// you suspect a specific cluster is under- or over-represented in
-// the blog.
-const CALIBRATION_QUERIES: Array<{ label: string; queryText: { title: string; excerpt?: string; contentMd?: string } }> = [
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/embeddings";
+const EMBED_MODEL = "openai/text-embedding-3-large";
+const EMBED_DIMS = 1024;
+const TOP_N_PER_QUERY = 5;
+const REQUEST_TIMEOUT_MS = 30_000;
+
+interface CalibrationQuery {
+  label: string;
+  queryText: {
+    title: string;
+    excerpt?: string;
+    contentMd?: string;
+  };
+}
+
+// Representative diagnostic-shaped queries spanning the three Archos
+// service lines + a few cross-cutting risk patterns. Mirrors the shape
+// of action_plan items (title + explanation + service-line label) the
+// production pipeline embeds.
+const CALIBRATION_QUERIES: CalibrationQuery[] = [
   {
-    label: "data_lineage",
+    label: "data_lineage_documentation",
     queryText: {
       title: "Document data lineage end-to-end",
-      excerpt: "Foundational issue: undocumented data lineage across core systems.",
+      excerpt:
+        "Foundational issue: undocumented data lineage across core systems blocks AI initiatives.",
       contentMd: "Service: AI Readiness Assessment",
     },
   },
   {
-    label: "ai_agent_rollout",
+    label: "ai_agent_production_rollout",
     queryText: {
       title: "Stand up an AI agent in production",
-      excerpt: "Customer-support intake; need governance + observability before rollout.",
+      excerpt:
+        "Customer-support intake agent; need governance + observability before rollout.",
       contentMd: "Service: AI Agent Development",
     },
   },
@@ -54,32 +67,139 @@ const CALIBRATION_QUERIES: Array<{ label: string; queryText: { title: string; ex
     label: "data_architecture_redesign",
     queryText: {
       title: "Redesign the analytics warehouse for AI workloads",
-      excerpt: "Existing star schema is brittle; AI queries hit hot spots.",
+      excerpt:
+        "Existing star schema is brittle; AI queries hit hot spots and cause analyst delays.",
       contentMd: "Service: Data Architecture",
     },
   },
   {
-    label: "governance_program",
+    label: "data_governance_program",
     queryText: {
       title: "Establish a data governance program",
-      excerpt: "Cross-functional governance across data, AI, and risk.",
+      excerpt:
+        "Cross-functional governance across data, AI, and risk teams.",
       contentMd: "Service: AI Readiness Assessment",
     },
   },
   {
-    label: "change_management",
+    label: "change_management_resistance",
     queryText: {
       title: "Drive change management across the org",
-      excerpt: "AI rollout meeting resistance from the analytics team.",
+      excerpt:
+        "AI rollout meeting resistance from analytics team; product owners not bought in.",
       contentMd: "Service: AI Readiness Assessment",
     },
   },
-  // Add more queries reflecting the breadth of diagnostic actions.
+  {
+    label: "model_evaluation_strategy",
+    queryText: {
+      title: "Build an evaluation framework for production AI",
+      excerpt:
+        "Need to measure model quality continuously; not just at launch.",
+      contentMd: "Service: AI Agent Development",
+    },
+  },
+  {
+    label: "executive_ai_strategy",
+    queryText: {
+      title: "Set executive-level AI strategy and KPIs",
+      excerpt:
+        "CEO wants AI as a strategic differentiator; needs measurable goals.",
+      contentMd: "Service: AI Readiness Assessment",
+    },
+  },
+  {
+    label: "data_quality_remediation",
+    queryText: {
+      title: "Address data quality issues blocking AI",
+      excerpt:
+        "Source data has gaps, inconsistencies; downstream models inherit them.",
+      contentMd: "Service: Data Architecture",
+    },
+  },
 ];
 
-const TOP_N_FOR_HISTOGRAM = 10;
+function buildEmbeddingText(input: {
+  title: string;
+  excerpt?: string;
+  contentMd?: string;
+}): string {
+  const parts = [input.title];
+  if (input.excerpt) parts.push(input.excerpt);
+  if (input.contentMd) parts.push(input.contentMd.slice(0, 1500));
+  return parts.join("\n\n");
+}
 
-function makeHistogram(distances: number[]): Record<string, number> {
+async function embedText(text: string): Promise<number[]> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "OPENROUTER_API_KEY not set in .env.local — calibration needs the same embed key as the live retrieval pipeline.",
+    );
+  }
+  const modelId = process.env.OPENROUTER_EMBED_MODEL ?? EMBED_MODEL;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const res = await fetch(OPENROUTER_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: modelId,
+        input: text,
+        dimensions: EMBED_DIMS,
+      }),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      throw new Error(
+        `OpenRouter ${res.status} ${res.statusText}: ${(await res.text()).slice(0, 200)}`,
+      );
+    }
+    const json = (await res.json()) as {
+      data?: Array<{ embedding?: number[] }>;
+    };
+    const embedding = json.data?.[0]?.embedding;
+    if (!Array.isArray(embedding) || embedding.length !== EMBED_DIMS) {
+      throw new Error(
+        `OpenRouter returned an unexpected embedding shape (got ${embedding?.length} dims, expected ${EMBED_DIMS}).`,
+      );
+    }
+    return embedding;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function searchTopN(
+  sql: ReturnType<typeof postgres>,
+  vector: number[],
+  limit: number,
+): Promise<Array<{ slug: string; title: string; distance: number }>> {
+  const literal = `[${vector.join(",")}]`;
+  const rows = await sql<
+    Array<{ slug: string; title: string; distance: string | number }>
+  >`
+    SELECT slug, title, embedding <=> ${literal}::vector AS distance
+    FROM post
+    WHERE status = 'published'
+      AND archived_at IS NULL
+      AND visibility = 'listed'
+      AND embedding IS NOT NULL
+    ORDER BY embedding <=> ${literal}::vector
+    LIMIT ${limit}
+  `;
+  return rows.map((r) => ({
+    slug: r.slug,
+    title: r.title,
+    distance: typeof r.distance === "number" ? r.distance : Number(r.distance),
+  }));
+}
+
+function bucketHistogram(distances: number[]): Record<string, number> {
   const buckets: Record<string, number> = {
     "0.00-0.15": 0,
     "0.15-0.30": 0,
@@ -102,50 +222,74 @@ function makeHistogram(distances: number[]): Record<string, number> {
 }
 
 async function main() {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    throw new Error(
+      "DATABASE_URL not set in .env.local — calibration runs against the same DB the prod pipeline reads.",
+    );
+  }
+  const sql = postgres(url, { max: 1, ssl: "require" });
+
   console.log("=== findSimilarPosts threshold calibration ===\n");
+  console.log(`Model: ${EMBED_MODEL} (${EMBED_DIMS} dims)`);
+  console.log(`Queries: ${CALIBRATION_QUERIES.length}, top ${TOP_N_PER_QUERY} per query\n`);
 
   const allDistances: number[] = [];
-  for (const c of CALIBRATION_QUERIES) {
-    console.log(`Query: ${c.label}`);
-    const results = await findSimilarPosts({
-      queryText: c.queryText,
-      limit: TOP_N_FOR_HISTOGRAM,
-      visibility: "public",
-    });
-    for (const r of results) {
+
+  for (const q of CALIBRATION_QUERIES) {
+    process.stdout.write(`Query: ${q.label} ... `);
+    const text = buildEmbeddingText(q.queryText);
+    let vector: number[];
+    try {
+      vector = await embedText(text);
+    } catch (err) {
+      console.log(`embed failed: ${(err as Error).message}`);
+      continue;
+    }
+    const rows = await searchTopN(sql, vector, TOP_N_PER_QUERY);
+    console.log("");
+    for (const r of rows) {
       console.log(`  ${r.distance.toFixed(3)}  ${r.slug}`);
       allDistances.push(r.distance);
     }
     console.log("");
   }
 
-  console.log("=== Aggregate distance histogram ===");
-  const hist = makeHistogram(allDistances);
+  console.log("=== Aggregate distance histogram (across all top-N hits) ===");
+  const hist = bucketHistogram(allDistances);
   for (const [bucket, count] of Object.entries(hist)) {
     const bar = "█".repeat(count);
     console.log(`  ${bucket}  ${bar} (${count})`);
   }
 
   const sorted = [...allDistances].sort((a, b) => a - b);
-  const p25 = sorted[Math.floor(sorted.length * 0.25)];
-  const p50 = sorted[Math.floor(sorted.length * 0.5)];
-  const p75 = sorted[Math.floor(sorted.length * 0.75)];
-  console.log(`\np25 = ${p25?.toFixed(3) ?? "n/a"}`);
-  console.log(`p50 = ${p50?.toFixed(3) ?? "n/a"}`);
-  console.log(`p75 = ${p75?.toFixed(3) ?? "n/a"}`);
+  const pct = (p: number): number | undefined =>
+    sorted[Math.floor(sorted.length * p)];
+  console.log(`\np25 = ${pct(0.25)?.toFixed(3) ?? "n/a"}`);
+  console.log(`p50 = ${pct(0.5)?.toFixed(3) ?? "n/a"}`);
+  console.log(`p75 = ${pct(0.75)?.toFixed(3) ?? "n/a"}`);
+  console.log(`p90 = ${pct(0.9)?.toFixed(3) ?? "n/a"}`);
 
   console.log(
-    "\nRecommendation: set SIMILARITY_THRESHOLD just above p50 — that",
+    "\nCurrent SIMILARITY_THRESHOLD in lib/diagnostic/recommend.ts: 0.6\n",
   );
   console.log(
-    "rejects the bottom-half tail while keeping the upper-half matches.",
+    "Guidance: set the threshold just above the elbow of YOUR distribution.",
   );
   console.log(
-    `\nCurrent value in lib/diagnostic/recommend.ts: 0.6\n`,
+    "  - Distances ≤ p50 are the matches the system should accept.",
   );
+  console.log(
+    "  - Distances in the p50-p75 range are weak/tenuous — most should be excluded.",
+  );
+  console.log(
+    "  - Distances > p75 are noise — definitely exclude.\n",
+  );
+
+  await sql.end();
 }
 
 main().catch((err) => {
-  console.error("Calibration failed:", err);
+  console.error("\nCalibration failed:", err);
   process.exit(1);
 });
