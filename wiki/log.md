@@ -8,6 +8,38 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-24 — Sitemap fix had a regression I should have caught: RESERVED_SLUGS drift
+
+Direct continuation of the prior entry. After [[2026-05-24-sitemap-cold-start-cacheable]] merged as #102, GSC still reported `Couldn't fetch` for `https://archoslabs.xyz/sitemap.xml`. Live URL Inspection from GSC succeeded against the deployed origin, so we initially attributed the persistent failure to stale GSC state + Render CDN not caching (6s TTFB measured on Googlebot UA). Wrong — the live test was succeeding intermittently between Render restarts. The real cause was visible in Render's runtime logs:
+
+```
+⨯ Error: Pages CMS guard: top-level app/ route(s) not in RESERVED_SLUGS — [sitemap.xml].
+  Add them to lib/pages/reserved-slugs.ts or the catch-all will shadow them.
+ELIFECYCLE Command failed.
+```
+
+Creating `app/sitemap.xml/` as a new top-level directory in #102 without adding `"sitemap.xml"` to `RESERVED_SLUGS` triggered the Pages CMS guard. Every 404 became a 500, the Node process exited, Render restarted. Crash loop. Googlebot's sitemap fetcher repeatedly hit cold-restarting instances — hence the persistent "Couldn't fetch" despite the live test sometimes catching a healthy moment.
+
+The rule I broke is documented at [[2026-05-21-reserved-slugs-drift-causes-500s]] — *"every new app/ folder gets a RESERVED_SLUGS entry in the same PR."* This lesson exists for exactly this regression. I read the wiki index entry for it during the sitemap PR planning and failed to apply it. That's the structural failure mode to capture: reading a lesson is not the same as applying it. When creating any new top-level app/ folder, the RESERVED_SLUGS check should be a mechanical step on the implementation checklist, not something rediscovered by reading lessons.
+
+Cascade also surfaced two unrelated CI failures on #102 that I should have planned around:
+1. Pre-existing lint error in lib/image-pipeline.ts:157 (unused `err` catch param) — shipped via #101, slipped through. Fixed in #103: rename `err` → `_err`. Not my mess but blocked the merge.
+2. ISR + no DATABASE_URL in CI — switching from `force-dynamic` to `revalidate=3600` made the route a build-time prerender candidate. CI builds have no DB; the prerender crashed. The original `app/sitemap.ts` comment warned about build-time prerendering specifically and I dismissed it as wrong reasoning. Fixed in a second commit on the #102 branch: wrap DB calls in try/catch matching the codebase's existing fail-gracefully pattern.
+
+Three PRs total for one logical fix:
+- #102 `cb717a6` — sitemap ISR + custom XML route + CDN cache (the intended change)
+- #103 `2e839eb` — lint hotfix, blocking #102's CI
+- #104 `0900367` — RESERVED_SLUGS entry, stopping the production crash loop the prior PR introduced
+
+Post-fix verification:
+- `/nonexistent-canary-xxx` returns HTTP 404 (was 500 during crash loop)
+- Sitemap to Googlebot UA: TTFB 0.48s cold / 0.30s warm (was 6.24s during crash loop)
+- Origin instance is stable; Next ISR cache fills correctly; `cf-cache-status: DYNAMIC` on Render's edge no longer matters because origin is fast enough
+
+Remaining follow-up (deferred, not urgent):
+- Render's CDN doesn't honor `s-maxage` — the `Vary: rsc, next-router-state-tree, ...` header on all App Router responses fragments the cache key beyond what Cloudflare-as-Render's-CDN will cache. Stripping or overriding that Vary on `/sitemap.xml` in `next.config.ts` is the lever if we want edge caching too. Not urgent because origin TTFB is now sub-second. Worth re-visiting if any future change makes origin slow again, or if we want the sitemap to survive a true Render instance restart without any cold-start window.
+- The user's domain DNS points at Render (216.24.57.x), and Render's CDN runs on Cloudflare's edge — but this is Render's infrastructure, not a Cloudflare account we own. We cannot add Cloudflare Page Rules / Cache Rules from a dashboard we have. Documented in this entry to spare the next session the same misconception.
+
 ## 2026-05-24 — Sitemap: ISR + custom XML route to fix GSC "Couldn't fetch"
 
 GSC reported `Couldn't fetch` on `https://archoslabs.xyz/sitemap.xml` with empty `Last read` since the 2026-05-21 submission. Bing read the same file. URL Inspection confirmed `URL is unknown to Google` with all Crawl fields `N/A` — Google had not yet retrieved a single byte. Diagnostics from this machine showed the file served HTTP 200 with valid XML and correct namespaces to Googlebot UA, Bingbot UA, and a plain curl control. Ruled out Cloudflare edge blocks, oversized URLs, namespace gaps, and unescaped entities.
