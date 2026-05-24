@@ -92,6 +92,92 @@ const PUBLIC_DIRECT_FILTER = and(
  * Returns null when no published post exists at this slug (caller renders
  * notFound()).
  */
+/**
+ * Look up a single post by ID with the full PublishedPostView shape,
+ * regardless of status (draft / scheduled / archived all visible).
+ * Powers the admin preview route at /admin/blog/posts/[id]/preview
+ * — auth is gated at proxy.ts, so this function trusts the caller.
+ *
+ * Same JOINs as getPostBySlug so the preview composition can pass
+ * the result straight into <PostHeader>/<PostBody>/<AuthorBio>
+ * without any type juggling.
+ */
+export async function getPostByIdForPreview(
+  id: string,
+): Promise<PublishedPostView | null> {
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: post.id,
+      slug: post.slug,
+      title: post.title,
+      excerpt: post.excerpt,
+      contentMd: post.contentMd,
+      seoTitle: post.seoTitle,
+      seoDescription: post.seoDescription,
+      ogImagePath: post.ogImagePath,
+      ogImageGeneratedAt: post.ogImageGeneratedAt,
+      ogImageDeletedAt: post.ogImageDeletedAt,
+      ogImageAlt: post.ogImageAlt,
+      ogImageWidth: post.ogImageWidth,
+      ogImageHeight: post.ogImageHeight,
+      tags: post.tags,
+      wordCount: post.wordCount,
+      readingTimeMin: post.readingTimeMin,
+      needsReview: post.needsReview,
+      publishedAt: post.publishedAt,
+      lastReviewedAt: post.lastReviewedAt,
+      authorSlug: author.slug,
+      authorName: author.name,
+      authorBioMd: author.bioMd,
+      authorPhotoUrl: author.photoUrl,
+      authorLinkedinUrl: author.linkedinUrl,
+      categorySlug: category.slug,
+      categoryName: category.name,
+      categoryDescription: category.description,
+    })
+    .from(post)
+    .leftJoin(author, eq(post.authorId, author.id))
+    .leftJoin(category, eq(post.categoryId, category.id))
+    .where(eq(post.id, id))
+    .limit(1);
+
+  if (rows.length === 0) return null;
+  const r = rows[0];
+  return {
+    id: r.id,
+    slug: r.slug,
+    title: r.title,
+    excerpt: r.excerpt,
+    contentMd: r.contentMd,
+    seoTitle: r.seoTitle,
+    seoDescription: r.seoDescription,
+    ogImagePath: r.ogImagePath,
+    ogImageGeneratedAt: r.ogImageGeneratedAt,
+    ogImageDeletedAt: r.ogImageDeletedAt,
+    ogImageAlt: r.ogImageAlt,
+    ogImageWidth: r.ogImageWidth,
+    ogImageHeight: r.ogImageHeight,
+    tags: r.tags ?? [],
+    wordCount: r.wordCount,
+    readingTimeMin: r.readingTimeMin,
+    needsReview: r.needsReview,
+    // Drafts have null publishedAt — fall back to now() so PostHeader
+    // doesn't crash on date formatting. The DRAFT PREVIEW banner is
+    // the authoritative signal that this isn't a real publish date.
+    publishedAt: r.publishedAt ?? new Date(),
+    lastReviewedAt: r.lastReviewedAt,
+    authorSlug: r.authorSlug,
+    authorName: r.authorName,
+    authorBioMd: r.authorBioMd,
+    authorPhotoUrl: r.authorPhotoUrl,
+    authorLinkedinUrl: r.authorLinkedinUrl,
+    categorySlug: r.categorySlug,
+    categoryName: r.categoryName,
+    categoryDescription: r.categoryDescription,
+  };
+}
+
 export async function getPostBySlug(
   slug: string,
 ): Promise<PublishedPostView | null> {

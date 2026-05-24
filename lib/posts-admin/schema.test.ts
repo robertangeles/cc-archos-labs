@@ -78,6 +78,66 @@ describe("PostCreateSchema — title", () => {
   });
 });
 
+describe("PostCreateSchema — auto-create-draft minimal input", () => {
+  // The auto-create-draft path (T2 of the blog tidy-up) POSTs the
+  // smallest possible body: just a title. Schema must accept that and
+  // let the service layer fill in defaults. See
+  // wiki/synthesis/2026-05-24-blog-tidy-ceo-review.md E1.a.
+
+  it("accepts title-only input", () => {
+    const result = PostCreateSchema.safeParse({ title: "Hello" });
+    expect(result.success).toBe(true);
+  });
+
+  it("treats missing slug as undefined (service layer derives)", () => {
+    const result = PostCreateSchema.safeParse({ title: "Hello" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.slug).toBeUndefined();
+  });
+
+  it("defaults missing contentMd to empty string", () => {
+    const result = PostCreateSchema.safeParse({ title: "Hello" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.contentMd).toBe("");
+  });
+
+  it("defaults missing status to draft", () => {
+    const result = PostCreateSchema.safeParse({ title: "Hello" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.status).toBe("draft");
+  });
+
+  it("defaults missing tags to empty array", () => {
+    const result = PostCreateSchema.safeParse({ title: "Hello" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.tags).toEqual([]);
+  });
+
+  it("defaults missing visibility to listed", () => {
+    const result = PostCreateSchema.safeParse({ title: "Hello" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.visibility).toBe("listed");
+  });
+
+  it("still rejects missing title (it's the only truly required field)", () => {
+    const result = PostCreateSchema.safeParse({});
+    expect(result.success).toBe(false);
+  });
+
+  it("still rejects empty title (whitespace-distinct from absent)", () => {
+    const result = PostCreateSchema.safeParse({ title: "" });
+    expect(result.success).toBe(false);
+  });
+
+  it("still rejects scheduled status without scheduledPublishAt", () => {
+    const result = PostCreateSchema.safeParse({
+      title: "Hello",
+      status: "scheduled",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
 describe("PostCreateSchema — contentMd cap", () => {
   it("accepts content at the limit", () => {
     const result = PostCreateSchema.safeParse({

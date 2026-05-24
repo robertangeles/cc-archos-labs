@@ -11,6 +11,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { isBlogEnabled } from "../../../lib/blog/feature-flag";
 import { getPostBySlug, getReadNext } from "../../../lib/posts";
+import { getPrimaryConsultant } from "../../../lib/booking";
 import { generateToc } from "../../../lib/post-rendering";
 import {
   articleSchema,
@@ -29,6 +30,7 @@ import { PostBody } from "../../../components/blog/post-body";
 import { Toc } from "../../../components/blog/toc";
 import { AuthorBio } from "../../../components/blog/author-bio";
 import { ReadNext } from "../../../components/blog/read-next";
+import { ReplyByEmail } from "../../../components/blog/reply-by-email";
 import { SocialShare } from "../../../components/blog/social-share";
 
 export const dynamic = "force-dynamic";
@@ -65,10 +67,16 @@ export default async function PostPage({
   const post = await getPostBySlug(slug);
   if (!post) notFound();
 
-  const [settings, readNext] = await Promise.all([
+  const [settings, readNext, primaryConsultant] = await Promise.all([
     getSiteSettings(),
     getReadNext(post.id, 3),
+    // Reply-by-email recipient. Falls back gracefully — if there's no
+    // consultant configured yet, the CTA is suppressed below rather
+    // than rendering with an empty mailto:.
+    getPrimaryConsultant().catch(() => null),
   ]);
+  const replyEmail =
+    primaryConsultant?.publicEmail ?? primaryConsultant?.email ?? null;
   const siteUrl = getSiteUrl();
   const headings = generateToc(post.contentMd);
   const authorName = post.authorName ?? settings.siteName;
@@ -138,6 +146,10 @@ export default async function PostPage({
             <div className="mt-12">
               <PostBody contentMd={post.contentMd} />
             </div>
+
+            {replyEmail ? (
+              <ReplyByEmail toEmail={replyEmail} postTitle={post.title} />
+            ) : null}
 
             <SocialShare
               url={`${siteUrl}/blog/${post.slug}`}

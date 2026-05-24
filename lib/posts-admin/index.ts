@@ -6,6 +6,7 @@ import { getDb } from "../db";
 import { author, category, post, postRevision } from "../db/schema";
 import { pingIndexNow } from "../indexnow";
 import { getSiteUrl } from "../site-config";
+import { deriveSlugFromTitle } from "./slug-derivation";
 import { computeWordCount, readingTimeMinutes } from "./word-count";
 import {
   ConcurrentEditError,
@@ -21,7 +22,7 @@ import {
   type PostVisibility,
   type RevisionView,
 } from "./types";
-import type { PostListQuery } from "./schema";
+import type { PostCreateInput, PostListQuery } from "./schema";
 
 // Service module for the Posts CMS (Phase D — Translation Layer).
 // The only writer of the `post` + `post_revision` tables outside the
@@ -366,82 +367,150 @@ export async function listRevisionsForPost(
  * effects (OG regen, embedding regen) run AFTER the transaction commits
  * — failures are captured into the return value rather than rolled back.
  *
- * @throws DuplicateSlugError on PG 23505 (slug already exists).
+ * Accepts the schema-inferred PostCreateInput shape where slug and
+ * contentMd may be absent. When slug is missing, derives a unique slug
+ * from the title with a short random suffix; retries up to 3 times on
+ * the unique-constraint race. When contentMd is missing, defaults to
+ * empty string — the auto-create-draft path uses this to materialise
+ * a postId on the first non-empty title keystroke so downstream
+ * actions (image upload, suggest-links) unlock immediately.
+ *
+ * @throws DuplicateSlugError on PG 23505 (slug already exists, after retries).
  * @throws InvalidScheduleError if status='scheduled' but the supplied
  *   scheduledPublishAt is not in the future at service time.
  */
 export async function createPost(
-  input: PostInput,
+  input: PostCreateInput,
   savedBy = "admin",
 ): Promise<SaveResult> {
-  const normalised = normalisePostInput(input);
-  enforceScheduleInvariant(normalised);
-  const wordCount = computeWordCount(normalised.contentMd);
-  const readingTimeMin = readingTimeMinutes(wordCount);
+  // Auto-create-draft pattern detection: an empty-body POST gives us
+  // contentMd=="" + status=="draft" + no slug. In that case we don't
+  // want to fire embedding regen against zero content (wasted API call,
+  // ~$0.001 each but pointless). Title-only OG generation is also a
+  // no-op today (lib/og.ts returns the stub sentinel). Skip both when
+  // there's no content to derive from.
+  const hasRealContent = (input.contentMd ?? "").trim().length > 0;
+  const hasRealExcerpt = (input.excerpt ?? "").trim().length > 0;
 
-  const db = getDb();
-  let created: AdminPostView;
-  try {
-    created = await db.transaction(async (tx) => {
-      const inserted = await tx
-        .insert(post)
-        .values({
-          slug: normalised.slug,
-          title: normalised.title,
-          contentMd: normalised.contentMd,
-          excerpt: normalised.excerpt,
-          seoTitle: normalised.seoTitle,
-          seoDescription: normalised.seoDescription,
-          authorId: normalised.authorId,
-          categoryId: normalised.categoryId,
-          tags: normalised.tags,
-          status: normalised.status,
-          visibility: normalised.visibility,
-          needsReview: normalised.needsReview,
-          lastReviewedAt: normalised.lastReviewedAt,
-          scheduledPublishAt: normalised.scheduledPublishAt,
-          ogImageAlt: normalised.ogImageAlt,
-          // Publish semantics on create:
-          //   - draft / scheduled / archived: publishedAt stays NULL
-          //   - published: stamp publishedAt = now()
-          publishedAt:
-            normalised.status === "published" ? new Date() : null,
-          wordCount,
-          readingTimeMin,
-        })
-        .returning();
+  // Slug derivation. Up to 3 attempts with fresh suffixes; if all 3
+  // collide, propagate the DuplicateSlugError to the route.
+  let created: AdminPostView | null = null;
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const candidateSlug =
+      input.slug && input.slug.length > 0
+        ? input.slug
+        : deriveSlugFromTitle(input.title);
 
-      const row = inserted[0];
+    // Build the PostInput-shaped object the existing pipeline expects.
+    // Slug + contentMd defaults are applied here so the rest of the
+    // service works against fully-populated values.
+    const fullInput: PostInput = {
+      slug: candidateSlug,
+      title: input.title,
+      excerpt: input.excerpt,
+      contentMd: input.contentMd ?? "",
+      seoTitle: input.seoTitle,
+      seoDescription: input.seoDescription,
+      authorId: input.authorId,
+      categoryId: input.categoryId,
+      tags: input.tags,
+      status: input.status,
+      visibility: input.visibility,
+      needsReview: input.needsReview,
+      lastReviewedAt: input.lastReviewedAt,
+      scheduledPublishAt: input.scheduledPublishAt,
+      ogImageAlt: input.ogImageAlt,
+    };
 
-      await tx.insert(postRevision).values({
-        postId: row.id,
-        title: row.title,
-        contentMd: row.contentMd,
-        excerpt: row.excerpt,
-        seoTitle: row.seoTitle,
-        seoDescription: row.seoDescription,
-        diffSizePct: "100.00",
-        savedBy,
+    const normalised = normalisePostInput(fullInput);
+    enforceScheduleInvariant(normalised);
+    const wordCount = computeWordCount(normalised.contentMd);
+    const readingTimeMin = readingTimeMinutes(wordCount);
+
+    const db = getDb();
+    try {
+      created = await db.transaction(async (tx) => {
+        const inserted = await tx
+          .insert(post)
+          .values({
+            slug: normalised.slug,
+            title: normalised.title,
+            contentMd: normalised.contentMd,
+            excerpt: normalised.excerpt,
+            seoTitle: normalised.seoTitle,
+            seoDescription: normalised.seoDescription,
+            authorId: normalised.authorId,
+            categoryId: normalised.categoryId,
+            tags: normalised.tags,
+            status: normalised.status,
+            visibility: normalised.visibility,
+            needsReview: normalised.needsReview,
+            lastReviewedAt: normalised.lastReviewedAt,
+            scheduledPublishAt: normalised.scheduledPublishAt,
+            ogImageAlt: normalised.ogImageAlt,
+            // Publish semantics on create:
+            //   - draft / scheduled / archived: publishedAt stays NULL
+            //   - published: stamp publishedAt = now()
+            publishedAt:
+              normalised.status === "published" ? new Date() : null,
+            wordCount,
+            readingTimeMin,
+          })
+          .returning();
+
+        const row = inserted[0];
+
+        await tx.insert(postRevision).values({
+          postId: row.id,
+          title: row.title,
+          contentMd: row.contentMd,
+          excerpt: row.excerpt,
+          seoTitle: row.seoTitle,
+          seoDescription: row.seoDescription,
+          diffSizePct: "100.00",
+          savedBy,
+        });
+
+        return rowToAdminView({
+          ...row,
+          authorName: null,
+          authorSlug: null,
+          categoryName: null,
+          categorySlug: null,
+        });
       });
-
-      return rowToAdminView({
-        ...row,
-        authorName: null,
-        authorSlug: null,
-        categoryName: null,
-        categorySlug: null,
-      });
-    });
-  } catch (err) {
-    throw translateWriteError(err);
+      break; // success
+    } catch (err) {
+      const translated = translateWriteError(err);
+      // Only retry on slug collision AND only when WE generated the
+      // slug. If the caller supplied an explicit slug that collided,
+      // that's a user-facing error — propagate immediately.
+      const isOurGeneratedSlug = !input.slug || input.slug.length === 0;
+      if (translated instanceof DuplicateSlugError && isOurGeneratedSlug) {
+        lastError = translated;
+        continue;
+      }
+      throw translated;
+    }
   }
 
-  // Side effects after commit. On create, both OG + embedding always
-  // fire (every field is "new" relative to the zero-state).
+  if (!created) {
+    throw (
+      lastError ??
+      new DuplicateSlugError(
+        "Could not generate a unique slug after 3 attempts.",
+      )
+    );
+  }
+
+  // Side effects after commit. On a real create (with content), both
+  // OG + embedding fire. On auto-create-draft (no content), skip both —
+  // they'll fire on the next save when contentMd grows.
   const sideEffects = await runSideEffectsAfterSave({
     postId: created.id,
-    titleOrExcerptChanged: true,
-    embeddingShouldRefresh: true,
+    titleOrExcerptChanged: hasRealContent || hasRealExcerpt,
+    embeddingShouldRefresh: hasRealContent,
   });
 
   // Re-read so the response reflects any side-effect column updates
@@ -450,6 +519,7 @@ export async function createPost(
   pingPostIfPublic(refreshed);
   return { post: refreshed, sideEffects };
 }
+
 
 /**
  * Update an existing post + append a revision in a single transaction.

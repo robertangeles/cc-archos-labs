@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useDeferredValue, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useRef, useState } from "react";
 // (useRef stays — used for the textarea handle for cursor-insertion)
+import { computeLinkInsertion } from "../../../../../lib/blog-editor/insert-link";
 import { CONTENT_MD_MAX_BYTES } from "../../../../../lib/posts-admin/schema";
 import type {
   AdminPostView,
@@ -163,6 +164,72 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
   const contentRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const deferredContent = useDeferredValue(contentMd);
+  // Snapshot of the textarea's last known cursor position. Updated on
+  // every onSelect + onBlur, read by insertLinkAtCursor when the user
+  // triggers an insert from a non-textarea control (the drawer button,
+  // typically). Without this snapshot, opening the drawer without first
+  // clicking into the textarea would read selectionStart=0 and silently
+  // insert the link at the top of a long article — invisible to a
+  // scrolled-down author. See wiki/synthesis/2026-05-24-blog-tidy-ceo-review.md
+  // E2 for the diagnosis.
+  const lastCursorRef = useRef<{ start: number; end: number } | null>(null);
+
+  // Auto-create-draft on first non-empty title keystroke. Materialises
+  // a postId so the image upload + suggest-links + preview affordances
+  // unlock without forcing the author to manually click Save first.
+  // Debounced 300ms; cancels if the user clears the title before the
+  // timer fires; silent failure (manual Save still works as fallback).
+  // See wiki/synthesis/2026-05-24-blog-tidy-ceo-review.md T2.
+  //
+  // Keystroke window: the user may type 1-2 more characters in the
+  // ~50-200ms between POST-fire and router.replace completing. Those
+  // chars land in the unmounting create page's state and are not
+  // round-tripped to the destination edit page. Mitigation: the
+  // "Creating draft…" indicator gives a visual pause so the author
+  // naturally stops typing during the transition. Worst-case loss is
+  // 1-2 chars on the title field; user retypes on the edit page.
+  const autoCreateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [autoCreatePending, setAutoCreatePending] = useState(false);
+  useEffect(() => {
+    if (isEdit) return; // Edit mode never auto-creates
+    const trimmed = title.trim();
+    // Empty title cancels any pending auto-create
+    if (trimmed.length === 0) {
+      if (autoCreateTimerRef.current) {
+        clearTimeout(autoCreateTimerRef.current);
+        autoCreateTimerRef.current = null;
+      }
+      return;
+    }
+    if (autoCreateTimerRef.current) clearTimeout(autoCreateTimerRef.current);
+    autoCreateTimerRef.current = setTimeout(async () => {
+      autoCreateTimerRef.current = null;
+      setAutoCreatePending(true);
+      try {
+        const res = await fetch("/api/admin/posts", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ title, status: "draft" }),
+        });
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.ok) {
+          // Silent — manual Save still works. Surface the error only
+          // if it persists through a manual save attempt.
+          setAutoCreatePending(false);
+          return;
+        }
+        router.replace(`/admin/blog/posts/${json.data.post.id}`);
+      } catch {
+        setAutoCreatePending(false);
+      }
+    }, 300);
+    return () => {
+      if (autoCreateTimerRef.current) {
+        clearTimeout(autoCreateTimerRef.current);
+        autoCreateTimerRef.current = null;
+      }
+    };
+  }, [title, isEdit, router]);
 
   async function onSave(e: React.FormEvent) {
     e.preventDefault();
@@ -436,31 +503,52 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
 
   function insertLinkAtCursor(markdown: string) {
     const ta = contentRef.current;
-    if (!ta) {
-      // Fallback: append
-      setContentMd((cur) => cur + (cur && !cur.endsWith("\n") ? "\n" : "") + markdown);
-      return;
-    }
-    const start = ta.selectionStart ?? contentMd.length;
-    const end = ta.selectionEnd ?? contentMd.length;
-    const before = contentMd.slice(0, start);
-    const selected = contentMd.slice(start, end);
-    const after = contentMd.slice(end);
-    // If there's a selection, wrap it instead of inserting raw markdown.
-    // Selected text replaces the [label] in [label](slug).
-    let insertion = markdown;
-    if (selected) {
-      const m = markdown.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-      if (m) insertion = `[${selected}](${m[2]})`;
-    }
-    const next = before + insertion + after;
-    setContentMd(next);
-    // Restore cursor after the inserted text
-    requestAnimationFrame(() => {
-      ta.focus();
-      const cursor = before.length + insertion.length;
-      ta.setSelectionRange(cursor, cursor);
+    const isLive = ta != null && document.activeElement === ta;
+    const result = computeLinkInsertion({
+      contentMd,
+      markdown,
+      isLive,
+      liveStart: isLive ? (ta!.selectionStart ?? null) : null,
+      liveEnd: isLive ? (ta!.selectionEnd ?? null) : null,
+      snapshot: lastCursorRef.current,
     });
+
+    setContentMd(result.nextContent);
+
+    // Telemetry: confirms the T1 fix is firing in production. Canary
+    // monitor scrapes the JSON line. See T6 in the plan.
+    if (typeof console !== "undefined") {
+      console.info(
+        JSON.stringify({
+          event: "post.insert_link",
+          postId: initial?.id ?? null,
+          insertion_kind: result.kind,
+          length: result.insertion.length,
+        }),
+      );
+    }
+
+    // Restore focus + cursor on the textarea (no-op if ref is null).
+    if (ta) {
+      requestAnimationFrame(() => {
+        ta.focus();
+        ta.setSelectionRange(result.cursor, result.cursor);
+        lastCursorRef.current = { start: result.cursor, end: result.cursor };
+      });
+    }
+  }
+
+  // Snapshot the textarea cursor whenever it might change. selectionchange
+  // on document is more reliable than onSelect for keyboard navigation,
+  // but onSelect+onBlur covers the common mouse/blur paths and is enough
+  // for the drawer-insert use case.
+  function snapshotCursor() {
+    const ta = contentRef.current;
+    if (!ta) return;
+    lastCursorRef.current = {
+      start: ta.selectionStart ?? 0,
+      end: ta.selectionEnd ?? 0,
+    };
   }
 
   const bytesUsed = new TextEncoder().encode(contentMd).length;
@@ -698,6 +786,10 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
             ref={contentRef}
             value={contentMd}
             onChange={(e) => setContentMd(e.target.value)}
+            onSelect={snapshotCursor}
+            onKeyUp={snapshotCursor}
+            onMouseUp={snapshotCursor}
+            onBlur={snapshotCursor}
             className={`${inputClass} min-h-[600px] font-mono text-sm`}
             placeholder="# Heading&#10;&#10;Paragraph…"
           />
@@ -755,7 +847,11 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
         <p className={labelClass}>Featured image</p>
         {!isEdit ? (
           <p className="mt-3 text-[11px] text-ink-subtle">
-            Save the post first, then you can upload an image.
+            {autoCreatePending
+              ? "Creating draft — image upload unlocks in a moment…"
+              : title.trim()
+                ? "Saving draft to unlock image upload…"
+                : "Type a title to start the draft — image upload unlocks automatically."}
           </p>
         ) : (
           <>
@@ -939,7 +1035,9 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
           </p>
         ) : (
           <p className="mt-3 text-[11px] text-ink-subtle">
-            Curation tools unlock after the first save.
+            {autoCreatePending
+              ? "Creating draft — curation tools unlock in a moment…"
+              : "Curation tools unlock once the draft is created (auto-saves on first title keystroke)."}
           </p>
         )}
       </div>
@@ -955,6 +1053,31 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
           >
             Cancel
           </button>
+          {/* Preview button — opens the full-chrome preview route in a
+              new tab so the author can validate hero image, TOC, byline,
+              read-next, etc. without losing their editor state. Only
+              meaningful once a postId exists; on create mode the auto-
+              create-draft pattern (T2) materialises one on first
+              keystroke, but until then there's nothing to preview. */}
+          <a
+            href={isEdit ? `/admin/blog/posts/${initial!.id}/preview` : "#"}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-disabled={!isEdit}
+            onClick={(e) => {
+              if (!isEdit) e.preventDefault();
+            }}
+            className={`rounded-md border border-hairline px-4 py-2 text-sm text-ink hover:bg-surface-2 ${
+              !isEdit ? "cursor-not-allowed opacity-50" : ""
+            }`}
+            title={
+              !isEdit
+                ? "Preview unlocks once the draft is created (auto-saves on first title keystroke)."
+                : "Open the full reader view in a new tab"
+            }
+          >
+            Preview
+          </a>
           <button
             type="submit"
             disabled={!canSubmit}
