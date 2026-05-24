@@ -102,6 +102,20 @@ export function RecommendedReadings({
                     fill
                     sizes="(min-width: 768px) 800px, 100vw"
                     className="object-cover"
+                    // priority=true disables next/image's default
+                    // loading="lazy". The section sits below the
+                    // fold of the diagnostic report; in the BROWSER
+                    // that's fine, but the PDF route (Puppeteer)
+                    // captures with a fixed viewport that never
+                    // scrolls past the action plan, so lazy images
+                    // never intersect → never fetch → PDF renders
+                    // with blank image rectangles. With priority,
+                    // images fetch immediately on page load
+                    // regardless of viewport position. Cost: ~5
+                    // additional fetches at initial page load
+                    // (~250KB total). Negligible vs the cost of
+                    // shipping CFOs a PDF with broken thumbnails.
+                    priority
                   />
                 </div>
               ) : null}
