@@ -66,7 +66,13 @@ const labelClass =
   "text-[13px] font-medium uppercase tracking-[0.08em] text-ink-subtle";
 
 const SEO_TITLE_SOFT_LIMIT = 60;
-const IMAGE_MAX_KB = 500; // matches DB CHECK constraint + server route cap
+// Client-side sanity ceiling on the original upload. The server auto-
+// compresses anything that exceeds the 500 KB DB cap via
+// lib/image-pipeline.ts, so the client only blocks pathological inputs.
+const IMAGE_MAX_KB = 10 * 1024;
+// Soft-warn threshold against the FINAL (post-compression) size. If the
+// server resize ladder kicks in and the output still lands above 150 KB,
+// the user gets an amber nudge — but the upload succeeded.
 const IMAGE_SOFT_WARN_KB = 150;
 const ALT_MAX_LEN = 125;
 const SEO_DESC_SOFT_LIMIT = 160;
@@ -262,12 +268,14 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
       return;
     }
 
-    // Client-side gate: hard size cap matches the DB CHECK + server.
+    // Client-side gate: 10 MB sanity ceiling. The server auto-compresses
+    // anything above the 500 KB DB cap, so we only block pathological
+    // inputs (decompression bombs, multi-megapixel raw exports).
     const sizeKb = Math.round(file.size / 1024);
     if (sizeKb > IMAGE_MAX_KB) {
       setImageStatus({
         kind: "error",
-        message: `Image too large (${sizeKb} KB) — max ${IMAGE_MAX_KB} KB.`,
+        message: `Image too large (${Math.round(sizeKb / 1024)} MB) — max ${Math.round(IMAGE_MAX_KB / 1024)} MB.`,
       });
       return;
     }
@@ -315,12 +323,16 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
       setOgImageFilename(json.data.ogImageFilename ?? null);
       setOgImageSizeKb(json.data.ogImageSizeKb ?? null);
       setLastKnownUpdatedAt(new Date(json.data.updatedAt));
-      const overSoft = sizeKb > IMAGE_SOFT_WARN_KB;
+      // Soft-warn against the POST-COMPRESSION size returned by the
+      // server, not the original upload size. Only fires when the
+      // compression pipeline had to dip into the resize ladder.
+      const finalSizeKb = json.data.ogImageSizeKb ?? sizeKb;
+      const overSoft = finalSizeKb > IMAGE_SOFT_WARN_KB;
       setImageStatus({
         kind: "ok",
         message: overSoft
-          ? `Image uploaded (${sizeKb} KB — over the ${IMAGE_SOFT_WARN_KB} KB soft target; consider optimising).`
-          : `Image uploaded (${sizeKb} KB).`,
+          ? `Image uploaded (${finalSizeKb} KB — over the ${IMAGE_SOFT_WARN_KB} KB soft target; consider optimising the source).`
+          : `Image uploaded (${finalSizeKb} KB).`,
       });
       router.refresh();
       setTimeout(() => setImageStatus({ kind: "idle" }), overSoft ? 8000 : 3000);
@@ -862,10 +874,11 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
               className="hidden"
             />
             <p className="mt-3 text-[11px] text-ink-subtle">
-              PNG / JPEG / WebP · max {IMAGE_MAX_KB}&nbsp;KB · warn at{" "}
-              {IMAGE_SOFT_WARN_KB}&nbsp;KB · uploaded to R2. Replacing
-              creates a new timestamped key — the old file stays in R2
-              in case external caches still reference it.
+              PNG / JPEG / WebP · up to {Math.round(IMAGE_MAX_KB / 1024)}
+              &nbsp;MB · auto-compressed to fit ·{" "}
+              {IMAGE_SOFT_WARN_KB}&nbsp;KB soft target · uploaded to R2.
+              Replacing creates a new timestamped key — the old file stays
+              in R2 in case external caches still reference it.
             </p>
             {imageStatus.kind === "ok" ? (
               <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">

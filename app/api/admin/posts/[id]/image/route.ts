@@ -2,10 +2,18 @@
 //   device (multipart/form-data with `file` + `alt` fields).
 //
 //   Validations (HTTP layer, defence in depth with DB CHECK constraints):
-//     - file size <= 500 KB           (DB also: og_image_size_kb <= 500)
+//     - file size <= 10 MB pre-compression ceiling (sanity guard)
 //     - mime in {png, jpeg, webp}     (DB also: CHECK constraint)
 //     - alt non-empty after trim
 //     - file present + non-zero bytes
+//
+//   Pipeline:
+//     parse → validate → read buffer → compress-if-over-cap → dimensions
+//     → checksum → R2 put → DB persist
+//
+//   The 500 KB DB CHECK on og_image_size_kb is now satisfied via
+//   lib/image-pipeline.ts (Sharp quality+resize ladder) rather than by
+//   rejecting the upload. See wiki/concepts/image-pipeline.md.
 //
 //   On success, populates all 11 image-metadata columns:
 //     og_image_path, og_image_generated_at, og_image_alt, og_image_width,
@@ -40,11 +48,20 @@ import {
   clientIpFromRequest,
   rateLimit,
 } from "../../../../../../lib/rate-limit";
+import {
+  compressImageIfOverCap,
+  CompressionFloorError,
+} from "../../../../../../lib/image-pipeline";
 
 export const runtime = "nodejs";
 
 const UPLOAD_LIMIT_PER_HOUR = 20;
-const MAX_FILE_BYTES = 500 * 1024; // 500 KB — matches DB CHECK constraint
+// Pre-compression sanity ceiling. Inputs above this are rejected outright
+// before Sharp runs, so a malicious upload cannot exhaust memory.
+const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+// Target size after compression. Must match the DB CHECK constraint
+// on og_image_size_kb (drizzle/0016_post_og_image_metadata.sql).
+const TARGET_SIZE_BYTES = 500 * 1024; // 500 KB
 const ALT_MAX_LEN = 125;
 
 const ALLOWED_MIME = new Set([
@@ -123,7 +140,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
     return Response.json(
       {
         ok: false,
-        error: `Image too large — max ${MAX_FILE_BYTES / 1024} KB.`,
+        error: `Image too large — max ${MAX_FILE_BYTES / (1024 * 1024)} MB.`,
       },
       { status: 400 },
     );
@@ -153,9 +170,67 @@ export async function PUT(request: Request, { params }: RouteContext) {
   }
   const altClean = altTrimmed.slice(0, ALT_MAX_LEN);
 
-  // ---- Read bytes once; derive width/height/checksum from buffer --------
-  const buffer = Buffer.from(await fileField.arrayBuffer());
+  // ---- Read bytes once ---------------------------------------------------
+  const originalBuffer = Buffer.from(await fileField.arrayBuffer());
+  const originalSizeKb = Math.round(originalBuffer.byteLength / 1024);
 
+  // ---- Compress if over the 500 KB DB cap -------------------------------
+  // Sharp is decompression-bomb-guarded via lib/image-pipeline.ts
+  // (limitInputPixels: 50 MP). Below-cap inputs pass through unchanged.
+  let buffer: Buffer;
+  let sizeKb: number;
+  let compressionUsed: { quality?: number; resizedTo?: number } | null = null;
+  try {
+    const result = await compressImageIfOverCap(
+      originalBuffer,
+      mime,
+      TARGET_SIZE_BYTES,
+    );
+    buffer = result.buffer;
+    sizeKb = result.sizeKb;
+    if (result.compressed) {
+      compressionUsed = {
+        quality: result.qualityUsed,
+        resizedTo: result.resizedTo,
+      };
+    }
+  } catch (err) {
+    if (err instanceof CompressionFloorError) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Image cannot be compressed below the size limit — please resize the original first.",
+        },
+        { status: 400 },
+      );
+    }
+    console.error("Posts image upload — compression failed:", err);
+    return Response.json(
+      {
+        ok: false,
+        error: "Could not process image — file may be corrupt.",
+      },
+      { status: 400 },
+    );
+  }
+
+  if (compressionUsed) {
+    // Privacy-safe log: sizes + compression params, no image bytes or
+    // user-identifiable content.
+    console.log(
+      "Posts image upload — compressed",
+      JSON.stringify({
+        originalSizeKb,
+        finalSizeKb: sizeKb,
+        ratio: Math.round((sizeKb / originalSizeKb) * 100),
+        qualityUsed: compressionUsed.quality,
+        resizedTo: compressionUsed.resizedTo,
+      }),
+    );
+  }
+
+  // ---- Derive width/height/checksum from the (possibly compressed) buffer
   let dimensions: { width: number; height: number };
   try {
     const dim = imageSize(buffer);
@@ -176,7 +251,6 @@ export async function PUT(request: Request, { params }: RouteContext) {
   }
 
   const checksum = createHash("sha256").update(buffer).digest("hex");
-  const sizeKb = Math.round(buffer.byteLength / 1024);
 
   // ---- Build filename + R2 key per Rob's convention --------------------
   //   `{slug}-featured-01.{ext}`   (lowercase, no spaces — handled by
