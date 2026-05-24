@@ -35,7 +35,8 @@
     "migrate-wp:dry-run": "node --env-file=.env.local --import tsx scripts/migrate-wp/index.ts --dry-run",
     "migrate-wp:apply": "node --env-file=.env.local --import tsx scripts/migrate-wp/index.ts --apply",
     "migrate-wp:tsc": "tsc --noEmit -p tsconfig.migrate-wp.json",
-    "seed:blog-author": "node --env-file=.env.local --import tsx scripts/seed/blog-author-backfill.ts"
+    "seed:blog-author": "node --env-file=.env.local --import tsx scripts/seed/blog-author-backfill.ts",
+    "calibrate:threshold": "node --env-file=.env.local --import tsx scripts/calibrate-threshold.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",

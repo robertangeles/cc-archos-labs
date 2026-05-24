@@ -2,6 +2,7 @@ import "server-only";
 import { and, desc, eq, isNull, ne, sql } from "drizzle-orm";
 import { getDb } from "./db";
 import { author, category, post } from "./db/schema";
+import { searchByEmbedding } from "./posts/find-similar";
 
 // Steady-state read queries for the public /blog surface and sitemap /
 // llms.txt feeds. Write side lives in scripts/migrate-wp/insert.ts and
@@ -282,34 +283,37 @@ export async function getReadNext(
     return getRecentPosts(limit, currentPostId);
   }
 
-  // Cosine distance ANN. HNSW index `post_embedding_hnsw_idx` (m=16,
-  // ef_construction=64) serves this query. Sub-100ms for 253 rows.
-  const embeddingLiteral = sql.raw(
-    `'[${(currentEmbedding as unknown as number[]).join(",")}]'::vector`,
+  // Delegate ANN to the shared primitive in lib/posts/find-similar.ts —
+  // same HNSW index, same cosine-distance semantics, identical exclusion
+  // filter (status='published' AND visibility='listed' AND archived_at
+  // IS NULL). Single ANN call site across the codebase.
+  const annRows = await searchByEmbedding(
+    currentEmbedding as unknown as number[],
+    {
+      excludePostIds: [currentPostId],
+      limit,
+      visibility: "public",
+    },
   );
 
-  const rows = await db
-    .select({
-      id: post.id,
-      slug: post.slug,
-      title: post.title,
-      excerpt: post.excerpt,
-      readingTimeMin: post.readingTimeMin,
-      categoryName: category.name,
-      ogImagePath: post.ogImagePath,
-      ogImageDeletedAt: post.ogImageDeletedAt,
-      ogImageAlt: post.ogImageAlt,
-      ogImageWidth: post.ogImageWidth,
-      ogImageHeight: post.ogImageHeight,
-    })
-    .from(post)
-    .leftJoin(category, eq(post.categoryId, category.id))
-    .where(and(ne(post.id, currentPostId), PUBLIC_LISTED_FILTER))
-    .orderBy(sql`${post.embedding} <=> ${embeddingLiteral}`)
-    .limit(limit);
+  const rows: ReadNextItem[] = annRows.map((r) => ({
+    id: r.id,
+    slug: r.slug,
+    title: r.title,
+    excerpt: r.excerpt,
+    categoryName: r.categoryName,
+    readingTimeMin: r.readingTimeMin,
+    ogImagePath: r.ogImagePath,
+    ogImageDeletedAt: r.ogImageDeletedAt,
+    ogImageAlt: r.ogImageAlt,
+    ogImageWidth: r.ogImageWidth,
+    ogImageHeight: r.ogImageHeight,
+  }));
 
   if (rows.length < limit) {
     // Pad with most-recent listed posts that aren't already in the list.
+    // Preserves the existing read-next contract: always return up to
+    // `limit` items even if ANN found fewer.
     const seen = new Set(rows.map((r) => r.id));
     seen.add(currentPostId);
     const extra = await db
@@ -338,19 +342,7 @@ export async function getReadNext(
     }
   }
 
-  return rows.slice(0, limit).map((r) => ({
-    id: r.id,
-    slug: r.slug,
-    title: r.title,
-    excerpt: r.excerpt,
-    categoryName: r.categoryName,
-    readingTimeMin: r.readingTimeMin,
-    ogImagePath: r.ogImagePath,
-    ogImageDeletedAt: r.ogImageDeletedAt,
-    ogImageAlt: r.ogImageAlt,
-    ogImageWidth: r.ogImageWidth,
-    ogImageHeight: r.ogImageHeight,
-  }));
+  return rows.slice(0, limit);
 }
 
 /**

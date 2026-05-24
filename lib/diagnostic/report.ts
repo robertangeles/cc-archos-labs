@@ -8,6 +8,11 @@ import { buildUserPrompt } from "./prompts";
 import { getDiagnosticPrompt } from "./prompt-config";
 import { getDiagnosticContent } from "./content-config";
 import {
+  hydrateRecommendedReadings,
+  populateRecommendedReadings,
+  type HydratedRecommendedReading,
+} from "./recommend";
+import {
   isValidReportContent,
   type ReportContent,
 } from "./report-types";
@@ -173,6 +178,15 @@ export async function generateReport(
     throw new Error("Insert into report_output returned no row");
   }
 
+  // 4. Populate recommended_readings. The column already exists with
+  //    NULL; this call retrieves matching posts via ANN, writes the
+  //    gloss via a batched Claude call, and UPDATEs the row in place.
+  //    Fail-soft: any error inside is logged and swallowed — the
+  //    report keeps its NULL recommended_readings and the render
+  //    layer hides the readings block. Sync per plan D14 (acceptable
+  //    ~3-4s added latency on a 10-15s op).
+  await populateRecommendedReadings(report.id, reportContent);
+
   return {
     sessionId: session.id,
     reportId: report.id,
@@ -202,6 +216,13 @@ export interface LoadedReport {
   } | null;
   result: SessionResult;
   content: ReportContent;
+  /**
+   * Hydrated recommended readings ready to render. Empty array when
+   * the column was NULL (report predates this column, or the
+   * retrieval/gloss step degraded on this report). UI hides the
+   * readings block entirely on empty.
+   */
+  recommendedReadings: HydratedRecommendedReading[];
   generatedAt: Date;
 }
 
@@ -226,6 +247,7 @@ export async function loadReport(
       verdict: reportOutput.verdict,
       narrative: reportOutput.narrative,
       actionPlan: reportOutput.actionPlan,
+      recommendedReadings: reportOutput.recommendedReadings,
       generatedAt: reportOutput.generatedAt,
       leadFirstName: lead.firstName,
       leadLastName: lead.lastName,
@@ -282,6 +304,17 @@ export async function loadReport(
         }
       : null;
 
+  const actionPlan = row.actionPlan as ReportContent["action_plan"];
+
+  // Hydrate recommended_readings (JSON-stored postIds + glosses) into
+  // UI-ready rows by joining against the current state of post + action
+  // plan. Posts that are no longer published are dropped silently — see
+  // hydrateRecommendedReadings docstring.
+  const recommendedReadings = await hydrateRecommendedReadings(
+    row.recommendedReadings ?? null,
+    actionPlan,
+  );
+
   return {
     sessionId: row.sessionId,
     leadId: row.leadId,
@@ -290,8 +323,9 @@ export async function loadReport(
     content: {
       verdict: row.verdict,
       narrative: row.narrative,
-      action_plan: row.actionPlan as ReportContent["action_plan"],
+      action_plan: actionPlan,
     },
+    recommendedReadings,
     generatedAt: row.generatedAt,
   };
 }
