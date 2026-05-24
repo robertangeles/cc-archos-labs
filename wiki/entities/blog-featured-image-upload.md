@@ -19,15 +19,19 @@ PUT /api/admin/posts/[id]/image     (proxy.ts admin-gated, 20/hr rate-limited)
   │
   ▼
 parse multipart formData
-  │  validate: file present, size ≤ 10 MB, mime ∈ {png/jpeg/webp}, alt ≤ 125 chars
+  │  validate: file present, size ≤ 10 MB, alt ≤ 125 chars
+  │  (NO mime validation here — Sharp detects format from bytes)
   ▼
 read bytes → Buffer
   │
   ▼
-compressImageIfOverCap(buffer, mime, 500 KB)   ← [[image-pipeline]]
-  │  pass-through if ≤ 500 KB
+compressImageIfOverCap(buffer, 500 KB)   ← [[image-pipeline]]
+  │  Sharp detects format from magic bytes
+  │  PNG/JPEG/WebP → persist as-is; AVIF/HEIC/GIF/TIFF → transcode to WebP
+  │  pass-through if format is persistable AND ≤ 500 KB
   │  else quality ladder (85→60), else resize ladder (2000w→1200w)
   │  throws CompressionFloorError if both exhaust
+  │  throws UnsupportedFormatError on non-image / SVG / BMP / etc
   ▼
 imageSize(compressed buffer) → { width, height }
   │
@@ -52,12 +56,12 @@ return refreshed post → admin UI updates preview + soft-warn if final > 150 KB
 | Layer | Check | Failure mode |
 |---|---|---|
 | Client form | alt non-empty, size ≤ 10 MB | red error in toast |
-| Server route | file present, size ≤ 10 MB, mime ∈ set, alt ≤ 125 | 400 with clear user message |
-| Compression pipeline | output ≤ 500 KB OR throws | CompressionFloorError → 400 "resize the original" |
-| DB CHECK | `og_image_size_kb <= 500`, mime ∈ set | drizzle/0016_post_og_image_metadata.sql |
+| Server route | file present, size ≤ 10 MB, alt ≤ 125 | 400 with clear user message |
+| Compression pipeline | Sharp can decode format; output ≤ 500 KB OR throws | UnsupportedFormatError → 400; CompressionFloorError → 400 "resize the original" |
+| DB CHECK | `og_image_size_kb <= 500`, mime ∈ {png, jpeg, webp} | drizzle/0016_post_og_image_metadata.sql |
 | Rate limit | 20 uploads/hr per IP | 429 with Retry-After |
 
-The DB CHECK at 500 KB is now satisfied by the compression pipeline rather than by rejecting the upload. See [[2026-05-24-validation-without-normalization]] for the lesson that drove the change.
+The DB CHECK at 500 KB is now satisfied by the compression pipeline rather than by rejecting the upload. The MIME CHECK at `{png, jpeg, webp}` is now satisfied by the pipeline's transcode-to-WebP fallback for AVIF/HEIC/GIF/TIFF inputs rather than by rejecting the upload. See [[2026-05-24-validation-without-normalization]] for the lesson that drove the change.
 
 ## Files
 
@@ -75,6 +79,7 @@ The DB CHECK at 500 KB is now satisfied by the compression pipeline rather than 
 |---|---|---|
 | Pre-compression ceiling | size > 10 MB | 400 "Image too large — max 10 MB" |
 | Sharp decode | corrupt bytes / `limitInputPixels` violation | 400 "Could not process image" |
+| Sharp format check | SVG / BMP / non-image bytes | 400 "Unsupported image format — use PNG, JPEG, WebP, AVIF, HEIC, GIF, or TIFF" |
 | Compression floor | quality + resize ladders both exhausted | 400 "Image cannot be compressed below the size limit — please resize the original first" |
 | R2 put | network / bucket misconfigured | 502 "Upload failed — try again" |
 | R2 not configured | env vars missing | 503 with config-error message |

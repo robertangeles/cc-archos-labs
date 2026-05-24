@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import sharp from "sharp";
 import {
   CompressionFloorError,
+  UnsupportedFormatError,
   compressImageIfOverCap,
 } from "./image-pipeline";
 
@@ -55,30 +56,42 @@ async function makeNoisyWebp(
   return sharp(noisyOptions(width, height)).webp({ quality }).toBuffer();
 }
 
+async function makeNoisyAvif(
+  width: number,
+  height: number,
+  quality = 80,
+): Promise<Buffer> {
+  return sharp(noisyOptions(width, height)).avif({ quality }).toBuffer();
+}
+
 const CAP_500_KB = 500 * 1024;
 
 describe("compressImageIfOverCap", () => {
-  it("returns the buffer unchanged when already under cap", async () => {
+  it("returns the buffer unchanged when an already-persistable input is under cap", async () => {
     const small = await makeNoisyJpeg(200, 200, 80); // a few KB
     expect(small.byteLength).toBeLessThan(CAP_500_KB);
 
-    const result = await compressImageIfOverCap(small, "image/jpeg", CAP_500_KB);
+    const result = await compressImageIfOverCap(small, CAP_500_KB);
 
     expect(result.compressed).toBe(false);
     expect(result.buffer).toBe(small); // identity, not just equal
     expect(result.sizeBytes).toBe(small.byteLength);
+    expect(result.outputMime).toBe("image/jpeg");
+    expect(result.inputFormat).toBe("jpeg");
     expect(result.qualityUsed).toBeUndefined();
     expect(result.resizedTo).toBeUndefined();
   });
 
-  it("compresses an over-cap JPEG below the cap", async () => {
+  it("compresses an over-cap JPEG below the cap, preserving mime", async () => {
     const big = await makeNoisyJpeg(1500, 1000, 95);
     expect(big.byteLength).toBeGreaterThan(CAP_500_KB);
 
-    const result = await compressImageIfOverCap(big, "image/jpeg", CAP_500_KB);
+    const result = await compressImageIfOverCap(big, CAP_500_KB);
 
     expect(result.compressed).toBe(true);
     expect(result.sizeBytes).toBeLessThanOrEqual(CAP_500_KB);
+    expect(result.outputMime).toBe("image/jpeg");
+    expect(result.inputFormat).toBe("jpeg");
     expect(
       result.qualityUsed !== undefined || result.resizedTo !== undefined,
     ).toBe(true);
@@ -91,48 +104,67 @@ describe("compressImageIfOverCap", () => {
     const big = await makeNoisyPng(800, 600);
     if (big.byteLength <= CAP_500_KB) return; // skip if it stayed small
 
-    const result = await compressImageIfOverCap(big, "image/png", CAP_500_KB);
+    const result = await compressImageIfOverCap(big, CAP_500_KB);
 
     expect(result.compressed).toBe(true);
     expect(result.sizeBytes).toBeLessThanOrEqual(CAP_500_KB);
+    expect(result.outputMime).toBe("image/png");
+    expect(result.inputFormat).toBe("png");
   }, 60_000);
 
   it("compresses an over-cap WebP below the cap", async () => {
-    // The WebP branch of the encoder switch.
     const big = await makeNoisyWebp(1500, 1000, 100);
-    if (big.byteLength <= CAP_500_KB) return; // skip if it stayed small
+    if (big.byteLength <= CAP_500_KB) return;
 
-    const result = await compressImageIfOverCap(big, "image/webp", CAP_500_KB);
+    const result = await compressImageIfOverCap(big, CAP_500_KB);
 
     expect(result.compressed).toBe(true);
+    expect(result.sizeBytes).toBeLessThanOrEqual(CAP_500_KB);
+    expect(result.outputMime).toBe("image/webp");
+    expect(result.inputFormat).toBe("webp");
+  }, 30_000);
+
+  it("transcodes AVIF input to WebP output (under cap)", async () => {
+    // AVIF is the format AI image generators (Midjourney, etc) often
+    // serve via content negotiation. The DB CHECK forbids persisting
+    // as AVIF, so the pipeline always transcodes AVIF → WebP.
+    const small = await makeNoisyAvif(400, 300, 80);
+    // Small AVIF input may or may not stay under cap after WebP
+    // re-encode — either way, the contract is that outputMime is webp.
+
+    const result = await compressImageIfOverCap(small, CAP_500_KB);
+
+    expect(result.outputMime).toBe("image/webp");
+    expect(result.inputFormat).toBe("heif"); // libvips reports AVIF under the HEIF container family
+    expect(result.sizeBytes).toBeLessThanOrEqual(CAP_500_KB);
+  }, 30_000);
+
+  it("transcodes large AVIF input to WebP and brings it under cap", async () => {
+    const big = await makeNoisyAvif(1500, 1000, 90);
+    // Even if AVIF input is itself under cap, the WebP transcode + cap
+    // enforcement must succeed.
+
+    const result = await compressImageIfOverCap(big, CAP_500_KB);
+
+    expect(result.outputMime).toBe("image/webp");
     expect(result.sizeBytes).toBeLessThanOrEqual(CAP_500_KB);
   }, 30_000);
 
   it("throws CompressionFloorError when the cap is unreachable", async () => {
-    // Cap of 100 bytes — no real image fits, both ladders exhaust.
     const big = await makeNoisyJpeg(800, 600, 95);
     const impossibleCap = 100;
 
     await expect(
-      compressImageIfOverCap(big, "image/jpeg", impossibleCap),
+      compressImageIfOverCap(big, impossibleCap),
     ).rejects.toBeInstanceOf(CompressionFloorError);
   }, 30_000);
 
-  it("rejects unsupported mime types", async () => {
-    const big = await makeNoisyJpeg(1500, 1000, 95);
-
-    await expect(
-      compressImageIfOverCap(big, "image/gif", CAP_500_KB),
-    ).rejects.toThrow(/Unsupported mime/);
-  }, 30_000);
-
-  it("throws on corrupt buffer so the caller can return 400", async () => {
+  it("throws UnsupportedFormatError on non-image bytes", async () => {
     const garbage = Buffer.from("not actually an image", "utf-8");
-    // Above cap so the compression path is taken (not pass-through).
     const padded = Buffer.concat([garbage, Buffer.alloc(CAP_500_KB + 1)]);
 
     await expect(
-      compressImageIfOverCap(padded, "image/jpeg", CAP_500_KB),
-    ).rejects.toThrow();
+      compressImageIfOverCap(padded, CAP_500_KB),
+    ).rejects.toBeInstanceOf(UnsupportedFormatError);
   });
 });
