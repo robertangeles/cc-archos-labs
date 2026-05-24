@@ -108,26 +108,50 @@ async function buildEntries(): Promise<UrlEntry[]> {
     },
   ];
 
-  const pagesEnabled = await isPagesCmsEnabled();
-  if (pagesEnabled) {
-    const cmsPages = await listPublishedPagesForFeeds();
-    for (const p of cmsPages) {
-      entries.push({
-        loc: `${base}/${p.slug}`,
-        lastmod: p.lastReviewedAt ?? p.updatedAt,
-        changefreq: "yearly",
-        priority: 0.4,
-      });
+  // CMS pages + blog DB calls wrapped per the project's "fail gracefully on
+  // config load" pattern (matches getSiteSettings + pages-feature-flag). The
+  // route is ISR (revalidate=3600) so Next prerenders it at build time. CI
+  // builds have no DATABASE_URL; without these guards the build crashes on
+  // /sitemap.xml. Production builds have DB, so they prerender the full
+  // sitemap; CI builds prerender static URLs only; runtime ISR rebuilds
+  // always pick up the full set when DB is reachable.
+  try {
+    const pagesEnabled = await isPagesCmsEnabled();
+    if (pagesEnabled) {
+      const cmsPages = await listPublishedPagesForFeeds();
+      for (const p of cmsPages) {
+        entries.push({
+          loc: `${base}/${p.slug}`,
+          lastmod: p.lastReviewedAt ?? p.updatedAt,
+          changefreq: "yearly",
+          priority: 0.4,
+        });
+      }
     }
+  } catch (err) {
+    console.error(
+      "sitemap: CMS pages query failed, skipping CMS entries:",
+      err instanceof Error ? err.message : err,
+    );
   }
 
-  const blogEnabled = await isBlogEnabled();
-  if (!blogEnabled) return entries;
-
-  const [posts, categoryStats] = await Promise.all([
-    listAllPostsForFeeds(),
-    listAllCategoriesForSitemap(),
-  ]);
+  let posts: Awaited<ReturnType<typeof listAllPostsForFeeds>> = [];
+  let categoryStats: Awaited<ReturnType<typeof listAllCategoriesForSitemap>> =
+    [];
+  try {
+    const blogEnabled = await isBlogEnabled();
+    if (!blogEnabled) return entries;
+    [posts, categoryStats] = await Promise.all([
+      listAllPostsForFeeds(),
+      listAllCategoriesForSitemap(),
+    ]);
+  } catch (err) {
+    console.error(
+      "sitemap: blog query failed, returning partial sitemap:",
+      err instanceof Error ? err.message : err,
+    );
+    return entries;
+  }
 
   const blogIndexLastMod =
     posts[0]?.lastReviewedAt ?? posts[0]?.publishedAt ?? STATIC_PAGES_LAST_MOD;
