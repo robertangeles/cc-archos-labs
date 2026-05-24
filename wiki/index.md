@@ -63,7 +63,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 - [Assessment scoring calibration v1.1 + spec bump](decisions/2026-05-17-assessment-scoring-calibration.md) — five-change retune (Q9a, Q3, Q6 score corrections + Q12a new question with priority trigger + Q1 sector removed from scoring); source-of-truth JSON committed at scripts/diagnostic-content.json
 
 ## synthesis
-_(none yet)_
+- [Open follow-ups (dated checkpoints)](synthesis/open-followups.md) — forward-looking "check by date X" reminders. Read at session start alongside this index. Resolve + prune entries as they're checked.
 
 ## lessons-learned
 - [A dynamic sitemap on a cold-starting origin will fail Googlebot's fetch budget](lessons-learned/2026-05-24-sitemap-cold-start-fetch-failures.md) — `force-dynamic` + DB queries + a Render-tier idle origin meant every infrequent Googlebot fetch raced a cold start; Bing's longer timeout posture hid the asymmetry. Rule: routes serving infrequent eventually-consistent traffic to bots must be edge-cacheable (sitemaps, robots, llms.txt, feeds, OG images, `.well-known`).
