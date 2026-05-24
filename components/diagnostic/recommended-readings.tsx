@@ -84,28 +84,28 @@ export function RecommendedReadings({
           <li key={`${item.postId}-${item.actionIndex}`}>
             <Link
               href={`/blog/${item.slug}`}
-              className="group flex items-stretch overflow-hidden rounded-lg border border-hairline bg-surface-1 transition-colors duration-150 hover:bg-surface-2 print:break-inside-avoid"
+              className="group flex flex-col overflow-hidden rounded-lg border border-hairline bg-surface-1 transition-colors duration-150 hover:bg-surface-2 print:break-inside-avoid"
             >
               {item.ogImagePath && !item.ogImageDeletedAt ? (
-                // Fixed 29:10 banner aspect, matching the blog Read Next
-                // pattern. self-start anchors the image to the top-left
-                // of the card so its rendered dimensions stay consistent
-                // across cards regardless of how tall the content column
-                // grows. bg-surface-2 fills any space below the image
-                // when the gloss runs longer than the image height.
-                // Container width is sized so the resulting banner is
-                // visually substantial — 200×69 on sm, 280×97 on md.
-                <div className="relative hidden aspect-[29/10] flex-shrink-0 self-start bg-surface-2 sm:block sm:w-[200px] md:w-[280px]">
+                // 29:10 banner image on TOP of each card. Earlier
+                // attempts placed the image on the LEFT, but with
+                // content always taller than a 29:10 thumbnail at
+                // any reasonable width, image-left layouts left a
+                // dead bg-surface-2 rectangle below the image. Image
+                // on top fills the full card width with no possible
+                // empty side-column. Card becomes a banner + content
+                // block, stacked single-column in the section.
+                <div className="relative aspect-[29/10] w-full bg-surface-2">
                   <Image
                     src={item.ogImagePath}
                     alt={item.ogImageAlt ?? item.title}
                     fill
-                    sizes="(min-width: 768px) 280px, (min-width: 640px) 200px, 0px"
+                    sizes="(min-width: 768px) 800px, 100vw"
                     className="object-cover"
                   />
                 </div>
               ) : null}
-              <div className="flex flex-1 flex-col p-6">
+              <div className="flex flex-col p-6">
                 {/* Per-card information hierarchy:
                  *    1. Category eyebrow (single short line; framing)
                  *    2. Title
