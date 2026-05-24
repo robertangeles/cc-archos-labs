@@ -25,6 +25,25 @@ pnpm dev                     # http://localhost:3007
 
 Never commit `.env.local`. It's gitignored — keep it that way.
 
+### Optional Claude Code skill plugins
+
+Rob runs the Anthropic skills marketplace (`anthropics/skills`) for general-purpose tooling — PDF/Office processing, MCP server scaffolding, frontend design helpers, Claude API patterns. These aren't project dependencies (gstack still owns the project-specific workflows), but they're useful day-to-day and trivial to install. Run these four commands in Claude Code (they're slash commands, not shell):
+
+```
+/plugin marketplace add anthropics/skills
+/plugin install document-skills@anthropic-agent-skills
+/plugin install example-skills@anthropic-agent-skills
+/plugin install claude-api@anthropic-agent-skills
+```
+
+What you get:
+
+- **document-skills** — `xlsx`, `docx`, `pptx`, `pdf` skills for processing Office files and PDFs (form-field extraction, table parsing, etc.).
+- **example-skills** — `algorithmic-art`, `brand-guidelines`, `canvas-design`, `doc-coauthoring`, `frontend-design`, `internal-comms`, `mcp-builder`, `skill-creator`, `slack-gif-creator`, `theme-factory`, `web-artifacts-builder`, `webapp-testing`.
+- **claude-api** — Claude API / SDK reference for building anything that calls the model directly.
+
+These install per-machine into `~/.claude/plugins/`. Skip if you don't want them — nothing in this repo requires them. Existing gstack skills (`/qa`, `/ship`, `/review`, `/investigate`, `/browse`, etc.) remain the path for the project-specific workflows.
+
 ## Morning routine
 
 Run before any new work:
