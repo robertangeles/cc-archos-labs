@@ -39,12 +39,18 @@ import type { RecommendedReading } from "../db/schema";
  * Cosine-distance threshold above which a post is considered too weak a
  * match to attach to an action. 0 = identical, 2 = opposite.
  *
- * Initial value is a reasonable starting point; should be calibrated
- * via scripts/calibrate-threshold.ts (per the eng review's E7 task)
- * once the eval bench (lib/diagnostic/recommend.eval.test.ts) has
- * enough cases to drive a data-informed choice. Tracked in TODOS.
+ * Calibrated against the live 253-post corpus via
+ * scripts/calibrate-threshold.ts on 2026-05-24. Distance distribution
+ * across 8 representative diagnostic-shaped queries:
+ *   p25 = 0.388, p50 = 0.413, p75 = 0.440, p90 = 0.471
+ * No hits above 0.49 in the calibration set. 0.50 admits every
+ * calibration match while still rejecting "no real match exists"
+ * cases (queries against topics the blog doesn't cover well — those
+ * fall back to per-report ANN per recommendForReport below).
+ * Re-run `pnpm calibrate:threshold` after major editorial changes
+ * to confirm the threshold still fits the distribution.
  */
-export const SIMILARITY_THRESHOLD = 0.6;
+export const SIMILARITY_THRESHOLD = 0.5;
 
 /** Maximum number of recommendations attached to a single report. */
 export const MAX_PER_REPORT = 5;

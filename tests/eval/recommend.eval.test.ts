@@ -22,14 +22,17 @@ import { findSimilarPosts } from "../../lib/posts/find-similar";
 //
 // Adding cases:
 //   1. Identify a clear "query → expected top-3 posts" mapping from
-//      the editorial side. Look at the live /blog at archoslabs.xyz.
-//   2. Find the post slug via `pnpm wiki:search <topic>` or the admin
-//      Posts list at /admin/blog/posts.
-//   3. Add a case below. `expectInTop3` is an array of slugs; the
-//      assertion passes if ANY of them appear in the top-3 ANN result.
-//      (Per-action retrieval takes top-1 per action in production,
-//       but the eval bench checks top-3 to absorb minor reranking
-//       wobble without false-failing.)
+//      the editorial side. Run `pnpm calibrate:threshold` to see
+//      what the live retrieval pipeline returns for a query, and
+//      use those slugs (or a subset) as `expectInTop3`.
+//   2. The assertion passes if ANY of the listed slugs appears in
+//      the top-3 ANN result — gives the eval some give without
+//      becoming a no-op. Per-action retrieval takes top-1 in
+//      production; checking top-3 here absorbs minor reranking
+//      wobble.
+//   3. Bench cases were last grounded against live retrieval on
+//      2026-05-24 via scripts/calibrate-threshold.ts. Slugs below
+//      are real prod slugs as of that date.
 
 interface EvalCase {
   name: string;
@@ -42,42 +45,124 @@ interface EvalCase {
   expectInTop3: string[];
 }
 
-// Seed cases — replace with real curated mappings before this bench
-// is wired into the nightly alert workflow. The structure works
-// today; the assertions need editorial input to be useful.
 const CASES: EvalCase[] = [
   {
-    name: "Data lineage query → lineage / governance posts",
+    name: "data lineage documentation → lineage/governance posts",
     query: {
       title: "Document data lineage end-to-end",
       excerpt:
-        "Foundational issue: undocumented data lineage across core systems.",
+        "Foundational issue: undocumented data lineage across core systems blocks AI initiatives.",
       contentMd: "Service: AI Readiness Assessment",
     },
-    // EDITORIAL TODO: replace with the actual slug(s) of posts that
-    // explicitly cover data lineage / governance fundamentals.
-    expectInTop3: ["data-lineage-without-tears", "data-governance-precondition"],
+    expectInTop3: [
+      "ai-readiness-assessment-score-data-before-funding",
+      "ai-integration-stages-enterprise-systems",
+      "lineage-that-leaders-trust",
+      "data-observability-ai",
+    ],
   },
   {
-    name: "AI agent rollout query → agent posts",
+    name: "AI agent production rollout → agent architecture posts",
     query: {
       title: "Stand up an AI agent in production",
       excerpt:
         "Customer-support intake agent; need governance + observability before rollout.",
       contentMd: "Service: AI Agent Development",
     },
-    // EDITORIAL TODO: replace with real slugs.
-    expectInTop3: ["ai-agents-in-production"],
+    expectInTop3: [
+      "agent-roadmap-2026-sequencing-guardrails-upgrades",
+      "ai-agent-architecture",
+      "ai-agent-pilot-template-90-day-stage-gates-redlines-exit-criteria",
+    ],
   },
-  // EDITORIAL TODO: add 13+ more cases covering the breadth of risk
-  // patterns the diagnostic surfaces. Use the action_plan items from
-  // ~10 recent reports as a starting point for query phrasing.
+  {
+    name: "data architecture redesign → modern architecture posts",
+    query: {
+      title: "Redesign the analytics warehouse for AI workloads",
+      excerpt:
+        "Existing star schema is brittle; AI queries hit hot spots and cause analyst delays.",
+      contentMd: "Service: Data Architecture",
+    },
+    expectInTop3: [
+      "modern-data-architecture-genai",
+      "cost-aware-architecture-business-outcomes",
+      "dimensional-modeling-for-agents",
+    ],
+  },
+  {
+    name: "data governance program → governance framework posts",
+    query: {
+      title: "Establish a data governance program",
+      excerpt:
+        "Cross-functional governance across data, AI, and risk teams.",
+      contentMd: "Service: AI Readiness Assessment",
+    },
+    expectInTop3: [
+      "ai-governance-framework-moving-fast",
+      "ai-governance-framework-for-executives",
+      "how-to-operationalise-data-governance-for-ai",
+    ],
+  },
+  {
+    name: "change management resistance → org/people-focused posts",
+    query: {
+      title: "Drive change management across the org",
+      excerpt:
+        "AI rollout meeting resistance from analytics team; product owners not bought in.",
+      contentMd: "Service: AI Readiness Assessment",
+    },
+    expectInTop3: [
+      "ai-change-management",
+      "ai-trust",
+      "ai-doesnt-scale-until-your-org-does-why-teams-fail-models",
+    ],
+  },
+  {
+    name: "model evaluation strategy → eval/pilot framework posts",
+    query: {
+      title: "Build an evaluation framework for production AI",
+      excerpt:
+        "Need to measure model quality continuously; not just at launch.",
+      contentMd: "Service: AI Agent Development",
+    },
+    expectInTop3: [
+      "ai-agent-pilot-template-90-day-stage-gates-redlines-exit-criteria",
+      "agent-roadmap-2026-sequencing-guardrails-upgrades",
+      "ai-use-case-prioritization-that-actually-scales",
+    ],
+  },
+  {
+    name: "executive AI strategy → exec-focused strategy posts",
+    query: {
+      title: "Set executive-level AI strategy and KPIs",
+      excerpt:
+        "CEO wants AI as a strategic differentiator; needs measurable goals.",
+      contentMd: "Service: AI Readiness Assessment",
+    },
+    expectInTop3: [
+      "from-ai-hype-to-ai-strategy",
+      "executive-ai-literacy",
+      "ceo-ai-strategy",
+    ],
+  },
+  {
+    name: "data quality remediation → quality/data-strategy posts",
+    query: {
+      title: "Address data quality issues blocking AI",
+      excerpt:
+        "Source data has gaps, inconsistencies; downstream models inherit them.",
+      contentMd: "Service: Data Architecture",
+    },
+    expectInTop3: [
+      "data-quality-ai-scaling",
+      "data-strategy-ai",
+      "data-unification-ai-production",
+      "bad-data-is-a-strategic-liability",
+    ],
+  },
 ];
 
 describe("ANN retrieval eval — curated cases", () => {
-  // Skip each case if its expected slugs are still the seed-doc
-  // placeholders. The bench is wired and the structure works; cases
-  // get real-fail status once editorial fills the expectInTop3 arrays.
   for (const c of CASES) {
     it(c.name, async () => {
       const results = await findSimilarPosts({
@@ -97,7 +182,7 @@ describe("ANN retrieval eval — curated cases", () => {
 
   // Sanity check that always runs — ensures the helper is reachable
   // and the DB has at least some embedded posts. Independent of the
-  // editorial cases above.
+  // curated cases above.
   it("returns at least one published post for a broad query", async () => {
     const results = await findSimilarPosts({
       queryText: {
