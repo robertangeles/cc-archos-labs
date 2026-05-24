@@ -22,7 +22,7 @@
 
 import postgres from "postgres";
 
-const AUTHOR_SLUG = "rob-angeles";
+const AUTHOR_SLUG = "robangeles";
 
 const NEW_BIO_MD = `Most consulting engagements split the thinking from the doing. Rob doesn't. Principal Consultant at Archos Labs, he owns the full stack — assessment, architecture, delivery — across retail, financial services, healthcare, and government.`;
 
