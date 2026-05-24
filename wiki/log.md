@@ -2,11 +2,22 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-22
+updated: 2026-05-24
 related:
 ---
 
 Append-only log of sessions. Newest entry at the top.
+
+## 2026-05-24 — Sitemap: ISR + custom XML route to fix GSC "Couldn't fetch"
+
+GSC reported `Couldn't fetch` on `https://archoslabs.xyz/sitemap.xml` with empty `Last read` since the 2026-05-21 submission. Bing read the same file. URL Inspection confirmed `URL is unknown to Google` with all Crawl fields `N/A` — Google had not yet retrieved a single byte. Diagnostics from this machine showed the file served HTTP 200 with valid XML and correct namespaces to Googlebot UA, Bingbot UA, and a plain curl control. Ruled out Cloudflare edge blocks, oversized URLs, namespace gaps, and unescaped entities.
+
+Root cause class (per evidence): `dynamic = "force-dynamic"` was rebuilding the sitemap from DB on every request with `cache-control: max-age=0, must-revalidate` — meaning every Googlebot fetch raced a Render cold start + two parallel DB queries. Bing's longer fetch budget survived; Google's didn't. Secondary defect found in passing: Next's `MetadataRoute.Sitemap` emits `<image:image>` between `<loc>` and `<lastmod>`, violating the sitemap.org XSD `xs:sequence`.
+
+Both fixed in one PR. `app/sitemap.ts` deleted, replaced with `app/sitemap.xml/route.ts` — hand-built XML in canonical XSD order, `export const revalidate = 3600`, `xmlEscape()` helper for safety. `next.config.ts` gained an `async headers()` rule setting `Cache-Control: public, s-maxage=3600, stale-while-revalidate=86400` on `/sitemap.xml` so Cloudflare caches at the edge even when Render is cold. ISR + CDN cache are defence-in-depth against different failure modes (DB latency vs origin cold start).
+
+Files touched: [app/sitemap.xml/route.ts](../app/sitemap.xml/route.ts) (new), `app/sitemap.ts` (deleted), [next.config.ts](../next.config.ts).
+New wiki pages: [[2026-05-24-sitemap-cold-start-cacheable]], [[2026-05-24-sitemap-cold-start-fetch-failures]].
 
 ## 2026-05-24 — Featured image upload: Sharp is now the MIME source of truth
 
