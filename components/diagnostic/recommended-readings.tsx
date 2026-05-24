@@ -4,34 +4,41 @@ import { truncateExcerpt } from "../../lib/post-rendering";
 import type { HydratedRecommendedReading } from "../../lib/diagnostic/recommend";
 
 // Recommended Readings block — rendered between the Action Plan and
-// the "Next step" CTA on the diagnostic report. Sits in the IA after
-// the case-making (verdict → narrative → actions) and before the ask
-// (book a call), as evidence the exec can forward to a budget approver.
+// the "Next step" CTA on the diagnostic report. Evidence the exec
+// forwards alongside the report to a budget approver.
 //
-// Visual language mirrors components/blog/read-next.tsx so the brand
-// reads as consistent — AI-slop-resistant card pattern:
-//   - No icons in coloured circles, no centered text, no drop shadows,
-//     no "Read more →" pseudo-CTAs
-//   - Eyebrow + title + truncated excerpt + reading time
-//   - Featured-image thumbnail in banner aspect
-//   - Whole card clickable; bg hover ladder; underline on hover
+// Design philosophy (revised 2026-05-24 after the first real-content
+// render): the audience is an impatient CFO scanning 3 cards in
+// seconds. Every block on the card must EARN its space against the
+// question "would the CFO miss this if it weren't here?"
 //
-// Differences from read-next.tsx:
-//   - Per-card "Supports: <action title>" attribution tag above the
-//     eyebrow when actionIndex >= 0 (D4 + D15 v1 visual)
-//   - One-sentence italic gloss between excerpt and reading-time
-//     line. Renders ONLY when gloss is non-empty (LLM degraded → no
-//     gloss → no italic line, card still renders cleanly)
-//   - Heading reads "Recommended reading" — singular tone matches
-//     the curated, per-action framing
+// Per-card hierarchy: image → category eyebrow (single short line) →
+// title → gloss → reading time. Three meaningful pieces of content;
+// the gloss is the lead. The gloss is the ONLY thing on this page
+// written for THIS exec, for THIS report — everything else either
+// repeats what they just read above (action titles) or is content
+// marketing from a different context (blog-index excerpts).
+//
+// Removed in the simplification pass:
+//   - "Supports: <action title>" attribution: action titles are
+//     full sentences; stamped on every card they wallpaper the UI
+//     in uppercase text the exec has to wade through before reaching
+//     anything tailored. The exec just read the action plan one
+//     section above — they don't need a verbose cross-reference.
+//   - Generic blog-index excerpt: duplicates the gloss conceptually
+//     in untargeted language. Falls back to a truncated excerpt only
+//     when the gloss LLM degraded — otherwise hidden.
+//   - Italic + hairline-divider gloss styling: visually competed
+//     with the excerpt for attention. Now the gloss IS the subtitle,
+//     body weight, no decoration.
 //
 // Server component. No-render when items is empty (D8 quiet-fail).
 //
-// D9: links are direct /blog/[slug] hrefs on this surface (web report
-// view). Click tracking (PR3) will wrap them with /api/r/[postId] in
-// a follow-up — but the PDF surface (T9) must stay on direct links
+// Links are direct /blog/[slug] hrefs on this surface (web report
+// view). Click tracking (PR3) will wrap them with /api/r/[postId]
+// in a follow-up — but the PDF surface must stay on direct links
 // regardless to avoid tracking-link aesthetics in the printed
-// artefact (eng review E5 + spec review #5).
+// artefact (eng review E5 + D9 + spec review #5).
 
 export interface RecommendedReadingsProps {
   items: HydratedRecommendedReading[];
@@ -45,8 +52,8 @@ export function RecommendedReadings({
   printMode = false,
 }: RecommendedReadingsProps) {
   // Quiet fail per D8: if no posts cleared the similarity threshold
-  // (or the feature flag was off when the report generated, or every
-  // post in the rec list has since been unpublished), render nothing.
+  // (or the retrieval/gloss step degraded, or every post in the rec
+  // list has since been unpublished), render nothing.
   if (items.length === 0) return null;
 
   // Suppress the "printMode" prop in a way that signals intent to
@@ -91,34 +98,43 @@ export function RecommendedReadings({
                 </div>
               ) : null}
               <div className="p-6">
-                {item.actionTitle ? (
-                  <p className="text-caption font-medium uppercase tracking-[0.06em] text-ink-tertiary">
-                    Supports: {item.actionTitle}
-                  </p>
-                ) : null}
+                {/* Per-card information hierarchy (aggressive simplification
+                 *  on 2026-05-24): the exec is impatient. Three meaningful
+                 *  pieces per card, no wallpaper:
+                 *    1. Category eyebrow (single short line; framing)
+                 *    2. Title
+                 *    3. Gloss — the ONLY content written for this exec,
+                 *       for this report. Body weight (not italic), no
+                 *       divider, so it reads as the natural subtitle.
+                 *  Removed: per-card "Supports: <action title>" attribution
+                 *  (wallpaper effect with sentence-length action titles);
+                 *  generic blog-index excerpt (duplicates the gloss
+                 *  conceptually but in untargeted language).
+                 *  Footer: reading time only.
+                 */}
                 {item.categoryName ? (
-                  <p
-                    className={`text-eyebrow uppercase tracking-[0.08em] text-ink-subtle ${
-                      item.actionTitle ? "mt-2" : ""
-                    }`}
-                  >
+                  <p className="text-eyebrow uppercase tracking-[0.08em] text-ink-subtle">
                     {item.categoryName}
                   </p>
                 ) : null}
                 <h3 className="mt-3 text-card-title text-ink visited:text-ink-muted">
                   {item.title}
                 </h3>
-                {item.excerpt ? (
-                  <p className="mt-3 text-body-sm text-ink-subtle">
-                    {truncateExcerpt(item.excerpt, 160)}
-                  </p>
-                ) : null}
                 {item.gloss ? (
-                  <p className="mt-4 border-t border-hairline pt-3 text-body-sm italic text-ink-subtle">
+                  <p className="mt-3 text-body text-ink-subtle">
                     {item.gloss}
                   </p>
-                ) : null}
-                <p className="mt-4 text-caption text-ink-tertiary">
+                ) : (
+                  // Gloss failed soft (Claude error, hallucinated id).
+                  // Fall back to a truncated excerpt so the card still
+                  // has substance under the title.
+                  item.excerpt ? (
+                    <p className="mt-3 text-body-sm text-ink-subtle">
+                      {truncateExcerpt(item.excerpt, 160)}
+                    </p>
+                  ) : null
+                )}
+                <p className="mt-5 text-caption text-ink-tertiary">
                   {item.readingTimeMin} min read
                 </p>
               </div>
