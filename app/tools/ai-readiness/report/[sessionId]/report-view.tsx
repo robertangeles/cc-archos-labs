@@ -76,15 +76,17 @@ export function ReportView({
       {/* ====================================================================
           Section 1 — Verdict / cover
           On screen: a tight summary header.
-          In print: doubles as the cover page with logo, recipient
-          details, prepared-on date, and a forced page break before the
-          body sections begin.
+          In print: opens the summary PAGE (cover + risk flags + domain
+          breakdown all fit on page 1). Subsequent sections force their
+          own page breaks via print:break-before-page. The cover here
+          uses its natural content height so the rest of page 1 has
+          room — no min-h-[9in] full-page push.
           ==================================================================== */}
-      <section className="border-b border-hairline px-6 py-16 md:px-12 md:py-24 print:flex print:min-h-[9in] print:flex-col print:justify-between print:border-b-0 print:py-0 print:break-after-page">
-        <div className="mx-auto w-full max-w-[840px] print:flex print:flex-1 print:flex-col">
+      <section className="border-b border-hairline px-6 py-16 md:px-12 md:py-24 print:border-b-0 print:pt-0 print:pb-6">
+        <div className="mx-auto w-full max-w-[840px]">
           {/* Print-only branded masthead. Hidden on screen because the
               site header already carries the logo. */}
-          <div className="hidden print:mb-12 print:flex print:items-center print:gap-x-3">
+          <div className="hidden print:mb-6 print:flex print:items-center print:gap-x-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/images/logo.png"
@@ -108,12 +110,12 @@ export function ReportView({
               }
             />
           </div>
-          <div className="mt-8 flex flex-col gap-y-2 md:flex-row md:items-baseline md:gap-x-10 md:gap-y-0">
-            <p className="font-mono text-[80px] font-semibold leading-none tracking-[-0.04em] text-ink md:text-[140px] print:text-[120px]">
+          <div className="mt-8 flex flex-col gap-y-2 md:flex-row md:items-baseline md:gap-x-10 md:gap-y-0 print:mt-4">
+            <p className="font-mono text-[80px] font-semibold leading-none tracking-[-0.04em] text-ink md:text-[140px] print:text-[72px]">
               {result.score.total}
             </p>
             <div className="flex flex-col gap-y-1">
-              <p className="text-2xl font-semibold leading-tight text-ink md:text-[36px] md:leading-[1.1] print:text-[32px]">
+              <p className="text-2xl font-semibold leading-tight text-ink md:text-[36px] md:leading-[1.1] print:text-[26px]">
                 {result.tier.label}
               </p>
               <p className="text-sm text-ink-subtle">
@@ -121,13 +123,13 @@ export function ReportView({
               </p>
             </div>
           </div>
-          <h1 className="mt-12 max-w-[760px] text-2xl font-medium leading-[1.3] tracking-[-0.01em] text-ink md:text-[30px] print:mt-8 print:text-[22px]">
+          <h1 className="mt-12 max-w-[760px] text-2xl font-medium leading-[1.3] tracking-[-0.01em] text-ink md:text-[30px] print:mt-5 print:text-[18px] print:leading-[1.4]">
             {content.verdict}
           </h1>
 
-          {/* Print-only "Prepared for / Prepared on" block. Pushed to
-              the bottom of the cover via flex-1 on the parent. */}
-          <div className="hidden print:mt-auto print:grid print:grid-cols-2 print:gap-x-8 print:gap-y-6 print:border-t print:border-hairline print:pt-8">
+          {/* Print-only "Prepared for / Prepared on" block. Flows
+              naturally below the verdict on page 1; no flex-push. */}
+          <div className="hidden print:mt-6 print:grid print:grid-cols-2 print:gap-x-8 print:gap-y-3 print:border-t print:border-hairline print:pt-4">
             {recipient ? (
               <div>
                 <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
@@ -167,7 +169,7 @@ export function ReportView({
           Section 2 — Risk flags (only shown when triggered)
           ==================================================================== */}
       {result.riskFlags.length > 0 ? (
-        <section className="border-b border-hairline px-6 py-12 md:px-12 md:py-16">
+        <section className="border-b border-hairline px-6 py-12 md:px-12 md:py-16 print:py-4">
           <div className="mx-auto w-full max-w-[840px]">
             <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
               {result.riskFlags.length === 1
@@ -198,8 +200,10 @@ export function ReportView({
 
       {/* ====================================================================
           Section 3 — Domain score dashboard
+          Closes out the page-1 summary (cover + risk flags + domain
+          breakdown). Section 4 below forces a new page.
           ==================================================================== */}
-      <section className="border-b border-hairline px-6 py-12 md:px-12 md:py-16">
+      <section className="border-b border-hairline px-6 py-12 md:px-12 md:py-16 print:py-4">
         <div className="mx-auto w-full max-w-[840px]">
           <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
             Domain breakdown
@@ -240,12 +244,10 @@ export function ReportView({
 
       {/* ====================================================================
           Section 4 — Practitioner analysis
-          Flows after the score dashboard in print (no forced page
-          break) so the document doesn't trail off with empty pages.
-          The browser's natural break logic + the break-inside-avoid
-          on cards keeps things readable.
+          Forced new page in print — the analysis is a full read that
+          deserves its own page, not the tail of the summary.
           ==================================================================== */}
-      <section className="border-b border-hairline px-6 py-16 md:px-12 md:py-20 print:py-6">
+      <section className="border-b border-hairline px-6 py-16 md:px-12 md:py-20 print:py-6 print:break-before-page">
         <div className="mx-auto w-full max-w-[840px]">
           <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
             Practitioner analysis
@@ -260,10 +262,11 @@ export function ReportView({
 
       {/* ====================================================================
           Section 5 — Priority action sequence
-          Flows naturally in print after the narrative. ActionRow has
-          break-inside-avoid so individual actions don't split mid-card.
+          Forced new page. ActionRow has break-inside-avoid so
+          individual actions don't split mid-card if the list itself
+          overflows to a second page.
           ==================================================================== */}
-      <section className="border-b border-hairline px-6 py-12 md:px-12 md:py-16 print:py-6">
+      <section className="border-b border-hairline px-6 py-12 md:px-12 md:py-16 print:py-6 print:break-before-page">
         <div className="mx-auto w-full max-w-[840px]">
           <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
             Priority action sequence
@@ -279,12 +282,14 @@ export function ReportView({
       {/* ====================================================================
           Section 5b — Recommended Reading (Translation Layer posts that
           argue the case for each action above). Quiet-renders nothing
-          when the rec list is empty (feature flag was off when this
-          report generated, OR retrieval/gloss degraded, OR all matched
-          posts have since been unpublished).
+          when the rec list is empty (retrieval/gloss degraded, or all
+          matched posts have since been unpublished). Forced new page
+          in print — supporting evidence belongs as its own section,
+          not stranded as a heading at the bottom of the action plan
+          page (which is exactly what was happening before).
           ==================================================================== */}
       {report.recommendedReadings.length > 0 ? (
-        <section className="border-b border-hairline px-6 py-12 md:px-12 md:py-16 print:py-6">
+        <section className="border-b border-hairline px-6 py-12 md:px-12 md:py-16 print:py-6 print:break-before-page">
           <div className="mx-auto w-full max-w-[840px]">
             <RecommendedReadings items={report.recommendedReadings} />
           </div>
@@ -305,12 +310,11 @@ export function ReportView({
 
       {/* ====================================================================
           Section 6 — Next-step CTA
-          Flows naturally — break-inside-avoid on the inner card keeps
-          the CTA together; if it can't fit on the current page it
-          bumps to the next, but we don't force a break that would
-          leave dead space.
+          Forced new page so "book a call" gets the exec's full
+          attention — last impression, not a trailing scrap at the
+          bottom of the recommended-reading page.
           ==================================================================== */}
-      <section className="px-6 py-16 md:px-12 md:py-20 print:py-8">
+      <section className="px-6 py-16 md:px-12 md:py-20 print:py-8 print:break-before-page">
         <div className="mx-auto w-full max-w-[840px] rounded-md border border-primary/30 bg-primary/5 px-6 py-8 md:px-10 md:py-10 print:break-inside-avoid">
           <p className="uppercase text-eyebrow text-ink-subtle">
             Next step
