@@ -12,8 +12,13 @@ import { findSimilarPosts } from "../../lib/posts/find-similar";
 //     the topic the assertion expects, the bench flags it so we
 //     either fix the post or update the assertion
 //
-// Runs nightly via .github/workflows/eval-nightly.yml against a
-// read-only Postgres role on prod. Cost: ~$0.005 per run.
+// Run locally via `pnpm eval` (uses .env.local for DATABASE_URL +
+// OpenRouter credentials). Treated as a developer-side gate before
+// merging any PR that touches retrieval (lib/posts/find-similar.ts,
+// lib/embeddings.ts, lib/diagnostic/recommend.ts) — matching the
+// pattern the other eval suites under tests/eval/ follow. No CI
+// automation; secrets stay in the integration-config DB, not GH
+// Actions. Cost: ~$0.005 per run.
 //
 // Adding cases:
 //   1. Identify a clear "query → expected top-3 posts" mapping from
