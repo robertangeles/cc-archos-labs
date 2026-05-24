@@ -17,6 +17,23 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async headers() {
+    return [
+      {
+        // Edge-cache the sitemap for 1h, serve stale up to 24h while
+        // Cloudflare revalidates. Defense-in-depth with the route's ISR
+        // (revalidate=3600) — even on a Render cold start, Cloudflare
+        // serves the cached body so Googlebot never waits on origin.
+        source: "/sitemap.xml",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=3600, stale-while-revalidate=86400",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
