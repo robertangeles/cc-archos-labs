@@ -187,8 +187,7 @@ export const reportOutput = pgTable("report_output", {
   // metadata column with documented shape (RecommendedReading[] above).
   // Nullable for backward compatibility with reports generated before
   // PR1 landed — render layer treats NULL as "no readings block".
-  // Re-population is gated by RECOMMENDED_READINGS_ENABLED (D12) and
-  // happens at report-generation time only (D7: never refresh).
+  // Populated at report-generation time only (D7: never refresh).
   recommendedReadings: jsonb("recommended_readings").$type<
     RecommendedReading[]
   >(),

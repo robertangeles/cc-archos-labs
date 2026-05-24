@@ -10,9 +10,10 @@
 --      gloss: string }]      -- one-sentence relevance note
 --
 -- Nullable for backward compatibility — reports generated before this
--- column existed render with no readings block. Feature-flagged via
--- RECOMMENDED_READINGS_ENABLED (D12); off by default, so even after the
--- column exists, new reports still leave it NULL until the flag flips.
+-- column existed render with no readings block. The retrieval +
+-- persist path is fail-soft: any error inside leaves the column NULL
+-- and the render layer hides the readings block, so the column
+-- existing in prod before the application code rolls out is safe.
 --
 -- Drizzle's auto-generated 0017 also picked up content from 0014/0015/0016
 -- because their snapshot JSONs were never created (those migrations were

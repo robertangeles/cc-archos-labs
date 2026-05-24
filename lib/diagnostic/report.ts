@@ -178,16 +178,14 @@ export async function generateReport(
     throw new Error("Insert into report_output returned no row");
   }
 
-  // 4. Populate recommended_readings (feature-flagged per D12). The
-  //    column already exists with NULL; this call retrieves matching
-  //    posts via ANN, writes the gloss via batched Claude call, and
-  //    UPDATEs the row in place. Fail-soft: any error inside is logged
-  //    and swallowed — the report keeps its NULL recommended_readings
-  //    and the render layer hides the readings block. Sync per D14
-  //    (acceptable ~3-4s added latency on a 10-15s op).
-  if (process.env.RECOMMENDED_READINGS_ENABLED === "true") {
-    await populateRecommendedReadings(report.id, reportContent);
-  }
+  // 4. Populate recommended_readings. The column already exists with
+  //    NULL; this call retrieves matching posts via ANN, writes the
+  //    gloss via a batched Claude call, and UPDATEs the row in place.
+  //    Fail-soft: any error inside is logged and swallowed — the
+  //    report keeps its NULL recommended_readings and the render
+  //    layer hides the readings block. Sync per plan D14 (acceptable
+  //    ~3-4s added latency on a 10-15s op).
+  await populateRecommendedReadings(report.id, reportContent);
 
   return {
     sessionId: session.id,
@@ -219,10 +217,10 @@ export interface LoadedReport {
   result: SessionResult;
   content: ReportContent;
   /**
-   * Hydrated recommended readings ready to render. Empty array when the
-   * column was NULL (feature flag off when the report generated, or the
-   * retrieval/gloss step degraded). UI hides the readings block entirely
-   * on empty.
+   * Hydrated recommended readings ready to render. Empty array when
+   * the column was NULL (report predates this column, or the
+   * retrieval/gloss step degraded on this report). UI hides the
+   * readings block entirely on empty.
    */
   recommendedReadings: HydratedRecommendedReading[];
   generatedAt: Date;

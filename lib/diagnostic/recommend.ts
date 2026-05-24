@@ -198,14 +198,14 @@ export async function recommendForReport(
 
 // ============================================================================
 // Side-effecting orchestration: retrieve → gloss → UPDATE report_output.
-// Called from lib/diagnostic/report.ts#generateReport AFTER the report row
-// has been inserted with NULL recommended_readings, gated by the
-// RECOMMENDED_READINGS_ENABLED feature flag (D12).
+// Called from lib/diagnostic/report.ts#generateReport AFTER the report
+// row has been inserted with NULL recommended_readings.
 //
 // Fail-soft contract: this function NEVER throws. Any error logs and
 // returns; the report row keeps its NULL recommended_readings and the
 // render layer hides the readings block. The diagnostic generate
-// response is unaffected.
+// response is unaffected. Because of this contract there is no
+// "feature flag" wrapping the call — the fail-soft IS the safety net.
 // ============================================================================
 
 /**

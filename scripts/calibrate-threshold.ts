@@ -11,10 +11,11 @@
 // "obvious good matches" and the long tail.
 //
 // SIMILARITY_THRESHOLD in lib/diagnostic/recommend.ts is initially
-// set to 0.6 as a reasonable starting point. Run this script before
-// flipping the RECOMMENDED_READINGS_ENABLED feature flag in prod —
-// recalibrate against the actual 253-post corpus, then bump the
-// constant if the data suggests a different cutoff.
+// set to 0.6 as a reasonable starting point. Run this script after
+// migration 0017 lands in prod (so the column exists and the feature
+// is live) and against the actual 253-post corpus — bump the constant
+// if the data suggests a different cutoff at the elbow of YOUR
+// distribution.
 //
 // What "obvious good" looks like:
 //   - distances ≤ 0.35 → semantically very close (the post directly
