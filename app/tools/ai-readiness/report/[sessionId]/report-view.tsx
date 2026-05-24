@@ -246,7 +246,7 @@ export function ReportView({
           on cards keeps things readable.
           ==================================================================== */}
       <section className="border-b border-hairline px-6 py-16 md:px-12 md:py-20 print:py-6">
-        <div className="mx-auto w-full max-w-[680px]">
+        <div className="mx-auto w-full max-w-[840px]">
           <p className="text-[12px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
             Practitioner analysis
           </p>
