@@ -1,2 +1,3 @@
 node scripts/_check-main-sync.mjs --prepush
 node scripts/_check-migration-safety.mjs --warn-only
+node scripts/_check-eval-needed.mjs --warn-only
