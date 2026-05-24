@@ -46,6 +46,14 @@ jobs:
       - name: Migration safety check
         run: node scripts/_check-migration-safety.mjs --ci
 
+      # Reminder (not a gate) — emits ::warning:: in the Actions log
+      # when this PR touches LLM-adjacent code, telling the author +
+      # reviewers that `pnpm eval` should be run locally before merge.
+      # Always exits 0; eval requires DB-backed secrets that aren't
+      # available to CI.
+      - name: Eval-needed reminder
+        run: node scripts/_check-eval-needed.mjs --ci
+
       - name: Lint
         run: pnpm lint
 
