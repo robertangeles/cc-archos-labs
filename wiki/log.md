@@ -2,11 +2,19 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-24
+updated: 2026-05-25
 related:
 ---
 
 Append-only log of sessions. Newest entry at the top.
+
+## 2026-05-25 — IndexNow bulk catch-up + production loop verified
+
+User reported nothing in Bing Webmaster four days after the IndexNow ship ([[2026-05-21-indexnow]]). Investigation confirmed the implementation only fires on admin writes — and no post create/update/archive has hit prod since 2026-05-21 (last blog-touching commit was `b33e009` UI-only). Keyfile at `https://archoslabs.xyz/<key>.txt` verified live (HTTP 200, text/plain). Manual end-to-end test ping for `/blog` returned **HTTP 202** from `api.indexnow.org` — protocol loop works.
+
+Shipped `scripts/indexnow-submit-sitemap.mjs` + `pnpm indexnow:submit-sitemap` for one-shot backfill. Reads live sitemap, filters to host = `archoslabs.xyz` (drops 71 R2 `<image:loc>` entries), submits in batches of 10,000 (spec max). `--dry-run` mode previews count + first 10 URLs without sending. Live run submitted **314 URLs in one batch → HTTP 200**.
+
+Ongoing freshness remains driven by [[2026-05-21-indexnow]] triggers on admin saves. This script is a one-time corpus catch-up — re-running it provides no benefit once the corpus has been processed and admin saves are the change signal.
 
 ## 2026-05-24 — Blog tidy-up eng review (followup to CEO review same day)
 
