@@ -298,6 +298,17 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
       if (!isEdit) {
         router.push(`/admin/blog/posts/${json.data.post.id}`);
       } else {
+        // Sync the optimistic-lock anchor from the server's response
+        // BEFORE router.refresh(). Without this, the next save sends
+        // a stale expectedUpdatedAt and 409s — the form gets stuck
+        // in a "Someone else saved this post" loop even with a single
+        // author. router.refresh() re-renders the server component
+        // with fresh `initial`, but PostForm's useState lastKnownUpdatedAt
+        // captures only on first mount and ignores `initial` updates.
+        const nextUpdatedAt = json.data?.post?.updatedAt;
+        if (nextUpdatedAt) {
+          setLastKnownUpdatedAt(new Date(nextUpdatedAt));
+        }
         router.refresh();
         setTimeout(() => setSaveStatus({ kind: "idle" }), 4000);
       }
@@ -599,7 +610,17 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
             </button>
             <button
               type="button"
-              onClick={() => setSaveStatus({ kind: "idle" })}
+              onClick={() => {
+                // "Save anyway to overwrite them" — adopt the server's
+                // current updatedAt as our new anchor so the next save
+                // passes optimistic-lock. Without this, dismissing the
+                // banner leaves expectedUpdatedAt stale and the next
+                // save 409s identically.
+                if (saveStatus.kind === "stale") {
+                  setLastKnownUpdatedAt(new Date(saveStatus.currentUpdatedAt));
+                }
+                setSaveStatus({ kind: "idle" });
+              }}
               className="text-ink-subtle hover:text-ink"
             >
               Dismiss

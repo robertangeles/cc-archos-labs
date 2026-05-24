@@ -26,6 +26,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { PreviewBanner } from "./preview-banner";
 import { isBlogEnabled } from "../../../../../../lib/blog/feature-flag";
 import { getPostByIdForPreview, getReadNext, type ReadNextItem } from "../../../../../../lib/posts";
 import { getAdminPostById } from "../../../../../../lib/posts-admin";
@@ -94,7 +95,7 @@ export default async function PostPreviewPage({
 
   return (
     <main className="flex flex-1 flex-col bg-canvas">
-      <DraftPreviewBanner postId={post.id} statusLabel={statusLabel} />
+      <PreviewBanner postId={post.id} statusLabel={statusLabel} />
 
       <article className="mx-auto w-full max-w-[1200px] px-6 pt-24 pb-32 md:px-12">
         <div className="grid gap-12 lg:grid-cols-[760px_minmax(0,1fr)]">
@@ -144,38 +145,6 @@ export default async function PostPreviewPage({
         </div>
       </article>
     </main>
-  );
-}
-
-/**
- * Persistent top banner — always visible while scrolling so the author
- * can never mistake a draft preview for the published page. Includes
- * a "Back to editor" link so the round-trip is one click.
- *
- * Plain monospace text with a hard amber border. No emoji, no animation,
- * no pill. Matches the practitioner-led brand voice — direct, no flair.
- */
-function DraftPreviewBanner({
-  postId,
-  statusLabel,
-}: {
-  postId: string;
-  statusLabel: string;
-}) {
-  return (
-    <div className="sticky top-0 z-50 border-b-2 border-amber-500/60 bg-amber-500/10 backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between gap-x-4 px-6 py-2 md:px-12">
-        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300">
-          Draft preview · {statusLabel}
-        </p>
-        <Link
-          href={`/admin/blog/posts/${postId}`}
-          className="font-mono text-[11px] text-amber-700 underline hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-100"
-        >
-          ← Back to editor
-        </Link>
-      </div>
-    </div>
   );
 }
 
