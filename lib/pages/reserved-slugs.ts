@@ -29,6 +29,7 @@ export const RESERVED_SLUGS = new Set<string>([
   "llms-full.txt",
   "llms.txt",
   "sign-in",
+  "sitemap.xml",
   "tools",
 ]);
 
