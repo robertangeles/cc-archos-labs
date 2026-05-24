@@ -1,23 +1,30 @@
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { PLATFORM_META, type SocialLink } from "../../lib/social-links";
 
 // End-of-post author bio. Lighter than PersonCard (which is the /about
-// hero block). Photo + name + 1–2 paragraph bio (markdown) + optional
-// LinkedIn link. Hairline-separated above and below.
+// hero block). Photo + name + 1–2 paragraph bio (markdown) + social
+// icon row matching the /about page (LinkedIn / X / GitHub / Hugging
+// Face). Hairline-separated above and below.
 
 export interface AuthorBioProps {
   name: string;
   bioMd: string;
   photoUrl: string | null;
-  linkedinUrl: string | null;
+  /**
+   * Founder identity links — same shape PersonCard consumes. Pass an
+   * empty array to hide the row. Order is preserved; renderer iterates
+   * in supplied order. See [[social-links]] for the canonical source.
+   */
+  socialLinks: SocialLink[];
 }
 
 export function AuthorBio({
   name,
   bioMd,
   photoUrl,
-  linkedinUrl,
+  socialLinks,
 }: AuthorBioProps) {
   const hasBio = bioMd.trim().length > 0;
   return (
@@ -50,15 +57,29 @@ export function AuthorBio({
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{bioMd}</ReactMarkdown>
           </div>
         ) : null}
-        {linkedinUrl ? (
-          <a
-            href={linkedinUrl}
-            target="_blank"
-            rel="me noopener noreferrer"
-            className="inline-flex w-fit items-center text-body-sm text-primary hover:text-primary-hover"
+        {socialLinks.length > 0 ? (
+          <ul
+            className="mt-1 flex items-center gap-x-1"
+            aria-label={`${name} on social platforms`}
           >
-            Connect on LinkedIn →
-          </a>
+            {socialLinks.map(({ platform, url }) => {
+              const meta = PLATFORM_META[platform];
+              const Icon = meta.Icon;
+              return (
+                <li key={platform}>
+                  <a
+                    href={url}
+                    rel="me noopener noreferrer"
+                    target="_blank"
+                    aria-label={meta.label}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-md text-ink-subtle transition-colors duration-150 hover:bg-surface-1 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                  >
+                    <Icon className="h-5 w-5" aria-hidden />
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
         ) : null}
       </div>
     </section>

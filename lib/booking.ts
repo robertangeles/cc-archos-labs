@@ -17,7 +17,7 @@ import "server-only";
 // booking_request.idempotency_key is UNIQUE, so race-safe at the DB layer.
 
 import { createHash } from "node:crypto";
-import { and, eq, gte, lte } from "drizzle-orm";
+import { and, asc, eq, gte, lte } from "drizzle-orm";
 import { z } from "zod";
 import {
   generateSlots,
@@ -64,6 +64,24 @@ export interface ConsultantRow {
   workingHours: ConsultantConfig["workingHours"];
   googleCalendarId: string | null;
   googleStatus: "pending" | "ok" | "stale";
+}
+
+/**
+ * Returns the first consultant in the table — the "primary consultant"
+ * for this single-consultant brand. Used by surfaces that need a default
+ * contact email or booking slug without knowing the slug up front
+ * (e.g. the blog Reply-by-email CTA). If you ever onboard a second
+ * consultant, this stops being meaningful — review callers.
+ */
+export async function getPrimaryConsultant(): Promise<ConsultantRow | null> {
+  const rows = await getDb()
+    .select({ slug: consultant.slug })
+    .from(consultant)
+    .orderBy(asc(consultant.createdAt))
+    .limit(1);
+  const first = rows[0];
+  if (!first) return null;
+  return getConsultantBySlug(first.slug);
 }
 
 export async function getConsultantBySlug(

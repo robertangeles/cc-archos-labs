@@ -45,11 +45,21 @@ const TagsSchema = z
   .optional()
   .default([]);
 
-// Base shape shared by create + update. The .superRefine() at the end
-// enforces the scheduled/scheduledPublishAt invariant atomically.
-const PostBaseSchema = z
+// Create schema: slug + contentMd are optional so the auto-create-draft
+// path can POST `{ title }` from the first non-empty title keystroke and
+// have the server generate a unique slug + default empty body. See
+// wiki/synthesis/2026-05-24-blog-tidy-ceo-review.md E1.a for the
+// rationale (single endpoint, single schema, server-generated slug with
+// short random suffix avoids collision). The service layer
+// (createPost in lib/posts-admin/index.ts) is responsible for the
+// slug derivation + retry.
+//
+// Defined as its own schema rather than extending PostBaseSchema so the
+// Update path keeps slug required (which it must — renaming an
+// auto-generated slug is an explicit user action via the normal save).
+export const PostCreateSchema = z
   .object({
-    slug: PostSlugSchema,
+    slug: PostSlugSchema.optional(),
     title: z.string().min(1, "Title is required.").max(200),
     excerpt: z.string().max(500).optional().nullable(),
     contentMd: z
@@ -57,7 +67,9 @@ const PostBaseSchema = z
       .max(
         CONTENT_MD_MAX_BYTES,
         `Content exceeds the ${CONTENT_MD_MAX_BYTES.toLocaleString()}-byte limit.`,
-      ),
+      )
+      .optional()
+      .default(""),
     seoTitle: z.string().max(80).optional().nullable(),
     seoDescription: z.string().max(300).optional().nullable(),
     authorId: z.string().uuid().optional().nullable(),
@@ -66,7 +78,9 @@ const PostBaseSchema = z
     status: PostStatusSchema.refine(
       (s) => s !== "archived",
       "Use the Archive action (DELETE) to archive a post.",
-    ),
+    )
+      .optional()
+      .default("draft"),
     visibility: PostVisibilitySchema.optional().default("listed"),
     needsReview: z.boolean().optional(),
     lastReviewedAt: z.coerce.date().optional().nullable(),
@@ -79,8 +93,6 @@ const PostBaseSchema = z
       .nullable(),
   })
   .superRefine((data, ctx) => {
-    // Invariant: status='scheduled' ↔ scheduledPublishAt is set AND
-    // strictly in the future.
     if (data.status === "scheduled") {
       if (!data.scheduledPublishAt) {
         ctx.addIssue({
@@ -96,22 +108,14 @@ const PostBaseSchema = z
           message: "scheduledPublishAt must be in the future.",
         });
       }
-    } else {
-      // For every non-scheduled status, scheduledPublishAt MUST be null
-      // (or absent). The service layer clears it on save regardless,
-      // but rejecting at the API boundary surfaces client-side bugs
-      // before they reach the DB.
-      if (data.scheduledPublishAt != null) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["scheduledPublishAt"],
-          message: `scheduledPublishAt must be null when status is '${data.status}'.`,
-        });
-      }
+    } else if (data.scheduledPublishAt != null) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["scheduledPublishAt"],
+        message: `scheduledPublishAt must be null when status is '${data.status}'.`,
+      });
     }
   });
-
-export const PostCreateSchema = PostBaseSchema;
 
 // PostUpdateSchema adds optimistic-locking: client supplies the
 // updated_at it read, server rejects with 409 if the row has moved on.

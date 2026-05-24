@@ -13,30 +13,10 @@
 // vector.
 
 import Image from "next/image";
-import type { ComponentType, SVGProps } from "react";
-import {
-  GithubIcon,
-  HuggingFaceIcon,
-  LinkedinIcon,
-  XIcon,
-} from "../../icons/social";
+import { PLATFORM_META, type SocialLink, type SocialPlatform } from "../../../lib/social-links";
 
-export type SocialPlatform = "linkedin" | "x" | "github" | "huggingface";
-
-export type SocialLink = {
-  platform: SocialPlatform;
-  url: string;
-};
-
-const PLATFORM_META: Record<
-  SocialPlatform,
-  { label: string; Icon: ComponentType<SVGProps<SVGSVGElement>> }
-> = {
-  linkedin: { label: "LinkedIn", Icon: LinkedinIcon },
-  x: { label: "X", Icon: XIcon },
-  github: { label: "GitHub", Icon: GithubIcon },
-  huggingface: { label: "Hugging Face", Icon: HuggingFaceIcon },
-};
+// Re-export for downstream consumers that still import from this file.
+export type { SocialLink, SocialPlatform };
 
 export type PersonCardProps = {
   name: string;

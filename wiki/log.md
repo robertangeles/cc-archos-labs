@@ -8,6 +8,37 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-24 — Blog tidy-up eng review (followup to CEO review same day)
+
+Ran `/plan-eng-review` against the CEO plan at [synthesis/2026-05-24-blog-tidy-ceo-review.md](synthesis/2026-05-24-blog-tidy-ceo-review.md). Three findings materially revised the implementation:
+
+- **E1 — `POST /api/admin/posts` rejects empty body.** [post/route.ts:72-84](../app/api/admin/posts/route.ts#L72-L84) hard-validates against `PostCreateSchema`. The CEO plan's "auto-create with empty body" assumption is wrong. T2 needs schema change (recommended E1.a: extend schema to make slug+contentMd+tags optional, server defaults with `slugify(title) + nanoid(4)` for slug) OR dedicated draft endpoint OR drop T2 from this PR.
+- **E2 — Insert-Link code at [post-form.tsx:437-464](../app/admin/(authed)/blog/posts/post-form.tsx#L437-L464) is actually well-formed.** The real bug: textarea never focused → `selectionStart === 0` → link inserts at top of long article, off-screen. Fix shape: `lastFocusedCursor` ref + onBlur/onSelect snapshot + null-snapshot fallback to END (not position 0).
+- **E3 — Published `/blog/[slug]` route emits JSON-LD (Article/Person/Breadcrumb) at [page.tsx:87-99](../app/blog/[slug]/page.tsx#L87-L99) and reads `publishedAt`/`lastReviewedAt` which are null on drafts.** T3 preview composition needs: skip JSON-LD entirely (preview is `noindex` anyway), pass `publishedAt ?? new Date()` with a "DRAFT PREVIEW" persistent top banner, try/catch around `getReadNext`. Effort revised: ~4h human / ~35min CC (was ~3h / ~25min).
+
+Additional findings: E4 slug collision retry, E5 mobile preview path, E6 force-dynamic perf cost (all minor, folded into revised T1–T7). Plus one new critical gap: emoji-only title producing unusable slug — add 3-char ASCII minimum guard + `draft-${nanoid(8)}` fallback to T2.
+
+Revised total: ~10h human / ~88min CC (was ~7h45min / ~73min). One load-bearing decision pending (E1).
+
+Verdict: ENG **ISSUES_OPEN** — resolve E1 before implementation.
+
+## 2026-05-24 — Blog tidy-up CEO review
+
+User asked for a `/plan-ceo-review` of four blog pain points: (1) Suggested-Links Insert-Link button does nothing, (2) "no preview for a blog post", (3) image upload requires saving first, (4) "no world-class comment system".
+
+Pre-review audit (verified against [[state]] + actual source) collapsed the framing:
+
+1. **Insert-Link** — real bug. Drawer at [link-suggestions-drawer.tsx:167-176](../app/admin/(authed)/blog/posts/link-suggestions-drawer.tsx#L167-L176) fires `onInsertLink` correctly; bug is in the parent `post-form.tsx`'s cursor handling. [Inference] cursor lost when drawer steals focus on open.
+2. **"No preview"** — false premise. Live split-pane markdown preview ships at [preview-pane.tsx](../app/admin/(authed)/blog/posts/preview-pane.tsx) per [[2026-05-20-posts-admin-phase-d-ui]]. What's missing is the full `/blog/[slug]` chrome (header, post-header, hero image, TOC, social share, read-next, footer). Different feature.
+3. **"Save before image upload"** — real architectural constraint. R2 path keyed by postId per [[blog-featured-image-upload]]. Three escape hatches surveyed; auto-create-draft on first keystroke (Notion pattern) is the right answer.
+4. **"World-class comments"** — strategic reversal of [[backlog]] line 198 ("Comments / discussion — not a planned surface for this brand"). Reference set: Stratechery / McKenzie / Stripe Press / A16Z / FirstRound / Ben Evans — none have on-site comments. Comments would cost ~2 weeks, add permanent moderation/spam burden, visually compete with the CTA stack. **Recommended: decline.** Replace with Newsletter D1 (already on backlog as item 35) + Reply-by-email CTA.
+
+Mode locked: **B — SELECTIVE EXPANSION.** Approach B accepted by user. D2 = dedicated preview route. D3 = auto-create on first non-empty title keystroke (300ms debounce). D4 = Newsletter D1 ships as its own PR after the tidy-up PR. D5 = Reply-by-email CTA sits before `<SocialShare>` in `<PostBody>`.
+
+Sections 1–11 complete. Implementation tasks T1–T9 enumerated. Single-PR scope ≈ 7h45min human / ~73min CC. Verdict: CEO CLEARED — `/plan-eng-review` required next, then `/plan-design-review` on the preview route + Reply-by-email CTA before opening PR.
+
+Full plan: [synthesis/2026-05-24-blog-tidy-ceo-review.md](synthesis/2026-05-24-blog-tidy-ceo-review.md).
+
 ## 2026-05-24 — Sitemap fix had a regression I should have caught: RESERVED_SLUGS drift
 
 Direct continuation of the prior entry. After [[2026-05-24-sitemap-cold-start-cacheable]] merged as #102, GSC still reported `Couldn't fetch` for `https://archoslabs.xyz/sitemap.xml`. Live URL Inspection from GSC succeeded against the deployed origin, so we initially attributed the persistent failure to stale GSC state + Render CDN not caching (6s TTFB measured on Googlebot UA). Wrong — the live test was succeeding intermittently between Render restarts. The real cause was visible in Render's runtime logs:
