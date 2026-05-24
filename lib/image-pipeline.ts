@@ -154,7 +154,7 @@ export async function compressImageIfOverCap(
   try {
     const meta = await load(buffer).metadata();
     format = meta.format;
-  } catch (err) {
+  } catch (_err) {
     throw new UnsupportedFormatError(undefined);
   }
   const outputMime = resolveOutputMime(format);
