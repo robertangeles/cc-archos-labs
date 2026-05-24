@@ -7,30 +7,30 @@ import type { HydratedRecommendedReading } from "../../lib/diagnostic/recommend"
 // the "Next step" CTA on the diagnostic report. Evidence the exec
 // forwards alongside the report to a budget approver.
 //
-// Design philosophy (revised 2026-05-24 after the first real-content
-// render): the audience is an impatient CFO scanning 3 cards in
-// seconds. Every block on the card must EARN its space against the
-// question "would the CFO miss this if it weren't here?"
+// Layout (revised 2026-05-24 via /frontend-design): horizontal
+// stacked cards in a single column, NOT a 3-up grid. The whole
+// report above this section is single-column editorial prose
+// (verdict → narrative → action plan) — a 3-up grid right at the
+// "evidence for each action" moment broke the case-file rhythm
+// and made the section read like a content-marketing block.
 //
-// Per-card hierarchy: image → category eyebrow (single short line) →
-// title → gloss → reading time. Three meaningful pieces of content;
-// the gloss is the lead. The gloss is the ONLY thing on this page
-// written for THIS exec, for THIS report — everything else either
-// repeats what they just read above (action titles) or is content
-// marketing from a different context (blog-index excerpts).
+// Each card: square image on the left (sm+), content right.
+// Mobile (<sm) drops the image entirely — the gloss is the value;
+// thumbnails compete for screen real estate on a 375px viewport.
 //
-// Removed in the simplification pass:
-//   - "Supports: <action title>" attribution: action titles are
-//     full sentences; stamped on every card they wallpaper the UI
-//     in uppercase text the exec has to wade through before reaching
-//     anything tailored. The exec just read the action plan one
-//     section above — they don't need a verbose cross-reference.
-//   - Generic blog-index excerpt: duplicates the gloss conceptually
-//     in untargeted language. Falls back to a truncated excerpt only
-//     when the gloss LLM degraded — otherwise hidden.
-//   - Italic + hairline-divider gloss styling: visually competed
-//     with the excerpt for attention. Now the gloss IS the subtitle,
-//     body weight, no decoration.
+// Per-card hierarchy: image (sm+) | category eyebrow → title →
+// gloss → reading time. The gloss is the lead — the only content
+// on the page written for THIS exec, for THIS report. Constrained
+// to max-w-[60ch] so it reads as one prose sentence at natural
+// line length, instead of fragmented across narrow grid columns.
+//
+// Earlier simplification pass dropped:
+//   - "Supports: <action title>" attribution row (wallpaper effect
+//     with sentence-length action titles)
+//   - Generic blog-index excerpt (duplicates the gloss in
+//     untargeted language; falls back only when gloss LLM degraded)
+//   - Italic + hairline-divider gloss styling (competed visually
+//     with excerpt; now the gloss IS the subtitle, body weight)
 //
 // Server component. No-render when items is empty (D8 quiet-fail).
 //
@@ -79,49 +79,52 @@ export function RecommendedReadings({
         for a specific action above and gives the budget approver the
         reasoning they need.
       </p>
-      <ul className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <ul className="mt-8 flex flex-col gap-4">
         {items.map((item) => (
           <li key={`${item.postId}-${item.actionIndex}`}>
             <Link
               href={`/blog/${item.slug}`}
-              className="group block h-full overflow-hidden rounded-lg border border-hairline bg-surface-1 transition-colors duration-150 hover:bg-surface-2 print:break-inside-avoid"
+              className="group flex items-stretch overflow-hidden rounded-lg border border-hairline bg-surface-1 transition-colors duration-150 hover:bg-surface-2 print:break-inside-avoid"
             >
               {item.ogImagePath && !item.ogImageDeletedAt ? (
-                <div className="relative aspect-[29/10] w-full overflow-hidden bg-surface-2">
+                // Fixed 29:10 banner aspect, matching the blog Read Next
+                // pattern. self-start anchors the image to the top-left
+                // of the card so its rendered dimensions stay consistent
+                // across cards regardless of how tall the content column
+                // grows. bg-surface-2 fills any space below the image
+                // when the gloss runs longer than the image height.
+                // Container width is sized so the resulting banner is
+                // visually substantial — 200×69 on sm, 280×97 on md.
+                <div className="relative hidden aspect-[29/10] flex-shrink-0 self-start bg-surface-2 sm:block sm:w-[200px] md:w-[280px]">
                   <Image
                     src={item.ogImagePath}
                     alt={item.ogImageAlt ?? item.title}
                     fill
-                    sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                    sizes="(min-width: 768px) 280px, (min-width: 640px) 200px, 0px"
                     className="object-cover"
                   />
                 </div>
               ) : null}
-              <div className="p-6">
-                {/* Per-card information hierarchy (aggressive simplification
-                 *  on 2026-05-24): the exec is impatient. Three meaningful
-                 *  pieces per card, no wallpaper:
+              <div className="flex flex-1 flex-col p-6">
+                {/* Per-card information hierarchy:
                  *    1. Category eyebrow (single short line; framing)
                  *    2. Title
-                 *    3. Gloss — the ONLY content written for this exec,
-                 *       for this report. Body weight (not italic), no
-                 *       divider, so it reads as the natural subtitle.
-                 *  Removed: per-card "Supports: <action title>" attribution
-                 *  (wallpaper effect with sentence-length action titles);
-                 *  generic blog-index excerpt (duplicates the gloss
-                 *  conceptually but in untargeted language).
-                 *  Footer: reading time only.
+                 *    3. Gloss — the ONLY content written for THIS exec,
+                 *       for THIS report. Body weight, no decoration,
+                 *       constrained to max-w-[60ch] so it reads as one
+                 *       prose sentence at natural line length.
+                 *    4. Footer: reading time
                  */}
                 {item.categoryName ? (
                   <p className="text-eyebrow uppercase tracking-[0.08em] text-ink-subtle">
                     {item.categoryName}
                   </p>
                 ) : null}
-                <h3 className="mt-3 text-card-title text-ink visited:text-ink-muted">
+                <h3 className="mt-2 text-card-title text-ink visited:text-ink-muted">
                   {item.title}
                 </h3>
                 {item.gloss ? (
-                  <p className="mt-3 text-body text-ink-subtle">
+                  <p className="mt-3 max-w-[60ch] text-body text-ink-subtle">
                     {item.gloss}
                   </p>
                 ) : (
@@ -129,12 +132,12 @@ export function RecommendedReadings({
                   // Fall back to a truncated excerpt so the card still
                   // has substance under the title.
                   item.excerpt ? (
-                    <p className="mt-3 text-body-sm text-ink-subtle">
-                      {truncateExcerpt(item.excerpt, 160)}
+                    <p className="mt-3 max-w-[60ch] text-body-sm text-ink-subtle">
+                      {truncateExcerpt(item.excerpt, 200)}
                     </p>
                   ) : null
                 )}
-                <p className="mt-5 text-caption text-ink-tertiary">
+                <p className="mt-auto pt-4 text-caption text-ink-tertiary">
                   {item.readingTimeMin} min read
                 </p>
               </div>
