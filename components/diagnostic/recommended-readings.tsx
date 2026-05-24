@@ -63,7 +63,14 @@ export function RecommendedReadings({
   return (
     <section
       aria-labelledby="recommended-readings-heading"
-      className="mt-20 print:mt-16"
+      // mt-20 separates the section from the action plan above on the
+      // BROWSER view (single-page scroll). In print this section
+      // starts on its own page (via the wrapping section's
+      // print:break-before-page in report-view.tsx), so a top margin
+      // becomes dead whitespace that pushes the eyebrow halfway down
+      // page 4. print:mt-0 anchors the eyebrow to the section's own
+      // top padding.
+      className="mt-20 print:mt-0"
     >
       <p className="text-eyebrow uppercase tracking-[0.08em] text-primary">
         Supporting evidence

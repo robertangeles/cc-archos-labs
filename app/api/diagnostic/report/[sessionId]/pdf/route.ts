@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import puppeteer from "puppeteer";
 import { cookies } from "next/headers";
 import { getDb } from "../../../../../../lib/db";
-import { assessmentSession } from "../../../../../../lib/db/schema";
+import { assessmentSession, lead } from "../../../../../../lib/db/schema";
 import { getLeadFromCookies } from "../../../../../../lib/auth-server";
 import { LEAD_SESSION_COOKIE } from "../../../../../../lib/auth-lead";
 import { getPublicOrigin } from "../../../../../../lib/public-origin";
@@ -26,6 +26,18 @@ export const runtime = "nodejs";
 
 const PDF_TIMEOUT_MS = 45_000;
 
+// Inline HTML escape for the Puppeteer header template. Lead-supplied
+// values (name, organisation) get rendered into the page-margin
+// letterhead, so we defend against `<`, `&`, `"` in user input.
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export async function GET(
   request: Request,
   ctx: { params: Promise<{ sessionId: string }> },
@@ -48,9 +60,19 @@ export async function GET(
   }
 
   const db = getDb();
+  // Single JOIN-light query: owner check + recipient data for the
+  // page-margin letterhead. lead can be NULL on legacy pre-W4 sessions
+  // (rare in practice) — header falls back to date-only when so.
   const rows = await db
-    .select({ leadId: assessmentSession.leadId })
+    .select({
+      leadId: assessmentSession.leadId,
+      firstName: lead.firstName,
+      lastName: lead.lastName,
+      organisation: lead.organisation,
+      generatedAt: assessmentSession.completedAt,
+    })
     .from(assessmentSession)
+    .leftJoin(lead, eq(lead.id, assessmentSession.leadId))
     .where(eq(assessmentSession.id, sessionId))
     .limit(1);
 
@@ -58,6 +80,7 @@ export async function GET(
     // 404 for any owner-mismatch — same pattern as the report page.
     return new Response("Not found", { status: 404 });
   }
+  const recipientRow = rows[0];
 
   // Pull the raw cookie value so Puppeteer can set it on the page it
   // navigates. We have to hand it back to the headless browser because
@@ -74,6 +97,43 @@ export async function GET(
   const reportUrl = `${publicOrigin}/tools/ai-readiness/report/${sessionId}`;
   const cookieUrl = new URL(publicOrigin);
   const isHttps = cookieUrl.protocol === "https:";
+
+  // Build the page-margin letterhead the Puppeteer headerTemplate will
+  // render on every page. Replaces the "Prepared for / Prepared on"
+  // block that used to live on the cover (eating ~120px of vertical
+  // space that the summary page needed for risk flags + domain
+  // breakdown). Letterhead pattern: small, gray, persistent — like a
+  // real consulting deliverable's top-of-page identifier.
+  const preparedOn = (
+    recipientRow.generatedAt ?? new Date()
+  ).toLocaleDateString("en-AU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const recipientLine = [
+    recipientRow.firstName && recipientRow.lastName
+      ? `Prepared for ${recipientRow.firstName} ${recipientRow.lastName}`
+      : null,
+    recipientRow.organisation,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const headerHtml = `
+    <div style="
+      font-size: 9px;
+      color: #6b6b6b;
+      width: 100%;
+      padding: 0 0.75in;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    ">
+      <span>${escapeHtml(recipientLine || "AI Readiness Assessment")}</span>
+      <span>${escapeHtml(preparedOn)}</span>
+    </div>
+  `;
 
   let browser: Awaited<ReturnType<typeof puppeteer.launch>> | null = null;
   try {
@@ -132,8 +192,12 @@ export async function GET(
         left: "0.75in",
       },
       displayHeaderFooter: true,
-      // Empty header — we don't want browser default date/URL.
-      headerTemplate: "<div></div>",
+      // Page-margin letterhead: "Prepared for X · Org" on the left,
+      // "DD Month YYYY" on the right. Same recipient data that used
+      // to live on the cover, repositioned to every page's top
+      // margin so the cover content area stays clean for the
+      // summary content.
+      headerTemplate: headerHtml,
       // Centered "page / total" footer. Skipped on the first page
       // (cover) so the cover stays clean; this is what Chromium does
       // when the footer template starts with the .pageNumber selector

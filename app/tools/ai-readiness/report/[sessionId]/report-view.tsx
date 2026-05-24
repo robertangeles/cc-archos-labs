@@ -53,7 +53,7 @@ export function ReportView({
   viewMode = "owner",
   shareTokens = [],
 }: ReportViewProps) {
-  const { result, content, recipient } = report;
+  const { result, content } = report;
 
   // Claude returns the narrative as one string with \n\n between
   // paragraphs (per system prompt). Split for rendering.
@@ -62,13 +62,12 @@ export function ReportView({
     .map((p) => p.trim())
     .filter((p) => p.length > 0);
 
-  // Prepared-on date in a long, professional format — only surfaced on
-  // the print cover.
-  const preparedOn = report.generatedAt.toLocaleDateString("en-AU", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  // recipient + generatedAt intentionally NOT destructured for render
+  // anymore — they're consumed by the Puppeteer headerTemplate in
+  // app/api/diagnostic/report/[sessionId]/pdf/route.ts which fetches
+  // them via loadReport(sessionId). The PDF prints a one-line
+  // "Prepared for X · Org · DD Month YYYY" letterhead in every
+  // page's top margin instead of stamping the block on the cover.
 
   return (
     <main className="flex flex-1 flex-col bg-canvas">
@@ -127,41 +126,16 @@ export function ReportView({
             {content.verdict}
           </h1>
 
-          {/* Print-only "Prepared for / Prepared on" block. Flows
-              naturally below the verdict on page 1; no flex-push. */}
-          <div className="hidden print:mt-6 print:grid print:grid-cols-2 print:gap-x-8 print:gap-y-3 print:border-t print:border-hairline print:pt-4">
-            {recipient ? (
-              <div>
-                <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
-                  Prepared for
-                </p>
-                <p className="mt-1.5 text-sm font-semibold leading-[1.4] text-ink">
-                  {recipient.firstName} {recipient.lastName}
-                </p>
-                {recipient.jobTitle ? (
-                  <p className="text-[13px] leading-[1.4] text-ink/80">
-                    {recipient.jobTitle}
-                  </p>
-                ) : null}
-                {recipient.organisation ? (
-                  <p className="text-[13px] leading-[1.4] text-ink/80">
-                    {recipient.organisation}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-            <div>
-              <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
-                Prepared on
-              </p>
-              <p className="mt-1.5 text-sm font-semibold leading-[1.4] text-ink">
-                {preparedOn}
-              </p>
-              <p className="text-[13px] leading-[1.4] text-ink/80">
-                Archos Labs · archoslabs.xyz
-              </p>
-            </div>
-          </div>
+          {/* "Prepared for / Prepared on" intentionally NOT rendered
+              on the cover. The Puppeteer PDF route puts a one-line
+              letterhead in the top margin of every page (recipient
+              name + organisation + prepared-on date) — that's the
+              professional pattern and frees the cover content area
+              for the actual case material (score + verdict + risk
+              flags + domain breakdown). The `recipient` + `preparedOn`
+              values used above are still consumed by the print
+              header template via the LoadedReport returned to the
+              PDF route. */}
         </div>
       </section>
 
