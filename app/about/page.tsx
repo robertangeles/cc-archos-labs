@@ -39,8 +39,8 @@ import {
   PhilosophyBlock,
   WayOfWorkingSteps,
   SelectedWorkCard,
-  type SocialLink,
 } from "../../components/sections/about";
+import { SOCIAL_LINKS } from "../../lib/social-links";
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
@@ -95,17 +95,6 @@ const CREDENTIALS = [
   "Data Architecture",
   "Sovereign and Local AI",
   "AI Product Build",
-];
-
-// Founder identity links. Page-level constants so the row renders out
-// of the box without an admin step. If/when these need to rotate
-// without dev help, lift them into `site_setting` (mirrors the
-// founderLinkedinUrl path) and read via getSiteSettings().
-const SOCIAL_LINKS: SocialLink[] = [
-  { platform: "linkedin", url: "https://www.linkedin.com/in/robangeles22/" },
-  { platform: "x", url: "https://x.com/archoslabsxyz" },
-  { platform: "github", url: "https://github.com/robertangeles/" },
-  { platform: "huggingface", url: "https://huggingface.co/robangeles" },
 ];
 
 const SELECTED_WORK = [

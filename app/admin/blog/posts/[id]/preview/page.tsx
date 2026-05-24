@@ -32,6 +32,7 @@ import { getPostByIdForPreview, getReadNext, type ReadNextItem } from "../../../
 import { getAdminPostById } from "../../../../../../lib/posts-admin";
 import { generateToc } from "../../../../../../lib/post-rendering";
 import { getSiteSettings } from "../../../../../../lib/site-config";
+import { SOCIAL_LINKS } from "../../../../../../lib/social-links";
 import { PostHeader } from "../../../../../../components/blog/post-header";
 import { PostBody } from "../../../../../../components/blog/post-body";
 import { Toc } from "../../../../../../components/blog/toc";
@@ -133,7 +134,7 @@ export default async function PostPreviewPage({
               name={authorName}
               bioMd={post.authorBioMd ?? ""}
               photoUrl={post.authorPhotoUrl}
-              linkedinUrl={post.authorLinkedinUrl}
+              socialLinks={SOCIAL_LINKS}
             />
 
             <ReadNext items={readNext} />

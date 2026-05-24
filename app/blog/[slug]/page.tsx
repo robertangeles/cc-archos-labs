@@ -12,6 +12,7 @@ import { notFound } from "next/navigation";
 import { isBlogEnabled } from "../../../lib/blog/feature-flag";
 import { getPostBySlug, getReadNext } from "../../../lib/posts";
 import { getPrimaryConsultant } from "../../../lib/booking";
+import { SOCIAL_LINKS } from "../../../lib/social-links";
 import { generateToc } from "../../../lib/post-rendering";
 import {
   articleSchema,
@@ -161,7 +162,7 @@ export default async function PostPage({
               name={authorName}
               bioMd={post.authorBioMd ?? ""}
               photoUrl={post.authorPhotoUrl}
-              linkedinUrl={post.authorLinkedinUrl}
+              socialLinks={SOCIAL_LINKS}
             />
 
             <ReadNext items={readNext} />
