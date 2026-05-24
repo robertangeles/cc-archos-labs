@@ -2,10 +2,21 @@
 //   device (multipart/form-data with `file` + `alt` fields).
 //
 //   Validations (HTTP layer, defence in depth with DB CHECK constraints):
-//     - file size <= 500 KB           (DB also: og_image_size_kb <= 500)
-//     - mime in {png, jpeg, webp}     (DB also: CHECK constraint)
+//     - file size <= 10 MB pre-compression ceiling (sanity guard)
 //     - alt non-empty after trim
 //     - file present + non-zero bytes
+//   MIME validation lives in lib/image-pipeline.ts via Sharp's
+//   magic-byte detection (the browser's File.type is unreliable). Sharp
+//   accepts PNG/JPEG/WebP as-is and transcodes AVIF/HEIC/GIF/TIFF to
+//   WebP so the DB CHECK on mime stays satisfied without a migration.
+//
+//   Pipeline:
+//     parse → validate → read buffer → compress+transcode → dimensions
+//     → checksum → R2 put → DB persist
+//
+//   The 500 KB DB CHECK on og_image_size_kb is now satisfied via
+//   lib/image-pipeline.ts (Sharp quality+resize ladder) rather than by
+//   rejecting the upload. See wiki/concepts/image-pipeline.md.
 //
 //   On success, populates all 11 image-metadata columns:
 //     og_image_path, og_image_generated_at, og_image_alt, og_image_width,
@@ -40,19 +51,26 @@ import {
   clientIpFromRequest,
   rateLimit,
 } from "../../../../../../lib/rate-limit";
+import {
+  compressImageIfOverCap,
+  CompressionFloorError,
+  UnsupportedFormatError,
+} from "../../../../../../lib/image-pipeline";
 
 export const runtime = "nodejs";
 
 const UPLOAD_LIMIT_PER_HOUR = 20;
-const MAX_FILE_BYTES = 500 * 1024; // 500 KB — matches DB CHECK constraint
+// Pre-compression sanity ceiling. Inputs above this are rejected outright
+// before Sharp runs, so a malicious upload cannot exhaust memory.
+const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+// Target size after compression. Must match the DB CHECK constraint
+// on og_image_size_kb (drizzle/0016_post_og_image_metadata.sql).
+const TARGET_SIZE_BYTES = 500 * 1024; // 500 KB
 const ALT_MAX_LEN = 125;
 
-const ALLOWED_MIME = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-]);
-
+// Map persisted output mime → filename extension. Only ever holds the
+// three the DB CHECK permits; transcoded inputs (AVIF/HEIC/etc) come
+// out as image/webp from the pipeline.
 const MIME_TO_EXT: Record<string, string> = {
   "image/png": "png",
   "image/jpeg": "jpg",
@@ -123,22 +141,16 @@ export async function PUT(request: Request, { params }: RouteContext) {
     return Response.json(
       {
         ok: false,
-        error: `Image too large — max ${MAX_FILE_BYTES / 1024} KB.`,
+        error: `Image too large — max ${MAX_FILE_BYTES / (1024 * 1024)} MB.`,
       },
       { status: 400 },
     );
   }
 
-  const mime = (fileField.type || "").toLowerCase();
-  if (!ALLOWED_MIME.has(mime)) {
-    return Response.json(
-      {
-        ok: false,
-        error: "Unsupported image type — use PNG, JPEG, or WebP.",
-      },
-      { status: 400 },
-    );
-  }
+  // MIME validation happens inside compressImageIfOverCap via Sharp's
+  // magic-byte detection. The browser's File.type is captured for logs
+  // only — Sharp's metadata is the source of truth (see lib/image-pipeline.ts).
+  const browserReportedMime = (fileField.type || "").toLowerCase();
 
   const altRaw = formData.get("alt");
   const altTrimmed = typeof altRaw === "string" ? altRaw.trim() : "";
@@ -153,9 +165,86 @@ export async function PUT(request: Request, { params }: RouteContext) {
   }
   const altClean = altTrimmed.slice(0, ALT_MAX_LEN);
 
-  // ---- Read bytes once; derive width/height/checksum from buffer --------
-  const buffer = Buffer.from(await fileField.arrayBuffer());
+  // ---- Read bytes once ---------------------------------------------------
+  const originalBuffer = Buffer.from(await fileField.arrayBuffer());
+  const originalSizeKb = Math.round(originalBuffer.byteLength / 1024);
 
+  // ---- Compress + transcode if needed ------------------------------------
+  // Sharp detects the format from the bytes, transcodes non-{png,jpeg,
+  // webp} inputs to WebP for persistence, and runs the quality + resize
+  // ladders until the buffer fits the 500 KB DB cap. Decompression-bomb-
+  // guarded via limitInputPixels: 50 MP.
+  let buffer: Buffer;
+  let sizeKb: number;
+  let mime: string;
+  let inputFormat: string;
+  let compressionUsed: { quality?: number; resizedTo?: number } | null = null;
+  try {
+    const result = await compressImageIfOverCap(
+      originalBuffer,
+      TARGET_SIZE_BYTES,
+    );
+    buffer = result.buffer;
+    sizeKb = result.sizeKb;
+    mime = result.outputMime;
+    inputFormat = result.inputFormat;
+    if (result.compressed) {
+      compressionUsed = {
+        quality: result.qualityUsed,
+        resizedTo: result.resizedTo,
+      };
+    }
+  } catch (err) {
+    if (err instanceof UnsupportedFormatError) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Unsupported image format — use PNG, JPEG, WebP, AVIF, HEIC, GIF, or TIFF.",
+        },
+        { status: 400 },
+      );
+    }
+    if (err instanceof CompressionFloorError) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Image cannot be compressed below the size limit — please resize the original first.",
+        },
+        { status: 400 },
+      );
+    }
+    console.error("Posts image upload — compression failed:", err);
+    return Response.json(
+      {
+        ok: false,
+        error: "Could not process image — file may be corrupt.",
+      },
+      { status: 400 },
+    );
+  }
+
+  if (compressionUsed) {
+    // Privacy-safe log: sizes + compression params + format detection
+    // (handy when the browser's File.type disagrees with the actual
+    // bytes, which is the whole reason the pipeline ignores it).
+    console.log(
+      "Posts image upload — compressed",
+      JSON.stringify({
+        browserReportedMime,
+        inputFormat,
+        outputMime: mime,
+        originalSizeKb,
+        finalSizeKb: sizeKb,
+        ratio: Math.round((sizeKb / originalSizeKb) * 100),
+        qualityUsed: compressionUsed.quality,
+        resizedTo: compressionUsed.resizedTo,
+      }),
+    );
+  }
+
+  // ---- Derive width/height/checksum from the (possibly compressed) buffer
   let dimensions: { width: number; height: number };
   try {
     const dim = imageSize(buffer);
@@ -176,7 +265,6 @@ export async function PUT(request: Request, { params }: RouteContext) {
   }
 
   const checksum = createHash("sha256").update(buffer).digest("hex");
-  const sizeKb = Math.round(buffer.byteLength / 1024);
 
   // ---- Build filename + R2 key per Rob's convention --------------------
   //   `{slug}-featured-01.{ext}`   (lowercase, no spaces — handled by

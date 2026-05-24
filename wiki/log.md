@@ -8,6 +8,26 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-24 — Featured image upload: Sharp is now the MIME source of truth
+
+Hit a second block wall on the same feature: after the compression fix landed locally, a 2.2 MB Midjourney PNG was rejected with "Unsupported image type — use PNG, JPEG, or WebP." The OS file manager and `file --mime-type` both confirmed PNG, but the browser was sending something the route's strict allowlist didn't accept. Restructured [[image-pipeline]] so Sharp's magic-byte detection is canonical and the route does no MIME validation of its own. Non-{png,jpeg,webp} inputs (AVIF, HEIC, GIF, TIFF) transcode to WebP for persistence. The deferred backlog item "Accept HEIC / AVIF inputs" ships as part of this loop because hitting it twice in one session means it's not really deferrable.
+
+`compressImageIfOverCap` signature changed from `(buffer, mime, capBytes)` → `(buffer, capBytes)`. Returns `outputMime` + `inputFormat`. Route uses returned mime for filename + R2 ContentType + DB write; logs both browser-reported MIME and Sharp-detected format whenever compression runs (handy for the next mystery).
+
+Tests: 8 cases (added AVIF input → WebP output). 588/588 pass. tsc clean. Updated [[blog-featured-image-upload]], [[image-pipeline]], and the lesson in [[2026-05-24-validation-without-normalization]] (added the secondary rule: don't trust client-reported metadata for validation when you can derive it server-side).
+
+## 2026-05-24 — Featured image auto-compression (unblock publishing)
+
+A 2,120 KB PNG dropped into the admin blog form was rejected by a 500 KB hard cap, blocking publishing of a post that needed a real featured image. Diagnosed as validation-without-normalization (the validation was correct but the feature shipped without the normalization step that makes the cap usable). Built [[image-pipeline]] — server-side Sharp compression with a deterministic quality ladder (q85→q60) and resize ladder (2000w→1200w), `limitInputPixels: 50_000_000` to block decompression bombs on Render's hobby tier. PNG quality requires `palette: true` (without it the quality flag is silently ignored — flagged in eng review). Raised client + server pre-compression ceiling to 10 MB; the 500 KB DB CHECK stays in place and is now guaranteed by the pipeline rather than enforced via rejection.
+
+Files touched: [lib/image-pipeline.ts](../lib/image-pipeline.ts) (new), [lib/image-pipeline.test.ts](../lib/image-pipeline.test.ts) (new, 7 tests using Gaussian-noise fixtures), [app/api/admin/posts/[id]/image/route.ts](../app/api/admin/posts/[id]/image/route.ts), [app/admin/(authed)/blog/posts/post-form.tsx](../app/admin/(authed)/blog/posts/post-form.tsx), [package.json](../package.json) (sharp elevated from transitive to direct dep).
+
+New wiki pages: [[blog-featured-image-upload]], [[image-pipeline]], [[2026-05-24-validation-without-normalization]].
+
+Planning: [/plan-ceo-review HOLD SCOPE Approach A, /plan-eng-review CLEAR with 2 architectural decisions captured (50 MP pixel cap, lossy palette PNG)]. 6 expansion items deferred to wiki/backlog/.
+
+Verification status: 587 tests pass, `pnpm tsc` clean. Curl smoke skipped — route is admin-gated and a full authenticated curl needs DB seeding + session plumbing. Real verification is the user dragging the 2,120 KB PNG into the admin form and seeing the green toast. **Manual e2e required before merge.**
+
 ## 2026-05-22 — Confidentiality + NDA trust signal across booking, home FAQ, contact
 
 Rob raised that trust is the biggest currency — prospects need to know
