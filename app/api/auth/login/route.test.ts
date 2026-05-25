@@ -7,6 +7,7 @@ const {
   issueSessionMock,
   setSessionCookieMock,
   logAuthEventMock,
+  requireTurnstileMock,
 } = vi.hoisted(() => ({
   dbSelectMock: vi.fn(),
   dbUpdateExecMock: vi.fn(),
@@ -14,6 +15,7 @@ const {
   issueSessionMock: vi.fn(),
   setSessionCookieMock: vi.fn(),
   logAuthEventMock: vi.fn(),
+  requireTurnstileMock: vi.fn(),
 }));
 
 vi.mock("../../../../lib/db", () => ({
@@ -41,6 +43,9 @@ vi.mock("../../../../lib/auth/cookies", () => ({
 }));
 vi.mock("../../../../lib/auth/audit", () => ({
   logAuthEvent: logAuthEventMock,
+}));
+vi.mock("../../../../lib/auth/turnstile", () => ({
+  requireTurnstile: requireTurnstileMock,
 }));
 vi.mock("../../../../lib/rate-limit", () => ({
   clientIpFromRequest: () => "203.0.113.1",
@@ -77,6 +82,12 @@ beforeEach(() => {
   });
   setSessionCookieMock.mockResolvedValue(undefined);
   logAuthEventMock.mockResolvedValue(undefined);
+  // Default: Turnstile bypassed (feature OFF in dev).
+  requireTurnstileMock.mockResolvedValue({
+    ok: true,
+    errorCodes: [],
+    bypassed: true,
+  });
 });
 
 afterEach(() => {
@@ -164,6 +175,24 @@ describe("POST /api/auth/login", () => {
         metadata: expect.objectContaining({ reason: "deactivated" }),
       }),
     );
+  });
+
+  it("returns generic 401 when Turnstile is active and verify fails (no DB read)", async () => {
+    requireTurnstileMock.mockResolvedValueOnce({
+      ok: false,
+      errorCodes: ["timeout-or-duplicate"],
+      bypassed: false,
+    });
+    const r = await POST(
+      makeRequest({ email: "u@example.com", password: "anything" }),
+    );
+    expect(r.status).toBe(401);
+    const json = await r.json();
+    // Same generic shape as wrong-password — Turnstile failure isn't
+    // distinguishable from a credential failure to an attacker.
+    expect(json).toEqual({ ok: false, error: "Invalid email or password." });
+    expect(dbSelectMock).not.toHaveBeenCalled();
+    expect(verifyPasswordMock).not.toHaveBeenCalled();
   });
 
   it("issues session + sets cookie + logs login_password on success", async () => {

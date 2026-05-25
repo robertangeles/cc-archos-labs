@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-25T22:20:46.835Z
+generated: 2026-05-25T23:14:08.137Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -84,9 +84,9 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/settings/site` | [app/api/admin/settings/site/route.ts](../app/api/admin/settings/site/route.ts) | 2026-05-08 |
 | `/api/auth/email-change/confirm` | [app/api/auth/email-change/confirm/route.ts](../app/api/auth/email-change/confirm/route.ts) | 2026-05-25 |
 | `/api/auth/email-change/request` | [app/api/auth/email-change/request/route.ts](../app/api/auth/email-change/request/route.ts) | 2026-05-25 |
-| `/api/auth/google/callback` | [app/api/auth/google/callback/route.ts](../app/api/auth/google/callback/route.ts) | unknown |
-| `/api/auth/google/start` | [app/api/auth/google/start/route.ts](../app/api/auth/google/start/route.ts) | unknown |
-| `/api/auth/google/unlink` | [app/api/auth/google/unlink/route.ts](../app/api/auth/google/unlink/route.ts) | unknown |
+| `/api/auth/google/callback` | [app/api/auth/google/callback/route.ts](../app/api/auth/google/callback/route.ts) | 2026-05-26 |
+| `/api/auth/google/start` | [app/api/auth/google/start/route.ts](../app/api/auth/google/start/route.ts) | 2026-05-26 |
+| `/api/auth/google/unlink` | [app/api/auth/google/unlink/route.ts](../app/api/auth/google/unlink/route.ts) | 2026-05-26 |
 | `/api/auth/lead/logout` | [app/api/auth/lead/logout/route.ts](../app/api/auth/lead/logout/route.ts) | 2026-05-13 |
 | `/api/auth/lead/request` | [app/api/auth/lead/request/route.ts](../app/api/auth/lead/request/route.ts) | 2026-05-15 |
 | `/api/auth/lead/verify` | [app/api/auth/lead/verify/route.ts](../app/api/auth/lead/verify/route.ts) | 2026-05-13 |

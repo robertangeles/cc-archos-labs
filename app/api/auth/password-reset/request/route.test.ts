@@ -6,12 +6,14 @@ const {
   logAuthEventMock,
   resendSendMock,
   getResendMock,
+  requireTurnstileMock,
 } = vi.hoisted(() => ({
   dbSelectMock: vi.fn(),
   signPasswordResetTokenMock: vi.fn(),
   logAuthEventMock: vi.fn(),
   resendSendMock: vi.fn(),
   getResendMock: vi.fn(),
+  requireTurnstileMock: vi.fn(),
 }));
 
 vi.mock("../../../../../lib/db", () => ({
@@ -27,6 +29,9 @@ vi.mock("../../../../../lib/auth/password-reset-token", () => ({
 }));
 vi.mock("../../../../../lib/auth/audit", () => ({
   logAuthEvent: logAuthEventMock,
+}));
+vi.mock("../../../../../lib/auth/turnstile", () => ({
+  requireTurnstile: requireTurnstileMock,
 }));
 vi.mock("../../../../../lib/resend", () => ({
   getResend: getResendMock,
@@ -76,6 +81,12 @@ beforeEach(() => {
   getResendMock.mockResolvedValue({
     resend: { emails: { send: resendSendMock } },
     from: "Archos Labs <no-reply@archoslabs.xyz>",
+  });
+  // Default: Turnstile bypassed (feature OFF in dev).
+  requireTurnstileMock.mockResolvedValue({
+    ok: true,
+    errorCodes: [],
+    bypassed: true,
   });
 });
 
@@ -190,6 +201,23 @@ describe("POST /api/auth/password-reset/request — enumeration defense", () => 
       }),
     );
     expect(errSpy).toHaveBeenCalled();
+  });
+
+  it("returns generic 200 when Turnstile is active and verify fails (no DB read)", async () => {
+    requireTurnstileMock.mockResolvedValueOnce({
+      ok: false,
+      errorCodes: ["invalid-input-response"],
+      bypassed: false,
+    });
+    const r = await POST(makeRequest({ email: "u@example.com" }));
+    expect(r.status).toBe(200);
+    const json = await r.json();
+    expect(json.ok).toBe(true);
+    // Critical: Turnstile failure must not reveal itself. No DB read,
+    // no email send, no audit row.
+    expect(dbSelectMock).not.toHaveBeenCalled();
+    expect(resendSendMock).not.toHaveBeenCalled();
+    expect(logAuthEventMock).not.toHaveBeenCalled();
   });
 
   it("returns generic 200 on malformed body (no leak)", async () => {

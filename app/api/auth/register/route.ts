@@ -8,6 +8,7 @@ import { signVerificationToken } from "../../../../lib/auth/verification-token";
 import { setSessionCookie } from "../../../../lib/auth/cookies";
 import { logAuthEvent } from "../../../../lib/auth/audit";
 import { assertSameOriginRequest, CsrfOriginError } from "../../../../lib/auth/csrf";
+import { requireTurnstile } from "../../../../lib/auth/turnstile";
 import { getResend } from "../../../../lib/resend";
 import { buildVerificationEmail } from "../../../../lib/email-templates";
 import { getPublicOrigin } from "../../../../lib/public-origin";
@@ -36,6 +37,11 @@ const RegisterSchema = z.object({
   password: z.string().min(8).max(128),
   firstName: z.string().trim().min(1).max(100),
   lastName: z.string().trim().min(1).max(100),
+  // Cloudflare Turnstile token from the frontend widget. Required only
+  // when TURNSTILE_ENABLED is set; otherwise the requireTurnstile helper
+  // bypasses verify entirely. Field stays optional in the schema so
+  // payloads without the field still parse when the flag is OFF.
+  turnstileToken: z.string().max(2048).optional(),
 });
 
 export async function POST(request: Request) {
@@ -78,8 +84,20 @@ export async function POST(request: Request) {
     );
   }
 
-  const { email, password, firstName, lastName } = parsed.data;
+  const { email, password, firstName, lastName, turnstileToken } = parsed.data;
   const normalizedEmail = email.trim().toLowerCase();
+
+  // Bot-protection gate. No-op when TURNSTILE_ENABLED is unset.
+  const tsResult = await requireTurnstile({
+    token: turnstileToken,
+    remoteIp: ip || null,
+  });
+  if (!tsResult.ok) {
+    return Response.json(
+      { ok: false, error: "Bot check failed. Please try again." },
+      { status: 400 },
+    );
+  }
 
   // Per-email rate limit (in addition to per-IP) — defeats one IP
   // burning many emails AND one email getting hammered from many IPs.
