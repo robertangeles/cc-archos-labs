@@ -45,6 +45,11 @@ vi.mock("../../../../../lib/rate-limit", () => ({
   clientIpFromRequest: () => "203.0.113.1",
   rateLimit: () => ({ ok: true, remaining: 99, resetAt: 0 }),
 }));
+// Hermetic site URL so CSRF Origin check is deterministic in dev,
+// where Vitest 4 auto-loads .env.local (NEXT_PUBLIC_SITE_URL=localhost:3007).
+vi.mock("../../../../../lib/site-config", () => ({
+  getSiteUrl: () => "https://archoslabs.xyz",
+}));
 
 import { POST } from "./route";
 
