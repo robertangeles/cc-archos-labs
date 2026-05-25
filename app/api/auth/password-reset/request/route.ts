@@ -8,6 +8,7 @@ import {
   assertSameOriginRequest,
   CsrfOriginError,
 } from "../../../../../lib/auth/csrf";
+import { requireTurnstile } from "../../../../../lib/auth/turnstile";
 import { getResend } from "../../../../../lib/resend";
 import { buildPasswordResetEmail } from "../../../../../lib/email-templates";
 import { getPublicOrigin } from "../../../../../lib/public-origin";
@@ -35,6 +36,9 @@ const REQUESTS_PER_EMAIL_PER_HOUR = 3;
 
 const RequestSchema = z.object({
   email: z.email().max(254),
+  // Cloudflare Turnstile token. Optional; required only when
+  // TURNSTILE_ENABLED is set (requireTurnstile bypasses otherwise).
+  turnstileToken: z.string().max(2048).optional(),
 });
 
 const GENERIC_OK = {
@@ -78,6 +82,18 @@ export async function POST(request: Request) {
   }
 
   const normalizedEmail = parsed.data.email.trim().toLowerCase();
+
+  // Bot-protection gate. No-op when TURNSTILE_ENABLED is unset.
+  // On Turnstile failure: same GENERIC_OK shape as every other
+  // skipped branch so the response never reveals whether the email
+  // was a real user (anti-enumeration).
+  const tsResult = await requireTurnstile({
+    token: parsed.data.turnstileToken,
+    remoteIp: ip || null,
+  });
+  if (!tsResult.ok) {
+    return Response.json(GENERIC_OK);
+  }
 
   // Per-email rate limit. Hits return GENERIC_OK so the rate-limit
   // existence itself doesn't reveal the email is in our system.

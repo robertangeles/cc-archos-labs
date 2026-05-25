@@ -10,6 +10,7 @@ const {
   logAuthEventMock,
   resendSendMock,
   getResendMock,
+  requireTurnstileMock,
 } = vi.hoisted(() => ({
   dbSelectMock: vi.fn(),
   dbInsertMock: vi.fn(),
@@ -20,6 +21,7 @@ const {
   logAuthEventMock: vi.fn(),
   resendSendMock: vi.fn(),
   getResendMock: vi.fn(),
+  requireTurnstileMock: vi.fn(),
 }));
 
 vi.mock("../../../../lib/db", () => ({
@@ -53,6 +55,9 @@ vi.mock("../../../../lib/auth/cookies", () => ({
 }));
 vi.mock("../../../../lib/auth/audit", () => ({
   logAuthEvent: logAuthEventMock,
+}));
+vi.mock("../../../../lib/auth/turnstile", () => ({
+  requireTurnstile: requireTurnstileMock,
 }));
 vi.mock("../../../../lib/resend", () => ({
   getResend: getResendMock,
@@ -116,6 +121,13 @@ beforeEach(() => {
     resend: { emails: { send: resendSendMock } },
     from: "Archos Labs <no-reply@archoslabs.xyz>",
   });
+  // Default: Turnstile bypassed (feature OFF). Per-test overrides
+  // simulate the active-on path.
+  requireTurnstileMock.mockResolvedValue({
+    ok: true,
+    errorCodes: [],
+    bypassed: true,
+  });
 });
 
 afterEach(() => {
@@ -167,6 +179,21 @@ describe("POST /api/auth/register", () => {
       expect.objectContaining({ userId: "user-new-1", eventType: "register" }),
     );
     expect(resendSendMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 400 when Turnstile is active and verify fails", async () => {
+    requireTurnstileMock.mockResolvedValueOnce({
+      ok: false,
+      errorCodes: ["invalid-input-response"],
+      bypassed: false,
+    });
+    const r = await POST(makeRequest(VALID_BODY));
+    expect(r.status).toBe(400);
+    const json = await r.json();
+    expect(json.error).toContain("Bot check");
+    // Critical: we don't even reach the DB on a failed Turnstile check.
+    expect(dbInsertMock).not.toHaveBeenCalled();
+    expect(hashPasswordMock).not.toHaveBeenCalled();
   });
 
   it("still returns 201 even if the verification email send fails", async () => {

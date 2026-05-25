@@ -13,6 +13,7 @@ import {
   assertSameOriginRequest,
   CsrfOriginError,
 } from "../../../../lib/auth/csrf";
+import { requireTurnstile } from "../../../../lib/auth/turnstile";
 import {
   clientIpFromRequest,
   rateLimit,
@@ -36,6 +37,9 @@ const LOGIN_ATTEMPTS_PER_EMAIL_PER_HOUR = 10;
 const LoginSchema = z.object({
   email: z.email().max(254),
   password: z.string().min(1).max(128),
+  // Cloudflare Turnstile token. Optional in the schema; required only
+  // when TURNSTILE_ENABLED is set (requireTurnstile bypasses otherwise).
+  turnstileToken: z.string().max(2048).optional(),
 });
 
 // Generic error response — same shape for "no such user" and "wrong
@@ -87,8 +91,20 @@ export async function POST(request: Request) {
     return Response.json(GENERIC_401, { status: 401 });
   }
 
-  const { email, password } = parsed.data;
+  const { email, password, turnstileToken } = parsed.data;
   const normalizedEmail = email.trim().toLowerCase();
+
+  // Bot-protection gate. No-op when TURNSTILE_ENABLED is unset. We
+  // return the same GENERIC_401 shape so a Turnstile failure isn't
+  // distinguishable from a wrong-password failure by an attacker
+  // probing the endpoint.
+  const tsResult = await requireTurnstile({
+    token: turnstileToken,
+    remoteIp: ip || null,
+  });
+  if (!tsResult.ok) {
+    return Response.json(GENERIC_401, { status: 401 });
+  }
 
   const emailLimit = rateLimit(
     `login:email:${normalizedEmail}`,
