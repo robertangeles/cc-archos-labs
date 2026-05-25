@@ -9,6 +9,7 @@ import {
   numeric,
   vector,
   index,
+  unique,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
@@ -1086,30 +1087,303 @@ export type NewCategory = typeof category.$inferInsert;
 // prevention (width/height), and orphaned-file cleanup (R2 key registry).
 
 // ============================================================================
-// users — multi-user admin scaffold (migration 0015)
+// users — canonical account model (Phase 1 of auth-roles port)
 // ============================================================================
-// Foundation for multi-user admin. Single seeded row today (email='admin',
-// role='admin') matches the JWT subject claim minted by lib/auth.ts.
-// Auth itself is unchanged — this table exists so uploaded-by /
-// saved-by / authored-by FKs have somewhere to point. Per-user login
-// lands in a follow-up PR.
+// Originally migration 0015 introduced this as a placeholder for `saved_by`
+// / `uploaded_by` FK targets. Phase 1 of the auth-roles port extends it
+// into the canonical account model that powers BOTH admin sessions AND
+// public diagnostic-taker accounts (the latter migrate in from `lead` in
+// Phase 5 — see plan §5).
+//
+// Auth pattern (per plan E1 — hybrid JWT + DB session):
+//   - `password_hash` nullable; OAuth-only users have NULL.
+//   - `email_verified_at` set at first magic-link click OR first OAuth login.
+//   - `is_active` soft-disables an account without deletion (preserves FK
+//     pointers from `post.og_image_uploaded_by` etc.).
+//   - `token_version` is bumped on password reset / admin force-logout.
+//     Every issued JWT carries the value at mint time; verify rejects on
+//     mismatch without a DB lookup. Edge-safe global-revocation hook.
+//   - `role` stays free-text for forward flexibility but the application
+//     layer constrains v1 to 'admin' | 'member' (admin = full backstage
+//     access, member = authenticated public-account holder).
 
-export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  email: text("email").notNull().unique(),
-  displayName: text("display_name"),
-  // Free-form text (not enum) for forward flexibility — promote to a
-  // pgEnum once we know which other roles we need (author, reviewer,
-  // viewer, etc.).
-  role: text("role").notNull().default("admin"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
-});
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull().unique(),
+    displayName: text("display_name"),
+    // Free-form text (not enum) for forward flexibility — promote to a
+    // pgEnum once we know which other roles we need (author, reviewer,
+    // viewer, etc.). v1 values: 'admin' | 'member'.
+    role: text("role").notNull().default("admin"),
+    // Argon2id hash (`$argon2id$v=19$m=19456,t=2,p=1$...`). NULL for
+    // OAuth-only users + the legacy admin row before Phase 1 backfill.
+    passwordHash: text("password_hash"),
+    // Set at first email-link click OR first OAuth callback. NULL = pending.
+    emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+    // Soft-disable. is_active=false rejects sign-in attempts but keeps
+    // the row + its FK pointers intact.
+    isActive: boolean("is_active").notNull().default(true),
+    // Bumped on password reset, admin force-logout, or role change.
+    // Embedded in every issued JWT; mismatch rejects the JWT at the
+    // Edge gate without a DB lookup. See plan §4.4 + E1.
+    tokenVersion: integer("token_version").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    // Missing in the original 0015 migration — added in Phase 1 for the
+    // audit-trail consistency rule (CLAUDE.md DB §3). Defaults to created_at
+    // for existing rows when the ALTER TABLE runs.
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+  },
+  (table) => [
+    // Serves admin "list admins" and "list members" UI. Partial on
+    // is_active=true so soft-disabled accounts don't pollute the index.
+    index("users_role_active_idx")
+      .on(table.role)
+      .where(sql`${table.isActive} = true`),
+  ],
+);
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+
+// ============================================================================
+// oauth_account — Phase 1 of auth-roles port
+// ============================================================================
+// One row per (user, OAuth provider) link. v1 only writes provider='google'
+// but the shape is provider-agnostic so Microsoft / GitHub land later
+// without a migration. UNIQUE(provider, provider_subject) is the lookup
+// key during the OAuth callback dance — a provider's 'sub' claim is the
+// stable identity even across email changes on that provider.
+//
+// We deliberately do NOT store the OAuth access_token or refresh_token —
+// sign-in is the only use case, no API calls back to Google needed.
+// The booking system's Google Calendar OAuth (lib/booking-crypto.ts +
+// consultant.google_refresh_token_encrypted) is a separate flow.
+
+export const oauthAccount = pgTable(
+  "oauth_account",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // 'google' for v1. Future: 'microsoft', 'github'.
+    provider: text("provider").notNull(),
+    // The provider's stable subject identifier (Google's `sub` claim).
+    // Persists across email changes on the provider side.
+    providerSubject: text("provider_subject").notNull(),
+    // Email reported by the provider at link time. For audit / "users see
+    // which Google email is linked" UI; NOT authoritative for sign-in.
+    emailAtLink: text("email_at_link").notNull(),
+    linkedAt: timestamp("linked_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // Login lookup: "is there a user linked to this Google sub?"
+    unique("oauth_account_provider_subject_uniq").on(
+      table.provider,
+      table.providerSubject,
+    ),
+    // FK index (CLAUDE.md DB §4): "list a user's linked OAuth accounts"
+    // for the /account page unlink UI.
+    index("oauth_account_user_id_idx").on(table.userId),
+  ],
+);
+
+export type OauthAccount = typeof oauthAccount.$inferSelect;
+export type NewOauthAccount = typeof oauthAccount.$inferInsert;
+
+// ============================================================================
+// user_session — Phase 1 of auth-roles port (hybrid JWT + DB model, plan E1)
+// ============================================================================
+// Used alongside short-lived JWTs (not instead of). The cookie carries a
+// 5-minute JWT with { userId, sessionId, tokenVersion }. proxy.ts (Edge)
+// verifies signature only. Node route handlers re-fetch this row to check
+// revoked_at + users.is_active. Sliding refresh on activity stamps
+// last_seen_at and mints a fresh JWT from the same row.
+//
+// One row per device session. Revoking a session does NOT delete the row
+// (audit-trail); revoked_at stamp is the kill switch. Expired sessions
+// are swept by a future cleanup job; until then they sit harmlessly.
+//
+// Why no token_hash column? The JWT IS the bearer token; the session row
+// is just the revocable handle that the JWT references by id. No additional
+// secret to store.
+
+export const userSession = pgTable(
+  "user_session",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // Hard expiry. Independent of the 5-minute JWT TTL — the session row
+    // expires after ~7 days of inactivity; sliding refresh extends it.
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    // Stamped when a route handler revokes the session (sign-out,
+    // password reset, role change, etc.).
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    // Updated on every JWT refresh. Powers the /account "active sessions"
+    // listing's "last seen" column.
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // FK lookup: "list a user's active sessions" (account UI + revoke-all flow).
+    index("user_session_user_id_idx").on(table.userId),
+    // Sweep query: "find expired rows to purge."
+    index("user_session_expires_at_idx").on(table.expiresAt),
+    // /account "most recently used first" ordering.
+    index("user_session_user_id_last_seen_at_idx").on(
+      table.userId,
+      table.lastSeenAt,
+    ),
+  ],
+);
+
+export type UserSession = typeof userSession.$inferSelect;
+export type NewUserSession = typeof userSession.$inferInsert;
+
+// ============================================================================
+// auth_event — Phase 1 of auth-roles port (audit log, plan D4)
+// ============================================================================
+// Append-only forensic trail of every auth-relevant action. No update path;
+// no updated_at (mirrors integration_secret_audit). Writes never block the
+// auth flow — failure logs to stderr and continues (see plan §9 Audit log).
+//
+// user_id is nullable because failed-login rows reference an email that
+// may not match any user (and we deliberately don't leak that fact via
+// the response timing — see §9 Email enumeration defense).
+//
+// event_type values (v1, application-layer constrained):
+//   'register' | 'login_password' | 'login_oauth' | 'login_magic' |
+//   'login_failed' | 'login_session_upgraded' | 'logout' |
+//   'password_reset_requested' | 'password_changed' |
+//   'email_change_requested' | 'email_changed' | 'role_changed' |
+//   'oauth_linked' | 'oauth_unlinked' | 'user_deactivated' |
+//   'user_reactivated' | 'session_revoked'
+
+export const authEvent = pgTable(
+  "auth_event",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Nullable: failed-login rows for unknown emails have no user FK.
+    userId: uuid("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    eventType: text("event_type").notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    // Event-specific payload. Documented shapes per event_type:
+    //   login_oauth: { provider: 'google' }
+    //   role_changed: { from_role, to_role, changed_by_user_id }
+    //   login_failed: { reason: 'wrong_password' | 'unknown_email' }
+    //   login_session_upgraded: { from: 'lead_jwt' }
+    metadata: jsonb("metadata").notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // FK lookup: "show this user's auth history" (admin user-detail page).
+    index("auth_event_user_id_idx").on(table.userId),
+    // Reverse-chrono admin view: "recent auth activity across all users."
+    index("auth_event_created_at_idx").on(table.createdAt),
+    // "Show all role changes" / "show all failed logins" admin filters.
+    index("auth_event_event_type_idx").on(table.eventType),
+  ],
+);
+
+export type AuthEvent = typeof authEvent.$inferSelect;
+export type NewAuthEvent = typeof authEvent.$inferInsert;
+
+// ============================================================================
+// auth_setting — Phase 1 of auth-roles port (admin-controlled auth config)
+// ============================================================================
+// Admin-controllable config for the Authentication settings page. Mirrors
+// site_setting's key-value JSONB shape so the admin UI pattern is identical.
+// Secrets (Google client secret, Turnstile secret) are encrypted at rest
+// via the existing lib/integrations-crypto.ts helper before being stored
+// in the `value` JSONB.
+//
+// Expected v1 keys:
+//   'google_oauth_enabled': { enabled: boolean }
+//   'google_client_id': { value: string }
+//   'google_client_secret_encrypted': { ciphertext: string, iv: string }
+//   'turnstile_enabled': { enabled: boolean }
+//   'turnstile_site_key': { value: string }
+//   'turnstile_secret_key_encrypted': { ciphertext: string, iv: string }
+//   'public_signup_enabled': { enabled: boolean }
+
+export const authSetting = pgTable("auth_setting", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  // Logical setting name. Upserts target this column.
+  key: text("key").notNull().unique(),
+  // Setting payload — shape varies per key. Application layer validates (Zod).
+  value: jsonb("value").notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type AuthSetting = typeof authSetting.$inferSelect;
+export type NewAuthSetting = typeof authSetting.$inferInsert;
+
+// ============================================================================
+// Relations — auth tables
+// ============================================================================
+
+export const usersRelations = relations(users, ({ many }) => ({
+  oauthAccounts: many(oauthAccount),
+  sessions: many(userSession),
+  authEvents: many(authEvent),
+}));
+
+export const oauthAccountRelations = relations(oauthAccount, ({ one }) => ({
+  user: one(users, {
+    fields: [oauthAccount.userId],
+    references: [users.id],
+  }),
+}));
+
+export const userSessionRelations = relations(userSession, ({ one }) => ({
+  user: one(users, {
+    fields: [userSession.userId],
+    references: [users.id],
+  }),
+}));
+
+export const authEventRelations = relations(authEvent, ({ one }) => ({
+  user: one(users, {
+    fields: [authEvent.userId],
+    references: [users.id],
+  }),
+}));
 
 export const post = pgTable(
   "post",
