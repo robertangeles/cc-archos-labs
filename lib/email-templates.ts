@@ -289,3 +289,65 @@ function escapeAttr(value: string): string {
     .replace(/"/g, "&quot;")
     .replace(/</g, "&lt;");
 }
+
+// ============================================================================
+// Email verification (auth-roles port T4a)
+// ============================================================================
+
+export interface VerificationEmailInput {
+  firstName: string;
+  verifyUrl: string;
+  /** TTL hours for the link. Used in the body copy. */
+  expiresInHours: number;
+}
+
+/**
+ * Confirms a fresh account email is reachable. Plain-text body is the
+ * source of truth. HTML is a simpler styled version — the magic-link
+ * template's bulletproof Outlook-VML button is intentionally not
+ * duplicated here yet; signup confirmation has a wider client mix
+ * (less likely to be opened in Outlook desktop than executive booking
+ * mail), and the inline-style button below renders correctly in every
+ * modern client. Promote to the bulletproof pattern if Outlook desktop
+ * rendering issues are reported.
+ */
+export function buildVerificationEmail(
+  input: VerificationEmailInput,
+): RenderedEmail {
+  const firstNameSafe = sanitiseForPlainText(input.firstName);
+  const hours = input.expiresInHours;
+  const url = input.verifyUrl;
+  const urlAttr = escapeAttr(url);
+  const nameAttr = escapeHtml(firstNameSafe);
+
+  const subject = "Confirm your Archos Labs email";
+
+  const text =
+    `Hi ${firstNameSafe},\n\n` +
+    `Thanks for creating an Archos Labs account. ` +
+    `Confirm your email so we know it's really you — the link expires in ${hours} hours.\n\n` +
+    `${url}\n\n` +
+    `If you didn't sign up, you can safely ignore this email — ` +
+    `no account is created until the link is clicked.\n\n` +
+    `— Rob Angeles\n` +
+    `Archos Labs\n\n` +
+    `Built by practitioners. For programs that can't afford to get it wrong.\n` +
+    `archoslabs.xyz`;
+
+  const html =
+    `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#0f0f0f;margin:0;padding:24px;">` +
+    `<div style="max-width:560px;margin:0 auto;">` +
+    `<p>Hi ${nameAttr},</p>` +
+    `<p>Thanks for creating an Archos Labs account. Confirm your email so we know it's really you.</p>` +
+    `<p style="margin:24px 0;">` +
+    `<a href="${urlAttr}" style="display:inline-block;background:#5e6ad2;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-size:15px;font-weight:500;">Confirm email</a>` +
+    `</p>` +
+    `<p style="font-size:13px;color:#6b6b6b;">The link expires in <strong>${hours} hours</strong>.</p>` +
+    `<p style="font-size:13px;color:#6b6b6b;border-top:1px solid #ececea;padding-top:16px;margin-top:24px;">` +
+    `If you didn't sign up, you can safely ignore this email — no account is created until the link is clicked.` +
+    `</p>` +
+    `<p style="font-size:14px;margin-top:24px;">— Rob Angeles<br><span style="color:#6b6b6b;font-size:13px;">Archos Labs</span></p>` +
+    `</div></body></html>`;
+
+  return { subject, text, html };
+}
