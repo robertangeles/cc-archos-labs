@@ -127,6 +127,13 @@
       "when": 1779523111604,
       "tag": "0017_dashing_sabra",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1779676829874,
+      "tag": "0018_silly_blade",
+      "breakpoints": true
     }
   ]
 }
