@@ -4,6 +4,13 @@ import { useRouter } from "next/navigation";
 import { useDeferredValue, useEffect, useRef, useState } from "react";
 // (useRef stays — used for the textarea handle for cursor-insertion)
 import { computeLinkInsertion } from "../../../../../lib/blog-editor/insert-link";
+import {
+  formatMelbourneForHumans,
+  melbourneParts,
+  melbourneTzAbbrev,
+  melbourneWallToUtcIso,
+  splitMelbourneDatetime,
+} from "../../../../../lib/format-melbourne";
 import { CONTENT_MD_MAX_BYTES } from "../../../../../lib/posts-admin/schema";
 import type {
   AdminPostView,
@@ -1289,15 +1296,10 @@ function FieldHeader({
 }
 
 // ---------------------------------------------------------------------------
-// Melbourne timezone helpers.
-//
-// The scheduled-publish picker is Melbourne-anchored: regardless of the
-// admin's browser timezone, the wall-time entered is interpreted in
-// Australia/Melbourne (handles AEDT/AEST DST automatically via Intl).
-// The server stores UTC; we convert at the wire boundary.
+// Local picker UI helper. Melbourne timezone helpers live in
+// lib/format-melbourne.ts (shared with the admin posts list so the picker
+// and the list never drift on wall-time rendering).
 // ---------------------------------------------------------------------------
-
-const MELBOURNE_TZ = "Australia/Melbourne";
 
 /**
  * Open the browser's native picker on focus/click. Without this, the
@@ -1321,115 +1323,3 @@ function openNativePicker(e: React.SyntheticEvent<HTMLInputElement>) {
   }
 }
 
-/**
- * Split a UTC Date into separate Melbourne-wall date + time strings,
- * one for each split picker (<input type="date"> + <input type="time">).
- * Returns empty strings for null/undefined.
- */
-function splitMelbourneDatetime(
-  d: Date | null | undefined,
-): { date: string; time: string } {
-  if (!d) return { date: "", time: "" };
-  const date = d instanceof Date ? d : new Date(d);
-  if (Number.isNaN(date.getTime())) return { date: "", time: "" };
-  const parts = melbourneParts(date);
-  return {
-    date: `${parts.year}-${parts.month}-${parts.day}`,
-    time: `${parts.hour}:${parts.minute}`,
-  };
-}
-
-/**
- * Convert a Melbourne wall-time string ("YYYY-MM-DDTHH:MM" — the value
- * <input type="datetime-local"> emits) to a UTC ISO string. DST-aware
- * via Intl.
- *
- * Algorithm:
- *   1. Parse the wall string as if it were UTC ("fake UTC").
- *   2. Format that fake-UTC instant as Melbourne wall-time and compare
- *      back — the delta IS the offset between Melbourne and UTC at that
- *      moment (including any DST adjustment).
- *   3. Subtract the offset from the fake UTC to get the real UTC.
- */
-function melbourneWallToUtcIso(wallString: string): string {
-  if (!wallString) return "";
-  // Ensure seconds + Z so the constructor parses as UTC, not as local.
-  const fakeUtc = new Date(`${wallString}:00.000Z`);
-  if (Number.isNaN(fakeUtc.getTime())) return "";
-  const melParts = melbourneParts(fakeUtc);
-  const melAsIfUtc = Date.UTC(
-    Number(melParts.year),
-    Number(melParts.month) - 1,
-    Number(melParts.day),
-    Number(melParts.hour),
-    Number(melParts.minute),
-  );
-  const offsetMs = melAsIfUtc - fakeUtc.getTime();
-  return new Date(fakeUtc.getTime() - offsetMs).toISOString();
-}
-
-/**
- * Human-friendly Melbourne wall-time formatter for the "cron will fire
- * around X" helper text. Takes the same wall-string the picker emits;
- * doesn't reach for Intl conversions because the wall string IS already
- * Melbourne wall-time.
- */
-function formatMelbourneForHumans(wallString: string): string {
-  if (!wallString) return "";
-  const [date, time] = wallString.split("T");
-  if (!date || !time) return wallString;
-  const [y, m, d] = date.split("-");
-  return `${d}/${m}/${y} ${time}`;
-}
-
-/**
- * Get the current AEDT/AEST short label for display next to the picker.
- * Re-evaluated on each render so DST transitions don't lie.
- */
-function melbourneTzAbbrev(): string {
-  try {
-    const parts = new Intl.DateTimeFormat("en-AU", {
-      timeZone: MELBOURNE_TZ,
-      timeZoneName: "short",
-    }).formatToParts(new Date());
-    return (
-      parts.find((p) => p.type === "timeZoneName")?.value ?? "AEDT"
-    );
-  } catch {
-    return "AEDT";
-  }
-}
-
-/**
- * Get Melbourne wall-time fields ({year, month, day, hour, minute},
- * all 2-digit strings except year) for any UTC instant. Underpins
- * the conversion + formatter helpers above.
- */
-function melbourneParts(utc: Date): {
-  year: string;
-  month: string;
-  day: string;
-  hour: string;
-  minute: string;
-} {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: MELBOURNE_TZ,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(utc);
-  const get = (type: string) =>
-    parts.find((p) => p.type === type)?.value ?? "00";
-  return {
-    year: get("year"),
-    month: get("month"),
-    day: get("day"),
-    // Intl returns "24" for midnight in en-CA — normalise to "00" so the
-    // datetime-local input accepts it.
-    hour: get("hour") === "24" ? "00" : get("hour"),
-    minute: get("minute"),
-  };
-}

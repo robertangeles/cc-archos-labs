@@ -7,6 +7,11 @@ import type {
   AdminListFilter,
   AdminPostView,
 } from "../../../../../lib/posts-admin/types";
+import {
+  formatMelbourneDateTime,
+  formatMelbourneShort,
+  melbourneTzAbbrev,
+} from "../../../../../lib/format-melbourne";
 
 // Client wrapper for the posts list. Filter pills + search box +
 // pagination drive the URL (?status / ?search / ?page), which triggers a
@@ -400,9 +405,12 @@ function Pagination({
   );
 }
 
+// Date columns in this list render in Melbourne wall-time to match the
+// scheduled-publish picker (which is Melbourne-anchored). Plain
+// .toISOString() showed UTC, so 09:00 Melbourne schedules appeared as
+// "previous day 23:00Z" in the list — see lib/format-melbourne.ts.
 function formatDate(d: Date): string {
-  const iso = new Date(d).toISOString();
-  return iso.slice(0, 10) + " " + iso.slice(11, 16);
+  return formatMelbourneDateTime(new Date(d));
 }
 
 /**
@@ -444,6 +452,5 @@ function DateCell({ post }: { post: AdminPostView }) {
 }
 
 function formatScheduleShort(d: Date): string {
-  const iso = new Date(d).toISOString();
-  return iso.slice(5, 10) + " " + iso.slice(11, 16) + "Z";
+  return `${formatMelbourneShort(new Date(d))} ${melbourneTzAbbrev()}`;
 }

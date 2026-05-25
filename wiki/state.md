@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-24T12:48:33.504Z
+generated: 2026-05-25T00:17:26.779Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -15,7 +15,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 |-------|------|--------------|
 | `/` | [app/page.tsx](../app/page.tsx) | 2026-05-22 |
 | `/[...slug]` | [app/[...slug]/page.tsx](../app/[...slug]/page.tsx) | 2026-05-18 |
-| `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-18 |
+| `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-24 |
 | `/admin/(authed)/blog` | [app/admin/(authed)/blog/page.tsx](../app/admin/(authed)/blog/page.tsx) | 2026-05-20 |
 | `/admin/(authed)/blog/posts` | [app/admin/(authed)/blog/posts/page.tsx](../app/admin/(authed)/blog/posts/page.tsx) | 2026-05-21 |
 | `/admin/(authed)/blog/posts/[id]` | [app/admin/(authed)/blog/posts/[id]/page.tsx](../app/admin/(authed)/blog/posts/[id]/page.tsx) | 2026-05-21 |
@@ -109,7 +109,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/admin/integrations/integrations-grid.tsx](../components/admin/integrations/integrations-grid.tsx) | 2026-05-17 |
 | [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-05-18 |
 | [components/analytics/analytics-client.tsx](../components/analytics/analytics-client.tsx) | 2026-05-18 |
-| [components/blog/author-bio.tsx](../components/blog/author-bio.tsx) | 2026-05-20 |
+| [components/blog/author-bio.tsx](../components/blog/author-bio.tsx) | 2026-05-24 |
 | [components/blog/category-chips.tsx](../components/blog/category-chips.tsx) | 2026-05-20 |
 | [components/blog/editorial-list-row.tsx](../components/blog/editorial-list-row.tsx) | 2026-05-21 |
 | [components/blog/heading-copy-link-button.tsx](../components/blog/heading-copy-link-button.tsx) | 2026-05-20 |
@@ -148,7 +148,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/pages/markdown-article.test.tsx](../components/pages/markdown-article.test.tsx) | 2026-05-18 |
 | [components/pages/markdown-article.tsx](../components/pages/markdown-article.tsx) | 2026-05-18 |
 | [components/sections/about/index.ts](../components/sections/about/index.ts) | 2026-05-18 |
-| [components/sections/about/person-card.tsx](../components/sections/about/person-card.tsx) | 2026-05-18 |
+| [components/sections/about/person-card.tsx](../components/sections/about/person-card.tsx) | 2026-05-24 |
 | [components/sections/about/philosophy-block.tsx](../components/sections/about/philosophy-block.tsx) | 2026-05-18 |
 | [components/sections/about/selected-work-card.tsx](../components/sections/about/selected-work-card.tsx) | 2026-05-18 |
 | [components/sections/about/way-of-working-steps.tsx](../components/sections/about/way-of-working-steps.tsx) | 2026-05-18 |
