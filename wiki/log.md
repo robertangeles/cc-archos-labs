@@ -8,6 +8,14 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-25 — Admin posts list rendered UTC, not Melbourne wall-time (PR #109)
+
+User reported "I scheduled this post for today 9 AM but the list says it was published yesterday" and a second screenshot showing a May-26 scheduled post displayed as `scheduled · 05-25 23:00Z`. Cron, scheduler, save path: all correct. The bug was that [posts-list.tsx:403-449](../app/admin/(authed)/blog/posts/posts-list.tsx#L403-L449) formatted dates via `new Date(d).toISOString().slice(...)` — always UTC. Because the scheduled-publish picker is Melbourne-anchored (09:00 AEST = 23:00 UTC of the prior day), every published or scheduled row landed off-by-one in the list.
+
+Extracted both sides' helpers into [lib/format-melbourne.ts](../lib/format-melbourne.ts) as the single source of truth — picker and list now share `melbourneParts` + sibling formatters. Added `formatMelbourneDateTime` and `formatMelbourneShort` for list use; appended the live `AEST`/`AEDT` label to the chip so the column reads unambiguously local. 14 vitest unit tests anchor on the production bug (AEST + AEDT, midnight rollover, round-trip wall ↔ UTC). Full suite green (637 / 637).
+
+Lesson captured at [[2026-05-25-admin-list-rendered-utc-instead-of-melbourne]]: a save path and a read path that don't share a timezone helper will drift. Off-by-one bugs that only fire in a slice of UTC hours are the classic signature.
+
 ## 2026-05-25 — IndexNow bulk catch-up + production loop verified
 
 User reported nothing in Bing Webmaster four days after the IndexNow ship ([[2026-05-21-indexnow]]). Investigation confirmed the implementation only fires on admin writes — and no post create/update/archive has hit prod since 2026-05-21 (last blog-touching commit was `b33e009` UI-only). Keyfile at `https://archoslabs.xyz/<key>.txt` verified live (HTTP 200, text/plain). Manual end-to-end test ping for `/blog` returned **HTTP 202** from `api.indexnow.org` — protocol loop works.
