@@ -41,6 +41,7 @@
     "calibrate:threshold": "node --env-file=.env.local --import tsx scripts/calibrate-threshold.ts"
   },
   "dependencies": {
+    "@node-rs/argon2": "^2.0.2",
     "drizzle-orm": "^0.45.2",
     "framer-motion": "^12.38.0",
     "image-size": "^2.0.2",
