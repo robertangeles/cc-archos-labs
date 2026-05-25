@@ -351,3 +351,118 @@ export function buildVerificationEmail(
 
   return { subject, text, html };
 }
+
+// ============================================================================
+// Password reset (auth-roles port T4b)
+// ============================================================================
+
+export interface PasswordResetEmailInput {
+  firstName: string;
+  resetUrl: string;
+  /** TTL minutes for the link. */
+  expiresInMinutes: number;
+}
+
+export function buildPasswordResetEmail(
+  input: PasswordResetEmailInput,
+): RenderedEmail {
+  const firstNameSafe = sanitiseForPlainText(input.firstName);
+  const minutes = input.expiresInMinutes;
+  const url = input.resetUrl;
+  const urlAttr = escapeAttr(url);
+  const nameAttr = escapeHtml(firstNameSafe);
+
+  const subject = "Reset your Archos Labs password";
+
+  const text =
+    `Hi ${firstNameSafe},\n\n` +
+    `Someone (hopefully you) asked to reset your Archos Labs password. ` +
+    `Click the link below to set a new one — it expires in ${minutes} minutes ` +
+    `and can only be used once.\n\n` +
+    `${url}\n\n` +
+    `If you didn't request a reset, you can safely ignore this email — ` +
+    `your password stays the same.\n\n` +
+    `— Rob Angeles\n` +
+    `Archos Labs\n\n` +
+    `archoslabs.xyz`;
+
+  const html =
+    `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#0f0f0f;margin:0;padding:24px;">` +
+    `<div style="max-width:560px;margin:0 auto;">` +
+    `<p>Hi ${nameAttr},</p>` +
+    `<p>Someone (hopefully you) asked to reset your Archos Labs password. Click the button below to set a new one.</p>` +
+    `<p style="margin:24px 0;">` +
+    `<a href="${urlAttr}" style="display:inline-block;background:#5e6ad2;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-size:15px;font-weight:500;">Reset password</a>` +
+    `</p>` +
+    `<p style="font-size:13px;color:#6b6b6b;">The link expires in <strong>${minutes} minutes</strong> and can only be used once.</p>` +
+    `<p style="font-size:13px;color:#6b6b6b;border-top:1px solid #ececea;padding-top:16px;margin-top:24px;">` +
+    `If you didn't request a reset, you can safely ignore this email — your password stays the same.` +
+    `</p>` +
+    `<p style="font-size:14px;margin-top:24px;">— Rob Angeles<br><span style="color:#6b6b6b;font-size:13px;">Archos Labs</span></p>` +
+    `</div></body></html>`;
+
+  return { subject, text, html };
+}
+
+// ============================================================================
+// Email change confirmation (auth-roles port T4b)
+// ============================================================================
+
+export interface EmailChangeConfirmEmailInput {
+  firstName: string;
+  newEmail: string;
+  confirmUrl: string;
+  /** TTL minutes for the link. */
+  expiresInMinutes: number;
+}
+
+/**
+ * Sent to the NEW email address. The user must prove they control the
+ * new inbox before the change applies — defeats account takeover via
+ * silent email change. The OLD address never sees this link.
+ */
+export function buildEmailChangeConfirmEmail(
+  input: EmailChangeConfirmEmailInput,
+): RenderedEmail {
+  const firstNameSafe = sanitiseForPlainText(input.firstName);
+  const newEmailSafe = sanitiseForPlainText(input.newEmail);
+  const minutes = input.expiresInMinutes;
+  const url = input.confirmUrl;
+  const urlAttr = escapeAttr(url);
+  const nameAttr = escapeHtml(firstNameSafe);
+  const emailAttr = escapeHtml(newEmailSafe);
+
+  const subject = "Confirm your new Archos Labs email";
+
+  const text =
+    `Hi ${firstNameSafe},\n\n` +
+    `Someone (hopefully you) asked to change the email on your Archos Labs ` +
+    `account to ${newEmailSafe}. Click the link below to confirm — it expires ` +
+    `in ${minutes} minutes and can only be used once.\n\n` +
+    `${url}\n\n` +
+    `Once you confirm, every active session for the account will be signed ` +
+    `out for security. You'll need to sign in again with the new email.\n\n` +
+    `If you didn't request this change, you can safely ignore this email — ` +
+    `no change is made until the link is clicked.\n\n` +
+    `— Rob Angeles\n` +
+    `Archos Labs\n\n` +
+    `archoslabs.xyz`;
+
+  const html =
+    `<!doctype html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#0f0f0f;margin:0;padding:24px;">` +
+    `<div style="max-width:560px;margin:0 auto;">` +
+    `<p>Hi ${nameAttr},</p>` +
+    `<p>Someone (hopefully you) asked to change the email on your Archos Labs account to <strong>${emailAttr}</strong>.</p>` +
+    `<p style="margin:24px 0;">` +
+    `<a href="${urlAttr}" style="display:inline-block;background:#5e6ad2;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-size:15px;font-weight:500;">Confirm new email</a>` +
+    `</p>` +
+    `<p style="font-size:13px;color:#6b6b6b;">The link expires in <strong>${minutes} minutes</strong> and can only be used once.</p>` +
+    `<p style="font-size:13px;color:#6b6b6b;">Once you confirm, every active session will be signed out for security.</p>` +
+    `<p style="font-size:13px;color:#6b6b6b;border-top:1px solid #ececea;padding-top:16px;margin-top:24px;">` +
+    `If you didn't request this change, you can safely ignore this email — no change is made until the link is clicked.` +
+    `</p>` +
+    `<p style="font-size:14px;margin-top:24px;">— Rob Angeles<br><span style="color:#6b6b6b;font-size:13px;">Archos Labs</span></p>` +
+    `</div></body></html>`;
+
+  return { subject, text, html };
+}
