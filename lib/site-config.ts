@@ -87,6 +87,10 @@ export async function buildPageMetadata({
   ogType,
   lastUpdatedISO,
   articleSection,
+  image,
+  imageAlt,
+  imageWidth,
+  imageHeight,
 }: {
   title?: string;
   description?: string;
@@ -97,6 +101,16 @@ export async function buildPageMetadata({
   lastUpdatedISO?: string;
   /** Schema.org article section (e.g. 'Legal', 'Marketing'). Optional. */
   articleSection?: string;
+  /**
+   * Per-page OG image override. When provided, this URL becomes og:image
+   * and twitter:image instead of the site-wide settings.ogImageUrl. Used
+   * by blog posts so each share card carries the post's featured image.
+   * Accepts absolute URLs (R2 / CDN) or site-relative paths.
+   */
+  image?: string;
+  imageAlt?: string;
+  imageWidth?: number;
+  imageHeight?: number;
 }): Promise<Metadata> {
   const settings = await getSiteSettings();
   const siteUrl = getSiteUrl();
@@ -107,11 +121,32 @@ export async function buildPageMetadata({
     ? `${title} — ${settings.siteName}`
     : `${settings.siteName} — ${settings.tagline}`;
   const effectiveDescription = description ?? settings.description;
-  const ogImageUrl = settings.ogImageUrl.startsWith("http")
-    ? settings.ogImageUrl
-    : `${siteUrl}${settings.ogImageUrl.startsWith("/") ? settings.ogImageUrl : `/${settings.ogImageUrl}`}`;
+
+  // Resolve the OG image: prefer the per-page override, fall back to the
+  // site default. Either may be absolute or site-relative; normalise to
+  // absolute so Open Graph scrapers (X, LinkedIn, Slack) get a fetchable URL.
+  const rawImage = image ?? settings.ogImageUrl;
+  const ogImageUrl = rawImage.startsWith("http")
+    ? rawImage
+    : `${siteUrl}${rawImage.startsWith("/") ? rawImage : `/${rawImage}`}`;
 
   const resolvedOgType = ogType ?? "website";
+
+  // Width / height: the site default is 1200x630. When a per-page image is
+  // provided without explicit dimensions, omit them so scrapers infer from
+  // the file rather than rendering a stretched 1200x630 placeholder.
+  const usingPageImage = image != null;
+  const ogImage: { url: string; width?: number; height?: number; alt?: string } =
+    {
+      url: ogImageUrl,
+      ...(usingPageImage
+        ? {
+            ...(imageWidth ? { width: imageWidth } : {}),
+            ...(imageHeight ? { height: imageHeight } : {}),
+          }
+        : { width: 1200, height: 630 }),
+      ...(imageAlt ? { alt: imageAlt } : {}),
+    };
 
   return {
     metadataBase: new URL(siteUrl),
@@ -126,7 +161,7 @@ export async function buildPageMetadata({
       title: effectiveTitle,
       description: effectiveDescription,
       url: fullUrl,
-      images: [{ url: ogImageUrl, width: 1200, height: 630 }],
+      images: [ogImage],
       ...(resolvedOgType === "article" && lastUpdatedISO
         ? {
             modifiedTime: lastUpdatedISO,
