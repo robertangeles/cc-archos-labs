@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-25T23:40:50.591Z
+generated: 2026-05-25T23:59:48.864Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -9,13 +9,14 @@ Auto-generated snapshot of what is currently shipped. **Source of truth for ship
 
 Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `app/` or `components/` to fire the pre-commit hook.
 
-## Routes (36)
+## Routes (37)
 
 | Route | File | Last shipped |
 |-------|------|--------------|
 | `/` | [app/page.tsx](../app/page.tsx) | 2026-05-22 |
 | `/[...slug]` | [app/[...slug]/page.tsx](../app/[...slug]/page.tsx) | 2026-05-18 |
 | `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-24 |
+| `/admin/(authed)/auth` | [app/admin/(authed)/auth/page.tsx](../app/admin/(authed)/auth/page.tsx) | unknown |
 | `/admin/(authed)/blog` | [app/admin/(authed)/blog/page.tsx](../app/admin/(authed)/blog/page.tsx) | 2026-05-20 |
 | `/admin/(authed)/blog/posts` | [app/admin/(authed)/blog/posts/page.tsx](../app/admin/(authed)/blog/posts/page.tsx) | 2026-05-21 |
 | `/admin/(authed)/blog/posts/[id]` | [app/admin/(authed)/blog/posts/[id]/page.tsx](../app/admin/(authed)/blog/posts/[id]/page.tsx) | 2026-05-21 |
@@ -31,8 +32,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/admin/(authed)/prompts` | [app/admin/(authed)/prompts/page.tsx](../app/admin/(authed)/prompts/page.tsx) | 2026-05-17 |
 | `/admin/(authed)/prompts/[slug]` | [app/admin/(authed)/prompts/[slug]/page.tsx](../app/admin/(authed)/prompts/[slug]/page.tsx) | 2026-05-17 |
 | `/admin/(authed)/site` | [app/admin/(authed)/site/page.tsx](../app/admin/(authed)/site/page.tsx) | 2026-05-18 |
-| `/admin/(authed)/users` | [app/admin/(authed)/users/page.tsx](../app/admin/(authed)/users/page.tsx) | unknown |
-| `/admin/(authed)/users/[id]` | [app/admin/(authed)/users/[id]/page.tsx](../app/admin/(authed)/users/[id]/page.tsx) | unknown |
+| `/admin/(authed)/users` | [app/admin/(authed)/users/page.tsx](../app/admin/(authed)/users/page.tsx) | 2026-05-26 |
+| `/admin/(authed)/users/[id]` | [app/admin/(authed)/users/[id]/page.tsx](../app/admin/(authed)/users/[id]/page.tsx) | 2026-05-26 |
 | `/admin/blog/posts/[id]/preview` | [app/admin/blog/posts/[id]/preview/page.tsx](../app/admin/blog/posts/[id]/preview/page.tsx) | 2026-05-24 |
 | `/admin/login` | [app/admin/login/page.tsx](../app/admin/login/page.tsx) | 2026-05-15 |
 | `/ai-readiness-assessment` | [app/ai-readiness-assessment/page.tsx](../app/ai-readiness-assessment/page.tsx) | 2026-05-15 |
@@ -50,10 +51,11 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/ai-readiness/report/[sessionId]` | [app/tools/ai-readiness/report/[sessionId]/page.tsx](../app/tools/ai-readiness/report/[sessionId]/page.tsx) | 2026-05-13 |
 | `/tools/ai-readiness/share/[token]` | [app/tools/ai-readiness/share/[token]/page.tsx](../app/tools/ai-readiness/share/[token]/page.tsx) | 2026-05-13 |
 
-## API endpoints (63)
+## API endpoints (64)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
+| `/api/admin/auth-settings` | [app/api/admin/auth-settings/route.ts](../app/api/admin/auth-settings/route.ts) | unknown |
 | `/api/admin/google-oauth/cb` | [app/api/admin/google-oauth/cb/route.ts](../app/api/admin/google-oauth/cb/route.ts) | 2026-05-17 |
 | `/api/admin/google-oauth/disconnect` | [app/api/admin/google-oauth/disconnect/route.ts](../app/api/admin/google-oauth/disconnect/route.ts) | 2026-05-22 |
 | `/api/admin/google-oauth/start` | [app/api/admin/google-oauth/start/route.ts](../app/api/admin/google-oauth/start/route.ts) | 2026-05-15 |
@@ -84,9 +86,9 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/settings/diagnostic-content` | [app/api/admin/settings/diagnostic-content/route.ts](../app/api/admin/settings/diagnostic-content/route.ts) | 2026-05-15 |
 | `/api/admin/settings/diagnostic-prompt` | [app/api/admin/settings/diagnostic-prompt/route.ts](../app/api/admin/settings/diagnostic-prompt/route.ts) | 2026-05-15 |
 | `/api/admin/settings/site` | [app/api/admin/settings/site/route.ts](../app/api/admin/settings/site/route.ts) | 2026-05-08 |
-| `/api/admin/users` | [app/api/admin/users/route.ts](../app/api/admin/users/route.ts) | unknown |
-| `/api/admin/users/[id]/active` | [app/api/admin/users/[id]/active/route.ts](../app/api/admin/users/[id]/active/route.ts) | unknown |
-| `/api/admin/users/[id]/role` | [app/api/admin/users/[id]/role/route.ts](../app/api/admin/users/[id]/role/route.ts) | unknown |
+| `/api/admin/users` | [app/api/admin/users/route.ts](../app/api/admin/users/route.ts) | 2026-05-26 |
+| `/api/admin/users/[id]/active` | [app/api/admin/users/[id]/active/route.ts](../app/api/admin/users/[id]/active/route.ts) | 2026-05-26 |
+| `/api/admin/users/[id]/role` | [app/api/admin/users/[id]/role/route.ts](../app/api/admin/users/[id]/role/route.ts) | 2026-05-26 |
 | `/api/auth/email-change/confirm` | [app/api/auth/email-change/confirm/route.ts](../app/api/auth/email-change/confirm/route.ts) | 2026-05-25 |
 | `/api/auth/email-change/request` | [app/api/auth/email-change/request/route.ts](../app/api/auth/email-change/request/route.ts) | 2026-05-25 |
 | `/api/auth/google/callback` | [app/api/auth/google/callback/route.ts](../app/api/auth/google/callback/route.ts) | 2026-05-26 |

@@ -1,27 +1,68 @@
 import "server-only";
+import { getAuthSettings, getTurnstileSecretPlain } from "./settings";
 
 // Cloudflare Turnstile server-side verification.
 //
-// Feature-flagged via env for T6 — flip ON by setting:
-//   TURNSTILE_ENABLED=true
-//   TURNSTILE_SECRET_KEY=<from Cloudflare dashboard>
+// T8 — config is DB-first (auth_setting) with env-var fallback. Admins
+// flip the toggle + paste the secret in /admin/auth; the helper reads
+// from DB on every requireTurnstile() call. If the DB row is unset, the
+// helper falls back to env vars (TURNSTILE_ENABLED, TURNSTILE_SECRET_KEY)
+// so the T6 env-only path keeps working through the transition.
 //
-// (TURNSTILE_SITE_KEY lives in the future T8 admin UI / a NEXT_PUBLIC_
-// env var so the frontend widget can render with it.)
+// Resolution order:
+//   1. auth_setting.turnstile_enabled true + secret available (DB or env)
+//        → enabled, verify with the DB secret if present else env
+//   2. env TURNSTILE_ENABLED=true + TURNSTILE_SECRET_KEY set
+//        → enabled, verify with env secret
+//   3. else
+//        → bypassed (no Cloudflare round-trip, no token required)
 //
-// When T8 ships the admin UI, this helper will switch to a DB-first /
-// env-fallback pattern reading auth_setting (matches lib/resend.ts shape).
-// For T6 we keep it env-only — admin UI doesn't exist yet to write the
-// DB rows, so reading the DB would always fall through anyway.
-//
-// Default posture: OFF. Routes call `requireTurnstile` and it returns
-// `{ ok: true }` when the feature flag is unset — no Turnstile token
-// required, no Cloudflare round-trip. This matches plan §9: "Default
-// turnstile_enabled = false. Plumbed end-to-end so flipping the toggle
-// is the only step needed to activate."
+// Default posture: OFF. Flipping the admin toggle is the only step
+// needed to activate (assuming a secret is also stored).
 
 const VERIFY_ENDPOINT =
   "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+
+interface EffectiveTurnstileConfig {
+  enabled: boolean;
+  /** Plaintext secret, or null if unavailable. */
+  secret: string | null;
+}
+
+/**
+ * Resolve current Turnstile config from DB first, env fallback. Used
+ * internally by isTurnstileEnabled + verify + requireTurnstile so all
+ * three see the same effective state.
+ */
+async function getEffectiveTurnstileConfig(): Promise<EffectiveTurnstileConfig> {
+  // 1. Try DB.
+  try {
+    const settings = await getAuthSettings();
+    if (settings.turnstileEnabled) {
+      const dbSecret = settings.turnstileHasSecret
+        ? await getTurnstileSecretPlain()
+        : null;
+      const envSecret = process.env.TURNSTILE_SECRET_KEY ?? null;
+      const secret = dbSecret || envSecret || null;
+      return { enabled: secret !== null, secret };
+    }
+  } catch (err) {
+    // DB unreachable → silently fall through to env path.
+    console.error(
+      "[auth/turnstile] auth_setting read failed; falling back to env:",
+      err instanceof Error ? err.message : String(err),
+    );
+  }
+  // 2. Env fallback.
+  const envEnabled =
+    process.env.TURNSTILE_ENABLED === "true" ||
+    process.env.TURNSTILE_ENABLED === "1";
+  const envSecret = process.env.TURNSTILE_SECRET_KEY ?? null;
+  if (envEnabled && envSecret) {
+    return { enabled: true, secret: envSecret };
+  }
+  return { enabled: false, secret: null };
+}
 
 export interface TurnstileVerifyResult {
   /** True if the token verifies OR the feature is disabled. */
@@ -33,30 +74,34 @@ export interface TurnstileVerifyResult {
 }
 
 /**
- * Returns true if Turnstile verification is configured + active. False
- * if either the enable flag is missing OR the secret key is missing.
- * Routes call this only when they need to render the frontend widget
- * differently (e.g. show or hide the Turnstile challenge); the verify
- * step uses `requireTurnstile` which calls this internally.
+ * Returns true if Turnstile verification is configured + active.
+ * Reads the effective config from DB (auth_setting) with env fallback.
  */
-export function isTurnstileEnabled(): boolean {
-  const enabled = process.env.TURNSTILE_ENABLED;
-  const secret = process.env.TURNSTILE_SECRET_KEY;
-  if (!secret || secret.length === 0) return false;
-  if (enabled !== "true" && enabled !== "1") return false;
-  return true;
+export async function isTurnstileEnabled(): Promise<boolean> {
+  const config = await getEffectiveTurnstileConfig();
+  return config.enabled;
 }
 
 /**
  * Verify a Turnstile token against Cloudflare. Used by `requireTurnstile`
  * internally; exported for use by the future T8 admin "test this key"
  * action. Returns a structured result — never throws.
+ *
+ * If a `secret` arg is provided, uses it directly (lets the admin
+ * "test this secret" UI verify against a value the user just pasted
+ * before saving). Otherwise resolves from DB/env.
  */
 export async function verifyTurnstileToken(opts: {
   token: string;
   remoteIp?: string | null;
+  /** Optional override. When unset, resolves from DB/env. */
+  secret?: string;
 }): Promise<TurnstileVerifyResult> {
-  const secret = process.env.TURNSTILE_SECRET_KEY;
+  let secret = opts.secret;
+  if (!secret) {
+    const config = await getEffectiveTurnstileConfig();
+    secret = config.secret ?? undefined;
+  }
   if (!secret) {
     return { ok: false, errorCodes: ["missing-secret"], bypassed: false };
   }
@@ -141,11 +186,13 @@ export async function requireTurnstile(opts: {
   token?: string | null;
   remoteIp?: string | null;
 }): Promise<TurnstileVerifyResult> {
-  if (!isTurnstileEnabled()) {
+  const config = await getEffectiveTurnstileConfig();
+  if (!config.enabled) {
     return { ok: true, errorCodes: [], bypassed: true };
   }
   return verifyTurnstileToken({
     token: opts.token ?? "",
     remoteIp: opts.remoteIp ?? null,
+    secret: config.secret ?? undefined,
   });
 }
