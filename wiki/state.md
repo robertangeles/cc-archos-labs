@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-25T23:14:08.137Z
+generated: 2026-05-25T23:40:50.591Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -9,7 +9,7 @@ Auto-generated snapshot of what is currently shipped. **Source of truth for ship
 
 Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `app/` or `components/` to fire the pre-commit hook.
 
-## Routes (34)
+## Routes (36)
 
 | Route | File | Last shipped |
 |-------|------|--------------|
@@ -31,6 +31,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/admin/(authed)/prompts` | [app/admin/(authed)/prompts/page.tsx](../app/admin/(authed)/prompts/page.tsx) | 2026-05-17 |
 | `/admin/(authed)/prompts/[slug]` | [app/admin/(authed)/prompts/[slug]/page.tsx](../app/admin/(authed)/prompts/[slug]/page.tsx) | 2026-05-17 |
 | `/admin/(authed)/site` | [app/admin/(authed)/site/page.tsx](../app/admin/(authed)/site/page.tsx) | 2026-05-18 |
+| `/admin/(authed)/users` | [app/admin/(authed)/users/page.tsx](../app/admin/(authed)/users/page.tsx) | unknown |
+| `/admin/(authed)/users/[id]` | [app/admin/(authed)/users/[id]/page.tsx](../app/admin/(authed)/users/[id]/page.tsx) | unknown |
 | `/admin/blog/posts/[id]/preview` | [app/admin/blog/posts/[id]/preview/page.tsx](../app/admin/blog/posts/[id]/preview/page.tsx) | 2026-05-24 |
 | `/admin/login` | [app/admin/login/page.tsx](../app/admin/login/page.tsx) | 2026-05-15 |
 | `/ai-readiness-assessment` | [app/ai-readiness-assessment/page.tsx](../app/ai-readiness-assessment/page.tsx) | 2026-05-15 |
@@ -48,7 +50,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/ai-readiness/report/[sessionId]` | [app/tools/ai-readiness/report/[sessionId]/page.tsx](../app/tools/ai-readiness/report/[sessionId]/page.tsx) | 2026-05-13 |
 | `/tools/ai-readiness/share/[token]` | [app/tools/ai-readiness/share/[token]/page.tsx](../app/tools/ai-readiness/share/[token]/page.tsx) | 2026-05-13 |
 
-## API endpoints (60)
+## API endpoints (63)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -82,6 +84,9 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/settings/diagnostic-content` | [app/api/admin/settings/diagnostic-content/route.ts](../app/api/admin/settings/diagnostic-content/route.ts) | 2026-05-15 |
 | `/api/admin/settings/diagnostic-prompt` | [app/api/admin/settings/diagnostic-prompt/route.ts](../app/api/admin/settings/diagnostic-prompt/route.ts) | 2026-05-15 |
 | `/api/admin/settings/site` | [app/api/admin/settings/site/route.ts](../app/api/admin/settings/site/route.ts) | 2026-05-08 |
+| `/api/admin/users` | [app/api/admin/users/route.ts](../app/api/admin/users/route.ts) | unknown |
+| `/api/admin/users/[id]/active` | [app/api/admin/users/[id]/active/route.ts](../app/api/admin/users/[id]/active/route.ts) | unknown |
+| `/api/admin/users/[id]/role` | [app/api/admin/users/[id]/role/route.ts](../app/api/admin/users/[id]/role/route.ts) | unknown |
 | `/api/auth/email-change/confirm` | [app/api/auth/email-change/confirm/route.ts](../app/api/auth/email-change/confirm/route.ts) | 2026-05-25 |
 | `/api/auth/email-change/request` | [app/api/auth/email-change/request/route.ts](../app/api/auth/email-change/request/route.ts) | 2026-05-25 |
 | `/api/auth/google/callback` | [app/api/auth/google/callback/route.ts](../app/api/auth/google/callback/route.ts) | 2026-05-26 |
@@ -90,11 +95,11 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/auth/lead/logout` | [app/api/auth/lead/logout/route.ts](../app/api/auth/lead/logout/route.ts) | 2026-05-13 |
 | `/api/auth/lead/request` | [app/api/auth/lead/request/route.ts](../app/api/auth/lead/request/route.ts) | 2026-05-15 |
 | `/api/auth/lead/verify` | [app/api/auth/lead/verify/route.ts](../app/api/auth/lead/verify/route.ts) | 2026-05-13 |
-| `/api/auth/login` | [app/api/auth/login/route.ts](../app/api/auth/login/route.ts) | 2026-05-25 |
+| `/api/auth/login` | [app/api/auth/login/route.ts](../app/api/auth/login/route.ts) | 2026-05-26 |
 | `/api/auth/logout` | [app/api/auth/logout/route.ts](../app/api/auth/logout/route.ts) | 2026-05-25 |
 | `/api/auth/password-reset/confirm` | [app/api/auth/password-reset/confirm/route.ts](../app/api/auth/password-reset/confirm/route.ts) | 2026-05-25 |
-| `/api/auth/password-reset/request` | [app/api/auth/password-reset/request/route.ts](../app/api/auth/password-reset/request/route.ts) | 2026-05-25 |
-| `/api/auth/register` | [app/api/auth/register/route.ts](../app/api/auth/register/route.ts) | 2026-05-25 |
+| `/api/auth/password-reset/request` | [app/api/auth/password-reset/request/route.ts](../app/api/auth/password-reset/request/route.ts) | 2026-05-26 |
+| `/api/auth/register` | [app/api/auth/register/route.ts](../app/api/auth/register/route.ts) | 2026-05-26 |
 | `/api/auth/verify-email` | [app/api/auth/verify-email/route.ts](../app/api/auth/verify-email/route.ts) | 2026-05-25 |
 | `/api/booking/[slug]/availability` | [app/api/booking/[slug]/availability/route.ts](../app/api/booking/[slug]/availability/route.ts) | 2026-05-17 |
 | `/api/booking/[slug]/create` | [app/api/booking/[slug]/create/route.ts](../app/api/booking/[slug]/create/route.ts) | 2026-05-17 |
