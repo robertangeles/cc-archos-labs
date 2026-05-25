@@ -67,6 +67,12 @@ vi.mock("../../../../lib/email-templates", () => ({
 vi.mock("../../../../lib/public-origin", () => ({
   getPublicOrigin: () => "https://archoslabs.xyz",
 }));
+// Hermetic site URL so CSRF Origin check is deterministic. Without this,
+// Vitest 4 auto-loads .env.local which sets NEXT_PUBLIC_SITE_URL to
+// localhost:3007 in dev, causing every same-origin test to fail.
+vi.mock("../../../../lib/site-config", () => ({
+  getSiteUrl: () => "https://archoslabs.xyz",
+}));
 vi.mock("../../../../lib/rate-limit", () => ({
   clientIpFromRequest: () => "203.0.113.1",
   rateLimit: () => ({ ok: true, remaining: 99, resetAt: 0 }),
