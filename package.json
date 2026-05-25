@@ -27,6 +27,7 @@
     "db:migrate": "node --env-file=.env.local scripts/db-apply.mjs",
     "db:studio": "node --env-file=.env.local --no-warnings ./node_modules/drizzle-kit/bin.cjs studio",
     "db:seed-diagnostic-content": "node --env-file=.env.local scripts/seed-diagnostic-content.mjs",
+    "db:backfill-users-from-leads": "node --env-file=.env.local scripts/backfill-users-from-leads.mjs",
     "wiki:state": "node scripts/wiki-state.mjs",
     "wiki:search": "node scripts/wiki-search.mjs",
     "wiki:graph": "node scripts/wiki-graph.mjs",
