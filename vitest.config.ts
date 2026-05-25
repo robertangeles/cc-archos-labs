@@ -9,6 +9,10 @@ export default defineConfig({
       "components/**/*.test.{ts,tsx}",
       "tests/**/*.test.ts",
       "scripts/migrate-wp/**/*.test.ts",
+      // Route handler tests sit next to the route.ts they cover. Used
+      // by the auth-roles port (lib/auth/* services are too thin to
+      // unit-test in isolation; the integration is the contract).
+      "app/**/*.test.ts",
     ],
     // Eval suites under tests/eval/ make LIVE Claude calls and incur API
     // cost. They run via `pnpm eval` (a separate vitest config), never
