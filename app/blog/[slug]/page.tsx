@@ -46,6 +46,12 @@ export async function generateMetadata({
   if (!post) {
     return buildPageMetadata({ title: "Post not found", path: `/blog/${slug}` });
   }
+  // Per-post OG image: use the featured image from post.og_image_path when
+  // present + not soft-deleted. Falls through to the site-wide default
+  // inside buildPageMetadata when undefined. Width/height come from the
+  // image-pipeline upload metadata (NULL on rows uploaded before that
+  // pipeline backfilled — omit so scrapers infer).
+  const usePostImage = post.ogImagePath && !post.ogImageDeletedAt;
   return buildPageMetadata({
     title: post.seoTitle ?? post.title,
     description: post.seoDescription ?? post.excerpt ?? undefined,
@@ -53,6 +59,10 @@ export async function generateMetadata({
     ogType: "article",
     lastUpdatedISO: (post.lastReviewedAt ?? post.publishedAt).toISOString(),
     articleSection: post.categoryName ?? undefined,
+    image: usePostImage ? post.ogImagePath ?? undefined : undefined,
+    imageAlt: usePostImage ? post.ogImageAlt ?? undefined : undefined,
+    imageWidth: usePostImage ? post.ogImageWidth ?? undefined : undefined,
+    imageHeight: usePostImage ? post.ogImageHeight ?? undefined : undefined,
   });
 }
 
