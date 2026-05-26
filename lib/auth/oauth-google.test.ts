@@ -5,11 +5,15 @@ const {
   oauthInsertMock,
   usersSelectMock,
   usersInsertMock,
+  getAuthSettingsMock,
+  getGoogleClientSecretPlainMock,
 } = vi.hoisted(() => ({
   oauthSelectMock: vi.fn(),
   oauthInsertMock: vi.fn(),
   usersSelectMock: vi.fn(),
   usersInsertMock: vi.fn(),
+  getAuthSettingsMock: vi.fn(),
+  getGoogleClientSecretPlainMock: vi.fn(),
 }));
 
 vi.mock("../db", () => ({
@@ -41,6 +45,14 @@ vi.mock("../db/schema", () => ({
   oauthAccount: { __tag: "oauth_account" },
 }));
 
+// settings.ts is consulted DB-first by getGoogleSigninConfig (T8b).
+// Default mock: feature disabled with no DB credentials → helper falls
+// through to env, matching the T5 test setup below.
+vi.mock("./settings", () => ({
+  getAuthSettings: getAuthSettingsMock,
+  getGoogleClientSecretPlain: getGoogleClientSecretPlainMock,
+}));
+
 // Stub issueSession — exercised separately in session integration; this
 // module only needs the type signature.
 vi.mock("./session", () => ({
@@ -69,6 +81,17 @@ beforeEach(() => {
   oauthInsertMock.mockResolvedValue(undefined);
   usersSelectMock.mockResolvedValue([]);
   usersInsertMock.mockResolvedValue([{ id: "new-user-1" }]);
+  // Default DB view: Google sign-in OFF in DB → fall through to env.
+  getAuthSettingsMock.mockResolvedValue({
+    turnstileEnabled: false,
+    turnstileSiteKey: "",
+    turnstileHasSecret: false,
+    publicSignupEnabled: false,
+    googleOauthEnabled: false,
+    googleClientId: "",
+    googleHasClientSecret: false,
+  });
+  getGoogleClientSecretPlainMock.mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -77,8 +100,8 @@ afterEach(() => {
 });
 
 describe("getGoogleSigninConfig", () => {
-  it("returns config when env vars are present", () => {
-    const c = getGoogleSigninConfig("https://archoslabs.xyz/cb");
+  it("returns env config when DB is disabled and env vars are present", async () => {
+    const c = await getGoogleSigninConfig("https://archoslabs.xyz/cb");
     expect(c).toEqual({
       clientId: "test-client-id",
       clientSecret: "test-client-secret",
@@ -86,18 +109,59 @@ describe("getGoogleSigninConfig", () => {
     });
   });
 
-  it("throws GoogleSigninNotConfiguredError when client id missing", () => {
+  it("throws GoogleSigninNotConfiguredError when client id missing", async () => {
     vi.stubEnv("GOOGLE_SIGNIN_CLIENT_ID", "");
-    expect(() => getGoogleSigninConfig("x")).toThrow(
+    await expect(getGoogleSigninConfig("x")).rejects.toThrow(
       GoogleSigninNotConfiguredError,
     );
   });
 
-  it("throws GoogleSigninNotConfiguredError when client secret missing", () => {
+  it("throws GoogleSigninNotConfiguredError when client secret missing", async () => {
     vi.stubEnv("GOOGLE_SIGNIN_CLIENT_SECRET", "");
-    expect(() => getGoogleSigninConfig("x")).toThrow(
+    await expect(getGoogleSigninConfig("x")).rejects.toThrow(
       GoogleSigninNotConfiguredError,
     );
+  });
+
+  it("uses DB values when DB says enabled, even if env also set (DB wins)", async () => {
+    getAuthSettingsMock.mockResolvedValueOnce({
+      turnstileEnabled: false,
+      turnstileSiteKey: "",
+      turnstileHasSecret: false,
+      publicSignupEnabled: false,
+      googleOauthEnabled: true,
+      googleClientId: "db-client-id",
+      googleHasClientSecret: true,
+    });
+    getGoogleClientSecretPlainMock.mockResolvedValueOnce("db-client-secret");
+    const c = await getGoogleSigninConfig("https://archoslabs.xyz/cb");
+    expect(c).toEqual({
+      clientId: "db-client-id",
+      clientSecret: "db-client-secret",
+      redirectUri: "https://archoslabs.xyz/cb",
+    });
+  });
+
+  it("falls back to env when DB enabled but client id empty", async () => {
+    getAuthSettingsMock.mockResolvedValueOnce({
+      turnstileEnabled: false,
+      turnstileSiteKey: "",
+      turnstileHasSecret: false,
+      publicSignupEnabled: false,
+      googleOauthEnabled: true,
+      googleClientId: "", // missing
+      googleHasClientSecret: true,
+    });
+    const c = await getGoogleSigninConfig("https://archoslabs.xyz/cb");
+    expect(c.clientId).toBe("test-client-id");
+  });
+
+  it("falls back to env when DB read throws", async () => {
+    getAuthSettingsMock.mockRejectedValueOnce(new Error("db down"));
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const c = await getGoogleSigninConfig("https://archoslabs.xyz/cb");
+    expect(c.clientId).toBe("test-client-id");
+    expect(errSpy).toHaveBeenCalled();
   });
 });
 

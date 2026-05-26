@@ -34,21 +34,6 @@ export default async function AuthSettingsAdminPage() {
       </header>
 
       <AuthSettingsForm initial={initial} />
-
-      <section className="space-y-2 rounded-lg border border-hairline bg-surface-1/30 p-5">
-        <h2 className="text-base font-medium text-ink">Google sign-in</h2>
-        <p className="text-sm text-ink-subtle">
-          Google OAuth is currently configured via env vars (
-          <code className="rounded bg-canvas px-1 py-0.5 text-xs">
-            GOOGLE_SIGNIN_CLIENT_ID
-          </code>{" "}
-          /{" "}
-          <code className="rounded bg-canvas px-1 py-0.5 text-xs">
-            GOOGLE_SIGNIN_CLIENT_SECRET
-          </code>
-          ). UI control will move into this page in a follow-up PR.
-        </p>
-      </section>
     </div>
   );
 }

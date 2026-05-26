@@ -28,6 +28,9 @@ const PatchSchema = z.object({
   turnstileSiteKey: z.union([z.string().max(256), z.null()]).optional(),
   turnstileSecretKey: z.union([z.string().max(2048), z.null()]).optional(),
   publicSignupEnabled: z.boolean().optional(),
+  googleOauthEnabled: z.boolean().optional(),
+  googleClientId: z.union([z.string().max(512), z.null()]).optional(),
+  googleClientSecret: z.union([z.string().max(2048), z.null()]).optional(),
 });
 
 export async function PATCH(request: Request): Promise<Response> {
@@ -49,24 +52,52 @@ export async function PATCH(request: Request): Promise<Response> {
     );
   }
 
-  // Hard guard: if the admin tries to enable Turnstile, we must have a
-  // secret available (either in this PATCH or already stored). Refuse
-  // otherwise — saves them from a broken "enabled but won't verify"
-  // state that silently rejects every register/login attempt.
-  if (parsed.data.turnstileEnabled === true) {
+  // Hard guards: refuse "enable without credentials" for both Turnstile
+  // and Google OAuth. Otherwise the admin lands a broken "enabled but
+  // can't verify" state that silently rejects every public auth attempt.
+  if (
+    parsed.data.turnstileEnabled === true ||
+    parsed.data.googleOauthEnabled === true
+  ) {
     const current = await getAuthSettings();
-    const willHaveSecret =
-      typeof parsed.data.turnstileSecretKey === "string" &&
-      parsed.data.turnstileSecretKey.length > 0;
-    if (!willHaveSecret && !current.turnstileHasSecret) {
-      return Response.json(
-        {
-          ok: false,
-          error:
-            "Cannot enable Turnstile without a secret key. Paste your Cloudflare secret first.",
-        },
-        { status: 400 },
-      );
+
+    if (parsed.data.turnstileEnabled === true) {
+      const willHaveSecret =
+        typeof parsed.data.turnstileSecretKey === "string" &&
+        parsed.data.turnstileSecretKey.length > 0;
+      if (!willHaveSecret && !current.turnstileHasSecret) {
+        return Response.json(
+          {
+            ok: false,
+            error:
+              "Cannot enable Turnstile without a secret key. Paste your Cloudflare secret first.",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (parsed.data.googleOauthEnabled === true) {
+      const willHaveClientId =
+        (typeof parsed.data.googleClientId === "string" &&
+          parsed.data.googleClientId.length > 0) ||
+        (parsed.data.googleClientId === undefined &&
+          current.googleClientId.length > 0);
+      const willHaveSecret =
+        (typeof parsed.data.googleClientSecret === "string" &&
+          parsed.data.googleClientSecret.length > 0) ||
+        (parsed.data.googleClientSecret === undefined &&
+          current.googleHasClientSecret);
+      if (!willHaveClientId || !willHaveSecret) {
+        return Response.json(
+          {
+            ok: false,
+            error:
+              "Cannot enable Google sign-in without both client ID and client secret. Paste your Google Cloud OAuth credentials first.",
+          },
+          { status: 400 },
+        );
+      }
     }
   }
 

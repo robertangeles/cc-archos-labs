@@ -3,6 +3,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "../db";
 import { oauthAccount, users } from "../db/schema";
 import { issueSession } from "./session";
+import { getAuthSettings, getGoogleClientSecretPlain } from "./settings";
 
 // Google OAuth 2.0 helpers for SIGN-IN. Distinct from the existing
 // booking Calendar OAuth (lib/google-oauth.ts):
@@ -19,9 +20,18 @@ import { issueSession } from "./session";
 // separate Web Application credentials in Google Cloud Console with
 // different authorized redirect URIs.
 //
-// Config source (T5): env vars only. T8 lands the admin UI for the
-// auth_setting DB table; this helper will switch to a DB-first /
-// env-fallback pattern at that point (matches lib/resend.ts shape).
+// Config source: DB-first (auth_setting via admin UI) with env-var
+// fallback (GOOGLE_SIGNIN_CLIENT_ID + GOOGLE_SIGNIN_CLIENT_SECRET).
+// Admin can flip Google sign-in at /admin/auth (T8b); env vars remain
+// the pre-admin-UI deployment path and the disaster-recovery override.
+//
+// Resolution order:
+//   1. auth_setting.google_oauth_enabled true + DB has client id +
+//      DB has decryptable client secret → use DB values
+//   2. env GOOGLE_SIGNIN_CLIENT_ID + GOOGLE_SIGNIN_CLIENT_SECRET set
+//      → use env values
+//   3. else → throw GoogleSigninNotConfiguredError (route returns 404
+//      so the feature looks absent rather than misconfigured)
 
 const AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
@@ -49,12 +59,44 @@ export class GoogleSigninNotConfiguredError extends Error {
 }
 
 /**
- * Read config from env. Throws GoogleSigninNotConfiguredError if either
- * client id or secret is missing — caller (the /api/auth/google/start
+ * Read config DB-first with env fallback. Throws
+ * GoogleSigninNotConfiguredError if NEITHER path yields a complete
+ * (clientId + clientSecret) pair — caller (the /api/auth/google/start
  * route) catches and returns 404 so the absence of configuration looks
  * the same as the feature being disabled.
+ *
+ * Why async: the DB path requires reading the auth_setting table. Sync
+ * env-only is no longer sufficient now that the admin UI can override.
  */
-export function getGoogleSigninConfig(redirectUri: string): OAuthSigninConfig {
+export async function getGoogleSigninConfig(
+  redirectUri: string,
+): Promise<OAuthSigninConfig> {
+  // 1. DB path. A DB read that throws (DB down) silently falls through
+  // to env so the auth path isn't denied-of-service'd by a DB hiccup.
+  try {
+    const settings = await getAuthSettings();
+    if (
+      settings.googleOauthEnabled &&
+      settings.googleClientId.length > 0 &&
+      settings.googleHasClientSecret
+    ) {
+      const dbSecret = await getGoogleClientSecretPlain();
+      if (dbSecret) {
+        return {
+          clientId: settings.googleClientId,
+          clientSecret: dbSecret,
+          redirectUri,
+        };
+      }
+    }
+  } catch (err) {
+    console.error(
+      "[auth/oauth-google] auth_setting read failed; falling back to env:",
+      err instanceof Error ? err.message : String(err),
+    );
+  }
+
+  // 2. Env fallback.
   const clientId = process.env.GOOGLE_SIGNIN_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_SIGNIN_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
