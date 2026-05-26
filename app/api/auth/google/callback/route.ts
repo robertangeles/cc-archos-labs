@@ -77,7 +77,7 @@ export async function GET(request: Request) {
 
   let config;
   try {
-    config = getGoogleSigninConfig(redirectUri);
+    config = await getGoogleSigninConfig(redirectUri);
   } catch (err) {
     if (err instanceof GoogleSigninNotConfiguredError) {
       return new Response("Not found", { status: 404 });

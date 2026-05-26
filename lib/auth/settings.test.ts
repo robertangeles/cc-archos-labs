@@ -70,19 +70,22 @@ afterEach(() => {
 });
 
 describe("getAuthSettings — defaults when no rows exist", () => {
-  it("returns disabled defaults + no secret", async () => {
+  it("returns disabled defaults + no secret across all fields", async () => {
     const r = await getAuthSettings();
     expect(r).toEqual({
       turnstileEnabled: false,
       turnstileSiteKey: "",
       turnstileHasSecret: false,
       publicSignupEnabled: false,
+      googleOauthEnabled: false,
+      googleClientId: "",
+      googleHasClientSecret: false,
     });
   });
 });
 
 describe("getAuthSettings — reads stored rows", () => {
-  it("parses bool / string / encrypted-presence shapes", async () => {
+  it("parses bool / string / encrypted-presence shapes for all sections", async () => {
     selectMock.mockResolvedValueOnce([
       { key: "turnstile_enabled", value: { enabled: true } },
       { key: "turnstile_site_key", value: { value: "0xSITE" } },
@@ -91,6 +94,12 @@ describe("getAuthSettings — reads stored rows", () => {
         value: { ciphertext: "anything-non-empty" },
       },
       { key: "public_signup_enabled", value: { enabled: true } },
+      { key: "google_oauth_enabled", value: { enabled: true } },
+      { key: "google_client_id", value: { value: "cid.googleusercontent" } },
+      {
+        key: "google_client_secret_encrypted",
+        value: { ciphertext: "non-empty-ct" },
+      },
     ]);
     const r = await getAuthSettings();
     expect(r).toEqual({
@@ -98,6 +107,9 @@ describe("getAuthSettings — reads stored rows", () => {
       turnstileSiteKey: "0xSITE",
       turnstileHasSecret: true,
       publicSignupEnabled: true,
+      googleOauthEnabled: true,
+      googleClientId: "cid.googleusercontent",
+      googleHasClientSecret: true,
     });
   });
 
@@ -169,6 +181,67 @@ describe("updateAuthSettings", () => {
   it("clears site key on explicit null", async () => {
     await updateAuthSettings({ turnstileSiteKey: null });
     expect(storedRowsRef.rows[0].value).toEqual({ value: "" });
+  });
+});
+
+describe("updateAuthSettings — Google OAuth fields (T8b)", () => {
+  it("writes google enable toggle + client id", async () => {
+    await updateAuthSettings({
+      googleOauthEnabled: true,
+      googleClientId: "cid.googleusercontent.com",
+    });
+    expect(storedRowsRef.rows).toEqual(
+      expect.arrayContaining([
+        { key: "google_oauth_enabled", value: { enabled: true } },
+        {
+          key: "google_client_id",
+          value: { value: "cid.googleusercontent.com" },
+        },
+      ]),
+    );
+  });
+
+  it("encrypts the Google client secret (never stored in plaintext)", async () => {
+    await updateAuthSettings({ googleClientSecret: "GOCSPX-raw-secret" });
+    const stored = storedRowsRef.rows.find(
+      (r) => r.key === "google_client_secret_encrypted",
+    );
+    expect(stored).toBeDefined();
+    const ct = (stored?.value as { ciphertext: string }).ciphertext;
+    expect(ct.length).toBeGreaterThan(20);
+    expect(ct).not.toContain("GOCSPX-raw-secret");
+  });
+
+  it("ignores empty string google client secret (no overwrite)", async () => {
+    await updateAuthSettings({ googleClientSecret: "" });
+    expect(insertExecMock).not.toHaveBeenCalled();
+  });
+
+  it("clears google client secret on null", async () => {
+    await updateAuthSettings({ googleClientSecret: null });
+    const stored = storedRowsRef.rows[0];
+    expect(stored.key).toBe("google_client_secret_encrypted");
+    expect(stored.value).toEqual({ ciphertext: "" });
+  });
+});
+
+describe("getGoogleClientSecretPlain — encryption round-trip", () => {
+  it("encrypts on write + decrypts on read", async () => {
+    await updateAuthSettings({ googleClientSecret: "GOCSPX-roundtrip-test" });
+    const stored = storedRowsRef.rows.find(
+      (r) => r.key === "google_client_secret_encrypted",
+    );
+    selectMock.mockResolvedValueOnce([
+      { key: stored?.key, value: stored?.value },
+    ]);
+    const { getGoogleClientSecretPlain } = await import("./settings");
+    const plaintext = await getGoogleClientSecretPlain();
+    expect(plaintext).toBe("GOCSPX-roundtrip-test");
+  });
+
+  it("returns null when no secret row exists", async () => {
+    const { getGoogleClientSecretPlain } = await import("./settings");
+    expect(await getGoogleClientSecretPlain()).toBeNull();
   });
 });
 

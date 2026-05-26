@@ -33,6 +33,11 @@ export function AuthSettingsForm({ initial }: Props) {
   const [publicSignupEnabled, setPublicSignupEnabled] = useState(
     initial.publicSignupEnabled,
   );
+  const [googleOauthEnabled, setGoogleOauthEnabled] = useState(
+    initial.googleOauthEnabled,
+  );
+  const [googleClientId, setGoogleClientId] = useState(initial.googleClientId);
+  const [googleClientSecret, setGoogleClientSecret] = useState("");
 
   const [status, setStatus] = useState<
     { kind: "idle" } | { kind: "saving" } | { kind: "saved" } | { kind: "error"; message: string }
@@ -47,12 +52,19 @@ export function AuthSettingsForm({ initial }: Props) {
     const patch: Record<string, unknown> = {
       turnstileEnabled,
       publicSignupEnabled,
+      googleOauthEnabled,
     };
     if (turnstileSiteKey !== initial.turnstileSiteKey) {
       patch.turnstileSiteKey = turnstileSiteKey;
     }
     if (turnstileSecretKey.length > 0) {
       patch.turnstileSecretKey = turnstileSecretKey;
+    }
+    if (googleClientId !== initial.googleClientId) {
+      patch.googleClientId = googleClientId;
+    }
+    if (googleClientSecret.length > 0) {
+      patch.googleClientSecret = googleClientSecret;
     }
 
     const res = await fetch("/api/admin/auth-settings", {
@@ -70,6 +82,7 @@ export function AuthSettingsForm({ initial }: Props) {
     }
     setStatus({ kind: "saved" });
     setTurnstileSecretKey("");
+    setGoogleClientSecret("");
     startTransition(() => router.refresh());
   }
 
@@ -87,6 +100,33 @@ export function AuthSettingsForm({ initial }: Props) {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ turnstileSecretKey: null }),
+    });
+    const json = (await res.json()) as { ok?: boolean; error?: string };
+    if (!res.ok || !json.ok) {
+      setStatus({
+        kind: "error",
+        message: json.error ?? "Could not clear secret.",
+      });
+      return;
+    }
+    setStatus({ kind: "saved" });
+    startTransition(() => router.refresh());
+  }
+
+  async function clearGoogleClientSecret() {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm(
+        "Clear the stored Google client secret? Google sign-in will need to be disabled or a new secret pasted before sign-ins will work.",
+      )
+    ) {
+      return;
+    }
+    setStatus({ kind: "saving" });
+    const res = await fetch("/api/admin/auth-settings", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ googleClientSecret: null }),
     });
     const json = (await res.json()) as { ok?: boolean; error?: string };
     if (!res.ok || !json.ok) {
@@ -166,6 +206,81 @@ export function AuthSettingsForm({ initial }: Props) {
             onChange={(e) => setTurnstileSecretKey(e.target.value)}
             placeholder={
               initial.turnstileHasSecret ? "•••••••••• (set)" : "0x4AAAAAAA…"
+            }
+            autoComplete="new-password"
+            className="w-full rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm text-ink focus:border-ink-subtle focus:outline-none"
+          />
+        </Field>
+      </section>
+
+      {/* Google OAuth section */}
+      <section className="space-y-4 rounded-lg border border-hairline p-5">
+        <header className="flex items-start justify-between gap-x-4">
+          <div>
+            <h2 className="text-base font-medium text-ink">Google sign-in</h2>
+            <p className="mt-1 text-sm text-ink-subtle">
+              Lets users sign in with their Google account. Create an OAuth 2.0
+              Web Application credential at{" "}
+              <a
+                href="https://console.cloud.google.com/apis/credentials"
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-ink"
+              >
+                Google Cloud Console
+              </a>
+              . Authorized redirect URI:{" "}
+              <code className="rounded bg-surface-1 px-1 py-0.5 text-xs">
+                /api/auth/google/callback
+              </code>{" "}
+              on this site.
+            </p>
+          </div>
+          <Toggle
+            label="Enabled"
+            checked={googleOauthEnabled}
+            onChange={setGoogleOauthEnabled}
+          />
+        </header>
+
+        <Field label="Client ID" hint="Public — emitted in the authorize URL.">
+          <input
+            type="text"
+            value={googleClientId}
+            onChange={(e) => setGoogleClientId(e.target.value)}
+            placeholder="123456789-…apps.googleusercontent.com"
+            className="w-full rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm text-ink focus:border-ink-subtle focus:outline-none"
+          />
+        </Field>
+
+        <Field
+          label="Client secret"
+          hint={
+            initial.googleHasClientSecret
+              ? "A secret is stored (encrypted). Paste a new one to replace, or use Clear."
+              : "Server-side secret. Used during the token-exchange step of the OAuth dance."
+          }
+          rightAction={
+            initial.googleHasClientSecret ? (
+              <button
+                type="button"
+                onClick={clearGoogleClientSecret}
+                disabled={isPending}
+                className="text-xs text-red-700 hover:underline disabled:opacity-40"
+              >
+                Clear
+              </button>
+            ) : null
+          }
+        >
+          <input
+            type="password"
+            value={googleClientSecret}
+            onChange={(e) => setGoogleClientSecret(e.target.value)}
+            placeholder={
+              initial.googleHasClientSecret
+                ? "•••••••••• (set)"
+                : "GOCSPX-…"
             }
             autoComplete="new-password"
             className="w-full rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm text-ink focus:border-ink-subtle focus:outline-none"

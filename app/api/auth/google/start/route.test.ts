@@ -17,6 +17,21 @@ vi.mock("../../../../../lib/rate-limit", () => ({
   clientIpFromRequest: () => "203.0.113.1",
   rateLimit: () => ({ ok: true, remaining: 99, resetAt: 0 }),
 }));
+// oauth-google reads auth_setting DB-first (T8b). Mock as default-disabled
+// so the helper falls through to env, matching the env-based test setup
+// below.
+vi.mock("../../../../../lib/auth/settings", () => ({
+  getAuthSettings: () => Promise.resolve({
+    turnstileEnabled: false,
+    turnstileSiteKey: "",
+    turnstileHasSecret: false,
+    publicSignupEnabled: false,
+    googleOauthEnabled: false,
+    googleClientId: "",
+    googleHasClientSecret: false,
+  }),
+  getGoogleClientSecretPlain: () => Promise.resolve(null),
+}));
 
 import { GET } from "./route";
 

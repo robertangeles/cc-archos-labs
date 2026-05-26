@@ -41,7 +41,7 @@ export async function GET(request: Request) {
 
   let config;
   try {
-    config = getGoogleSigninConfig(redirectUri);
+    config = await getGoogleSigninConfig(redirectUri);
   } catch (err) {
     if (err instanceof GoogleSigninNotConfiguredError) {
       // Don't leak that the feature exists in the codebase.

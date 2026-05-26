@@ -17,6 +17,9 @@ const DEFAULT_VIEW = {
   turnstileSiteKey: "",
   turnstileHasSecret: false,
   publicSignupEnabled: false,
+  googleOauthEnabled: false,
+  googleClientId: "",
+  googleHasClientSecret: false,
 };
 
 beforeEach(() => {
@@ -123,6 +126,75 @@ describe("PATCH /api/admin/auth-settings", () => {
     expect(r.status).toBe(200);
     expect(updateAuthSettingsMock).toHaveBeenCalledWith({
       publicSignupEnabled: true,
+    });
+  });
+
+  // T8b — Google OAuth guards
+  it("REFUSES googleOauthEnabled=true without credentials", async () => {
+    getAuthSettingsMock.mockResolvedValueOnce({
+      ...DEFAULT_VIEW,
+      googleClientId: "",
+      googleHasClientSecret: false,
+    });
+    const r = await PATCH(makeRequest({ googleOauthEnabled: true }));
+    expect(r.status).toBe(400);
+    const json = await r.json();
+    expect(json.error).toContain("client ID");
+    expect(updateAuthSettingsMock).not.toHaveBeenCalled();
+  });
+
+  it("REFUSES enable=true when only client id provided (no secret)", async () => {
+    getAuthSettingsMock.mockResolvedValueOnce({
+      ...DEFAULT_VIEW,
+      googleClientId: "",
+      googleHasClientSecret: false,
+    });
+    const r = await PATCH(
+      makeRequest({
+        googleOauthEnabled: true,
+        googleClientId: "cid",
+      }),
+    );
+    expect(r.status).toBe(400);
+    expect(updateAuthSettingsMock).not.toHaveBeenCalled();
+  });
+
+  it("ALLOWS enable=true when both client id + secret in same patch", async () => {
+    getAuthSettingsMock.mockResolvedValueOnce({
+      ...DEFAULT_VIEW,
+      googleClientId: "",
+      googleHasClientSecret: false,
+    });
+    const r = await PATCH(
+      makeRequest({
+        googleOauthEnabled: true,
+        googleClientId: "cid",
+        googleClientSecret: "GOCSPX-secret",
+      }),
+    );
+    expect(r.status).toBe(200);
+    expect(updateAuthSettingsMock).toHaveBeenCalledWith({
+      googleOauthEnabled: true,
+      googleClientId: "cid",
+      googleClientSecret: "GOCSPX-secret",
+    });
+  });
+
+  it("ALLOWS enable=true when client id + secret already stored", async () => {
+    getAuthSettingsMock.mockResolvedValueOnce({
+      ...DEFAULT_VIEW,
+      googleClientId: "existing-cid",
+      googleHasClientSecret: true,
+    });
+    const r = await PATCH(makeRequest({ googleOauthEnabled: true }));
+    expect(r.status).toBe(200);
+  });
+
+  it("clears google client secret on null", async () => {
+    const r = await PATCH(makeRequest({ googleClientSecret: null }));
+    expect(r.status).toBe(200);
+    expect(updateAuthSettingsMock).toHaveBeenCalledWith({
+      googleClientSecret: null,
     });
   });
 });

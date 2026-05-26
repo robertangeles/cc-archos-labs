@@ -44,6 +44,12 @@ export interface AuthSettingsView {
   turnstileHasSecret: boolean;
   /** Whether public sign-up is enabled. Default false. */
   publicSignupEnabled: boolean;
+  /** Whether Google sign-in is enabled. Default false. */
+  googleOauthEnabled: boolean;
+  /** Google OAuth client id (public, OK to render). Empty when unset. */
+  googleClientId: string;
+  /** Whether a Google client secret is configured. Never returns value. */
+  googleHasClientSecret: boolean;
 }
 
 export interface AuthSettingsPatch {
@@ -52,6 +58,9 @@ export interface AuthSettingsPatch {
   /** New secret value to store. Empty string ignored. null clears. */
   turnstileSecretKey?: string | null;
   publicSignupEnabled?: boolean;
+  googleOauthEnabled?: boolean;
+  googleClientId?: string | null;
+  googleClientSecret?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -106,7 +115,32 @@ export async function getAuthSettings(): Promise<AuthSettingsView> {
       rows.get(KEYS.TURNSTILE_SECRET_KEY),
     ),
     publicSignupEnabled: readBool(rows.get(KEYS.PUBLIC_SIGNUP_ENABLED)),
+    googleOauthEnabled: readBool(rows.get(KEYS.GOOGLE_OAUTH_ENABLED)),
+    googleClientId: readString(rows.get(KEYS.GOOGLE_CLIENT_ID)),
+    googleHasClientSecret: readEncryptedPresence(
+      rows.get(KEYS.GOOGLE_CLIENT_SECRET),
+    ),
   };
+}
+
+async function getEncryptedSecretPlain(
+  key: string,
+  label: string,
+): Promise<string | null> {
+  const rows = await loadAllRows();
+  const raw = rows.get(key);
+  if (!raw || typeof raw !== "object" || !("ciphertext" in raw)) return null;
+  const ct = (raw as { ciphertext?: unknown }).ciphertext;
+  if (typeof ct !== "string" || ct.length === 0) return null;
+  try {
+    return decrypt(ct);
+  } catch (err) {
+    if (err instanceof CryptoError) {
+      console.error(`[auth/settings] ${label} decrypt failed:`, err.message);
+      return null;
+    }
+    throw err;
+  }
 }
 
 /**
@@ -115,23 +149,22 @@ export async function getAuthSettings(): Promise<AuthSettingsView> {
  * handlers responding to the admin UI.
  */
 export async function getTurnstileSecretPlain(): Promise<string | null> {
-  const rows = await loadAllRows();
-  const raw = rows.get(KEYS.TURNSTILE_SECRET_KEY);
-  if (!raw || typeof raw !== "object" || !("ciphertext" in raw)) return null;
-  const ct = (raw as { ciphertext?: unknown }).ciphertext;
-  if (typeof ct !== "string" || ct.length === 0) return null;
-  try {
-    return decrypt(ct);
-  } catch (err) {
-    if (err instanceof CryptoError) {
-      console.error(
-        "[auth/settings] turnstile secret decrypt failed:",
-        err.message,
-      );
-      return null;
-    }
-    throw err;
-  }
+  return getEncryptedSecretPlain(
+    KEYS.TURNSTILE_SECRET_KEY,
+    "turnstile secret",
+  );
+}
+
+/**
+ * Internal — returns the plaintext Google OAuth client secret OR null
+ * if unset. Called by lib/auth/oauth-google.ts at the OAuth-dance
+ * boundary, never by route handlers responding to the admin UI.
+ */
+export async function getGoogleClientSecretPlain(): Promise<string | null> {
+  return getEncryptedSecretPlain(
+    KEYS.GOOGLE_CLIENT_SECRET,
+    "google client secret",
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -190,6 +223,26 @@ export async function updateAuthSettings(
     await upsertRow(KEYS.PUBLIC_SIGNUP_ENABLED, {
       enabled: patch.publicSignupEnabled,
     });
+  }
+  if (patch.googleOauthEnabled !== undefined) {
+    await upsertRow(KEYS.GOOGLE_OAUTH_ENABLED, {
+      enabled: patch.googleOauthEnabled,
+    });
+  }
+  if (patch.googleClientId !== undefined) {
+    if (patch.googleClientId === null) {
+      await upsertRow(KEYS.GOOGLE_CLIENT_ID, { value: "" });
+    } else if (patch.googleClientId.length > 0) {
+      await upsertRow(KEYS.GOOGLE_CLIENT_ID, { value: patch.googleClientId });
+    }
+  }
+  if (patch.googleClientSecret !== undefined) {
+    if (patch.googleClientSecret === null) {
+      await upsertRow(KEYS.GOOGLE_CLIENT_SECRET, { ciphertext: "" });
+    } else if (patch.googleClientSecret.length > 0) {
+      const ciphertext = encrypt(patch.googleClientSecret);
+      await upsertRow(KEYS.GOOGLE_CLIENT_SECRET, { ciphertext });
+    }
   }
   return getAuthSettings();
 }
