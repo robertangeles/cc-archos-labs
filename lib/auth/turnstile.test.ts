@@ -1,4 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// turnstile.ts now consults ./settings (DB) first, env fallback. Mock
+// settings as a default-disabled view so env-based tests still pass.
+// Per-test overrides exercise the DB-first path explicitly.
+const { getAuthSettingsMock, getTurnstileSecretPlainMock } = vi.hoisted(() => ({
+  getAuthSettingsMock: vi.fn(),
+  getTurnstileSecretPlainMock: vi.fn(),
+}));
+
+vi.mock("./settings", () => ({
+  getAuthSettings: getAuthSettingsMock,
+  getTurnstileSecretPlain: getTurnstileSecretPlainMock,
+}));
+
 import {
   isTurnstileEnabled,
   requireTurnstile,
@@ -7,6 +21,15 @@ import {
 
 beforeEach(() => {
   vi.unstubAllEnvs();
+  vi.clearAllMocks();
+  // Default DB view: all OFF → helper falls through to env.
+  getAuthSettingsMock.mockResolvedValue({
+    turnstileEnabled: false,
+    turnstileSiteKey: "",
+    turnstileHasSecret: false,
+    publicSignupEnabled: false,
+  });
+  getTurnstileSecretPlainMock.mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -15,38 +38,38 @@ afterEach(() => {
 });
 
 describe("isTurnstileEnabled", () => {
-  it("returns false when both env vars unset (default OFF)", () => {
-    expect(isTurnstileEnabled()).toBe(false);
+  it("returns false when both env vars unset (default OFF)", async () => {
+    expect(await isTurnstileEnabled()).toBe(false);
   });
 
-  it("returns false when secret missing even if enable=true", () => {
+  it("returns false when secret missing even if enable=true", async () => {
     vi.stubEnv("TURNSTILE_ENABLED", "true");
     vi.stubEnv("TURNSTILE_SECRET_KEY", "");
-    expect(isTurnstileEnabled()).toBe(false);
+    expect(await isTurnstileEnabled()).toBe(false);
   });
 
-  it("returns false when enable flag missing even if secret set", () => {
+  it("returns false when enable flag missing even if secret set", async () => {
     vi.stubEnv("TURNSTILE_ENABLED", "");
     vi.stubEnv("TURNSTILE_SECRET_KEY", "test-secret");
-    expect(isTurnstileEnabled()).toBe(false);
+    expect(await isTurnstileEnabled()).toBe(false);
   });
 
-  it("returns true when both env vars set to true / present", () => {
+  it("returns true when both env vars set to true / present", async () => {
     vi.stubEnv("TURNSTILE_ENABLED", "true");
     vi.stubEnv("TURNSTILE_SECRET_KEY", "test-secret");
-    expect(isTurnstileEnabled()).toBe(true);
+    expect(await isTurnstileEnabled()).toBe(true);
   });
 
-  it("accepts '1' as truthy for TURNSTILE_ENABLED", () => {
+  it("accepts '1' as truthy for TURNSTILE_ENABLED", async () => {
     vi.stubEnv("TURNSTILE_ENABLED", "1");
     vi.stubEnv("TURNSTILE_SECRET_KEY", "test-secret");
-    expect(isTurnstileEnabled()).toBe(true);
+    expect(await isTurnstileEnabled()).toBe(true);
   });
 
-  it("rejects arbitrary truthy strings (only 'true'/'1' count)", () => {
+  it("rejects arbitrary truthy strings (only 'true'/'1' count)", async () => {
     vi.stubEnv("TURNSTILE_ENABLED", "yes");
     vi.stubEnv("TURNSTILE_SECRET_KEY", "test-secret");
-    expect(isTurnstileEnabled()).toBe(false);
+    expect(await isTurnstileEnabled()).toBe(false);
   });
 });
 
@@ -148,6 +171,58 @@ describe("requireTurnstile — active path", () => {
   });
 });
 
+describe("DB-first config resolution (T8)", () => {
+  it("uses DB secret when DB says enabled, ignoring env entirely", async () => {
+    // DB says enabled with a stored secret.
+    getAuthSettingsMock.mockResolvedValue({
+      turnstileEnabled: true,
+      turnstileSiteKey: "0xSITE",
+      turnstileHasSecret: true,
+      publicSignupEnabled: false,
+    });
+    getTurnstileSecretPlainMock.mockResolvedValue("db-secret-value");
+    // Env says disabled — DB wins.
+    vi.stubEnv("TURNSTILE_ENABLED", "");
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "");
+
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ success: true }), { status: 200 }),
+    );
+    const r = await requireTurnstile({ token: "t" });
+    expect(r.ok).toBe(true);
+    expect(r.bypassed).toBe(false);
+    const bodyStr = String(fetchSpy.mock.calls[0][1]?.body);
+    expect(bodyStr).toContain("secret=db-secret-value");
+  });
+
+  it("falls back to env secret when DB enabled but secret missing", async () => {
+    getAuthSettingsMock.mockResolvedValue({
+      turnstileEnabled: true,
+      turnstileSiteKey: "",
+      turnstileHasSecret: false, // no DB secret
+      publicSignupEnabled: false,
+    });
+    getTurnstileSecretPlainMock.mockResolvedValue(null);
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "env-fallback-secret");
+
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ success: true }), { status: 200 }),
+    );
+    const r = await requireTurnstile({ token: "t" });
+    expect(r.ok).toBe(true);
+    const bodyStr = String(fetchSpy.mock.calls[0][1]?.body);
+    expect(bodyStr).toContain("secret=env-fallback-secret");
+  });
+
+  it("bypasses when DB throws AND env not configured", async () => {
+    getAuthSettingsMock.mockRejectedValue(new Error("db down"));
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const r = await requireTurnstile({ token: "t" });
+    expect(r).toEqual({ ok: true, errorCodes: [], bypassed: true });
+    expect(errSpy).toHaveBeenCalled();
+  });
+});
+
 describe("verifyTurnstileToken (direct)", () => {
   it("returns missing-secret when TURNSTILE_SECRET_KEY unset", async () => {
     vi.stubEnv("TURNSTILE_SECRET_KEY", "");
@@ -156,12 +231,11 @@ describe("verifyTurnstileToken (direct)", () => {
     expect(r.errorCodes).toEqual(["missing-secret"]);
   });
 
-  it("omits remoteip from body when not provided", async () => {
-    vi.stubEnv("TURNSTILE_SECRET_KEY", "test-secret");
+  it("omits remoteip from body when not provided (with explicit secret override)", async () => {
     const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValueOnce(
       new Response(JSON.stringify({ success: true }), { status: 200 }),
     );
-    await verifyTurnstileToken({ token: "t" });
+    await verifyTurnstileToken({ token: "t", secret: "test-secret" });
     const bodyStr = String(fetchSpy.mock.calls[0][1]?.body);
     expect(bodyStr).not.toContain("remoteip=");
   });

@@ -21,8 +21,8 @@ const tabs: Tab[] = [
   { href: "/admin/prompts", label: "Diagnostic Prompt" },
   { href: "/admin/integrations", label: "Integrations" },
   { href: "/admin/users", label: "Users & Roles" },
+  { href: "/admin/auth", label: "Authentication" },
   // Future tabs (kept here as comments — uncomment + create the page when ready):
-  // { href: "/admin/auth", label: "Authentication", comingSoon: true },
   // { href: "/admin/profile", label: "Profile", comingSoon: true },
   // { href: "/admin/email", label: "Email Templates", comingSoon: true },
   // { href: "/admin/analytics", label: "Analytics", comingSoon: true },
