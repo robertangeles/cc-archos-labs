@@ -8,6 +8,16 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-26 — Auth + role management port: 9 PRs shipped (T1 through T8b)
+
+Marathon session porting auth + role management from cc-spresso-data-studio. Started with `/plan-ceo-review` (Approach B, SELECTIVE EXPANSION, newsletter split, hardening pack), then `/plan-eng-review` (hybrid JWT+DB session per E1, legacy lead-session shim per E2, CSRF via Origin/Referer per E3, three regression tests per E4). Plan lives at `~/.claude/plans/for-our-next-tasks-twinkly-diffie.md`.
+
+**Shipped (PRs #112–#121):** T1 additive schema → T2 backfill users from leads (3 leads migrated in prod) → T3 services foundation (password / session-jwt / session / csrf / audit) → T4a/T4b auth routes (register / login / logout / verify-email / password-reset / email-change) → T5 Google OAuth (env-driven initially) → T6 Turnstile feature-flag plumbing → T7 admin Users & Roles UI (**first clickable surface**) → T8 admin Auth Settings UI (Turnstile + public sign-up) → T8b Google OAuth admin UI (closes admin-side port).
+
+840 / 840 tests passing. argon2id password hashing, single-use tokens via `users.token_version`, AES-256-GCM secret encryption via existing `lib/booking-crypto.ts`. DB-first config reads with env fallback throughout (Turnstile, Google OAuth). Migration prod-applied through Phase 2; Phases 3–5 (T9–T10) are the irreversible cutover and remain pending.
+
+Full status snapshot for cross-device pickup: [[2026-05-26-auth-roles-port-status]].
+
 ## 2026-05-25 — Admin posts list rendered UTC, not Melbourne wall-time (PR #109)
 
 User reported "I scheduled this post for today 9 AM but the list says it was published yesterday" and a second screenshot showing a May-26 scheduled post displayed as `scheduled · 05-25 23:00Z`. Cron, scheduler, save path: all correct. The bug was that [posts-list.tsx:403-449](../app/admin/(authed)/blog/posts/posts-list.tsx#L403-L449) formatted dates via `new Date(d).toISOString().slice(...)` — always UTC. Because the scheduled-publish picker is Melbourne-anchored (09:00 AEST = 23:00 UTC of the prior day), every published or scheduled row landed off-by-one in the list.

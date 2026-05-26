@@ -65,6 +65,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 
 ## synthesis
 - [Open follow-ups (dated checkpoints)](synthesis/open-followups.md) — forward-looking "check by date X" reminders. Read at session start alongside this index. Resolve + prune entries as they're checked.
+- [Auth + Role Management Port — Status (2026-05-26)](synthesis/2026-05-26-auth-roles-port-status.md) — Shipped T1–T8b (PRs #112–#121). Pending: T9–T10 cutover, T12 /account page. Read first when picking up the auth port mid-stream.
 - [Blog tidy-up — CEO review (2026-05-24)](synthesis/2026-05-24-blog-tidy-ceo-review.md) — CEO review of 4 blog pain points. Mode B (SELECTIVE EXPANSION) locked. 4 → 3 real items + 1 declined (comments — strategic reversal of [[backlog]] line 198). Sections 1–11 complete; T1–T9 enumerated. Verdict: CEO CLEARED — eng review required next.
 
 ## lessons-learned
