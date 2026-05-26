@@ -3,7 +3,7 @@ title: Auth + Role Management Port — Status
 category: synthesis
 created: 2026-05-26
 updated: 2026-05-26
-related: [[for-our-next-tasks-twinkly-diffie]], [[deployment-architecture]]
+related: [[deployment-architecture]]
 ---
 
 Status of the auth + role management port from cc-spresso-data-studio. Reach for this when picking up the work mid-stream; it tells you what shipped, what's pending, and where the irreversible bits sit.
