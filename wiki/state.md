@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-27T06:57:18.916Z
+generated: 2026-05-27T07:34:44.824Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -13,7 +13,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 
 | Route | File | Last shipped |
 |-------|------|--------------|
-| `/` | [app/page.tsx](../app/page.tsx) | 2026-05-22 |
+| `/` | [app/page.tsx](../app/page.tsx) | 2026-05-27 |
 | `/[...slug]` | [app/[...slug]/page.tsx](../app/[...slug]/page.tsx) | 2026-05-18 |
 | `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-24 |
 | `/admin/(authed)/auth` | [app/admin/(authed)/auth/page.tsx](../app/admin/(authed)/auth/page.tsx) | 2026-05-26 |
@@ -170,15 +170,15 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/sections/about/philosophy-block.tsx](../components/sections/about/philosophy-block.tsx) | 2026-05-18 |
 | [components/sections/about/selected-work-card.tsx](../components/sections/about/selected-work-card.tsx) | 2026-05-18 |
 | [components/sections/about/way-of-working-steps.tsx](../components/sections/about/way-of-working-steps.tsx) | 2026-05-18 |
-| [components/sections/home/anchor-nav.tsx](../components/sections/home/anchor-nav.tsx) | 2026-05-18 |
+| [components/sections/home/anchor-nav.tsx](../components/sections/home/anchor-nav.tsx) | 2026-05-27 |
 | [components/sections/home/audience-list.tsx](../components/sections/home/audience-list.tsx) | 2026-05-18 |
 | [components/sections/home/cta-pair.tsx](../components/sections/home/cta-pair.tsx) | 2026-05-18 |
-| [components/sections/home/hero.tsx](../components/sections/home/hero.tsx) | 2026-05-19 |
+| [components/sections/home/hero.tsx](../components/sections/home/hero.tsx) | 2026-05-27 |
 | [components/sections/home/index.ts](../components/sections/home/index.ts) | 2026-05-18 |
 | [components/sections/home/objection-faq.tsx](../components/sections/home/objection-faq.tsx) | 2026-05-18 |
-| [components/sections/home/proof-item.tsx](../components/sections/home/proof-item.tsx) | 2026-05-18 |
-| [components/sections/home/section.tsx](../components/sections/home/section.tsx) | 2026-05-18 |
-| [components/sections/home/service-card.tsx](../components/sections/home/service-card.tsx) | 2026-05-18 |
+| [components/sections/home/proof-item.tsx](../components/sections/home/proof-item.tsx) | 2026-05-27 |
+| [components/sections/home/section.tsx](../components/sections/home/section.tsx) | 2026-05-27 |
+| [components/sections/home/service-card.tsx](../components/sections/home/service-card.tsx) | 2026-05-27 |
 | [components/sections/home/sticky-mobile-cta.tsx](../components/sections/home/sticky-mobile-cta.tsx) | 2026-05-18 |
 | [components/sections/home/timeline.tsx](../components/sections/home/timeline.tsx) | 2026-05-18 |
 | [components/ui/add-to-calendar-buttons.tsx](../components/ui/add-to-calendar-buttons.tsx) | 2026-05-15 |

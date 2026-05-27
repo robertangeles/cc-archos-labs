@@ -29,7 +29,7 @@ export const SITE_DEFAULTS: SiteSettings = {
   siteName: "Archos Labs",
   tagline: "Built by practitioners.",
   description:
-    "AI transformation practice and product studio. Senior data architecture and AI integration consulting for programs that can't afford to get it wrong.",
+    "No data team? Rob Angeles works with startup founders and SMBs as their fractional data person. Fixed-fee. No retainer. Melbourne, Australia.",
   founderName: "Rob Angeles",
   founderLinkedinUrl: "",
   modellingRoomUrl: "",

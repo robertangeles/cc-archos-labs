@@ -94,25 +94,32 @@ const SERVICES = [
 
 const PROOF_POINTS = [
   {
-    eyebrow: "Legacy systems",
-    title: "COBOL to clean data model.",
+    eyebrow: "Startup · Full platform build",
+    title: "Their data team. For four years.",
     body:
-      "Built an AI agent that reads legacy source code, extracts business rules, and outputs a data model ready for implementation. No manual reconstruction.",
-    stat: "3 months  ·  estimate was 6–9",
+      "Early-stage platform with no data architecture. Built the transactional model, the analytics layer, and the full migration from the legacy system. Sole data architect from design through delivery.",
+    stat: "4 years  ·  greenfield to production",
   },
   {
-    eyebrow: "Sovereign AI",
-    title: "Fine-tuned model. Offline. $300 phone.",
+    eyebrow: "SMB · Reporting chaos",
+    title: "50 reports. No analytics layer. Fixed.",
     body:
-      "Shipped a fine-tuned AI model running fully offline on budget Android hardware. The consensus was it couldn't be done.",
-    stat: "7 days  ·  scoping to shipped",
+      "Operational and reporting queries running on the same database. 50+ manual reports with no self-service. Built the OLAP layer, separated the concerns, migrated everything to Power BI.",
+    stat: "50+ reports migrated  ·  self-service from day one",
   },
   {
-    eyebrow: "Platform migration",
-    title: "12-month migration delivered in 6.",
+    eyebrow: "Tech startup · AI readiness",
+    title: "Data wasn't ready for the model. Made it ready.",
     body:
-      "Business-rule fidelity preserved end-to-end. The data foundation work done upfront so the platform work could run clean.",
-    stat: "6 months  ·  half the original timeline",
+      "Multiple disconnected systems. No unified view. An ML model waiting on data that wasn't clean. Built the integration layer and the ML-ready data model. Unified data live within the engagement.",
+    stat: "Single unified view  ·  ML pipeline unblocked",
+  },
+  {
+    eyebrow: "Early-stage startup · Sole architect",
+    title: "No team. Just the work.",
+    body:
+      "Joined as sole architect at an early-stage startup. Built the full stack from scratch — database architecture, RESTful services, and internal systems. No delivery bench. No handoff.",
+    stat: "0 to production  ·  one person",
   },
 ];
 
@@ -315,13 +322,14 @@ export default async function Home({
           </div>
         </Section>
 
-        {/* 4. Proof */}
+        {/* 4. Proof — 2x2 grid on desktop, single column on mobile */}
         <Section id="proof" bg="surface-1" pad="section">
           <h2 className="text-display-md text-ink">Work I&rsquo;ve shipped.</h2>
           <p className="mt-5 max-w-[640px] text-body text-ink-subtle">
-            Three examples. Anonymised by request. Specifics on the call.
+            Four engagements. Different sizes. Same problem — data
+            wasn&rsquo;t ready. Anonymised by request. Specifics on the call.
           </p>
-          <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3 md:gap-8">
+          <div className="mt-12 grid gap-6 md:grid-cols-2 md:gap-8">
             {PROOF_POINTS.map((proof) => (
               <ProofItem
                 key={proof.title}
