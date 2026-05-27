@@ -71,28 +71,28 @@ const TIMELINE_MILESTONES = [
 
 const SERVICES = [
   {
-    name: "AI Readiness Assessment",
-    deliverable: "Written Assessment",
+    name: "AI Readiness Diagnostic",
+    deliverable: "8-min assessment",
     body:
-      "Two weeks. We map your data foundation, governance, and AI surface area against what your program actually needs. You get a written document your CFO or board can act on, not a framework, not a slide deck. It tells you what is ready, what is not, and what fixing it costs. Most clients use it to unblock a business case that has been stalled for months.",
+      "8-minute assessment that shows you exactly where your data will break AI projects. No login required.",
   },
   {
-    name: "Data Architecture",
-    deliverable: "Data Foundation",
+    name: "Fractional Data Leadership",
+    deliverable: "Part-time support",
     body:
-      "A model is only as good as the data underneath it. We design and build the lineage, domain models, and warehouse structures your AI workloads need to run in production, not in demo conditions. Business rules extracted, documented, and traceable. A foundation your CFO can defend and your team can maintain.",
+      "Part-time data architecture and governance support when you can't justify a full-time hire.",
   },
   {
-    name: "AI Agent Development",
-    deliverable: "Production System",
+    name: "Data Foundation Projects",
+    deliverable: "Fixed-scope work",
     body:
-      "Working systems, deployed to your stack, owned by your team. We build AI agents that solve a specific program problem, not proofs of concept that never leave the sandbox. We have built agents that replaced months of manual work in weeks. The deliverable is a system in production, not a slide about one.",
+      "Fixed-scope work to fix lineage, modelling, and data quality issues blocking your AI roadmap.",
   },
   {
-    name: "AI & Data Training",
-    deliverable: "Team Workshops",
+    name: "AI & Data Workshops",
+    deliverable: "Hands-on sessions",
     body:
-      "Most teams know AI is coming. Few know how to work with it at the data layer. We run hands-on workshops for data and AI teams across the Anthropic ecosystem: Claude Code, Claude Cowork, and production AI agent development. Your team leaves with working knowledge they can apply the next day. Not slide notes. Not a certificate. Capability.",
+      "Hands-on sessions for founders and small teams who need to understand the real constraints before they build.",
   },
 ];
 
@@ -149,16 +149,15 @@ const OBJECTIONS = [
 ];
 
 const BUILT_FOR = [
-  "Programs that have stalled and need someone to say clearly what is wrong, not what the client wants to hear.",
-  "Executives who have sat through enough vendor presentations to know the gap between a demo and a working system.",
-  "Organisations in financial services, healthcare, government, and retail where a failed AI program does not just lose budget, it loses trust.",
-  "Teams who need the work done, not managed.",
+  "Startup founders and technical leads shipping AI",
+  "SMBs without a dedicated data team",
+  "Teams that need clarity before spending more money",
 ];
 
 const NOT_FOR = [
-  "Programs looking to validate a decision already made.",
-  "Organisations that want a brand name on the engagement more than a working outcome.",
-  "Teams not yet ready to hear that the data problem comes before the AI problem.",
+  "Large enterprises with full data departments",
+  "Companies looking for 6–12 month retainers",
+  "Teams that want a big consulting firm",
 ];
 
 const ANCHOR_NAV_ITEMS = [
@@ -217,19 +216,18 @@ export default async function Home({
           eyebrow="Data and AI Transformation Practice"
           headline={
             <>
-              Most AI programs <span className="text-primary">fail</span> at the
-              data layer.
-              <span className="mt-4 block text-ink-muted md:text-display-lg">
-                By the time anyone admits it, the budget is gone.
-              </span>
+              Most startups and SMBs don&rsquo;t fail at AI because of the
+              model.
+              <br />
+              They fail because their data was never ready.
             </>
           }
           subhead={
             <>
-              We go into programs in financial services, healthcare, government,
-              and retail that are stuck or at risk.{" "}
-              <br className="hidden md:inline" />
-              We fix the data foundation. Then we get the program moving.
+              You don&rsquo;t have a full-time data team. You&rsquo;re trying to
+              ship AI anyway. We help founders and technical leads find out
+              exactly what&rsquo;s broken in their data — and whether
+              it&rsquo;s fixable before you burn more budget.
             </>
           }
           cta={{
@@ -243,25 +241,20 @@ export default async function Home({
         {/* Agitate */}
         <Section bg="surface-1">
           <h2 className="text-display-md text-ink">
-            The longer it stays stuck, the more it costs you.
+            The longer you guess, the more it costs you.
           </h2>
           <div className="mt-8 space-y-6 text-body-lg text-ink-subtle">
             <p>
-              The vendor is not going to tell you. The model performs in demo
-              conditions. Your data team knows there are problems but is not in
-              the room when commitments are made. Your executive sponsor
-              approved a business case built on assumptions your data
-              infrastructure cannot support.
+              Most founders don&rsquo;t have a data person in the room when AI
+              decisions get made. The vendor says it will work. Your team has
+              doubts. The budget gets approved anyway. Three months later the
+              project is stuck and nobody can explain why the numbers
+              don&rsquo;t add up.
             </p>
             <p>
-              When the program stalls, and programs built on weak data
-              foundations do stall, it will not be attributed to the vendor.
-              It will be attributed to the decision to proceed. That decision
-              has a name on it.
-            </p>
-            <p>
-              The organisations that fix this know something the others do not.
-              The model was never the constraint.
+              You don&rsquo;t need another framework. You need someone who can
+              look at your actual data situation and tell you the truth —
+              fast.
             </p>
           </div>
         </Section>
@@ -269,21 +262,30 @@ export default async function Home({
         {/* Solution + Proof */}
         <Section id="proof" bg="canvas">
           <h2 className="text-display-md text-ink">
-            We go in and fix what is broken.
+            Fractional data help when you can&rsquo;t hire full time.
           </h2>
           <div className="mt-8 space-y-6 text-body-lg text-ink-subtle">
             <p>
-              Archos Labs is not a vendor. We are the person your vendor
-              should have sent. We go into programs that are stuck or at risk
-              in financial services, healthcare, government, and retail and
-              fix what is broken. We are practitioners who have built these
-              systems, not consultants who have read about them.
+              Archos Labs is not a big consulting firm. I&rsquo;m a
+              practitioner who works with smaller teams that need senior data
+              architecture and AI guidance without the full-time salary.
             </p>
             <p>
-              We don&rsquo;t take retainers. We don&rsquo;t pad timelines. We
-              don&rsquo;t bring 12-person teams to your meetings.
+              I don&rsquo;t take retainers. I don&rsquo;t pad timelines. I
+              don&rsquo;t bring a team you didn&rsquo;t ask for. We scope the
+              work, we ship, and we move on.
             </p>
           </div>
+
+          <h3 className="mt-16 text-headline text-ink">
+            Experience that now serves teams without full-time data people.
+          </h3>
+          <p className="mt-5 max-w-[640px] text-body-lg text-ink-subtle">
+            The work below was delivered inside larger programmes. That
+            experience now shapes how I help smaller teams who cannot afford a
+            full-time data person or a big consulting firm.
+          </p>
+
           <div className="mt-12 grid gap-8 md:grid-cols-3 md:gap-10">
             {PROOF_POINTS.map((proof) => (
               <ProofItem
@@ -293,6 +295,11 @@ export default async function Home({
               />
             ))}
           </div>
+
+          <p className="mt-12 max-w-[640px] text-body-lg text-ink-subtle">
+            If you need senior data architecture help without the enterprise
+            price tag, this is the background I bring.
+          </p>
         </Section>
 
         {/* 90-day timeline */}
@@ -308,7 +315,9 @@ export default async function Home({
 
         {/* Services */}
         <Section id="services" bg="canvas">
-          <h2 className="text-display-md text-ink">How we work with you.</h2>
+          <h2 className="text-display-md text-ink">
+            How we work with smaller teams
+          </h2>
           <div className="mt-12 grid items-stretch gap-6 md:grid-cols-2 md:gap-8">
             {SERVICES.map((service, i) => (
               <ServiceCard
@@ -333,12 +342,7 @@ export default async function Home({
 
         {/* Who We Work With */}
         <Section bg="canvas">
-          <h2 className="text-display-md text-ink">Who we work with.</h2>
-          <p className="mt-5 text-body-lg text-ink-subtle">
-            We take on a small number of engagements. This is who they are
-            right for.
-          </p>
-          <div className="mt-12 grid gap-12 md:grid-cols-2">
+          <div className="grid gap-12 md:grid-cols-2">
             <AudienceList
               variant="built-for"
               heading="Built for"
@@ -374,12 +378,14 @@ export default async function Home({
         {/* Final CTA */}
         <Section id="final-cta" bg="bordered" pad="relaxed" centered>
           <h2 className="text-headline text-ink md:text-display-md">
-            One call. Thirty minutes.
+            One call. Thirty minutes. Straight answers.
           </h2>
           <p className="mx-auto mt-6 max-w-[640px] text-body text-ink-subtle">
-            Tell us what is broken. We&rsquo;ll tell you whether it is a problem
-            we have solved before and what fixing it would cost. No deck or
-            qualification process. If we can&rsquo;t help, we&rsquo;ll say so.
+            Book a free 30-minute call. I&rsquo;ll review your diagnostic
+            results (if you took it) and tell you whether the issues are
+            fixable in your environment, roughly what it would cost, and
+            whether fractional help makes sense for your stage. If it&rsquo;s
+            not a fit, I&rsquo;ll say so.
           </p>
           <div className="mt-12">
             <CtaPair
