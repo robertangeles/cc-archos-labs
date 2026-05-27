@@ -119,6 +119,13 @@ const SELECTED_WORK = [
       "Data foundation work done upfront. Business-rule fidelity preserved end-to-end. The platform work ran clean because the data layer was right before build started.",
     stat: "6 months  ·  half the original timeline",
   },
+  {
+    eyebrow: "Solo build · Sovereign AI",
+    title: "Fine-tuned model. Offline. $300 phone.",
+    body:
+      "Designed and shipped a fine-tuned AI model running fully offline on budget Android hardware. No cloud dependency. No server-side processing. The consensus was it couldn't be done.",
+    stat: "7 days  ·  scoping to shipped",
+  },
 ];
 
 const WAY_OF_WORKING_STEPS = [
@@ -236,7 +243,7 @@ export default async function AboutPage({
           <div className="text-center">
             <h2 className="text-display-md text-ink">Work I&rsquo;ve delivered.</h2>
             <p className="mx-auto mt-5 max-w-[640px] text-body text-ink-subtle">
-              Five engagements across 25 years. From early-stage startups to
+              Six engagements across 25 years. From early-stage startups to
               large programs. Anonymised by request. Specifics on the call.
             </p>
           </div>

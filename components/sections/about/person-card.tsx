@@ -90,27 +90,33 @@ export function PersonCard({
           </ul>
         ) : null}
         {socialLinks.length > 0 ? (
-          <ul
-            aria-label="Rob on social platforms"
-            className="flex flex-col gap-2 pt-1 text-body-sm text-ink-subtle"
-          >
-            {socialLinks.map(({ platform, url }) => {
-              const meta = PLATFORM_META[platform];
-              return (
-                <li key={platform}>
-                  <a
-                    href={url}
-                    rel="me noopener"
-                    target="_blank"
-                    className="inline-flex items-center gap-2 transition-colors duration-150 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
-                  >
-                    <span>{meta.label}</span>
-                    <span aria-hidden>→</span>
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pt-1">
+            <span className="text-eyebrow uppercase text-ink-subtle">
+              Find me
+            </span>
+            <ul
+              className="flex items-center gap-x-2"
+              aria-label="Rob on social platforms"
+            >
+              {socialLinks.map(({ platform, url }) => {
+                const meta = PLATFORM_META[platform];
+                const Icon = meta.Icon;
+                return (
+                  <li key={platform}>
+                    <a
+                      href={url}
+                      rel="me noopener"
+                      target="_blank"
+                      aria-label={meta.label}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-hairline text-ink-subtle transition-colors duration-150 hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                    >
+                      <Icon className="h-5 w-5" aria-hidden />
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         ) : null}
       </div>
     </article>
