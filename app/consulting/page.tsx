@@ -99,35 +99,38 @@ const TIMELINE_STEPS = [
   {
     week: "Step 1",
     label: "Take the diagnostic",
+    description: "8 minutes. No login. You get a written report.",
   },
   {
     week: "Step 2",
     label: "30-minute call",
+    description:
+      "If the diagnostic flags issues, I'll invite you to a call. Fit check. No pitch.",
   },
   {
     week: "Step 3",
     label: "Scoped proposal",
+    description:
+      "I send a written scope and fixed fee within 48 hours. You see the number before anything starts.",
   },
   {
     week: "Step 4",
     label: "Work begins",
+    description: "Same person throughout. No handoff. No junior team.",
   },
   {
     week: "Step 5",
     label: "Handback",
+    description:
+      "You own everything. I document it so your team can maintain it without me.",
   },
 ];
 
-const TIMELINE_DETAIL: Record<string, string> = {
-  "Step 1": "8 minutes. No login. You get a written report.",
-  "Step 2":
-    "If the diagnostic flags issues, I'll invite you to a call. Fit check. No pitch.",
-  "Step 3":
-    "I send a written scope and fixed fee within 48 hours. You see the number before anything starts.",
-  "Step 4": "Same person throughout. No handoff. No junior team.",
-  "Step 5":
-    "You own everything. I document it so your team can maintain it without me.",
-};
+const PROOF_STRIP = [
+  { figure: "3 months", detail: "COBOL lineage delivered" },
+  { figure: "7 days", detail: "AI model shipped" },
+  { figure: "25 years", detail: "Cross-industry delivery" },
+];
 
 const PRICING_TILES = [
   {
@@ -245,8 +248,30 @@ export default async function ConsultingPage({
           }}
         />
 
-        {/* 2. Services — 2x2 grid */}
-        <Section id="services" bg="bordered" pad="section">
+        {/* Proof strip — horizontal credibility anchor between hero and
+            services. Three numbers from the About page, compressed. */}
+        <section
+          aria-label="Proof"
+          className="border-y border-hairline bg-surface-1"
+        >
+          <dl className="mx-auto grid max-w-[1080px] gap-8 px-6 py-12 md:grid-cols-3 md:gap-12 md:px-12">
+            {PROOF_STRIP.map((p) => (
+              <div
+                key={p.figure}
+                className="flex flex-col items-start gap-2 md:items-center md:text-center"
+              >
+                <dt className="text-display-md text-ink md:text-display-lg">
+                  {p.figure}
+                </dt>
+                <dd className="text-body text-ink-subtle">{p.detail}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        {/* 2. Services — 2x2 grid. Canvas so it alternates against the
+            proof strip above. */}
+        <Section id="services" bg="canvas" pad="section">
           <h2 className="text-center text-display-md text-ink">
             What I offer.
           </h2>
@@ -264,28 +289,16 @@ export default async function ConsultingPage({
           </div>
         </Section>
 
-        {/* 3. How Engagements Work — timeline */}
-        <Section id="how-it-works" bg="canvas" pad="section">
+        {/* 3. How Engagements Work — timeline with per-step descriptions */}
+        <Section id="how-it-works" bg="bordered" pad="section">
           <h2 className="text-center text-display-md text-ink">
             How it works.
           </h2>
           <Timeline milestones={TIMELINE_STEPS} />
-          <dl className="mx-auto mt-10 grid max-w-[1080px] gap-6 md:grid-cols-5 md:gap-4">
-            {TIMELINE_STEPS.map((s) => (
-              <div key={s.week} className="flex flex-col gap-2">
-                <dt className="text-eyebrow uppercase text-primary">
-                  {s.week}
-                </dt>
-                <dd className="text-body text-ink-muted">
-                  {TIMELINE_DETAIL[s.week]}
-                </dd>
-              </div>
-            ))}
-          </dl>
         </Section>
 
         {/* 4. Pricing — three engagement-type signal tiles, NO dollar amounts */}
-        <Section id="pricing" bg="bordered" pad="section">
+        <Section id="pricing" bg="canvas" pad="section">
           <div className="text-center">
             <h2 className="text-display-md text-ink">How I price.</h2>
             <p className="mx-auto mt-5 max-w-[520px] text-body text-ink-muted">
@@ -297,13 +310,15 @@ export default async function ConsultingPage({
             {PRICING_TILES.map((tile) => (
               <div
                 key={tile.label}
-                className="flex flex-col gap-4 rounded-lg border border-hairline bg-surface-2 p-8 transition-colors duration-200 hover:border-hairline-strong"
+                className="flex flex-col gap-5 rounded-lg border border-hairline bg-surface-1 p-10 transition-colors duration-200 hover:border-hairline-strong hover:bg-surface-2 md:p-12"
               >
                 <p className="text-eyebrow uppercase text-ink-subtle">
                   {tile.label}
                 </p>
-                <p className="text-headline text-ink">{tile.price}</p>
-                <p className="mt-auto border-t border-hairline pt-5 text-body-sm text-ink-subtle">
+                <p className="text-headline text-ink md:text-display-md">
+                  {tile.price}
+                </p>
+                <p className="mt-auto border-t border-hairline pt-6 text-body text-ink-muted">
                   {tile.note}
                 </p>
               </div>
@@ -312,7 +327,7 @@ export default async function ConsultingPage({
         </Section>
 
         {/* 5. FAQ */}
-        <Section id="faq" bg="canvas" pad="section">
+        <Section id="faq" bg="bordered" pad="section">
           <h2 className="text-center text-display-md text-ink">
             Common questions.
           </h2>
@@ -322,7 +337,7 @@ export default async function ConsultingPage({
         </Section>
 
         {/* 6. Final CTA */}
-        <Section id="final-cta" bg="bordered" pad="section" centered>
+        <Section id="final-cta" bg="canvas" pad="section" centered>
           <h2 className="text-display-md text-ink">
             Start with the diagnostic.
           </h2>
