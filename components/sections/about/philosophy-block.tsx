@@ -1,38 +1,37 @@
-// Philosophy section block — lead pull-quote, supporting prose, optional
-// secondary quote.
-//
-// The lead quote ("The model was never the constraint.") sets the page's
-// emotional anchor. Display-size type so it lands as a headline of a belief
-// rather than another paragraph. Supporting prose explains. The optional
-// secondary quote ("We also believe in telling the truth early.") gets a
-// quieter treatment — hairline left rule + headline-size ink.
+// Philosophy section block — "What I believe" on the May 2026 /about
+// rewrite. Renders a centered paragraph + a hairline-bordered pull
+// quote + a second centered paragraph. No quotation marks on the pull
+// quote — the borders carry it. Reads as a statement of values, not
+// a sales pitch.
+
+import type { ReactNode } from "react";
 
 export type PhilosophyBlockProps = {
-  leadQuote: string;
-  paragraphs: string[];
-  secondaryQuote?: string;
+  /** Pre-quote paragraph (body-lg, ink-muted, centered). */
+  introParagraph: ReactNode;
+  /** The pull quote itself — display-md, no quote marks, hairline borders
+   *  top and bottom. */
+  pullQuote: ReactNode;
+  /** Post-quote paragraph (body-lg, ink-muted, centered). */
+  outroParagraph: ReactNode;
 };
 
 export function PhilosophyBlock({
-  leadQuote,
-  paragraphs,
-  secondaryQuote,
+  introParagraph,
+  pullQuote,
+  outroParagraph,
 }: PhilosophyBlockProps) {
   return (
-    <div className="flex flex-col gap-8">
-      <blockquote className="text-display-md text-ink md:text-display-lg">
-        {leadQuote}
+    <div className="mx-auto flex max-w-[680px] flex-col items-center gap-10 text-center">
+      <p className="text-body-lg leading-relaxed text-ink-muted">
+        {introParagraph}
+      </p>
+      <blockquote className="w-full border-y border-hairline py-10 text-display-md text-ink">
+        {pullQuote}
       </blockquote>
-      <div className="flex flex-col gap-5 text-body-lg text-ink-subtle">
-        {paragraphs.map((p, i) => (
-          <p key={i}>{p}</p>
-        ))}
-      </div>
-      {secondaryQuote ? (
-        <blockquote className="border-l-2 border-primary pl-5 text-headline text-ink">
-          {secondaryQuote}
-        </blockquote>
-      ) : null}
+      <p className="text-body-lg leading-relaxed text-ink-muted">
+        {outroParagraph}
+      </p>
     </div>
   );
 }

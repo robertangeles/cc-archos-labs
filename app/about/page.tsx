@@ -1,22 +1,18 @@
-// About page — practitioner dossier composed from the
-// components/sections/about/ family (PersonCard, PhilosophyBlock,
-// WayOfWorkingSteps, SelectedWorkCard) + reused home section primitives
-// (Hero, Section, CtaPair, StickyMobileCta, AnchorNav).
+// About page — May 2026 SMB rewrite. Companion to the home page rewrite
+// (PR #124). Same positioning: "You don't have a data team. I am your
+// data team." The /about page earns that claim — who is this person,
+// why are they credible, why would a founder trust them with their data.
 //
-// Locked decisions live in ~/.claude/plans/next-isd-we-wil-majestic-pillow.md
-// (D1–D4) and wiki/decisions/2026-05-18-about-page.md (summary).
+// One-person practice. "I" throughout. No "we" language.
+//
+// Composed from the about/ component family (PersonCard, PhilosophyBlock,
+// WayOfWorkingSteps) plus reused home primitives (Hero, Section, CtaPair,
+// ProofItem, StickyMobileCta). Six sections, 96px rhythm, no atmospheric
+// gradients.
 //
 // Server Component. Reads ?name= URL param server-side for the optional
-// print-personalisation header (sanitised via lib/sanitise-name). All
-// other user input pathways are absent — no DB writes, no API calls on
-// render, no JS state on the page beyond the existing shipped client
-// components (CtaPair, AnchorNav, StickyMobileCta).
-//
-// External URLs (LinkedIn + Modelling Room) flow from `site_setting`
-// (admin-editable at /admin/site). Empty strings render the page
-// gracefully — links omitted and Person `sameAs` filters them out.
-// Workspace photo path is a top-of-file constant; placeholder ships
-// until Rob supplies a photo.
+// print-personalisation header (sanitised via lib/sanitise-name). Photo
+// path is a top-of-file constant; lives at /public/images/about-me.png.
 
 import type { Metadata } from "next";
 import {
@@ -32,21 +28,21 @@ import {
   Hero,
   Section,
   CtaPair,
+  ProofItem,
   StickyMobileCta,
 } from "../../components/sections/home";
 import {
   PersonCard,
   PhilosophyBlock,
   WayOfWorkingSteps,
-  SelectedWorkCard,
 } from "../../components/sections/about";
 import { SOCIAL_LINKS } from "../../lib/social-links";
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
-    title: "About",
+    title: "Rob Angeles — Fractional Data Architect | Archos Labs",
     description:
-      "Rob Angeles, Principal Consultant at Archos Labs. 25 years across financial services, healthcare, and government. One person who runs the assessment, the architecture, and the delivery.",
+      "25 years of data architecture and AI delivery. Rob Angeles works with startups and SMBs as their fractional data person or on short-term gigs. No full-time hire needed. Melbourne, Australia.",
     path: "/about",
   });
 }
@@ -60,27 +56,17 @@ const ASSESSMENT_CTA = {
 const BOOK_CALL_CTA = {
   label: "Book a call",
   href: BOOK_A_CALL_URL,
-  microcopy: "30 min · we'll tell you if it's not a fit",
+  microcopy: "30 min · I'll tell you if it's not a fit",
 };
 
-// Workspace photo. Environmental portrait of Rob against the Melbourne
-// skyline at dusk — the brief was "practitioner in context, not a
-// LinkedIn headshot against a white background." File lives at
-// /public/images/about-me.png.
 const PHOTO_SRC: string | null = "/images/about-me.png";
-const PHOTO_ALT = "Rob Angeles photographed against the Melbourne skyline at dusk.";
-
-const ANCHOR_NAV_ITEMS = [
-  { label: "The person", href: "#the-person" },
-  { label: "Selected work", href: "#selected-work" },
-  { label: "Philosophy", href: "#the-philosophy" },
-  { label: "How we engage", href: "#way-of-working" },
-];
+const PHOTO_ALT =
+  "Rob Angeles, photographed against the Melbourne skyline at dusk.";
 
 const PERSON_BIO_PARAGRAPHS = [
-  "Twenty-five years across healthcare, financial services, government, retail, and consulting. Data architecture and AI agent development, including sovereign and local AI for organisations where data cannot leave the building, at the foundation. Lineage mapping, governance frameworks, and the kind of workshop facilitation that gets SMEs to say what they actually know rather than what sounds safe in a meeting room.",
-  "CDMP certified. Kimball and Data Vault practitioner. The person who built an AI agent that delivered full COBOL-to-target lineage in 3 months when the estimate was 6 to 9. The person who compressed a 12-month platform migration to 6. Who then fine-tuned an AI model and shipped it running fully offline on a $300 Android phone — because the problem was worth solving and the consensus that it could not be done was wrong.",
-  "Not a firm that staffs a team behind a pitch. One person who has been in the trench, knows what breaks, and knows how to fix it.",
+  "25 years across healthcare, financial services, government, retail, and technology. I've been the data architect on programs with eight-figure budgets and the sole architect at early-stage startups building from scratch. The problems are the same at every scale — data nobody trusts, systems nobody has documented, and decisions being made without a foundation underneath them.",
+  "I work with a small number of teams at a time. Startups and SMBs who need a senior data person without the full-time salary, or organisations with a specific data problem that needs to be scoped, fixed, and handed back.",
+  "Same person on the call. Same person doing the work. No handoff. No junior team behind the pitch.",
 ];
 
 const CREDENTIALS = [
@@ -88,59 +74,73 @@ const CREDENTIALS = [
   "Kimball",
   "Data Vault",
   "Databricks",
-  "OpenAI",
+  "Snowflake",
+  "dbt",
   "Anthropic",
-  "Data Modeling",
-  "Data Governance",
   "Data Architecture",
-  "Sovereign and Local AI",
-  "AI Product Build",
+  "Data Governance",
+  "Sovereign AI",
+  "AI Agent Development",
 ];
 
 const SELECTED_WORK = [
   {
-    label: "Major health insurer · COBOL lineage agent",
-    outcome:
-      "3 months. Estimate was 6 to 9. AI agent reads COBOL source, extracts business rules, routes them through SME review, outputs a data model ready for implementation on the new platform.",
+    eyebrow: "Startup · Sole architect",
+    title: "Data architecture from scratch.",
+    body:
+      "Joined an early-stage platform as sole data architect. Built the transactional model, analytics layer, and full migration from the legacy system. No team. No handoff. Four years as their data person.",
+    stat: "4 years  ·  greenfield to production",
   },
   {
-    label: "Sovereign AI on a $300 Android",
-    outcome:
-      "7 days from scoping to shipped. Fine-tuned model runs fully offline on budget Android hardware. The consensus was it could not be done. The consensus was wrong.",
+    eyebrow: "SMB · Reporting",
+    title: "50 reports. No analytics layer. Fixed.",
+    body:
+      "Operational and reporting queries on the same database. 50+ manual reports with no self-service. Built the OLAP layer, separated the concerns, migrated to Power BI.",
+    stat: "50+ reports  ·  self-service from day one",
   },
   {
-    label: "Platform migration · 12 months to 6",
-    outcome:
-      "Half the timeline. Business-rule fidelity preserved end-to-end. The work that breaks programs at the data layer, done upfront so the platform work could run clean.",
+    eyebrow: "Tech startup · AI readiness",
+    title: "Data wasn't ready for the model. Made it ready.",
+    body:
+      "Multiple disconnected systems. No unified view. An ML model waiting on data that wasn't clean. Built the integration layer and the ML-ready data model.",
+    stat: "Single unified view  ·  ML pipeline unblocked",
+  },
+  {
+    eyebrow: "Enterprise · AI agent",
+    title: "COBOL lineage in 3 months.",
+    body:
+      "Built an AI agent that reads COBOL source code, extracts business rules, and outputs a clean data model ready for implementation. Team estimate was 6–9 months.",
+    stat: "3 months  ·  estimate was 6–9",
+  },
+  {
+    eyebrow: "Enterprise · Platform migration",
+    title: "12-month migration delivered in 6.",
+    body:
+      "Data foundation work done upfront. Business-rule fidelity preserved end-to-end. The platform work ran clean because the data layer was right before build started.",
+    stat: "6 months  ·  half the original timeline",
   },
 ];
-
-const PHILOSOPHY_LEAD = "The model was never the constraint.";
-
-const PHILOSOPHY_PARAGRAPHS = [
-  "Every AI program that stalls, fails, or gets quietly shelved hits the same wall. The data was not ready. The governance existed on paper. Nobody could trace where the numbers came from. The business case was a narrative built on assumptions that the infrastructure beneath it could not support.",
-  "We believe the work that matters happens before the model arrives. Lineage. Governance. Domain modelling. Business rules extracted from the people who carry them in their heads and documented in a form a CFO can defend. That is the foundation. Everything built on it works. Everything built without it eventually fails.",
-];
-
-const PHILOSOPHY_SECONDARY =
-  "We also believe in telling the truth early. A program that hears the hard answer in week two is recoverable. A program that hears it at deployment is not.";
 
 const WAY_OF_WORKING_STEPS = [
   {
-    headline: "Every engagement starts with the AI Readiness Assessment.",
-    body: "Two weeks. We map what is actually there against what the program needs. The output is written and specific. You know what is ready, what is not, and what fixing it costs before any further commitment is made.",
+    headline: "Every engagement starts with the diagnostic.",
+    body:
+      "8 minutes. No login. It tells you what's broken and whether I can fix it before any commitment is made.",
   },
   {
-    headline: "Engagements are scoped and fixed.",
-    body: "The same person who ran the assessment does the architecture work and the delivery. No handoff. No junior team behind the pitch. No retainer that keeps billing while the program drifts.",
+    headline: "Scoped and fixed before work begins.",
+    body:
+      "You see the number before we start. It doesn't move. No retainer. No open-ended billing.",
+  },
+  {
+    headline: "Same person throughout.",
+    body:
+      "The person on the call runs the assessment, does the architecture work, and delivers. No handoff.",
   },
   {
     headline: "Small number of engagements at a time.",
-    body: "Not because of capacity. The work requires full attention and we will not give a program less than that.",
-  },
-  {
-    headline: "If we are not the right fit, we will say so on the call.",
-    body: "No deck. No qualification process. Just a direct conversation about what is broken and whether we can fix it.",
+    body:
+      "Not capacity. The work requires full attention and I won't give a team less than that.",
   },
 ];
 
@@ -154,9 +154,6 @@ export default async function AboutPage({
   searchParams: AboutSearchParams;
 }) {
   const { name } = await searchParams;
-  // Coerce the ?name=a&name=b array form to a single value — only the
-  // first is considered. Mirrors home's handling so behaviour is
-  // consistent across personalised print artefacts.
   const rawName = Array.isArray(name) ? name[0] : name;
   const sanitisedName = sanitiseName(rawName);
 
@@ -164,10 +161,6 @@ export default async function AboutPage({
   const siteUrl = getSiteUrl();
   const modellingRoomUrl = settings.modellingRoomUrl.trim();
 
-  // sameAs payload for the Person JSON-LD. Combines the page-level
-  // SOCIAL_LINKS (canonical founder identities) with the optional
-  // Modelling Room newsletter URL from site_setting. Empty strings are
-  // filtered inside buildAboutPagePersonLd.
   const sameAs = [
     ...SOCIAL_LINKS.map((link) => link.url),
     modellingRoomUrl,
@@ -206,95 +199,112 @@ export default async function AboutPage({
           </div>
         ) : null}
 
+        {/* 1. Hero — no eyebrow, no CTA, no anchor nav */}
         <Hero
-          eyebrow="About"
+          gradient="off"
           headline={
             <>
-              We know the problems you cannot say{" "}
-              <span className="text-primary">out loud</span>.
+              The data team you
+              <span className="block">don&rsquo;t have yet.</span>
             </>
           }
           subhead={
-            <>
-              Your data is not ready and everyone in the room knows it. The
-              business case was built on assumptions nobody has tested. The
-              vendor is confident. Your team is not. And the program is
-              moving anyway.
-            </>
+            <span className="mx-auto block max-w-[520px]">
+              Most startups and small businesses don&rsquo;t have a senior
+              data person. They have a founder making data decisions, a
+              developer who set up the database, and a growing problem
+              nobody has named yet. I step into that gap.
+            </span>
           }
-          anchorNav={{ items: ANCHOR_NAV_ITEMS }}
         />
 
-        {/* The Person */}
-        <Section id="the-person" bg="canvas">
-          <h2 className="text-display-md text-ink">The person.</h2>
-          <p className="mt-5 max-w-[640px] text-body-lg text-ink-subtle">
-            We have been in that room. On the delivery side, the
-            architecture side, and the side where someone has to tell an
-            executive something they do not want to hear. That is where
-            Archos Labs works.
-          </p>
-          <div className="mt-12">
-            <PersonCard
-              name={settings.founderName}
-              role="Principal Consultant"
-              paragraphs={PERSON_BIO_PARAGRAPHS}
-              credentials={CREDENTIALS}
-              photoSrc={PHOTO_SRC}
-              photoAlt={PHOTO_ALT}
-              socialLinks={SOCIAL_LINKS}
-            />
-          </div>
+        {/* 2. The Person */}
+        <Section id="the-person" bg="surface-1" pad="section">
+          <PersonCard
+            name={settings.founderName}
+            role="Principal · Archos Labs"
+            paragraphs={PERSON_BIO_PARAGRAPHS}
+            credentials={CREDENTIALS}
+            photoSrc={PHOTO_SRC}
+            photoAlt={PHOTO_ALT}
+            socialLinks={SOCIAL_LINKS}
+          />
         </Section>
 
-        {/* Selected Work — receipts before belief */}
-        <Section id="selected-work" bg="surface-1">
-          <h2 className="text-display-md text-ink">Selected work.</h2>
-          <p className="mt-5 max-w-[640px] text-body-lg text-ink-subtle">
-            Three of the programs we have shipped. Anonymised by request.
-            Specifics on the call.
-          </p>
-          <div className="mt-12 grid gap-8 md:grid-cols-3 md:gap-10">
+        {/* 3. Selected Work — 5 cards, 3-up top + 2-up bottom on desktop */}
+        <Section id="selected-work" bg="canvas" pad="section">
+          <div className="text-center">
+            <h2 className="text-display-md text-ink">Work I&rsquo;ve delivered.</h2>
+            <p className="mx-auto mt-5 max-w-[640px] text-body text-ink-subtle">
+              Five engagements across 25 years. From early-stage startups to
+              large programs. Anonymised by request. Specifics on the call.
+            </p>
+          </div>
+          <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3 md:gap-8">
             {SELECTED_WORK.map((w) => (
-              <SelectedWorkCard
-                key={w.label}
-                label={w.label}
-                outcome={w.outcome}
+              <ProofItem
+                key={w.title}
+                eyebrow={w.eyebrow}
+                title={w.title}
+                body={w.body}
+                stat={w.stat}
               />
             ))}
           </div>
         </Section>
 
-        {/* The Philosophy */}
-        <Section id="the-philosophy" bg="canvas">
-          <h2 className="text-display-md text-ink">What we believe.</h2>
-          <div className="mt-12">
-            <PhilosophyBlock
-              leadQuote={PHILOSOPHY_LEAD}
-              paragraphs={PHILOSOPHY_PARAGRAPHS}
-              secondaryQuote={PHILOSOPHY_SECONDARY}
-            />
-          </div>
-        </Section>
-
-        {/* The Way of Working */}
-        <Section id="way-of-working" bg="surface-1">
-          <h2 className="text-display-md text-ink">How we engage.</h2>
-          <div className="mt-12">
+        {/* 4. How I Work — 2x2 grid, no borders */}
+        <Section id="how-i-work" bg="surface-1" pad="section">
+          <h2 className="text-center text-display-md text-ink">How I work.</h2>
+          <div className="mx-auto mt-12 max-w-[920px]">
             <WayOfWorkingSteps steps={WAY_OF_WORKING_STEPS} />
           </div>
         </Section>
 
-        {/* CTA — uses #book-a-call as the sticky-CTA hide selector */}
-        <Section id="book-a-call" bg="bordered" pad="relaxed" centered>
-          <h2 className="text-headline text-ink md:text-display-md">
-            If this sounds like the firm you have been looking for.
+        {/* 5. What I Believe */}
+        <Section id="what-i-believe" bg="canvas" pad="section">
+          <h2 className="text-center text-display-md text-ink">
+            What I believe.
           </h2>
-          <p className="mx-auto mt-6 max-w-[640px] text-body text-ink-subtle">
-            Start with the assessment. Eight minutes. It tells you where
-            your program is exposed and whether what we do is relevant to
-            where you are. If the score says we should talk, we will invite
-            you to a 30-minute call.
+          <div className="mt-12">
+            <PhilosophyBlock
+              introParagraph={
+                <>
+                  The model was never the constraint. Every AI project that
+                  stalls hits the same wall — the data wasn&rsquo;t ready.
+                  The governance existed on paper. Nobody could trace where
+                  the numbers came from. That work happens before the model
+                  arrives, not after it fails.
+                </>
+              }
+              pullQuote={
+                <>
+                  A team that hears the hard answer in week two can fix
+                  it. A team that hears it at launch cannot.
+                </>
+              }
+              outroParagraph={
+                <>
+                  I built AI products as a solo founder. I&rsquo;ve been the
+                  architect on programs that ran for years. The difference
+                  in scale doesn&rsquo;t change what matters: clean data,
+                  documented rules, and someone who will tell you the truth
+                  before you spend more money.
+                </>
+              }
+            />
+          </div>
+        </Section>
+
+        {/* 6. CTA */}
+        <Section id="book-a-call" bg="surface-1" pad="section" centered>
+          <h2 className="text-display-md text-ink">
+            Start with the assessment.
+          </h2>
+          <p className="mx-auto mt-6 max-w-[640px] text-body-lg text-ink-muted">
+            8 minutes. No login. If the score says we should talk, I&rsquo;ll
+            invite you to a 30-minute call. No pitch. No deck. Just a direct
+            conversation about your data.
           </p>
           <div className="mt-12">
             <CtaPair
