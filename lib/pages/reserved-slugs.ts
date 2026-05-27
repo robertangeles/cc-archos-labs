@@ -25,6 +25,7 @@ export const RESERVED_SLUGS = new Set<string>([
   "api",
   "blog",
   "book",
+  "consulting",
   "contact",
   "llms-full.txt",
   "llms.txt",

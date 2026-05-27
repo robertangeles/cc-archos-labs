@@ -48,12 +48,18 @@ export function ServiceCard({
   const totalLabel = showCounter ? String(total).padStart(2, "0") : "";
   const featured = Boolean(cta);
   const surfaceClass = featured
-    ? "border-hairline-strong bg-surface-2 hover:bg-surface-3"
+    ? "border-hairline-strong bg-surface-3 hover:bg-surface-4"
     : "border-hairline bg-surface-1 hover:border-hairline-strong hover:bg-surface-2";
   return (
     <article
       className={`group relative flex h-full flex-col gap-6 overflow-hidden rounded-lg border p-8 transition-colors duration-200 ${surfaceClass}`}
     >
+      {featured ? (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-primary"
+        />
+      ) : null}
       <div className="flex items-center justify-between gap-4">
         <span
           className={`text-eyebrow uppercase ${featured ? "text-primary" : "text-ink-subtle"}`}
