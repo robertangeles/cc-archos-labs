@@ -24,7 +24,9 @@ const HERO_GRADIENT_LEFT =
   "radial-gradient(ellipse 70% 55% at 22% 28%, rgba(94, 106, 210, 0.12) 0%, transparent 70%)";
 
 export type HeroProps = {
-  eyebrow: string;
+  /** Optional eyebrow pill above the headline. Omit on pages that
+   *  open with a direct statement (e.g. the May 2026 /about rewrite). */
+  eyebrow?: string;
   headline: ReactNode;
   subhead: ReactNode;
   /** Optional. Omit for credibility-first pages (e.g. /about) where the
@@ -73,10 +75,12 @@ export function Hero({
           isLeft ? "items-start text-left" : "items-center text-center"
         }`}
       >
-        <span className="inline-block rounded-md border border-hairline-strong px-3 py-1 uppercase text-eyebrow text-ink-subtle">
-          {eyebrow}
-        </span>
-        <h1 className="mt-8 text-display-md text-ink md:text-display-xl">
+        {eyebrow ? (
+          <span className="inline-block rounded-md border border-hairline-strong px-3 py-1 uppercase text-eyebrow text-ink-subtle">
+            {eyebrow}
+          </span>
+        ) : null}
+        <h1 className={`${eyebrow ? "mt-8" : ""} text-display-md text-ink md:text-display-xl`}>
           {headline}
         </h1>
         <p className="mt-6 max-w-[640px] text-body-lg text-ink-muted">

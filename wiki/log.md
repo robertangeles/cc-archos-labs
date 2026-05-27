@@ -8,6 +8,21 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-27 — About page rewrite: practitioner / "I" voice (companion to the home rewrite)
+
+Companion to PR #124. The /about page now earns the home page's "You don't have a data team. I am your data team." positioning. All "we" voice replaced with "I" voice throughout — this is a one-person practice and the page is written for a founder evaluating whether Rob is the right person, not whether a firm is the right firm.
+
+Six sections per the brief: Hero (no eyebrow, no CTA, no anchor nav — just headline + subtext on canvas), The Person (photo + bio + credential tags + social icon row), Work I've Delivered (six proof cards in a clean 3-up + 3-up grid, reuses the home page [ProofItem](../components/sections/home/proof-item.tsx)), How I Work (2×2 numbered items, no cards or borders — grid does the visual separation), What I Believe (paragraph + hairline top+bottom pull quote + paragraph, all centered), Start with the assessment.
+
+Component refactors:
+- [Hero](../components/sections/home/hero.tsx) — `eyebrow` is now optional. /about opens with a direct headline, no pill above it.
+- [PersonCard](../components/sections/about/person-card.tsx) — photo rounded-lg → rounded-xl per the brief, credential pills moved from `rounded-full` to `rounded-sm` so they read as tags not status pills. Social row retained as a compact icon grid (LinkedIn / X / GitHub / Hugging Face) — the brief asked for a text list, user preferred the icons back during review.
+- [PhilosophyBlock](../components/sections/about/philosophy-block.tsx) — new shape: `introParagraph` / `pullQuote` / `outroParagraph`. No quote marks; the hairline borders carry the quote.
+- [WayOfWorkingSteps](../components/sections/about/way-of-working-steps.tsx) — vertical numbered stack replaced by a 2×2 grid with numbered eyebrow + title + body. No borders.
+- [SelectedWorkCard](../components/sections/about/selected-work-card.tsx) is no longer consumed but kept in the barrel for now — small amount of unused code; safe to remove in a follow-up if no callers reappear.
+
+Verification: tsc + lint clean, 840/840 vitest, `pnpm build` green, live HTML at localhost:3007/about confirms all brief copy strings present and zero leaked "we" voice ("We have been in that room", "We believe", "we will", etc.). Meta `title: Rob Angeles — Fractional Data Architect | Archos Labs` and the new SMB description applied via `generateMetadata`. Desktop screenshot at [screenshots/about-fractional-positioning-desktop.png](../screenshots/about-fractional-positioning-desktop.png).
+
 ## 2026-05-27 — Homepage rewrite: SMB / fractional-data positioning
 
 Full homepage rewrite from enterprise programs ("financial services, healthcare, government") to startup founders and SMB operators with no dedicated data person. New one-liner: **"You don't have a data team. I am your data team."** Replaces every May-2026 PAS section on [app/page.tsx](../app/page.tsx).

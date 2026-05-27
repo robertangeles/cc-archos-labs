@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-27T08:00:00.082Z
+generated: 2026-05-27T08:37:57.231Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -15,7 +15,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 |-------|------|--------------|
 | `/` | [app/page.tsx](../app/page.tsx) | 2026-05-27 |
 | `/[...slug]` | [app/[...slug]/page.tsx](../app/[...slug]/page.tsx) | 2026-05-18 |
-| `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-24 |
+| `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-27 |
 | `/admin/(authed)/auth` | [app/admin/(authed)/auth/page.tsx](../app/admin/(authed)/auth/page.tsx) | 2026-05-26 |
 | `/admin/(authed)/blog` | [app/admin/(authed)/blog/page.tsx](../app/admin/(authed)/blog/page.tsx) | 2026-05-20 |
 | `/admin/(authed)/blog/posts` | [app/admin/(authed)/blog/posts/page.tsx](../app/admin/(authed)/blog/posts/page.tsx) | 2026-05-21 |
@@ -166,10 +166,10 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/pages/markdown-article.test.tsx](../components/pages/markdown-article.test.tsx) | 2026-05-18 |
 | [components/pages/markdown-article.tsx](../components/pages/markdown-article.tsx) | 2026-05-18 |
 | [components/sections/about/index.ts](../components/sections/about/index.ts) | 2026-05-18 |
-| [components/sections/about/person-card.tsx](../components/sections/about/person-card.tsx) | 2026-05-24 |
-| [components/sections/about/philosophy-block.tsx](../components/sections/about/philosophy-block.tsx) | 2026-05-18 |
+| [components/sections/about/person-card.tsx](../components/sections/about/person-card.tsx) | 2026-05-27 |
+| [components/sections/about/philosophy-block.tsx](../components/sections/about/philosophy-block.tsx) | 2026-05-27 |
 | [components/sections/about/selected-work-card.tsx](../components/sections/about/selected-work-card.tsx) | 2026-05-18 |
-| [components/sections/about/way-of-working-steps.tsx](../components/sections/about/way-of-working-steps.tsx) | 2026-05-18 |
+| [components/sections/about/way-of-working-steps.tsx](../components/sections/about/way-of-working-steps.tsx) | 2026-05-27 |
 | [components/sections/home/anchor-nav.tsx](../components/sections/home/anchor-nav.tsx) | 2026-05-27 |
 | [components/sections/home/audience-list.tsx](../components/sections/home/audience-list.tsx) | 2026-05-27 |
 | [components/sections/home/cta-pair.tsx](../components/sections/home/cta-pair.tsx) | 2026-05-18 |
