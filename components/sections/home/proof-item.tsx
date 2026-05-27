@@ -55,7 +55,7 @@ export function ProofItem({
           ) : null}
           {body ? <p className="text-body text-ink-muted">{body}</p> : null}
           {stat ? (
-            <div className="mt-auto border-t border-hairline pt-5 text-body-sm text-ink-subtle">
+            <div className="mt-auto border-t border-hairline pt-5 text-body-lg font-medium text-primary">
               {stat}
             </div>
           ) : null}

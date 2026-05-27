@@ -89,6 +89,7 @@ const SERVICES = [
     body:
       "Tells you exactly where your data will break your AI project before you spend more money finding out the hard way. No login. You get a written report.",
     bestFor: "Founders about to build on AI.",
+    cta: { label: "Take the assessment", href: TAKE_ASSESSMENT_URL },
   },
 ];
 
@@ -292,10 +293,12 @@ export default async function Home({
               {STATS.map((s) => (
                 <div
                   key={s.figure}
-                  className="rounded-lg border border-hairline bg-canvas p-6"
+                  className="rounded-lg border border-hairline bg-canvas p-8 md:p-10"
                 >
-                  <dt className="text-display-md text-ink">{s.figure}</dt>
-                  <dd className="mt-2 text-body-sm text-ink-subtle">
+                  <dt className="text-display-lg text-ink md:text-display-xl">
+                    {s.figure}
+                  </dt>
+                  <dd className="mt-3 text-body text-ink-subtle">
                     {s.detail}
                   </dd>
                 </div>
@@ -317,6 +320,7 @@ export default async function Home({
                 name={service.name}
                 body={service.body}
                 bestFor={service.bestFor}
+                cta={"cta" in service ? service.cta : undefined}
               />
             ))}
           </div>
@@ -342,19 +346,24 @@ export default async function Home({
           </div>
         </Section>
 
-        {/* 5. Built For / Not For */}
+        {/* 5. Built For / Not For — cards so this trust signal carries
+            the visual weight it earns. */}
         <Section bg="canvas" pad="section">
-          <div className="grid gap-12 md:grid-cols-2">
-            <AudienceList
-              variant="built-for"
-              heading="Built for"
-              items={BUILT_FOR}
-            />
-            <AudienceList
-              variant="not-for"
-              heading="Not for"
-              items={NOT_FOR}
-            />
+          <div className="grid gap-6 md:grid-cols-2 md:gap-8">
+            <div className="rounded-lg border border-hairline bg-surface-1 p-8 md:p-10">
+              <AudienceList
+                variant="built-for"
+                heading="Built for"
+                items={BUILT_FOR}
+              />
+            </div>
+            <div className="rounded-lg border border-hairline bg-surface-1 p-8 md:p-10">
+              <AudienceList
+                variant="not-for"
+                heading="Not for"
+                items={NOT_FOR}
+              />
+            </div>
           </div>
         </Section>
 
