@@ -226,7 +226,7 @@ export default async function AboutPage({
         />
 
         {/* 2. The Person */}
-        <Section id="the-person" bg="surface-1" pad="section">
+        <Section id="the-person" bg="bordered" pad="section">
           <PersonCard
             name={settings.founderName}
             role="Principal · Archos Labs"
@@ -260,8 +260,9 @@ export default async function AboutPage({
           </div>
         </Section>
 
-        {/* 4. How I Work — 2x2 grid, no borders */}
-        <Section id="how-i-work" bg="surface-1" pad="section">
+        {/* 4. How I Work — 2x2 grid of cards (review feedback: borderless
+            rendering read as unstyled placeholder; cards do the work). */}
+        <Section id="how-i-work" bg="bordered" pad="section">
           <h2 className="text-center text-display-md text-ink">How I work.</h2>
           <div className="mx-auto mt-12 max-w-[920px]">
             <WayOfWorkingSteps steps={WAY_OF_WORKING_STEPS} />
@@ -304,7 +305,7 @@ export default async function AboutPage({
         </Section>
 
         {/* 6. CTA */}
-        <Section id="book-a-call" bg="surface-1" pad="section" centered>
+        <Section id="book-a-call" bg="bordered" pad="section" centered>
           <h2 className="text-display-md text-ink">
             Start with the assessment.
           </h2>

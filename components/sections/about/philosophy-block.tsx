@@ -26,7 +26,7 @@ export function PhilosophyBlock({
       <p className="text-body-lg leading-relaxed text-ink-muted">
         {introParagraph}
       </p>
-      <blockquote className="w-full border-y border-hairline py-10 text-display-md text-ink">
+      <blockquote className="w-full border-y border-hairline py-10 text-headline text-ink">
         {pullQuote}
       </blockquote>
       <p className="text-body-lg leading-relaxed text-ink-muted">
