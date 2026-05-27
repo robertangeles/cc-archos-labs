@@ -8,6 +8,18 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-05-27 — Consulting page rewrite: closing surface (SMB / fractional positioning)
+
+Third leg of the SMB positioning trilogy (home #124 → /about #125 → /consulting). The consulting page is the **closing** surface — a visitor here has already decided they want help and needs to know what they get, how it works, what it costs, and how to start. Same SMB target buyer, same "I" voice throughout.
+
+Migrated `/consulting` from the Pages CMS catch-all ([app/[...slug]/page.tsx](../app/[...slug]/page.tsx)) to a static [app/consulting/page.tsx](../app/consulting/page.tsx) route, mirroring how `/` and `/about` are owned in code. Added `'consulting'` to [RESERVED_SLUGS](../lib/pages/reserved-slugs.ts) so the boot-time guard passes and Next.js static routing shadows the CMS row. The old CMS row in the `page` table is no longer served and can be unpublished through `/admin/(authed)/pages` at the user's convenience.
+
+Six sections per the brief: Hero (eyebrow + headline + 2 CTAs), Services (2×2 grid — Fractional Data Leadership / Short-Term Gigs / AI Readiness Diagnostic / Workshops, with the Diagnostic card featured-lift + inline `Take the diagnostic` CTA), How it works (5-step Timeline + per-step detail row), Pricing (3-up signal tiles — Diagnostic / Short-term gig / Fractional — no dollar amounts per CLAUDE.md), FAQ (6 SMB-tuned questions in an accordion), Final CTA banner.
+
+Reused existing components: [Hero](../components/sections/home/hero.tsx), [Section](../components/sections/home/section.tsx) (with `pad="section"` and `bg="bordered"` for surface differentiation), [ServiceCard](../components/sections/home/service-card.tsx) (the featured `cta` variant already supports the Diagnostic lift), [Timeline](../components/sections/home/timeline.tsx), [ObjectionFaq](../components/sections/home/objection-faq.tsx), [CtaPair](../components/sections/home/cta-pair.tsx), [StickyMobileCta](../components/sections/home/sticky-mobile-cta.tsx). Pricing tiles are inlined since the shape is only used here.
+
+Verification: tsc + lint clean, 840/840 vitest, `pnpm build` green, live HTML at localhost:3007/consulting confirms all brief copy strings present and zero leaked old CMS copy ("Practitioners win", "consulting firms is breaking", "executive sponsor", "CFO or board", we-voice, etc). Desktop fullpage screenshot at [screenshots/consulting-fractional-positioning-desktop.png](../screenshots/consulting-fractional-positioning-desktop.png).
+
 ## 2026-05-27 — About page rewrite: practitioner / "I" voice (companion to the home rewrite)
 
 Companion to PR #124. The /about page now earns the home page's "You don't have a data team. I am your data team." positioning. All "we" voice replaced with "I" voice throughout — this is a one-person practice and the page is written for a founder evaluating whether Rob is the right person, not whether a firm is the right firm.
