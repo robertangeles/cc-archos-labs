@@ -28,7 +28,9 @@ export function Timeline({ milestones }: TimelineProps) {
             className="absolute -top-[5px] left-0 h-[9px] w-[9px] rounded-full bg-primary"
           />
           <span className="text-eyebrow uppercase text-primary">{m.week}</span>
-          <span className="text-body text-ink">{m.label}</span>
+          <span className="text-body-lg text-ink md:text-card-title">
+            {m.label}
+          </span>
           {i < milestones.length - 1 ? (
             <span
               aria-hidden

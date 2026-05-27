@@ -19,9 +19,11 @@ type SectionProps = {
    *  AnchorNav links. Omit for sections that aren't anchor targets. */
   id?: string;
   bg?: Bg;
-  /** Vertical padding. `tight` matches the original "What we do" rhythm.
-   *  `relaxed` matches the Final CTA's larger breathing room. Default `tight`. */
-  pad?: "tight" | "relaxed";
+  /** Vertical padding. `tight` matches the original "What we do" rhythm
+   *  (48px). `section` matches DESIGN.md's 96px section token (used by
+   *  the May 2026 home page rewrite). `relaxed` is the Final CTA's larger
+   *  breathing room (128px). Default `tight`. */
+  pad?: "tight" | "section" | "relaxed";
   children: ReactNode;
   /** Center the inner content horizontally. Defaults to false (left-aligned
    *  block flow). */
@@ -37,6 +39,7 @@ const bgClass: Record<Bg, string> = {
 
 const padClass = {
   tight: "py-12",
+  section: "py-24",
   relaxed: "py-32",
 };
 

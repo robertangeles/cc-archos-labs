@@ -87,36 +87,27 @@ export function buildHomePageServicesLd(orgName: string): SchemaService[] {
     {
       "@context": "https://schema.org",
       "@type": "Service",
-      name: "AI Readiness Assessment",
+      name: "Fractional Data Leadership",
       description:
-        "Two-week written assessment of your data foundation and governance against what your AI program needs. CFO/board-actionable output — no frameworks, no slide decks.",
+        "Part-time, ongoing senior data person for startups and SMBs. Architecture, governance, and a senior data hand to call when something breaks — without the full-time salary.",
       provider: { "@type": "Organization", name: orgName },
       areaServed: { "@type": "Country", name: "Australia" },
     },
     {
       "@context": "https://schema.org",
       "@type": "Service",
-      name: "Data Architecture",
+      name: "Short-Term Data Gigs",
       description:
-        "Domain modelling, lineage, and warehouse design built for AI workloads. The foundation enterprise AI programs keep skipping.",
+        "Fixed-scope, fixed-fee data work: cleanup, modelling, lineage, or a specific AI integration. In, done, handed back.",
       provider: { "@type": "Organization", name: orgName },
       areaServed: { "@type": "Country", name: "Australia" },
     },
     {
       "@context": "https://schema.org",
       "@type": "Service",
-      name: "AI Agent Development",
+      name: "AI Readiness Diagnostic",
       description:
-        "Working AI systems deployed to your stack and owned by your team. Real delivery against a program goal, not a demo against a favourable dataset.",
-      provider: { "@type": "Organization", name: orgName },
-      areaServed: { "@type": "Country", name: "Australia" },
-    },
-    {
-      "@context": "https://schema.org",
-      "@type": "Service",
-      name: "AI & Data Training",
-      description:
-        "Hands-on workshops for data and AI teams across the Anthropic ecosystem: Claude Code, Claude Cowork, and production AI agent development. Working knowledge teams can apply the next day.",
+        "Eight-minute diagnostic that tells founders exactly where their data will break their AI project. No login. Written report.",
       provider: { "@type": "Organization", name: orgName },
       areaServed: { "@type": "Country", name: "Australia" },
     },

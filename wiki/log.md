@@ -2,11 +2,23 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-25
+updated: 2026-05-27
 related:
 ---
 
 Append-only log of sessions. Newest entry at the top.
+
+## 2026-05-27 — Homepage rewrite: SMB / fractional-data positioning
+
+Full homepage rewrite from enterprise programs ("financial services, healthcare, government") to startup founders and SMB operators with no dedicated data person. New one-liner: **"You don't have a data team. I am your data team."** Replaces every May-2026 PAS section on [app/page.tsx](../app/page.tsx).
+
+Eight sections per the user's brief: Hero (no atmospheric gradient, trust strip below CTAs), Problem (new 2-col with right-side stat block: 3 months / 7 days / 25 years), Services (3-up; Fractional Data Leadership / Short-Term Gigs / AI Readiness Diagnostic — each with "Best for:" footer), Proof (new eyebrow + title + body + stat shape, **4 cards in a 2×2 grid** per the v2 brief — Startup full-platform / SMB reporting / Tech-startup AI readiness / Early-stage sole-architect), Built for / Not for, Timeline (5 steps from assessment → working system), FAQ (6 new SMB-tuned Qs), Final CTA. Assessment Block dropped. Hero gradient turned off (DESIGN.md: "no atmospheric gradients"). Anchor-nav pill and hero eyebrow pill both rounded down from `rounded-full` to `rounded-md` to honour the brief's "no pill-shaped buttons" rule. New `pad="section"` (96px) option added to [Section](../components/sections/home/section.tsx) for the DESIGN.md spec rhythm without disturbing the about page's `tight` (48px).
+
+[ProofItem](../components/sections/home/proof-item.tsx) and [ServiceCard](../components/sections/home/service-card.tsx) extended additively — legacy `label/outcome` and `index/total` props preserved so the Pages CMS blocks ([proof-grid-block.tsx](../components/pages/blocks/proof-grid-block.tsx), [service-grid-block.tsx](../components/pages/blocks/service-grid-block.tsx)) keep compiling unchanged. Metadata moved to `generateMetadata` on the home page (title `Archos Labs — Your Fractional Data Team | Startups & SMBs`, description `No data team? …`). [buildHomePageServicesLd](../lib/schema-org.ts) updated to the new three-service shape so the home page's Service JSON-LD agrees with the visible cards.
+
+**Org-level description aligned, code + DB**: [SITE_DEFAULTS.description](../lib/site-config-shared.ts) in code rewritten to match the brief. Live prod row `site_setting where key='site'` updated via [scripts/update-site-description.mjs](../scripts/update-site-description.mjs) (idempotent, JSONB merge, dry-run by default). The layout-level Organization + WebSite JSON-LD and the default OG description across every non-home page now reflect the new SMB positioning.
+
+Verification: tsc clean, lint clean (sole warning lives in untracked `tmp/walkthrough.mjs`), 840/840 vitest, `pnpm build` green. Live HTML at localhost:3007 confirms all brief copy strings present, zero leaked enterprise phrases — both "financial services, healthcare" (was in the JSON-LD via `site_setting.description`) and "CFO or board" / "executive sponsor" / "the decision has a name" all gone. Desktop fullpage screenshot at [screenshots/home-fractional-positioning-desktop.png](../screenshots/home-fractional-positioning-desktop.png).
 
 ## 2026-05-26 — Auth + role management port: 9 PRs shipped (T1 through T8b)
 
