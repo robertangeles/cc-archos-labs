@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-26T00:26:14.317Z
+generated: 2026-05-27T06:57:18.916Z
 generator: scripts/wiki-state.mjs
 ---
 

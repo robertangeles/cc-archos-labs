@@ -31,7 +31,7 @@ export function AnchorNav({ items }: AnchorNavProps) {
                 target: item.href.replace(/^#/, ""),
               })
             }
-            className="rounded-full border border-hairline px-3 py-1 text-caption text-ink-subtle transition-colors duration-150 hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+            className="rounded-md border border-hairline px-3 py-1 text-caption text-ink-subtle transition-colors duration-150 hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
           >
             {item.label}
           </a>

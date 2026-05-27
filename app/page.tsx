@@ -1,19 +1,19 @@
-// Home page — May 2026 PAS rewrite. Composed from section components in
-// components/sections/home/. See wiki/decisions/2026-05-17-home-page-pas-rewrite.md
-// for the locked decisions (industries, hero copy, proof framing, accepted
-// expansions). The 4-section May 7 home page is superseded by this layout.
+// Home page — May 2026 SMB rewrite. Positioning: "You don't have a data
+// team. I am your data team." Target buyer is startup founders and SMB
+// operators with no dedicated data person — NOT enterprise programs.
+// Composed from section components in components/sections/home/.
 //
-// Order of sections matches the PAS structure with three accepted expansions
-// woven into the flow: 90-day timeline between Solution+Proof and Services,
-// objection FAQ between Services and Who We Work With, anchor nav under the
-// hero (desktop only), sticky mobile CTA bar across the page (hides on
-// Final CTA).
+// Eight sections, alternating canvas / surface-1, 96px vertical rhythm
+// per DESIGN.md. No atmospheric gradients. No pill buttons. Lavender is
+// the only accent and appears only on primary CTAs and the lavender
+// strokes on cards.
 //
 // Server Component. Reads ?name= URL param server-side for the optional
 // print personalisation header. All user input goes through
 // `lib/sanitise-name.ts`; React's default escaping handles rendering.
 
-import { getSiteSettings } from "../lib/site-config";
+import type { Metadata } from "next";
+import { getSiteSettings, buildPageMetadata } from "../lib/site-config";
 import { BOOK_A_CALL_URL, TAKE_ASSESSMENT_URL } from "../lib/cta-urls";
 import { buildHomePageServicesLd } from "../lib/schema-org";
 import { sanitiseName } from "../lib/sanitise-name";
@@ -30,6 +30,16 @@ import {
   StickyMobileCta,
 } from "../components/sections/home";
 
+export async function generateMetadata(): Promise<Metadata> {
+  return buildPageMetadata({
+    title:
+      "Archos Labs — Your Fractional Data Team | Startups & SMBs",
+    description:
+      "No data team? Rob Angeles works with startup founders and SMBs as their fractional data person. Fixed-fee. No retainer. Melbourne, Australia.",
+    path: "/",
+  });
+}
+
 // Copy lives as data so it's reviewable as a single block and easy to retune.
 const ASSESSMENT_CTA = {
   label: "Take the assessment",
@@ -40,131 +50,137 @@ const ASSESSMENT_CTA = {
 const BOOK_CALL_CTA = {
   label: "Book a call",
   href: BOOK_A_CALL_URL,
-  microcopy: "30 min · we'll tell you if it's not a fit",
+  microcopy: "30 min · I'll tell you if it's not a fit",
 };
 
-const PROOF_POINTS = [
+const STATS = [
   {
-    label: "Major health insurer",
-    outcome:
-      "We built an AI agent that reads COBOL source code, extracts the business rules and logic, routes them to SMEs for review, documents the validated rules, and outputs a data model with full metadata ready for implementation. No manual reconstruction. No knowledge lost in translation.",
+    figure: "3 months",
+    detail: "COBOL lineage delivered. Estimate was 6–9.",
   },
   {
-    label: "25 years · cross-industry delivery",
-    outcome:
-      "Every sector. The same problems. Data no one trusts, SMEs who hold the knowledge but have never been structured, and stakeholders who cannot say yes to something they cannot see. We go in, run the workshops, build the models, and give your board something defensible.",
+    figure: "7 days",
+    detail: "AI model shipped. Fully offline. $300 hardware.",
   },
   {
-    label: "Sovereign AI on consumer hardware",
-    outcome:
-      "When the consensus was that a fine-tuned AI model could not run offline on a $300 Android phone, we built one. It shipped in 7 days. The model runs fully offline on budget Android hardware, no server required. We're not the first, but one of the very few in Australia who have shipped this.",
+    figure: "25 years",
+    detail: "Cross-industry data and AI delivery.",
   },
-];
-
-const TIMELINE_MILESTONES = [
-  { week: "Week 0", label: "Assessment" },
-  { week: "Week 1", label: "30-minute call" },
-  { week: "Week 2", label: "Written diagnostic" },
-  { week: "Week 4", label: "Scoped engagement" },
-  { week: "Week 12", label: "Working system" },
 ];
 
 const SERVICES = [
   {
-    name: "AI Readiness Assessment",
-    deliverable: "Written Assessment",
+    deliverable: "Ongoing",
+    name: "Fractional Data Leadership",
     body:
-      "Two weeks. We map your data foundation, governance, and AI surface area against what your program actually needs. You get a written document your CFO or board can act on, not a framework, not a slide deck. It tells you what is ready, what is not, and what fixing it costs. Most clients use it to unblock a business case that has been stalled for months.",
+      "Part-time, ongoing work as your senior data person. Architecture decisions, governance, and someone to call when something breaks — without the full-time salary.",
+    bestFor: "Startups and SMBs that need ongoing data support.",
   },
   {
-    name: "Data Architecture",
-    deliverable: "Data Foundation",
+    deliverable: "3–6 Months",
+    name: "Short-Term Gigs",
     body:
-      "A model is only as good as the data underneath it. We design and build the lineage, domain models, and warehouse structures your AI workloads need to run in production, not in demo conditions. Business rules extracted, documented, and traceable. A foundation your CFO can defend and your team can maintain.",
+      "Specific problem. Fixed scope. Fixed fee. Need your data cleaned up before you build on it? Need a data model for a new product? I go in, do the work, hand it back, done.",
+    bestFor: "Teams with a specific data or AI project to ship.",
   },
   {
-    name: "AI Agent Development",
-    deliverable: "Production System",
+    deliverable: "8 Minutes",
+    name: "AI Readiness Diagnostic",
     body:
-      "Working systems, deployed to your stack, owned by your team. We build AI agents that solve a specific program problem, not proofs of concept that never leave the sandbox. We have built agents that replaced months of manual work in weeks. The deliverable is a system in production, not a slide about one.",
+      "Tells you exactly where your data will break your AI project before you spend more money finding out the hard way. No login. You get a written report.",
+    bestFor: "Founders about to build on AI.",
+  },
+];
+
+const PROOF_POINTS = [
+  {
+    eyebrow: "Legacy systems",
+    title: "COBOL to clean data model.",
+    body:
+      "Built an AI agent that reads legacy source code, extracts business rules, and outputs a data model ready for implementation. No manual reconstruction.",
+    stat: "3 months  ·  estimate was 6–9",
   },
   {
-    name: "AI & Data Training",
-    deliverable: "Team Workshops",
+    eyebrow: "Sovereign AI",
+    title: "Fine-tuned model. Offline. $300 phone.",
     body:
-      "Most teams know AI is coming. Few know how to work with it at the data layer. We run hands-on workshops for data and AI teams across the Anthropic ecosystem: Claude Code, Claude Cowork, and production AI agent development. Your team leaves with working knowledge they can apply the next day. Not slide notes. Not a certificate. Capability.",
+      "Shipped a fine-tuned AI model running fully offline on budget Android hardware. The consensus was it couldn't be done.",
+    stat: "7 days  ·  scoping to shipped",
   },
+  {
+    eyebrow: "Platform migration",
+    title: "12-month migration delivered in 6.",
+    body:
+      "Business-rule fidelity preserved end-to-end. The data foundation work done upfront so the platform work could run clean.",
+    stat: "6 months  ·  half the original timeline",
+  },
+];
+
+const TIMELINE_MILESTONES = [
+  { week: "Step 1", label: "Take the 8-minute assessment" },
+  { week: "Step 2", label: "Get your written report" },
+  { week: "Step 3", label: "30-minute call if we're a fit" },
+  { week: "Step 4", label: "Scope the work — fractional or gig" },
+  { week: "Step 5", label: "Work starts. Same person throughout." },
 ];
 
 const OBJECTIONS = [
   {
-    question: "We already tried this and it failed.",
+    question:
+      "I'm not sure I have a data problem. How do I know if I need this?",
     answer: [
-      "Most programs fail for the same reason. The data foundation was not ready when the model arrived. Nobody said that clearly enough before the program started, the business case was approved on optimistic assumptions, and the failure was attributed to the technology rather than the infrastructure underneath it.",
-      "We start at the data layer before anything else is touched. The AI Readiness Assessment exists specifically to surface what will kill your program before it does. If the foundation is not ready, we tell you that in writing, along with exactly what it would take to fix it.",
-    ],
-  },
-  {
-    question: "How long before we see something?",
-    answer: [
-      "Two weeks. The AI Readiness Assessment produces a written document your CFO or board can interrogate. It maps your data foundation, governance posture, and AI surface area against what your program actually needs. It tells you what is ready, what is not, and what fixing it would cost. That is a real deliverable, not a slide deck with a recommended next engagement.",
-      "Everything after that is scoped from the assessment output. You know what you are buying before you buy it.",
+      "Take the assessment. 8 minutes. It tells you what's there and what's missing. If everything is fine, you'll know that too.",
     ],
   },
   {
     question: "What does this cost?",
     answer: [
-      "Engagements are scoped and fixed before work begins. No retainers. No billing for access. No invoice that grows as the engagement does. You see the number before we start and it does not move.",
-      "We do not take on engagements we cannot deliver. If the assessment tells us your program needs something outside our scope, we will say so on the call.",
+      "Fixed-fee. Scoped before work starts. No retainer. No billing by the hour. You see the number before we begin and it doesn't move.",
     ],
   },
   {
-    question: "Is what we discuss confidential?",
+    question: "How is fractional different from hiring someone part-time?",
     answer: [
-      "Yes. Everything you share before, during, and after the call stays between us. We do not reference clients by name without permission and we do not reuse your situation as marketing material.",
-      "If your organisation requires an NDA in place before the first conversation, send yours through and we will sign it. We would rather you talk freely than hedge.",
+      "You get 25 years of cross-industry experience for the hours you actually need, not the salary of a junior hire working full-time. And you're not managing an employee.",
     ],
   },
   {
-    question: "Why not just use our existing team?",
+    question: "I'm early-stage. Is this too soon?",
     answer: [
-      "Your team knows the domain. We know what breaks AI programs at the data layer, and we have fixed it across healthcare, financial services, government, and retail. Those are not the same things.",
-      "We work alongside your team. We bring lineage mapping, governance frameworks, data architecture, and AI agent development. We transfer the knowledge. We hand it back when it is done. Your team owns it.",
+      "Probably not. Founders who get the data foundation right early spend less fixing it later. The assessment will tell you what's actually relevant for your stage.",
     ],
   },
   {
-    question: "Why not a large firm?",
+    question: "What if I just need one specific thing done?",
     answer: [
-      "Large firms bring the right name to the pitch and a different team to the delivery. A senior partner closes the engagement. A junior consultant runs it. You pay senior-partner rates for both.",
-      "We bring the same person to the assessment, the architecture, and the delivery. No handoff. No translation layer between the person who understood your problem and the person executing the fix. What we sell is what shows up.",
+      "That's a gig. We scope it, fix a fee, I do the work, hand it back, and we're done.",
     ],
   },
   {
-    question: "What if our data is in COBOL or on legacy systems?",
+    question: "What if our data is in old systems or spreadsheets?",
     answer: [
-      "That is a large part of what we do. Legacy systems hold the business logic your organisation runs on and nobody has documented it properly in decades. We built an AI agent at a major health insurer that reads COBOL source code, extracts the business rules and logic, routes them through SME review, documents the validated rules, and outputs a data model ready for implementation on the new platform. The team estimated 6 to 9 months manually. We delivered it in 3.",
-      "If your program is blocked by legacy complexity, that is not a reason to wait. It is the reason to call.",
+      "That's most of the founders I work with. It's not a blocker. The assessment will tell you what shape it's in and what it would take to make it usable.",
     ],
   },
 ];
 
 const BUILT_FOR = [
-  "Programs that have stalled and need someone to say clearly what is wrong, not what the client wants to hear.",
-  "Executives who have sat through enough vendor presentations to know the gap between a demo and a working system.",
-  "Organisations in financial services, healthcare, government, and retail where a failed AI program does not just lose budget, it loses trust.",
-  "Teams who need the work done, not managed.",
+  "Startup founders shipping AI without a data team",
+  "SMBs that need data infrastructure but can't hire full time",
+  "Technical leads who need a senior data person for a specific build",
+  "Founders who want to use AI and need the data underneath it to work",
 ];
 
 const NOT_FOR = [
-  "Programs looking to validate a decision already made.",
-  "Organisations that want a brand name on the engagement more than a working outcome.",
-  "Teams not yet ready to hear that the data problem comes before the AI problem.",
+  "Large enterprises with existing data departments",
+  "Companies looking for a big firm with a brand name",
+  "Anyone wanting a 12-month retainer before work starts",
 ];
 
 const ANCHOR_NAV_ITEMS = [
   { label: "Services", href: "#services" },
   { label: "Proof", href: "#proof" },
-  { label: "Assessment", href: "#assessment" },
+  { label: "How it works", href: "#how-it-works" },
 ];
 
 type HomeSearchParams = Promise<{
@@ -213,23 +229,25 @@ export default async function Home({
           </div>
         ) : null}
 
+        {/* 1. Hero */}
         <Hero
-          eyebrow="Data and AI Transformation Practice"
+          eyebrow="Fractional Data · AI Readiness · Short-Term Gigs"
+          gradient="off"
           headline={
             <>
-              Most AI programs <span className="text-primary">fail</span> at the
-              data layer.
-              <span className="mt-4 block text-ink-muted md:text-display-lg">
-                By the time anyone admits it, the budget is gone.
+              You don&rsquo;t have a data team.
+              <span className="mt-4 block text-ink">
+                I am your data team.
               </span>
             </>
           }
           subhead={
             <>
-              We go into programs in financial services, healthcare, government,
-              and retail that are stuck or at risk.{" "}
-              <br className="hidden md:inline" />
-              We fix the data foundation. Then we get the program moving.
+              Startups and small businesses building on AI need solid data
+              underneath it. Most can&rsquo;t afford a full-time senior data
+              hire. I work with founders and technical leads as their
+              fractional data person — or on short gigs when you need a
+              specific problem solved fast.
             </>
           }
           cta={{
@@ -237,108 +255,88 @@ export default async function Home({
             secondary: BOOK_CALL_CTA,
             position: "hero",
           }}
+          trustStrip="25 years  ·  Cross-industry delivery  ·  Melbourne, Australia"
           anchorNav={{ items: ANCHOR_NAV_ITEMS }}
         />
 
-        {/* Agitate */}
-        <Section bg="surface-1">
-          <h2 className="text-display-md text-ink">
-            The longer it stays stuck, the more it costs you.
-          </h2>
-          <div className="mt-8 space-y-6 text-body-lg text-ink-subtle">
-            <p>
-              The vendor is not going to tell you. The model performs in demo
-              conditions. Your data team knows there are problems but is not in
-              the room when commitments are made. Your executive sponsor
-              approved a business case built on assumptions your data
-              infrastructure cannot support.
-            </p>
-            <p>
-              When the program stalls, and programs built on weak data
-              foundations do stall, it will not be attributed to the vendor.
-              It will be attributed to the decision to proceed. That decision
-              has a name on it.
-            </p>
-            <p>
-              The organisations that fix this know something the others do not.
-              The model was never the constraint.
-            </p>
+        {/* 2. The Problem — two columns: copy left, stat block right */}
+        <Section bg="surface-1" pad="section">
+          <div className="grid gap-12 md:grid-cols-2 md:gap-16">
+            <div>
+              <h2 className="text-display-md text-ink">
+                The data problems nobody tells you about until it&rsquo;s too
+                late.
+              </h2>
+              <div className="mt-8 space-y-6 text-body-lg text-ink-muted">
+                <p>
+                  Your AI tool says it&rsquo;s working. Your numbers don&rsquo;t
+                  add up. Nobody on your team knows why. You don&rsquo;t have
+                  a data person to ask.
+                </p>
+                <p>
+                  That&rsquo;s the gap. I fill it. Not as a big consulting
+                  firm. Not as a vendor. As your data person — the one who
+                  knows where things break and how to fix them before they
+                  cost you more.
+                </p>
+              </div>
+            </div>
+            <dl className="flex flex-col gap-6">
+              {STATS.map((s) => (
+                <div
+                  key={s.figure}
+                  className="rounded-lg border border-hairline bg-canvas p-6"
+                >
+                  <dt className="text-display-md text-ink">{s.figure}</dt>
+                  <dd className="mt-2 text-body-sm text-ink-subtle">
+                    {s.detail}
+                  </dd>
+                </div>
+              ))}
+            </dl>
           </div>
         </Section>
 
-        {/* Solution + Proof */}
-        <Section id="proof" bg="canvas">
+        {/* 3. What I Do — Services */}
+        <Section id="services" bg="canvas" pad="section">
           <h2 className="text-display-md text-ink">
-            We go in and fix what is broken.
+            What &ldquo;I am your data team&rdquo; actually means.
           </h2>
-          <div className="mt-8 space-y-6 text-body-lg text-ink-subtle">
-            <p>
-              Archos Labs is not a vendor. We are the person your vendor
-              should have sent. We go into programs that are stuck or at risk
-              in financial services, healthcare, government, and retail and
-              fix what is broken. We are practitioners who have built these
-              systems, not consultants who have read about them.
-            </p>
-            <p>
-              We don&rsquo;t take retainers. We don&rsquo;t pad timelines. We
-              don&rsquo;t bring 12-person teams to your meetings.
-            </p>
-          </div>
-          <div className="mt-12 grid gap-8 md:grid-cols-3 md:gap-10">
-            {PROOF_POINTS.map((proof) => (
-              <ProofItem
-                key={proof.label}
-                label={proof.label}
-                outcome={proof.outcome}
-              />
-            ))}
-          </div>
-        </Section>
-
-        {/* 90-day timeline */}
-        <Section bg="surface-1">
-          <h2 className="text-display-md text-ink">
-            From assessment to working system in twelve weeks.
-          </h2>
-          <p className="mt-5 max-w-[640px] text-body-lg text-ink-subtle">
-            The path most programs take. We compress it.
-          </p>
-          <Timeline milestones={TIMELINE_MILESTONES} />
-        </Section>
-
-        {/* Services */}
-        <Section id="services" bg="canvas">
-          <h2 className="text-display-md text-ink">How we work with you.</h2>
-          <div className="mt-12 grid items-stretch gap-6 md:grid-cols-2 md:gap-8">
-            {SERVICES.map((service, i) => (
+          <div className="mt-12 grid items-stretch gap-6 md:grid-cols-2 lg:grid-cols-3 md:gap-8">
+            {SERVICES.map((service) => (
               <ServiceCard
                 key={service.name}
-                index={i + 1}
-                total={SERVICES.length}
                 deliverable={service.deliverable}
                 name={service.name}
                 body={service.body}
+                bestFor={service.bestFor}
               />
             ))}
           </div>
         </Section>
 
-        {/* Objection FAQ */}
-        <Section bg="surface-1">
-          <h2 className="text-display-md text-ink">Common questions.</h2>
-          <div className="mt-2">
-            <ObjectionFaq items={OBJECTIONS} />
+        {/* 4. Proof */}
+        <Section id="proof" bg="surface-1" pad="section">
+          <h2 className="text-display-md text-ink">Work I&rsquo;ve shipped.</h2>
+          <p className="mt-5 max-w-[640px] text-body text-ink-subtle">
+            Three examples. Anonymised by request. Specifics on the call.
+          </p>
+          <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3 md:gap-8">
+            {PROOF_POINTS.map((proof) => (
+              <ProofItem
+                key={proof.title}
+                eyebrow={proof.eyebrow}
+                title={proof.title}
+                body={proof.body}
+                stat={proof.stat}
+              />
+            ))}
           </div>
         </Section>
 
-        {/* Who We Work With */}
-        <Section bg="canvas">
-          <h2 className="text-display-md text-ink">Who we work with.</h2>
-          <p className="mt-5 text-body-lg text-ink-subtle">
-            We take on a small number of engagements. This is who they are
-            right for.
-          </p>
-          <div className="mt-12 grid gap-12 md:grid-cols-2">
+        {/* 5. Built For / Not For */}
+        <Section bg="canvas" pad="section">
+          <div className="grid gap-12 md:grid-cols-2">
             <AudienceList
               variant="built-for"
               heading="Built for"
@@ -352,34 +350,32 @@ export default async function Home({
           </div>
         </Section>
 
-        {/* Assessment Block — elevated surface to signal a distinct moment */}
-        <Section id="assessment" bg="elevated">
+        {/* 6. How It Works — Timeline */}
+        <Section id="how-it-works" bg="surface-1" pad="section">
           <h2 className="text-display-md text-ink">
-            Start with the assessment.
+            From first conversation to working system.
           </h2>
-          <div className="mt-6 space-y-5 text-body-lg text-ink-subtle">
-            <p>
-              It takes 8 minutes. It tells you where your program is exposed
-              across data foundation, governance, and program readiness. You
-              get a written report. If the score tells us we are the right
-              fit, we will invite you to a 30-minute call.
-            </p>
-            <p>Not everyone gets the call. That is the point.</p>
-          </div>
-          <div className="mt-10">
-            <CtaPair primary={ASSESSMENT_CTA} position="assessment-block" />
+          <Timeline milestones={TIMELINE_MILESTONES} />
+        </Section>
+
+        {/* 7. FAQ */}
+        <Section bg="canvas" pad="section">
+          <h2 className="text-display-md text-ink">Common questions.</h2>
+          <div className="mt-2">
+            <ObjectionFaq items={OBJECTIONS} />
           </div>
         </Section>
 
-        {/* Final CTA */}
-        <Section id="final-cta" bg="bordered" pad="relaxed" centered>
-          <h2 className="text-headline text-ink md:text-display-md">
-            One call. Thirty minutes.
+        {/* 8. Final CTA */}
+        <Section id="final-cta" bg="surface-1" pad="section" centered>
+          <h2 className="text-display-md text-ink">
+            Start with the assessment.
           </h2>
-          <p className="mx-auto mt-6 max-w-[640px] text-body text-ink-subtle">
-            Tell us what is broken. We&rsquo;ll tell you whether it is a problem
-            we have solved before and what fixing it would cost. No deck or
-            qualification process. If we can&rsquo;t help, we&rsquo;ll say so.
+          <p className="mx-auto mt-6 max-w-[640px] text-body-lg text-ink-muted">
+            8 minutes. No login. You get a written report that tells you
+            exactly where your data will break your AI project. If we&rsquo;re
+            a fit, I&rsquo;ll invite you to a 30-minute call. No pitch. No
+            deck. Just a direct conversation.
           </p>
           <div className="mt-12">
             <CtaPair

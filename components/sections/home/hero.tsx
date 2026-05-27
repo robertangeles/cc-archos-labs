@@ -1,13 +1,14 @@
 // Hero section — eyebrow + headline + subhead + primary CTA pair, with
-// an optional desktop-only AnchorNav slot beneath the CTAs.
+// an optional desktop-only AnchorNav slot beneath the CTAs and an
+// optional trust strip below that.
 //
-// The lavender radial gradient + the lavender accent on the verb "fail"
-// are the locked treatment from the original home page (per DESIGN.md
-// — primary lavender reserved for CTAs, focus, link emphasis, and the
-// brand mark; the hero verb accent counts as brand mark territory).
+// The lavender radial gradient is a legacy treatment retained for the
+// /about hero and any other surface that still opts into it. The home
+// page sets `gradient="off"` (May 2026 SMB rewrite per DESIGN.md "no
+// atmospheric gradients").
 //
-// Headline is typed as ReactNode so the page composition can inject the
-// lavender <span> around "fail" without this component knowing the copy.
+// Headline is typed as ReactNode so the page composition can inject
+// emphasis spans without this component knowing the copy.
 
 import type { ReactNode } from "react";
 import { CtaPair, type CtaPairProps } from "./cta-pair";
@@ -35,6 +36,12 @@ export type HeroProps = {
    *  Composed CMS pages pass `left` so the hero shares the authoritative
    *  left-aligned reading axis used by every section below it. */
   align?: "left" | "center";
+  /** Atmospheric lavender radial. Defaults to `on` for back-compat;
+   *  home page passes `off` per the May 2026 rewrite. */
+  gradient?: "on" | "off";
+  /** Optional trust strip rendered below the CTAs in the eyebrow style.
+   *  Home page uses this for "25 years · Cross-industry delivery · …". */
+  trustStrip?: ReactNode;
 };
 
 export function Hero({
@@ -44,35 +51,46 @@ export function Hero({
   cta,
   anchorNav,
   align = "center",
+  gradient = "on",
+  trustStrip,
 }: HeroProps) {
   const isLeft = align === "left";
   return (
     <section className="relative overflow-hidden">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10"
-        style={{
-          backgroundImage: isLeft ? HERO_GRADIENT_LEFT : HERO_GRADIENT_CENTER,
-        }}
-      />
+      {gradient === "on" ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10"
+          style={{
+            backgroundImage: isLeft
+              ? HERO_GRADIENT_LEFT
+              : HERO_GRADIENT_CENTER,
+          }}
+        />
+      ) : null}
       <div
         className={`mx-auto flex max-w-[1080px] flex-col px-6 pt-32 pb-20 md:px-12 ${
           isLeft ? "items-start text-left" : "items-center text-center"
         }`}
       >
-        <span className="inline-block rounded-full border border-hairline-strong px-3 py-1 uppercase text-eyebrow text-ink-subtle">
+        <span className="inline-block rounded-md border border-hairline-strong px-3 py-1 uppercase text-eyebrow text-ink-subtle">
           {eyebrow}
         </span>
         <h1 className="mt-8 text-display-md text-ink md:text-display-xl">
           {headline}
         </h1>
-        <p className="mt-6 max-w-[640px] text-body-lg text-ink-subtle">
+        <p className="mt-6 max-w-[640px] text-body-lg text-ink-muted">
           {subhead}
         </p>
         {cta ? (
           <div className="mt-12">
             <CtaPair {...cta} align={cta.align ?? align} />
           </div>
+        ) : null}
+        {trustStrip ? (
+          <p className="mt-10 text-eyebrow uppercase text-ink-subtle">
+            {trustStrip}
+          </p>
         ) : null}
         {anchorNav ? (
           <div className="mt-10 hidden lg:block">
