@@ -7,7 +7,7 @@ import { BookingError, GoogleAuthError } from "../../../../../lib/errors/booking
 import { exchangeCodeForTokens } from "../../../../../lib/google-oauth";
 import { clearAccessTokenCache } from "../../../../../lib/google-calendar";
 import { getIntegrationConfig } from "../../../../../lib/integration-config";
-import { getSiteSettings } from "../../../../../lib/site-config";
+import { getSiteSettings, getSiteUrl } from "../../../../../lib/site-config";
 import { STATE_COOKIE } from "../start/route";
 
 // GET /api/admin/google-oauth/cb?code=...&state=...
@@ -40,11 +40,10 @@ const DEFAULT_WORKING_HOURS = {
 } as const;
 
 function redirectToAdmin(
-  base: URL,
   status: "connected" | "denied" | "state_mismatch" | "no_code" | "error",
   detail?: string,
 ): NextResponse {
-  const url = new URL("/admin/integrations/google-calendar", base);
+  const url = new URL("/admin/integrations/google-calendar", getSiteUrl());
   url.searchParams.set("status", status);
   if (detail) url.searchParams.set("detail", detail.slice(0, 200));
   const response = NextResponse.redirect(url);
@@ -68,15 +67,15 @@ export async function GET(request: NextRequest) {
   // Google appends ?error=access_denied when Rob clicks "Cancel" on the
   // consent screen. Surface it as a benign redirect, not a 500.
   if (error) {
-    return redirectToAdmin(url, "denied", error);
+    return redirectToAdmin("denied", error);
   }
   if (!code || !stateParam) {
-    return redirectToAdmin(url, "no_code");
+    return redirectToAdmin("no_code");
   }
 
   const cookieState = request.cookies.get(STATE_COOKIE)?.value;
   if (!cookieState || cookieState !== stateParam) {
-    return redirectToAdmin(url, "state_mismatch");
+    return redirectToAdmin("state_mismatch");
   }
 
   let refreshTokenPlain: string;
@@ -89,7 +88,7 @@ export async function GET(request: NextRequest) {
         ? err.message
         : "Google token exchange failed.";
     console.error("[google-oauth/cb] exchange failed:", err);
-    return redirectToAdmin(url, "error", message);
+    return redirectToAdmin("error", message);
   }
 
   // Encrypt the refresh token with the master key before persisting.
@@ -109,7 +108,6 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     console.error("[google-oauth/cb] config load failed:", err);
     return redirectToAdmin(
-      url,
       "error",
       "Cannot resolve consultant identity from integration config.",
     );
@@ -155,8 +153,8 @@ export async function GET(request: NextRequest) {
     }
   } catch (err) {
     console.error("[google-oauth/cb] consultant upsert failed:", err);
-    return redirectToAdmin(url, "error", "Could not persist Google grant.");
+    return redirectToAdmin("error", "Could not persist Google grant.");
   }
 
-  return redirectToAdmin(url, "connected");
+  return redirectToAdmin("connected");
 }
