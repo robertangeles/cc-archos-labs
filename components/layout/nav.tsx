@@ -14,6 +14,7 @@ const TOPLEVEL = [
 
 const TOOLS = [
   { href: "/tools/ai-readiness", label: "AI Readiness Assessment" },
+  { href: "/tools/cdmp-practice", label: "CDMP Practice Exam" },
 ];
 
 export interface NavLeadProps {
@@ -24,7 +25,7 @@ function AuthControl({ lead }: { lead: NavLeadProps | null }) {
   if (!lead) {
     return (
       <Link
-        href="/sign-in"
+        href="/login"
         className="transition-colors duration-150 hover:text-ink"
       >
         Sign in

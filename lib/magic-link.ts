@@ -47,9 +47,26 @@ export async function mintMagicLinkToken(
   return { rawToken, expiresAt };
 }
 
+export async function mintUserMagicLinkToken(
+  userId: string,
+): Promise<MintedMagicLink> {
+  const rawToken = randomBytes(TOKEN_BYTES).toString("hex");
+  const tokenHash = sha256Hex(rawToken);
+  const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
+
+  const db = getDb();
+  await db.insert(magicLinkToken).values({
+    userId,
+    tokenHash,
+    expiresAt,
+  });
+
+  return { rawToken, expiresAt };
+}
+
 export async function consumeMagicLinkToken(
   rawToken: string,
-): Promise<{ leadId: string } | null> {
+): Promise<{ leadId: string | null; userId: string | null } | null> {
   // Reject obviously malformed tokens before hitting the DB.
   if (!/^[0-9a-f]{64}$/i.test(rawToken)) {
     return null;
@@ -72,13 +89,13 @@ export async function consumeMagicLinkToken(
         isNull(magicLinkToken.consumedAt),
       ),
     )
-    .returning({ leadId: magicLinkToken.leadId });
+    .returning({ leadId: magicLinkToken.leadId, userId: magicLinkToken.userId });
 
   if (rows.length === 0) {
     return null;
   }
 
-  return { leadId: rows[0].leadId };
+  return { leadId: rows[0].leadId, userId: rows[0].userId };
 }
 
 function sha256Hex(input: string): string {

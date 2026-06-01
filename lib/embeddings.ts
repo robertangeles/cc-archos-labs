@@ -169,6 +169,53 @@ async function callOpenRouter(args: {
   return embedding;
 }
 
+/**
+ * Generate a 1024-dim embedding for arbitrary text. Lower-level than
+ * embedPostContent — used by the knowledge base ingestion pipeline
+ * and vector search queries where the input is a plain string rather
+ * than a structured post object.
+ */
+export async function embedText(
+  text: string,
+  opts: EmbeddingOptions = {},
+): Promise<number[]> {
+  const apiKey = opts.apiKey ?? process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    throw new EmbeddingError(
+      "OPENROUTER_API_KEY is not set — cannot generate embeddings.",
+    );
+  }
+  const modelId =
+    opts.modelId ?? process.env.OPENROUTER_EMBED_MODEL ?? EMBED_MODEL;
+  const dimensions = opts.dimensions ?? EMBEDDING_DIMS;
+
+  let lastError = "";
+  for (let attempt = 1; attempt <= RETRY_ATTEMPTS; attempt++) {
+    try {
+      const embedding = await callOpenRouter({
+        apiKey,
+        modelId,
+        dimensions,
+        text,
+      });
+      if (embedding.length !== EMBEDDING_DIMS) {
+        throw new EmbeddingError(
+          `Embedding returned ${embedding.length} dims; expected ${EMBEDDING_DIMS}.`,
+        );
+      }
+      return embedding;
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
+      if (attempt < RETRY_ATTEMPTS) {
+        await sleep(500 * attempt);
+      }
+    }
+  }
+  throw new EmbeddingError(
+    `Embedding failed after ${RETRY_ATTEMPTS} attempts: ${lastError}`,
+  );
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }

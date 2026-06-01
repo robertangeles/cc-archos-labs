@@ -22,6 +22,8 @@ const tabs: Tab[] = [
   { href: "/admin/integrations", label: "Integrations" },
   { href: "/admin/users", label: "Users & Roles" },
   { href: "/admin/auth", label: "Authentication" },
+  { href: "/admin/knowledge", label: "Knowledge Base" },
+  { href: "/admin/cdmp", label: "CDMP Config" },
   // Future tabs (kept here as comments — uncomment + create the page when ready):
   // { href: "/admin/profile", label: "Profile", comingSoon: true },
   // { href: "/admin/email", label: "Email Templates", comingSoon: true },

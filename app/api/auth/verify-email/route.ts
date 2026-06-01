@@ -20,7 +20,7 @@ export const runtime = "nodejs";
 // confirmation banner. (The /account page will land in T7; for now the
 // redirect target exists as a fragment param the future page can read.)
 //
-// On failure: redirect to /sign-in?error=… with a generic error code.
+// On failure: redirect to /login?error=… with a generic error code.
 // We never reveal whether the token was valid-but-expired vs forged.
 //
 // No CSRF check — this is GET (no side effect from the request itself;
@@ -37,18 +37,18 @@ export async function GET(request: Request) {
     VERIFIES_PER_IP_PER_HOUR,
   );
   if (!limit.ok) {
-    return redirectTo(request, "/sign-in?error=rate_limited");
+    return redirectTo(request, "/login?error=rate_limited");
   }
 
   const { searchParams } = new URL(request.url);
   const token = searchParams.get("token");
   if (!token) {
-    return redirectTo(request, "/sign-in?error=missing_token");
+    return redirectTo(request, "/login?error=missing_token");
   }
 
   const userId = await verifyVerificationToken(token);
   if (!userId) {
-    return redirectTo(request, "/sign-in?error=invalid_or_expired_token");
+    return redirectTo(request, "/login?error=invalid_or_expired_token");
   }
 
   const db = getDb();
@@ -68,10 +68,10 @@ export async function GET(request: Request) {
   const row = found[0];
   if (!row) {
     // User got deleted between mint and verify. Same generic error.
-    return redirectTo(request, "/sign-in?error=invalid_or_expired_token");
+    return redirectTo(request, "/login?error=invalid_or_expired_token");
   }
   if (!row.isActive) {
-    return redirectTo(request, "/sign-in?error=account_deactivated");
+    return redirectTo(request, "/login?error=account_deactivated");
   }
 
   const newlyVerified = row.emailVerifiedAt === null;

@@ -93,6 +93,11 @@ export const assessmentSession = pgTable(
     leadId: uuid("lead_id").references(() => lead.id, {
       onDelete: "set null",
     }),
+    // Site-wide account owner. New sessions (post-Phase B) write this;
+    // legacy lead-owned sessions have user_id = NULL.
+    userId: uuid("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     // 'in_progress' | 'completed' | 'abandoned'. Drives the
     // return-visitor portal logic (W5) and analytics queries.
     status: text("status").notNull().default("in_progress"),
@@ -126,6 +131,7 @@ export const assessmentSession = pgTable(
     // FK lookup: list a lead's previous sessions (return-visitor portal,
     // admin "view this user's history" query).
     leadIdx: index("assessment_session_lead_id_idx").on(table.leadId),
+    userIdx: index("assessment_session_user_id_idx").on(table.userId),
     // Status filter: count of completed/abandoned for the analytics
     // dashboard. Low cardinality so partial-index could replace this
     // later if the table gets big.
@@ -232,9 +238,12 @@ export const magicLinkToken = pgTable(
   "magic_link_token",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    leadId: uuid("lead_id")
-      .notNull()
-      .references(() => lead.id, { onDelete: "cascade" }),
+    leadId: uuid("lead_id").references(() => lead.id, {
+      onDelete: "cascade",
+    }),
+    userId: uuid("user_id").references(() => users.id, {
+      onDelete: "cascade",
+    }),
     // sha256 hex of the raw token. unique() so a colliding hash (any
     // shape) is treated as a write conflict, not a duplicate row.
     tokenHash: text("token_hash").notNull().unique(),
@@ -253,6 +262,7 @@ export const magicLinkToken = pgTable(
   (table) => ({
     // FK lookup: list a lead's recent links (rate-limit decisions, audit).
     leadIdx: index("magic_link_token_lead_id_idx").on(table.leadId),
+    userIdx: index("magic_link_token_user_id_idx").on(table.userId),
   }),
 );
 
@@ -372,6 +382,10 @@ export const magicLinkTokenRelations = relations(magicLinkToken, ({ one }) => ({
     fields: [magicLinkToken.leadId],
     references: [lead.id],
   }),
+  user: one(users, {
+    fields: [magicLinkToken.userId],
+    references: [users.id],
+  }),
 }));
 
 export const assessmentSessionRelations = relations(
@@ -380,6 +394,10 @@ export const assessmentSessionRelations = relations(
     lead: one(lead, {
       fields: [assessmentSession.leadId],
       references: [lead.id],
+    }),
+    user: one(users, {
+      fields: [assessmentSession.userId],
+      references: [users.id],
     }),
     report: one(reportOutput, {
       fields: [assessmentSession.id],
@@ -1362,6 +1380,9 @@ export const usersRelations = relations(users, ({ many }) => ({
   oauthAccounts: many(oauthAccount),
   sessions: many(userSession),
   authEvents: many(authEvent),
+  cdmpExamSessions: many(cdmpExamSession),
+  assessmentSessions: many(assessmentSession),
+  magicLinkTokens: many(magicLinkToken),
 }));
 
 export const oauthAccountRelations = relations(oauthAccount, ({ one }) => ({
@@ -1733,6 +1754,310 @@ export const newsletterSignupRelations = relations(
     sourcePost: one(post, {
       fields: [newsletterSignup.sourcePostId],
       references: [post.id],
+    }),
+  }),
+);
+
+// ============================================================================
+// knowledge_document — CDMP Practice Exam (knowledge base)
+// ============================================================================
+// Metadata for an ingested reference document (DMBOK PDF, supplementary
+// texts). One row per source document. Chunks are stored separately in
+// knowledge_chunk with a CASCADE FK back here. content_hash enables
+// deduplication — re-uploading the same file is a no-op.
+//
+// status lifecycle: processing → ready | failed
+//   processing: ingestion in progress (chunking + embedding)
+//   ready: all chunks embedded successfully
+//   failed: ingestion pipeline errored (last_error has details)
+
+export const knowledgeDocument = pgTable("knowledge_document", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  // 'pdf' | 'text' | 'url'. Determines which parser the ingest pipeline uses.
+  sourceType: text("source_type").notNull(),
+  // Free-text category for admin filtering (e.g. 'dmbok', 'supplementary').
+  category: text("category"),
+  // sha256 of the raw file bytes. UNIQUE so re-uploading the same file
+  // is rejected at the DB layer rather than silently duplicated.
+  contentHash: text("content_hash").notNull().unique(),
+  // 'processing' | 'ready' | 'failed'. See lifecycle comment above.
+  status: text("status").notNull().default("processing"),
+  // Number of chunks produced from this document. Populated after
+  // chunking completes; used in the admin list view.
+  chunkCount: integer("chunk_count").notNull().default(0),
+  // Human-readable error message when status='failed'.
+  lastError: text("last_error"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type KnowledgeDocument = typeof knowledgeDocument.$inferSelect;
+export type NewKnowledgeDocument = typeof knowledgeDocument.$inferInsert;
+
+// ============================================================================
+// knowledge_chunk — CDMP Practice Exam (knowledge base)
+// ============================================================================
+// One row per text chunk extracted from a knowledge_document. Each chunk
+// carries a 1024-dim embedding (matching the existing post.embedding
+// infrastructure — same model, same dimensions, same cosine distance).
+//
+// Chunking strategy (ported from cc-culinaire-kitchen):
+//   ~1000 tokens per chunk, 200-token overlap, paragraph-boundary splits.
+//
+// CASCADE delete on document_id: removing a document purges all its chunks
+// and their embeddings in one operation.
+
+export const knowledgeChunk = pgTable(
+  "knowledge_chunk",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    documentId: uuid("document_id")
+      .notNull()
+      .references(() => knowledgeDocument.id, { onDelete: "cascade" }),
+    // The actual text content of this chunk.
+    content: text("content").notNull(),
+    // 1024-dim embedding from text-embedding-3-large via OpenRouter.
+    // Matches post.embedding dimensions for infrastructure reuse.
+    embedding: vector("embedding", { dimensions: 1024 }),
+    // 0-based position within the source document. Preserves reading
+    // order for context reconstruction when multiple chunks are retrieved.
+    chunkIndex: integer("chunk_index").notNull(),
+    // Source location metadata: chapter title, page range, section heading.
+    // Shape varies per source_type; application layer validates (Zod).
+    metadata: jsonb("metadata").notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // FK lookup: "list all chunks for this document" (admin detail view,
+    // cascade delete verification).
+    index("knowledge_chunk_document_id_idx").on(table.documentId),
+    // Ordered retrieval: "chunks for document X in reading order."
+    index("knowledge_chunk_document_id_chunk_index_idx").on(
+      table.documentId,
+      table.chunkIndex,
+    ),
+  ],
+);
+
+export type KnowledgeChunk = typeof knowledgeChunk.$inferSelect;
+export type NewKnowledgeChunk = typeof knowledgeChunk.$inferInsert;
+
+// ============================================================================
+// cdmp_exam_session — CDMP Practice Exam
+// ============================================================================
+// One row per practice exam attempt. user_id FK to the users table —
+// registration is required before taking the exam. Config captures the
+// session parameters (question count, timer, target score threshold).
+//
+// status lifecycle: in_progress → completed | abandoned
+//   in_progress: user is actively answering questions
+//   completed: all questions answered (or timer expired), score computed
+//   abandoned: user left mid-exam without completing
+
+export const cdmpExamSession = pgTable(
+  "cdmp_exam_session",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // { questionCount: 20|40|60|100, timerEnabled: boolean,
+    //   timerSeconds: number, targetThreshold: 60|70|80 }
+    config: jsonb("config").notNull(),
+    // 'in_progress' | 'completed' | 'abandoned'. See lifecycle above.
+    status: text("status").notNull().default("in_progress"),
+    // Total questions served in this session.
+    questionCount: integer("question_count").notNull(),
+    // Final score: number of correct answers.
+    correctCount: integer("correct_count"),
+    // Final score as percentage (0-100). Computed at completion.
+    scorePercent: integer("score_percent"),
+    // Whether the user met their target threshold.
+    passed: boolean("passed"),
+    startedAt: timestamp("started_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // "List a user's exam history, newest first."
+    index("cdmp_exam_session_user_id_idx").on(table.userId),
+    // Admin analytics: "count completed vs abandoned sessions."
+    index("cdmp_exam_session_status_idx").on(table.status),
+  ],
+);
+
+export type CdmpExamSession = typeof cdmpExamSession.$inferSelect;
+export type NewCdmpExamSession = typeof cdmpExamSession.$inferInsert;
+
+// ============================================================================
+// cdmp_exam_answer — CDMP Practice Exam
+// ============================================================================
+// One row per answered question in a session. Stores the full question
+// content (denormalized) because questions are generated on the fly —
+// there is no stable question ID to reference. This ensures the review
+// screen can always reconstruct exactly what the user saw.
+//
+// JSONB exception per CLAUDE.md §1: options is a structured array
+// validated by the application layer (Zod). Denormalization justified:
+// questions are ephemeral (generated per-session), not canonical entities.
+
+export const cdmpExamAnswer = pgTable(
+  "cdmp_exam_answer",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => cdmpExamSession.id, { onDelete: "cascade" }),
+    // 0-based position within the exam (matches display order).
+    questionIndex: integer("question_index").notNull(),
+    // The generated question text shown to the user.
+    questionText: text("question_text").notNull(),
+    // [{ code: 'A'|'B'|'C'|'D'|'E', label: string }]
+    options: jsonb("options").notNull(),
+    // 'A' | 'B' | 'C' | 'D' | 'E'. What the user selected.
+    userAnswer: text("user_answer").notNull(),
+    // 'A' | 'B' | 'C' | 'D' | 'E'. The verified correct answer.
+    correctAnswer: text("correct_answer").notNull(),
+    isCorrect: boolean("is_correct").notNull(),
+    // DMBOK knowledge area slug (e.g. 'data_governance').
+    knowledgeArea: text("knowledge_area").notNull(),
+    // Explanation text referencing the DMBOK chapter.
+    explanation: text("explanation").notNull(),
+    // DMBOK chapter reference (e.g. 'Chapter 3 — Data Governance').
+    dmbokChapterRef: text("dmbok_chapter_ref").notNull(),
+    // IDs of knowledge_chunk rows used to generate this question.
+    // Enables flagging and quality analysis per source chunk.
+    chunkIds: jsonb("chunk_ids").$type<string[]>().notNull().default([]),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // "List all answers for a session in order."
+    index("cdmp_exam_answer_session_id_idx").on(table.sessionId),
+    // Per-chapter analytics: "how do users perform on data_governance?"
+    index("cdmp_exam_answer_knowledge_area_idx").on(table.knowledgeArea),
+  ],
+);
+
+export type CdmpExamAnswer = typeof cdmpExamAnswer.$inferSelect;
+export type NewCdmpExamAnswer = typeof cdmpExamAnswer.$inferInsert;
+
+// ============================================================================
+// cdmp_question_flag — CDMP Practice Exam
+// ============================================================================
+// User-submitted flags for potentially incorrect generated questions.
+// Links to the specific answer row so admins can see the full question
+// context. Flags are reviewed via admin UI; status tracks resolution.
+//
+// No updated_at: flags are append-only from the user's perspective.
+// Admin resolution updates status + resolved_at.
+
+export const cdmpQuestionFlag = pgTable(
+  "cdmp_question_flag",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    answerId: uuid("answer_id")
+      .notNull()
+      .references(() => cdmpExamAnswer.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // Free-text reason the user thinks the question is wrong.
+    reason: text("reason").notNull(),
+    // 'pending' | 'reviewed' | 'dismissed'. Admin resolves via admin UI.
+    status: text("status").notNull().default("pending"),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // FK lookup: "list flags for this answer."
+    index("cdmp_question_flag_answer_id_idx").on(table.answerId),
+    // FK lookup: "list flags by this user."
+    index("cdmp_question_flag_user_id_idx").on(table.userId),
+    // Admin queue: "show all pending flags."
+    index("cdmp_question_flag_status_idx").on(table.status),
+  ],
+);
+
+export type CdmpQuestionFlag = typeof cdmpQuestionFlag.$inferSelect;
+export type NewCdmpQuestionFlag = typeof cdmpQuestionFlag.$inferInsert;
+
+// ============================================================================
+// Relations — Knowledge Base + CDMP Practice Exam
+// ============================================================================
+
+export const knowledgeDocumentRelations = relations(
+  knowledgeDocument,
+  ({ many }) => ({
+    chunks: many(knowledgeChunk),
+  }),
+);
+
+export const knowledgeChunkRelations = relations(
+  knowledgeChunk,
+  ({ one }) => ({
+    document: one(knowledgeDocument, {
+      fields: [knowledgeChunk.documentId],
+      references: [knowledgeDocument.id],
+    }),
+  }),
+);
+
+export const cdmpExamSessionRelations = relations(
+  cdmpExamSession,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [cdmpExamSession.userId],
+      references: [users.id],
+    }),
+    answers: many(cdmpExamAnswer),
+  }),
+);
+
+export const cdmpExamAnswerRelations = relations(
+  cdmpExamAnswer,
+  ({ one, many }) => ({
+    session: one(cdmpExamSession, {
+      fields: [cdmpExamAnswer.sessionId],
+      references: [cdmpExamSession.id],
+    }),
+    flags: many(cdmpQuestionFlag),
+  }),
+);
+
+export const cdmpQuestionFlagRelations = relations(
+  cdmpQuestionFlag,
+  ({ one }) => ({
+    answer: one(cdmpExamAnswer, {
+      fields: [cdmpQuestionFlag.answerId],
+      references: [cdmpExamAnswer.id],
+    }),
+    user: one(users, {
+      fields: [cdmpQuestionFlag.userId],
+      references: [users.id],
     }),
   }),
 );

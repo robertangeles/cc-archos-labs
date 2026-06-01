@@ -96,7 +96,24 @@ export async function getGoogleSigninConfig(
     );
   }
 
-  // 2. Env fallback.
+  // 2. Integration config fallback — reuse the Google OAuth credentials
+  // from /admin/integrations (same client ID + secret; different redirect
+  // URI and scopes, which are set per-request not per-client).
+  try {
+    const { getIntegrationConfig } = await import("../integration-config");
+    const ic = await getIntegrationConfig();
+    if (ic.googleOauthClientId && ic.googleOauthClientSecret) {
+      return {
+        clientId: ic.googleOauthClientId,
+        clientSecret: ic.googleOauthClientSecret,
+        redirectUri,
+      };
+    }
+  } catch {
+    // Integration config unavailable — fall through to env.
+  }
+
+  // 3. Env fallback.
   const clientId = process.env.GOOGLE_SIGNIN_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_SIGNIN_CLIENT_SECRET;
   if (!clientId || !clientSecret) {

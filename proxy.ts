@@ -18,6 +18,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+
   if (path.startsWith("/admin") || path.startsWith("/api/admin")) {
     const token = request.cookies.get(SESSION_COOKIE)?.value;
     const session = token ? await verifySession(token) : null;

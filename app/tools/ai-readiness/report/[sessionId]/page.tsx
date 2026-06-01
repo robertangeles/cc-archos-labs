@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { loadReport } from "../../../../../lib/diagnostic/report";
 import { listSessionShareTokens } from "../../../../../lib/share-tokens";
-import { getLeadFromCookies } from "../../../../../lib/auth-server";
+import { getCurrentUser } from "../../../../../lib/auth/current-user";
 import { ReportView } from "./report-view";
 
 export const runtime = "nodejs";
@@ -48,18 +48,10 @@ export default async function ReportPage({
     notFound();
   }
 
-  // Owner-only check: cookie's leadId must match the lead who owns
-  // this session. Treat missing-cookie + mismatched-cookie + missing-
-  // session-leadId as 404 — silent on whether the report exists for
-  // someone else. Magic-link sign-in (W4 Pass 2) gives return
-  // visitors a path back; without it they can't view another user's
-  // report no matter how they got the URL.
-  const session = await getLeadFromCookies();
-  if (
-    !session ||
-    !report.leadId ||
-    session.leadId !== report.leadId
-  ) {
+  // Owner-only check: archos_session userId must match the user who
+  // owns this session. 404 on mismatch (don't reveal existence).
+  const auth = await getCurrentUser();
+  if (!auth || !report.userId || auth.user.id !== report.userId) {
     notFound();
   }
 

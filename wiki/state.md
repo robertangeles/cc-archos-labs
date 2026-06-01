@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-05-31T07:24:43.111Z
+generated: 2026-06-01T13:03:15.605Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -9,22 +9,27 @@ Auto-generated snapshot of what is currently shipped. **Source of truth for ship
 
 Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `app/` or `components/` to fire the pre-commit hook.
 
-## Routes (38)
+## Routes (44)
 
 | Route | File | Last shipped |
 |-------|------|--------------|
 | `/` | [app/page.tsx](../app/page.tsx) | 2026-05-27 |
+| `/(auth)/login` | [app/(auth)/login/page.tsx](../app/(auth)/login/page.tsx) | unknown |
+| `/(auth)/register` | [app/(auth)/register/page.tsx](../app/(auth)/register/page.tsx) | unknown |
 | `/[...slug]` | [app/[...slug]/page.tsx](../app/[...slug]/page.tsx) | 2026-05-18 |
 | `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-27 |
+| `/account` | [app/account/page.tsx](../app/account/page.tsx) | unknown |
 | `/admin/(authed)/auth` | [app/admin/(authed)/auth/page.tsx](../app/admin/(authed)/auth/page.tsx) | 2026-05-26 |
 | `/admin/(authed)/blog` | [app/admin/(authed)/blog/page.tsx](../app/admin/(authed)/blog/page.tsx) | 2026-05-20 |
 | `/admin/(authed)/blog/posts` | [app/admin/(authed)/blog/posts/page.tsx](../app/admin/(authed)/blog/posts/page.tsx) | 2026-05-21 |
 | `/admin/(authed)/blog/posts/[id]` | [app/admin/(authed)/blog/posts/[id]/page.tsx](../app/admin/(authed)/blog/posts/[id]/page.tsx) | 2026-05-21 |
 | `/admin/(authed)/blog/posts/[id]/revisions` | [app/admin/(authed)/blog/posts/[id]/revisions/page.tsx](../app/admin/(authed)/blog/posts/[id]/revisions/page.tsx) | 2026-05-21 |
 | `/admin/(authed)/blog/posts/new` | [app/admin/(authed)/blog/posts/new/page.tsx](../app/admin/(authed)/blog/posts/new/page.tsx) | 2026-05-21 |
+| `/admin/(authed)/cdmp` | [app/admin/(authed)/cdmp/page.tsx](../app/admin/(authed)/cdmp/page.tsx) | unknown |
 | `/admin/(authed)/diagnostic` | [app/admin/(authed)/diagnostic/page.tsx](../app/admin/(authed)/diagnostic/page.tsx) | 2026-05-15 |
 | `/admin/(authed)/integrations` | [app/admin/(authed)/integrations/page.tsx](../app/admin/(authed)/integrations/page.tsx) | 2026-05-15 |
 | `/admin/(authed)/integrations/[slug]` | [app/admin/(authed)/integrations/[slug]/page.tsx](../app/admin/(authed)/integrations/[slug]/page.tsx) | 2026-05-17 |
+| `/admin/(authed)/knowledge` | [app/admin/(authed)/knowledge/page.tsx](../app/admin/(authed)/knowledge/page.tsx) | unknown |
 | `/admin/(authed)/pages` | [app/admin/(authed)/pages/page.tsx](../app/admin/(authed)/pages/page.tsx) | 2026-05-18 |
 | `/admin/(authed)/pages/[id]` | [app/admin/(authed)/pages/[id]/page.tsx](../app/admin/(authed)/pages/[id]/page.tsx) | 2026-05-18 |
 | `/admin/(authed)/pages/[id]/revisions` | [app/admin/(authed)/pages/[id]/revisions/page.tsx](../app/admin/(authed)/pages/[id]/revisions/page.tsx) | 2026-05-18 |
@@ -51,13 +56,14 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/ai-readiness` | [app/tools/ai-readiness/page.tsx](../app/tools/ai-readiness/page.tsx) | 2026-05-13 |
 | `/tools/ai-readiness/report/[sessionId]` | [app/tools/ai-readiness/report/[sessionId]/page.tsx](../app/tools/ai-readiness/report/[sessionId]/page.tsx) | 2026-05-13 |
 | `/tools/ai-readiness/share/[token]` | [app/tools/ai-readiness/share/[token]/page.tsx](../app/tools/ai-readiness/share/[token]/page.tsx) | 2026-05-13 |
+| `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | unknown |
 
-## API endpoints (64)
+## API endpoints (75)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
 | `/api/admin/auth-settings` | [app/api/admin/auth-settings/route.ts](../app/api/admin/auth-settings/route.ts) | 2026-05-26 |
-| `/api/admin/google-oauth/cb` | [app/api/admin/google-oauth/cb/route.ts](../app/api/admin/google-oauth/cb/route.ts) | 2026-05-17 |
+| `/api/admin/google-oauth/cb` | [app/api/admin/google-oauth/cb/route.ts](../app/api/admin/google-oauth/cb/route.ts) | 2026-05-31 |
 | `/api/admin/google-oauth/disconnect` | [app/api/admin/google-oauth/disconnect/route.ts](../app/api/admin/google-oauth/disconnect/route.ts) | 2026-05-22 |
 | `/api/admin/google-oauth/start` | [app/api/admin/google-oauth/start/route.ts](../app/api/admin/google-oauth/start/route.ts) | 2026-05-15 |
 | `/api/admin/integrations` | [app/api/admin/integrations/route.ts](../app/api/admin/integrations/route.ts) | 2026-05-17 |
@@ -66,6 +72,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/integrations/rotate-master-key` | [app/api/admin/integrations/rotate-master-key/route.ts](../app/api/admin/integrations/rotate-master-key/route.ts) | 2026-05-15 |
 | `/api/admin/integrations/test/openrouter` | [app/api/admin/integrations/test/openrouter/route.ts](../app/api/admin/integrations/test/openrouter/route.ts) | 2026-05-15 |
 | `/api/admin/integrations/test/resend` | [app/api/admin/integrations/test/resend/route.ts](../app/api/admin/integrations/test/resend/route.ts) | 2026-05-15 |
+| `/api/admin/knowledge` | [app/api/admin/knowledge/route.ts](../app/api/admin/knowledge/route.ts) | unknown |
+| `/api/admin/knowledge/upload` | [app/api/admin/knowledge/upload/route.ts](../app/api/admin/knowledge/upload/route.ts) | unknown |
 | `/api/admin/login` | [app/api/admin/login/route.ts](../app/api/admin/login/route.ts) | 2026-05-15 |
 | `/api/admin/logout` | [app/api/admin/logout/route.ts](../app/api/admin/logout/route.ts) | 2026-05-08 |
 | `/api/admin/pages` | [app/api/admin/pages/route.ts](../app/api/admin/pages/route.ts) | 2026-05-18 |
@@ -84,6 +92,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/posts/[id]/suggest-links` | [app/api/admin/posts/[id]/suggest-links/route.ts](../app/api/admin/posts/[id]/suggest-links/route.ts) | 2026-05-20 |
 | `/api/admin/settings/blog-enabled` | [app/api/admin/settings/blog-enabled/route.ts](../app/api/admin/settings/blog-enabled/route.ts) | 2026-05-20 |
 | `/api/admin/settings/booking-prompts` | [app/api/admin/settings/booking-prompts/route.ts](../app/api/admin/settings/booking-prompts/route.ts) | 2026-05-17 |
+| `/api/admin/settings/cdmp-config` | [app/api/admin/settings/cdmp-config/route.ts](../app/api/admin/settings/cdmp-config/route.ts) | unknown |
 | `/api/admin/settings/diagnostic-content` | [app/api/admin/settings/diagnostic-content/route.ts](../app/api/admin/settings/diagnostic-content/route.ts) | 2026-05-15 |
 | `/api/admin/settings/diagnostic-prompt` | [app/api/admin/settings/diagnostic-prompt/route.ts](../app/api/admin/settings/diagnostic-prompt/route.ts) | 2026-05-15 |
 | `/api/admin/settings/site` | [app/api/admin/settings/site/route.ts](../app/api/admin/settings/site/route.ts) | 2026-05-08 |
@@ -100,6 +109,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/auth/lead/verify` | [app/api/auth/lead/verify/route.ts](../app/api/auth/lead/verify/route.ts) | 2026-05-13 |
 | `/api/auth/login` | [app/api/auth/login/route.ts](../app/api/auth/login/route.ts) | 2026-05-26 |
 | `/api/auth/logout` | [app/api/auth/logout/route.ts](../app/api/auth/logout/route.ts) | 2026-05-25 |
+| `/api/auth/magic-link/request` | [app/api/auth/magic-link/request/route.ts](../app/api/auth/magic-link/request/route.ts) | unknown |
+| `/api/auth/magic-link/verify` | [app/api/auth/magic-link/verify/route.ts](../app/api/auth/magic-link/verify/route.ts) | unknown |
 | `/api/auth/password-reset/confirm` | [app/api/auth/password-reset/confirm/route.ts](../app/api/auth/password-reset/confirm/route.ts) | 2026-05-25 |
 | `/api/auth/password-reset/request` | [app/api/auth/password-reset/request/route.ts](../app/api/auth/password-reset/request/route.ts) | 2026-05-26 |
 | `/api/auth/register` | [app/api/auth/register/route.ts](../app/api/auth/register/route.ts) | 2026-05-26 |
@@ -109,6 +120,12 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/booking/cancel` | [app/api/booking/cancel/route.ts](../app/api/booking/cancel/route.ts) | 2026-05-17 |
 | `/api/booking/intake-followup` | [app/api/booking/intake-followup/route.ts](../app/api/booking/intake-followup/route.ts) | 2026-05-17 |
 | `/api/booking/reschedule` | [app/api/booking/reschedule/route.ts](../app/api/booking/reschedule/route.ts) | 2026-05-17 |
+| `/api/cdmp/answer` | [app/api/cdmp/answer/route.ts](../app/api/cdmp/answer/route.ts) | unknown |
+| `/api/cdmp/complete` | [app/api/cdmp/complete/route.ts](../app/api/cdmp/complete/route.ts) | unknown |
+| `/api/cdmp/flag` | [app/api/cdmp/flag/route.ts](../app/api/cdmp/flag/route.ts) | unknown |
+| `/api/cdmp/history` | [app/api/cdmp/history/route.ts](../app/api/cdmp/history/route.ts) | unknown |
+| `/api/cdmp/results/[sessionId]` | [app/api/cdmp/results/[sessionId]/route.ts](../app/api/cdmp/results/[sessionId]/route.ts) | unknown |
+| `/api/cdmp/start` | [app/api/cdmp/start/route.ts](../app/api/cdmp/start/route.ts) | unknown |
 | `/api/contact` | [app/api/contact/route.ts](../app/api/contact/route.ts) | 2026-05-15 |
 | `/api/cron/process-scheduled` | [app/api/cron/process-scheduled/route.ts](../app/api/cron/process-scheduled/route.ts) | 2026-05-17 |
 | `/api/cron/process-scheduled-posts` | [app/api/cron/process-scheduled-posts/route.ts](../app/api/cron/process-scheduled-posts/route.ts) | 2026-05-20 |

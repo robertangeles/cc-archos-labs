@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { LeadPortalData } from "../../../lib/diagnostic/report";
+import type { LeadPortalData, UserPortalData } from "../../../lib/diagnostic/report";
 
 // Return-visitor portal — what a signed-in lead sees when they hit
 // /tools/ai-readiness. Shows their previous reports + a retake button
@@ -10,7 +10,13 @@ import type { LeadPortalData } from "../../../lib/diagnostic/report";
 // retake button is just a Link to the assessment if allowed, or a
 // disabled-looking element if not.
 
-export function PortalView({ data }: { data: LeadPortalData }) {
+export function PortalView({ data }: { data: LeadPortalData | UserPortalData }) {
+  const name =
+    "firstName" in data
+      ? `${data.firstName} ${data.lastName}`
+      : data.displayName ?? data.email;
+  const org = "organisation" in data ? data.organisation : null;
+
   return (
     <main className="flex flex-1 flex-col bg-canvas">
       <section className="mx-auto w-full max-w-[840px] px-6 pt-24 pb-32 md:px-12 md:pt-32">
@@ -19,11 +25,11 @@ export function PortalView({ data }: { data: LeadPortalData }) {
           Welcome back
         </p>
         <h1 className="mt-4 text-headline text-ink md:text-display-md">
-          {data.firstName} {data.lastName}
+          {name}
         </h1>
-        {data.organisation ? (
+        {org ? (
           <p className="mt-3 text-base leading-[1.6] text-ink-subtle">
-            {data.organisation}
+            {org}
           </p>
         ) : null}
 

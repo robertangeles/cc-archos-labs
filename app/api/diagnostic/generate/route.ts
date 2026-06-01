@@ -4,8 +4,8 @@ import {
   rateLimit,
   clientIpFromRequest,
 } from "../../../../lib/rate-limit";
-import { signLeadSession } from "../../../../lib/auth-lead";
-import { setLeadSessionCookie } from "../../../../lib/auth-server";
+import { issueSession } from "../../../../lib/auth/session";
+import { setSessionCookie } from "../../../../lib/auth/cookies";
 import { sendLeadNotification } from "../../../../lib/lead-notification";
 import { getPublicOrigin } from "../../../../lib/public-origin";
 
@@ -99,10 +99,13 @@ export async function POST(request: Request) {
       userAgent: request.headers.get("user-agent") ?? undefined,
     });
 
-    // Set lead session cookie so the report page can verify ownership.
-    // 30-day TTL per lib/auth-lead.ts.
-    const token = await signLeadSession(result.leadId);
-    await setLeadSessionCookie(token);
+    // Issue a site-wide user session so the report page can verify ownership.
+    const session = await issueSession({
+      userId: result.userId,
+      ipAddress: ip || null,
+      userAgent: request.headers.get("user-agent"),
+    });
+    await setSessionCookie(session.cookieValue);
 
     // Fire the internal "you've got a new lead" notification. Awaited
     // so a transient send error gets logged before we return, but

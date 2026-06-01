@@ -145,7 +145,7 @@ export function RegistrationGate({ onSubmit, submitting, errorMessage }: Props) 
           <p className="mt-3 text-sm leading-[1.6] text-ink-subtle">
             Already done this?{" "}
             <Link
-              href="/sign-in"
+              href="/login"
               className="text-primary underline decoration-primary/40 underline-offset-4 hover:decoration-primary"
             >
               Sign in instead

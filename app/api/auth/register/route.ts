@@ -37,6 +37,11 @@ const RegisterSchema = z.object({
   password: z.string().min(8).max(128),
   firstName: z.string().trim().min(1).max(100),
   lastName: z.string().trim().min(1).max(100),
+  // Terms-of-Service acceptance. Must be literally true — the client
+  // checkbox alone is not sufficient; enforce server-side too.
+  acceptTos: z.literal(true, {
+    error: "You must accept the Terms of Service",
+  }),
   // Cloudflare Turnstile token from the frontend widget. Required only
   // when TURNSTILE_ENABLED is set; otherwise the requireTurnstile helper
   // bypasses verify entirely. Field stays optional in the schema so

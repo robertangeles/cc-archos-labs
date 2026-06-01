@@ -101,6 +101,12 @@ async function buildEntries(): Promise<UrlEntry[]> {
       priority: 0.9,
     },
     {
+      loc: `${base}/tools/cdmp-practice`,
+      lastmod: STATIC_PAGES_LAST_MOD,
+      changefreq: "monthly",
+      priority: 0.8,
+    },
+    {
       loc: `${base}/contact`,
       lastmod: STATIC_PAGES_LAST_MOD,
       changefreq: "yearly",

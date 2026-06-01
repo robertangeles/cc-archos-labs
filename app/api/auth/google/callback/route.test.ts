@@ -92,13 +92,13 @@ afterEach(() => {
 });
 
 describe("GET /api/auth/google/callback", () => {
-  it("redirects to /sign-in?error=oauth_cancelled when Google returns error=", async () => {
+  it("redirects to /login?error=oauth_cancelled when Google returns error=", async () => {
     const r = await GET(
       makeRequest("?error=access_denied&state=good-state-abc"),
     );
     expect(r.status).toBe(303);
     expect(r.headers.get("location")).toContain(
-      "/sign-in?error=oauth_cancelled",
+      "/login?error=oauth_cancelled",
     );
     expect(exchangeCodeMock).not.toHaveBeenCalled();
     expect(cookieStoreMock.delete).toHaveBeenCalledWith(
@@ -109,7 +109,7 @@ describe("GET /api/auth/google/callback", () => {
   it("redirects to oauth_invalid when code is missing", async () => {
     const r = await GET(makeRequest("?state=good-state-abc"));
     expect(r.status).toBe(303);
-    expect(r.headers.get("location")).toContain("/sign-in?error=oauth_invalid");
+    expect(r.headers.get("location")).toContain("/login?error=oauth_invalid");
   });
 
   it("rejects state mismatch (CSRF defense)", async () => {
@@ -117,7 +117,7 @@ describe("GET /api/auth/google/callback", () => {
     const r = await GET(makeRequest("?code=c&state=attacker-supplied"));
     expect(r.status).toBe(303);
     expect(r.headers.get("location")).toContain(
-      "/sign-in?error=oauth_state_mismatch",
+      "/login?error=oauth_state_mismatch",
     );
     expect(exchangeCodeMock).not.toHaveBeenCalled();
   });
@@ -127,7 +127,7 @@ describe("GET /api/auth/google/callback", () => {
     const r = await GET(makeRequest("?code=c&state=anything"));
     expect(r.status).toBe(303);
     expect(r.headers.get("location")).toContain(
-      "/sign-in?error=oauth_state_mismatch",
+      "/login?error=oauth_state_mismatch",
     );
   });
 
@@ -136,7 +136,7 @@ describe("GET /api/auth/google/callback", () => {
     const r = await GET(makeRequest("?code=bad&state=good-state-abc"));
     expect(r.status).toBe(303);
     expect(r.headers.get("location")).toContain(
-      "/sign-in?error=oauth_token_exchange_failed",
+      "/login?error=oauth_token_exchange_failed",
     );
   });
 
@@ -145,7 +145,7 @@ describe("GET /api/auth/google/callback", () => {
     const r = await GET(makeRequest("?code=c&state=good-state-abc"));
     expect(r.status).toBe(303);
     expect(r.headers.get("location")).toContain(
-      "/sign-in?error=oauth_userinfo_failed",
+      "/login?error=oauth_userinfo_failed",
     );
   });
 
@@ -159,7 +159,7 @@ describe("GET /api/auth/google/callback", () => {
     const r = await GET(makeRequest("?code=c&state=good-state-abc"));
     expect(r.status).toBe(303);
     expect(r.headers.get("location")).toContain(
-      "/sign-in?error=oauth_email_unverified",
+      "/login?error=oauth_email_unverified",
     );
     expect(linkOrCreateMock).not.toHaveBeenCalled();
     expect(setSessionCookieMock).not.toHaveBeenCalled();
@@ -180,7 +180,7 @@ describe("GET /api/auth/google/callback", () => {
     const r = await GET(makeRequest("?code=c&state=good-state-abc"));
     expect(r.status).toBe(303);
     expect(r.headers.get("location")).toContain(
-      "/sign-in?error=oauth_account_unavailable",
+      "/login?error=oauth_account_unavailable",
     );
     expect(setSessionCookieMock).not.toHaveBeenCalled();
     expect(errSpy).toHaveBeenCalled();
