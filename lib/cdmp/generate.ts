@@ -101,20 +101,64 @@ STATED CORRECT ANSWER: ${q.correct_answer}`,
   return null;
 }
 
+// How many questions to generate concurrently. Each question is an
+// independent generate+verify LLM round-trip (~20s), so the serial cost
+// scales linearly: 100 questions one-at-a-time is ~36 min. Running them
+// through a pool collapses that to roughly ceil(count / concurrency)
+// waves — 100 questions at 12 → ~3 min, well inside the 5-min session
+// JWT TTL. Raise if OpenRouter rate limits allow; lower if they don't.
+const GENERATION_CONCURRENCY = 12;
+
+// Run `worker` over every item with at most `limit` in flight at once.
+// Results keep input order, so question ordering matches the requested
+// chapter distribution. No external dependency — a fixed set of runners
+// pull from a shared cursor until the work list is drained.
+async function runPool<T, R>(
+  items: T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let cursor = 0;
+
+  async function runner(): Promise<void> {
+    while (true) {
+      const index = cursor++;
+      if (index >= items.length) return;
+      results[index] = await worker(items[index], index);
+    }
+  }
+
+  const runners = Array.from({ length: Math.min(limit, items.length) }, () =>
+    runner(),
+  );
+  await Promise.all(runners);
+  return results;
+}
+
 export async function generateQuestionBatch(
   chapters: ChapterDistribution[],
 ): Promise<GeneratedQuestion[]> {
   const config = await getCdmpConfig();
-  const questions: GeneratedQuestion[] = [];
 
-  for (const chapter of chapters) {
-    if (chapter.questionCount === 0) continue;
-
-    console.log(
-      `[cdmp] Generating ${chapter.questionCount} question(s) for: ${chapter.label}`,
+  // Flatten the per-chapter distribution into one task per question so
+  // every question can run concurrently regardless of which chapter it
+  // belongs to.
+  const tasks = chapters
+    .filter((chapter) => chapter.questionCount > 0)
+    .flatMap((chapter) =>
+      Array.from({ length: chapter.questionCount }, (_, i) => ({ chapter, i })),
     );
 
-    for (let i = 0; i < chapter.questionCount; i++) {
+  const areaCount = chapters.filter((c) => c.questionCount > 0).length;
+  console.log(
+    `[cdmp] Generating ${tasks.length} question(s) across ${areaCount} area(s), concurrency ${GENERATION_CONCURRENCY}`,
+  );
+
+  const settled = await runPool(
+    tasks,
+    GENERATION_CONCURRENCY,
+    async ({ chapter, i }) => {
       try {
         const chunks = await searchKnowledge(
           chapter.label,
@@ -126,7 +170,7 @@ export async function generateQuestionBatch(
           console.log(
             `[cdmp] SKIP: no chunks found for "${chapter.label}" (q${i + 1})`,
           );
-          continue;
+          return null;
         }
 
         const question = await generateSingleQuestion(
@@ -137,25 +181,26 @@ export async function generateQuestionBatch(
           config,
         );
 
-        if (question) {
-          console.log(
-            `[cdmp] OK: "${chapter.label}" q${i + 1}/${chapter.questionCount}`,
-          );
-          questions.push(question);
-        } else {
-          console.log(
-            `[cdmp] FAIL: "${chapter.label}" q${i + 1}/${chapter.questionCount}`,
-          );
-        }
+        console.log(
+          `[cdmp] ${question ? "OK" : "FAIL"}: "${chapter.label}" q${i + 1}/${chapter.questionCount}`,
+        );
+        return question;
       } catch (err) {
         console.error(
           `[cdmp] ERROR "${chapter.label}" q${i + 1}:`,
           err instanceof Error ? err.message : err,
         );
+        return null;
       }
-    }
-  }
+    },
+  );
 
-  console.log(`[cdmp] Total generated: ${questions.length}`);
+  const questions = settled.filter(
+    (q): q is GeneratedQuestion => q !== null,
+  );
+
+  console.log(
+    `[cdmp] Total generated: ${questions.length}/${tasks.length}`,
+  );
   return questions;
 }
