@@ -9,7 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
     title: "CDMP Practice Exam",
     description:
-      "Free practice exam for the CDMP Fundamentals certification. 100 questions, 5 choices, 90 minutes — mirrors the real DAMA exam format. See your strengths and weaknesses by DMBOK chapter.",
+      "Free practice exams for the CDMP certification. Questions follow the same format, depth, and chapter weightings as the official exam. Find out where your knowledge holds and where it doesn't.",
     path: "/tools/cdmp-practice",
   });
 }

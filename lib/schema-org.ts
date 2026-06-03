@@ -173,7 +173,7 @@ export function buildCdmpPracticeExamLd(args: {
       "@type": "WebApplication",
       name: "CDMP Practice Exam",
       description:
-        "Free practice exam for the CDMP Fundamentals certification by DAMA International. AI-generated questions from DMBOK content, scored against real exam chapter weightings. 14 knowledge areas, 100 questions, 90 minutes.",
+        "Free practice exams for the CDMP certification. Questions follow the same format, depth, and chapter weightings as the official exam. 14 knowledge areas, 100 questions, 90 minutes.",
       url: `${args.siteUrl}/tools/cdmp-practice`,
       applicationCategory: "EducationalApplication",
       operatingSystem: "Web browser",

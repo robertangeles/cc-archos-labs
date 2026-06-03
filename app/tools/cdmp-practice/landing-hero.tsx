@@ -37,10 +37,9 @@ export function LandingHero({ onStart }: { onStart: () => void }) {
           <span className="text-primary">Know where you stand.</span>
         </h1>
         <p className="mt-8 max-w-[600px] text-[18px] leading-[1.6] text-ink-subtle">
-          Free practice exams for the CDMP Fundamentals certification by DAMA
-          International. Questions generated from DMBOK content, scored against
-          the real exam&apos;s chapter weightings. See exactly which knowledge
-          areas need more study.
+          Free practice exams for the CDMP certification. Questions follow the
+          same format, depth, and chapter weightings as the official exam. Find
+          out where your knowledge holds and where it doesn&apos;t.
         </p>
 
         <div className="mt-10 grid gap-4 sm:grid-cols-3">
