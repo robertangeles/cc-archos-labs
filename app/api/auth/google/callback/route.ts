@@ -21,7 +21,7 @@ export const runtime = "nodejs";
 // GET /api/auth/google/callback?code=…&state=…
 // Google redirects here after the user clicks "Allow" (or "Cancel").
 //
-// Failure modes (all redirect to /sign-in?error=… — never leak which
+// Failure modes (all redirect to /login?error=… — never leak which
 // step failed in a way an attacker could probe):
 //   1. Google reported error= in query (user clicked Cancel, etc.)
 //   2. state cookie missing OR doesn't match state query param
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
     CALLBACKS_PER_IP_PER_HOUR,
   );
   if (!limit.ok) {
-    return redirectTo(request, "/sign-in?error=rate_limited");
+    return redirectTo(request, "/login?error=rate_limited");
   }
 
   const { searchParams } = new URL(request.url);
@@ -55,14 +55,14 @@ export async function GET(request: Request) {
   if (googleError) {
     // User cancelled OR Google rejected the grant.
     await clearStateCookie();
-    return redirectTo(request, "/sign-in?error=oauth_cancelled");
+    return redirectTo(request, "/login?error=oauth_cancelled");
   }
 
   const code = searchParams.get("code");
   const state = searchParams.get("state");
   if (!code || !state) {
     await clearStateCookie();
-    return redirectTo(request, "/sign-in?error=oauth_invalid");
+    return redirectTo(request, "/login?error=oauth_invalid");
   }
 
   // CSRF defense: state cookie must equal the state query param.
@@ -70,7 +70,7 @@ export async function GET(request: Request) {
   const cookieState = store.get(STATE_COOKIE)?.value;
   await clearStateCookie();
   if (!cookieState || cookieState !== state) {
-    return redirectTo(request, "/sign-in?error=oauth_state_mismatch");
+    return redirectTo(request, "/login?error=oauth_state_mismatch");
   }
 
   const redirectUri = `${getPublicOrigin(request)}/api/auth/google/callback`;
@@ -87,12 +87,12 @@ export async function GET(request: Request) {
 
   const token = await exchangeCodeForToken({ config, code });
   if (!token) {
-    return redirectTo(request, "/sign-in?error=oauth_token_exchange_failed");
+    return redirectTo(request, "/login?error=oauth_token_exchange_failed");
   }
 
   const userinfo = await fetchGoogleUserinfo(token.access_token);
   if (!userinfo) {
-    return redirectTo(request, "/sign-in?error=oauth_userinfo_failed");
+    return redirectTo(request, "/login?error=oauth_userinfo_failed");
   }
 
   // CRITICAL: refuse unverified Google emails. Google Workspace can
@@ -109,7 +109,7 @@ export async function GET(request: Request) {
         normalizedEmail: userinfo.email.toLowerCase(),
       },
     });
-    return redirectTo(request, "/sign-in?error=oauth_email_unverified");
+    return redirectTo(request, "/login?error=oauth_email_unverified");
   }
 
   let result;
@@ -121,7 +121,7 @@ export async function GET(request: Request) {
       "[/api/auth/google/callback] link-or-create failed:",
       err instanceof Error ? err.message : String(err),
     );
-    return redirectTo(request, "/sign-in?error=oauth_account_unavailable");
+    return redirectTo(request, "/login?error=oauth_account_unavailable");
   }
 
   const session = await issueSessionForGoogleUser({

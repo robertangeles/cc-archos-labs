@@ -178,7 +178,7 @@ export async function listSessionShareTokens(
  */
 export async function getOwningSessionForShareToken(
   shareTokenId: string,
-): Promise<{ assessmentSessionId: string; leadId: string | null } | null> {
+): Promise<{ assessmentSessionId: string; leadId: string | null; userId: string | null } | null> {
   if (
     !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
       shareTokenId,
@@ -191,6 +191,7 @@ export async function getOwningSessionForShareToken(
     .select({
       assessmentSessionId: shareToken.assessmentSessionId,
       leadId: assessmentSession.leadId,
+      userId: assessmentSession.userId,
     })
     .from(shareToken)
     .innerJoin(

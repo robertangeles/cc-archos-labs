@@ -90,6 +90,7 @@ const VALID_BODY = {
   password: "p@ssw0rd-strong",
   firstName: "New",
   lastName: "User",
+  acceptTos: true as const,
 };
 
 function makeRequest(body: unknown, opts: { origin?: string } = {}): Request {

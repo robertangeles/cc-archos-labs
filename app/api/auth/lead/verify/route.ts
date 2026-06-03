@@ -50,7 +50,7 @@ export async function GET(request: Request) {
     .from(assessmentSession)
     .where(
       and(
-        eq(assessmentSession.leadId, consumed.leadId),
+        eq(assessmentSession.leadId, consumed.leadId!),
         eq(assessmentSession.status, "completed"),
       ),
     )
@@ -69,7 +69,7 @@ export async function GET(request: Request) {
   // Mint cookie and redirect to the report. The cookie is set on the
   // redirect response so the next request — to the report page —
   // carries it.
-  const jwt = await signLeadSession(consumed.leadId);
+  const jwt = await signLeadSession(consumed.leadId!);
   await setLeadSessionCookie(jwt);
 
   return redirectTo(request, `/tools/ai-readiness/report/${sessionId}`);

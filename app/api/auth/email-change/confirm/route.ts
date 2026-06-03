@@ -19,9 +19,9 @@ export const runtime = "nodejs";
 // user signs in again with the new email), bumps users.token_version
 // so the same confirmation link cannot be reused.
 //
-// On success: redirect to /sign-in?email_changed=1 so the user lands
+// On success: redirect to /login?email_changed=1 so the user lands
 // on the sign-in page with a confirmation banner.
-// On failure: redirect to /sign-in?error=… with a generic code.
+// On failure: redirect to /login?error=… with a generic code.
 //
 // No CSRF check (GET endpoint, token IS the credential — matches
 // /api/auth/verify-email pattern).
@@ -35,18 +35,18 @@ export async function GET(request: Request) {
     CONFIRMS_PER_IP_PER_HOUR,
   );
   if (!limit.ok) {
-    return redirectTo(request, "/sign-in?error=rate_limited");
+    return redirectTo(request, "/login?error=rate_limited");
   }
 
   const { searchParams } = new URL(request.url);
   const token = searchParams.get("token");
   if (!token) {
-    return redirectTo(request, "/sign-in?error=missing_token");
+    return redirectTo(request, "/login?error=missing_token");
   }
 
   const payload = await verifyEmailChangeToken(token);
   if (!payload) {
-    return redirectTo(request, "/sign-in?error=invalid_or_expired_token");
+    return redirectTo(request, "/login?error=invalid_or_expired_token");
   }
 
   const db = getDb();
@@ -63,7 +63,7 @@ export async function GET(request: Request) {
 
   const row = found[0];
   if (!row || !row.isActive || row.tokenVersion !== payload.tv) {
-    return redirectTo(request, "/sign-in?error=invalid_or_expired_token");
+    return redirectTo(request, "/login?error=invalid_or_expired_token");
   }
 
   const normalizedNew = payload.ne.trim().toLowerCase();
@@ -89,7 +89,7 @@ export async function GET(request: Request) {
         normalizedNew,
       },
     });
-    return redirectTo(request, "/sign-in?error=email_unavailable");
+    return redirectTo(request, "/login?error=email_unavailable");
   }
 
   const oldEmail = row.email;
@@ -118,7 +118,7 @@ export async function GET(request: Request) {
     metadata: { oldEmail, newEmail: payload.ne },
   });
 
-  return redirectTo(request, "/sign-in?email_changed=1");
+  return redirectTo(request, "/login?email_changed=1");
 }
 
 function redirectTo(request: Request, path: string): Response {

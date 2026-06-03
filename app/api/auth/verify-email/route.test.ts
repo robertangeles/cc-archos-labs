@@ -58,35 +58,35 @@ afterEach(() => {
 });
 
 describe("GET /api/auth/verify-email", () => {
-  it("redirects to /sign-in?error=missing_token when token is absent", async () => {
+  it("redirects to /login?error=missing_token when token is absent", async () => {
     const r = await GET(makeRequest(""));
     expect(r.status).toBe(303);
     expect(r.headers.get("location")).toContain(
-      "/sign-in?error=missing_token",
+      "/login?error=missing_token",
     );
   });
 
-  it("redirects to /sign-in?error=invalid_or_expired_token on bad token", async () => {
+  it("redirects to /login?error=invalid_or_expired_token on bad token", async () => {
     verifyVerificationTokenMock.mockResolvedValueOnce(null);
     const r = await GET(makeRequest("?token=garbage"));
     expect(r.status).toBe(303);
     expect(r.headers.get("location")).toContain(
-      "/sign-in?error=invalid_or_expired_token",
+      "/login?error=invalid_or_expired_token",
     );
     expect(dbUpdateExecMock).not.toHaveBeenCalled();
   });
 
-  it("redirects to /sign-in?error=invalid_or_expired_token when the user no longer exists", async () => {
+  it("redirects to /login?error=invalid_or_expired_token when the user no longer exists", async () => {
     verifyVerificationTokenMock.mockResolvedValueOnce("ghost-user-id");
     dbSelectMock.mockResolvedValueOnce([]);
     const r = await GET(makeRequest("?token=valid-but-orphaned"));
     expect(r.status).toBe(303);
     expect(r.headers.get("location")).toContain(
-      "/sign-in?error=invalid_or_expired_token",
+      "/login?error=invalid_or_expired_token",
     );
   });
 
-  it("redirects to /sign-in?error=account_deactivated for a deactivated user", async () => {
+  it("redirects to /login?error=account_deactivated for a deactivated user", async () => {
     verifyVerificationTokenMock.mockResolvedValueOnce("user-d");
     dbSelectMock.mockResolvedValueOnce([
       {
@@ -99,7 +99,7 @@ describe("GET /api/auth/verify-email", () => {
     const r = await GET(makeRequest("?token=valid"));
     expect(r.status).toBe(303);
     expect(r.headers.get("location")).toContain(
-      "/sign-in?error=account_deactivated",
+      "/login?error=account_deactivated",
     );
   });
 

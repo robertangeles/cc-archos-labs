@@ -70,17 +70,17 @@ afterEach(() => {
 });
 
 describe("GET /api/auth/email-change/confirm", () => {
-  it("redirects to /sign-in?error=missing_token when token absent", async () => {
+  it("redirects to /login?error=missing_token when token absent", async () => {
     const r = await GET(makeRequest(""));
     expect(r.status).toBe(303);
-    expect(r.headers.get("location")).toContain("/sign-in?error=missing_token");
+    expect(r.headers.get("location")).toContain("/login?error=missing_token");
   });
 
   it("redirects to invalid_or_expired_token on bad token", async () => {
     const r = await GET(makeRequest("?token=garbage"));
     expect(r.status).toBe(303);
     expect(r.headers.get("location")).toContain(
-      "/sign-in?error=invalid_or_expired_token",
+      "/login?error=invalid_or_expired_token",
     );
   });
 
@@ -102,7 +102,7 @@ describe("GET /api/auth/email-change/confirm", () => {
     const r = await GET(makeRequest("?token=valid-but-stale"));
     expect(r.status).toBe(303);
     expect(r.headers.get("location")).toContain(
-      "/sign-in?error=invalid_or_expired_token",
+      "/login?error=invalid_or_expired_token",
     );
     expect(dbUpdateExecMock).not.toHaveBeenCalled();
   });
@@ -128,7 +128,7 @@ describe("GET /api/auth/email-change/confirm", () => {
       .mockResolvedValueOnce([{ id: "user-other" }]);
     const r = await GET(makeRequest("?token=valid"));
     expect(r.status).toBe(303);
-    expect(r.headers.get("location")).toContain("/sign-in?error=email_unavailable");
+    expect(r.headers.get("location")).toContain("/login?error=email_unavailable");
     expect(dbUpdateExecMock).not.toHaveBeenCalled();
   });
 
@@ -152,7 +152,7 @@ describe("GET /api/auth/email-change/confirm", () => {
     const r = await GET(makeRequest("?token=valid"));
     expect(r.status).toBe(303);
     expect(r.headers.get("location")).toContain(
-      "/sign-in?email_changed=1",
+      "/login?email_changed=1",
     );
     expect(dbUpdateExecMock).toHaveBeenCalledTimes(1);
     expect(revokeAllSessionsForUserMock).toHaveBeenCalledWith("user-1");

@@ -2,11 +2,37 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-27
+updated: 2026-06-02
 related:
 ---
 
 Append-only log of sessions. Newest entry at the top.
+
+## 2026-06-02 — Local dev bring-up + auth testing + CDMP generation perf fix
+
+Long session on `feature/cdmp-practice-exam` (unmerged: CDMP practice exam + site-wide auth consolidation). Brought local dev up from zero, tested the full auth surface against prod, and fixed a severe CDMP question-generation perf bug. Local `main` is 9 commits behind `origin/main` — flagged, not synced.
+
+**1. Fixed broken `pnpm install`** (puppeteer postinstall, `end of central directory record signature not found`). Ruled out network (curl HEAD → 200, 187 MB zip), disk (331 GB free), proxy/config (none). Root cause: puppeteer's bundled postinstall download intermittently writes a corrupt/0-byte zip + leaves a 0-byte cache marker. Fix: `rm -rf ~/.cache/puppeteer/chrome/mac-*` + `pnpm exec puppeteer browsers install chrome` + re-run install. Avoided `PUPPETEER_SKIP_DOWNLOAD` (would break local PDF export). Lesson: [[2026-06-02-puppeteer-postinstall-corrupt-zip-local]].
+
+**2. Rebuilt `.env.local` from scratch** (it was gitignored / left on the other machine). Key gotchas captured in the bring-up guide [[local-dev-setup]]:
+- Dev script hard-fails without `PORT` (CLAUDE.md bans default 3000).
+- Render `DATABASE_URL` must be the **External** URL (`dpg-…-a.<region>-postgres.render.com`), not the **Internal** one (`dpg-…-a`, NXDOMAIN off-network).
+- Only 3 secrets are bootstrap (`DATABASE_URL`, `BOOKING_ENCRYPTION_KEY`, `AUTH_SECRET`) — everything else (OpenRouter/Resend/Google/Turnstile) is read **from the DB** via `getIntegrationConfig()` decrypted with `BOOKING_ENCRYPTION_KEY`. Confirmed in [lib/claude.ts](../lib/claude.ts) → [lib/integration-config.ts](../lib/integration-config.ts).
+- `NEXT_PUBLIC_SITE_URL=http://localhost:3007` required locally or auth POSTs 403 on the CSRF same-origin check.
+- Verified DB connect: 31 tables, `cdmp_config` seeded, 1 knowledge_document / 496 knowledge_chunk, 6 users. Nothing to migrate/seed/ingest — all present in prod DB.
+
+**3. Tested auth end-to-end (register + login + Google OAuth):**
+- Hit *"Security check failed"* on register → traced to a **CSRF** 403 (`error: "csrf"`), NOT Turnstile. [lib/auth/csrf.ts](../lib/auth/csrf.ts) compares request `Origin` vs `getSiteUrl()` (env `NEXT_PUBLIC_SITE_URL`). Fix: set it to `http://localhost:3007`.
+- Google OAuth → `redirect_uri_mismatch`. The OAuth client had only the **admin** redirect (`/api/admin/google-oauth/cb`) registered; the **sign-in** flow uses a different path (`/api/auth/google/callback`). Added localhost + prod sign-in callbacks in Google Cloud Console. These persist on the client (not machine-specific), so ARCHOS on the same port works without re-adding.
+- Both lessons: [[2026-06-02-local-dev-auth-csrf-oauth-gotchas]].
+- Set a password for `trebor.selegna@outlook.com` (argon2id via the app's exact params) so password login works. ⚠️ prod credential.
+- Cleaned up test user `bobbit.angeles@gmail.com` twice (password reg, then Google reg) — cascades verified before each delete.
+
+**4. Fixed CDMP generation perf (the headline fix).** A 19-question exam took **6.8 minutes**; answers then 401'd because the 5-min session-JWT TTL expired during the blocking generation. Root cause: [lib/cdmp/generate.ts](../lib/cdmp/generate.ts) generated questions **fully sequentially** — nested `for` loops, `await` per question, 2 LLM calls each (generate + verify), ×`maxRetries`. ~21s/question → 100 questions would be ~36 min. Fix: replaced the serial loop with a **bounded-concurrency pool** (`GENERATION_CONCURRENCY = 12`), flattening the per-chapter distribution into independent tasks while preserving order. Expected: 20 Q ~40s, 100 Q ~3 min (inside the JWT TTL, so the 401 cascade is gone too). tsc clean, `lib/cdmp` unit tests pass (11). Lesson: [[2026-06-02-cdmp-sequential-generation-slow]].
+
+**Verification gap:** the perf fix is verified by tsc + unit tests + logic review, but **not yet by a real exam run** — `server-only` blocks isolate-benchmarking, and the session moved before an end-to-end run. **First task on ARCHOS: start a 20-question exam and confirm wall-clock + that answer/complete return 200.**
+
+**Next (on ARCHOS):** follow [[local-dev-setup]] to recreate `.env.local`, `pnpm install`, `pnpm dev`, then end-to-end test the CDMP exam (perf + answer save) and the remaining auth unhappy paths.
 
 ## 2026-05-27 — Consulting page rewrite: closing surface (SMB / fractional positioning)
 

@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "../../../../lib/db";
 import { assessmentSession } from "../../../../lib/db/schema";
 import { mintShareToken } from "../../../../lib/share-tokens";
-import { getLeadFromCookies } from "../../../../lib/auth-server";
+import { getCurrentUser } from "../../../../lib/auth/current-user";
 import {
   clientIpFromRequest,
   rateLimit,
@@ -11,14 +11,6 @@ import {
 import { getPublicOrigin } from "../../../../lib/public-origin";
 
 export const runtime = "nodejs";
-
-// POST /api/diagnostic/share
-//   body: { sessionId: string }
-//   response: { ok: true, url: string, expiresAt: ISO, id: string }
-//
-// Mints a new share token for a report the requesting lead owns.
-// Owner-only — the lead session cookie must match the session's lead.
-// Rate-limited per IP to bound abuse if a cookie leaks.
 
 const SHARES_PER_IP_PER_HOUR = 20;
 
@@ -32,8 +24,8 @@ const BodySchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const session = await getLeadFromCookies();
-  if (!session) {
+  const auth = await getCurrentUser();
+  if (!auth) {
     return Response.json(
       { ok: false, error: "Sign in to share a report." },
       { status: 401 },
@@ -67,16 +59,14 @@ export async function POST(request: Request) {
     );
   }
 
-  // Owner check: the cookie's lead must own this session.
   const db = getDb();
   const rows = await db
-    .select({ leadId: assessmentSession.leadId })
+    .select({ userId: assessmentSession.userId })
     .from(assessmentSession)
     .where(eq(assessmentSession.id, parsed.data.sessionId))
     .limit(1);
 
-  if (rows.length === 0 || rows[0].leadId !== session.leadId) {
-    // 404, not 403, so probing session ids doesn't leak which exist.
+  if (rows.length === 0 || rows[0].userId !== auth.user.id) {
     return Response.json(
       { ok: false, error: "Report not found." },
       { status: 404 },

@@ -1,7 +1,7 @@
 import "server-only";
 import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "../db";
-import { assessmentSession, lead, reportOutput } from "../db/schema";
+import { assessmentSession, lead, reportOutput, users } from "../db/schema";
 import { generateStructured } from "../claude";
 import { evaluateSession, evaluatePriorityTriggers } from "./scoring";
 import { buildUserPrompt } from "./prompts";
@@ -55,6 +55,7 @@ export interface GenerateReportResult {
   sessionId: string;
   reportId: string;
   leadId: string;
+  userId: string;
   /** Scoring + tier + risk flags + priority — surfaced so route-layer
    *  side effects (e.g. lead notification email) don't have to re-run
    *  evaluateSession. */
@@ -141,10 +142,37 @@ export async function generateReport(
     throw new Error("Upsert into lead returned no row");
   }
 
+  // Upsert user by email — site-wide account for ownership + session.
+  // passwordHash NULL = passwordless (assessment-created). If a password
+  // account already exists with this email, reuse it — the set clause
+  // must NOT null out passwordHash.
+  const displayName = `${input.lead.firstName} ${input.lead.lastName}`;
+  const [userRow] = await db
+    .insert(users)
+    .values({
+      email: input.lead.email.toLowerCase(),
+      displayName,
+      role: "member",
+      isActive: true,
+    })
+    .onConflictDoUpdate({
+      target: users.email,
+      set: {
+        displayName,
+        updatedAt: new Date(),
+      },
+    })
+    .returning({ id: users.id });
+
+  if (!userRow) {
+    throw new Error("Upsert into users returned no row");
+  }
+
   const [session] = await db
     .insert(assessmentSession)
     .values({
       leadId: leadRow.id,
+      userId: userRow.id,
       answers: input.answers as Record<string, string>,
       scores: result.score,
       tier: result.tier.tier,
@@ -191,6 +219,7 @@ export async function generateReport(
     sessionId: session.id,
     reportId: report.id,
     leadId: leadRow.id,
+    userId: userRow.id,
     result,
   };
 }
@@ -201,9 +230,11 @@ export async function generateReport(
 
 export interface LoadedReport {
   sessionId: string;
-  // The lead that owns this report. Used by the report page to enforce
-  // owner-only access (cookie's leadId must match this).
+  // The lead that owns this report (legacy). Kept for CRM.
   leadId: string | null;
+  // The user that owns this report (Phase B). Used by the report page
+  // to enforce owner-only access (getCurrentUser().user.id must match).
+  userId: string | null;
   // Recipient details — surfaced for the printable cover page so the PDF
   // reads as "Prepared for [Name], [Job title], [Organisation]". Null only
   // when the session predates registration (W3-era reports — should not
@@ -240,6 +271,7 @@ export async function loadReport(
     .select({
       sessionId: assessmentSession.id,
       leadId: assessmentSession.leadId,
+      userId: assessmentSession.userId,
       answers: assessmentSession.answers,
       scores: assessmentSession.scores,
       tier: assessmentSession.tier,
@@ -318,6 +350,7 @@ export async function loadReport(
   return {
     sessionId: row.sessionId,
     leadId: row.leadId,
+    userId: row.userId,
     recipient,
     result,
     content: {
@@ -449,6 +482,102 @@ export async function loadLeadPortalData(
     firstName: l.firstName,
     lastName: l.lastName,
     organisation: l.organisation,
+    reports,
+    retakeAllowed,
+    retakeUnlocksAt,
+  };
+}
+
+// ----------------------------------------------------------------------------
+// loadUserPortalData — same as loadLeadPortalData but keyed on users.id
+// ----------------------------------------------------------------------------
+
+export interface UserPortalData {
+  userId: string;
+  displayName: string | null;
+  email: string;
+  reports: LeadReportSummary[];
+  retakeAllowed: boolean;
+  retakeUnlocksAt: Date | null;
+}
+
+export async function loadUserPortalData(
+  userId: string,
+): Promise<UserPortalData | null> {
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      userId,
+    )
+  ) {
+    return null;
+  }
+
+  const db = getDb();
+
+  const userRows = await db
+    .select({
+      id: users.id,
+      displayName: users.displayName,
+      email: users.email,
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (userRows.length === 0) return null;
+  const u = userRows[0];
+
+  const sessionRows = await db
+    .select({
+      sessionId: assessmentSession.id,
+      tier: assessmentSession.tier,
+      scores: assessmentSession.scores,
+      completedAt: assessmentSession.completedAt,
+    })
+    .from(assessmentSession)
+    .innerJoin(
+      reportOutput,
+      eq(reportOutput.assessmentSessionId, assessmentSession.id),
+    )
+    .where(
+      and(
+        eq(assessmentSession.userId, userId),
+        eq(assessmentSession.status, "completed"),
+      ),
+    )
+    .orderBy(desc(assessmentSession.completedAt));
+
+  const content = await getDiagnosticContent();
+
+  const reports: LeadReportSummary[] = sessionRows
+    .filter((r) => r.completedAt !== null)
+    .map((r) => {
+      const scores = (r.scores ?? {}) as SessionResult["score"];
+      const tierLabel =
+        content.tierBoundaries.find((t) => t.tier === r.tier)?.label ??
+        r.tier ??
+        "Unknown";
+      return {
+        sessionId: r.sessionId,
+        tier: r.tier ?? "Unknown",
+        tierLabel,
+        totalScore: typeof scores.total === "number" ? scores.total : 0,
+        completedAt: r.completedAt as Date,
+      };
+    });
+
+  const latestAt = reports[0]?.completedAt ?? null;
+  const retakeAllowed =
+    latestAt === null || Date.now() - latestAt.getTime() >= RETAKE_INTERVAL_MS;
+  const retakeUnlocksAt =
+    retakeAllowed || latestAt === null
+      ? null
+      : new Date(latestAt.getTime() + RETAKE_INTERVAL_MS);
+
+  return {
+    userId: u.id,
+    displayName: u.displayName,
+    email: u.email,
     reports,
     retakeAllowed,
     retakeUnlocksAt,

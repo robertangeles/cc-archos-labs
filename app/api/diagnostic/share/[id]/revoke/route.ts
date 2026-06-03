@@ -2,16 +2,9 @@ import {
   getOwningSessionForShareToken,
   revokeShareToken,
 } from "../../../../../../lib/share-tokens";
-import { getLeadFromCookies } from "../../../../../../lib/auth-server";
+import { getCurrentUser } from "../../../../../../lib/auth/current-user";
 
 export const runtime = "nodejs";
-
-// POST /api/diagnostic/share/[id]/revoke
-//   response: { ok: true } | { ok: false, error: string }
-//
-// Owner-only — caller must be signed in as the lead that owns the
-// session this token was minted for. Returns 404 silently for any
-// non-matching state so probing doesn't leak token ids.
 
 export async function POST(
   _request: Request,
@@ -19,8 +12,8 @@ export async function POST(
 ) {
   const { id } = await ctx.params;
 
-  const session = await getLeadFromCookies();
-  if (!session) {
+  const auth = await getCurrentUser();
+  if (!auth) {
     return Response.json(
       { ok: false, error: "Sign in to revoke a share link." },
       { status: 401 },
@@ -28,7 +21,7 @@ export async function POST(
   }
 
   const owning = await getOwningSessionForShareToken(id);
-  if (!owning || owning.leadId !== session.leadId) {
+  if (!owning || owning.userId !== auth.user.id) {
     return Response.json(
       { ok: false, error: "Token not found." },
       { status: 404 },

@@ -1,34 +1,16 @@
 import { eq } from "drizzle-orm";
 import puppeteer from "puppeteer";
-import { cookies } from "next/headers";
 import { getDb } from "../../../../../../lib/db";
 import { assessmentSession, lead } from "../../../../../../lib/db/schema";
-import { getLeadFromCookies } from "../../../../../../lib/auth-server";
-import { LEAD_SESSION_COOKIE } from "../../../../../../lib/auth-lead";
+import { getCurrentUser } from "../../../../../../lib/auth/current-user";
+import { issueSession } from "../../../../../../lib/auth/session";
+import { SESSION_COOKIE } from "../../../../../../lib/auth/session-jwt";
 import { getPublicOrigin } from "../../../../../../lib/public-origin";
 
 export const runtime = "nodejs";
 
-// GET /api/diagnostic/report/[sessionId]/pdf
-//
-// Server-side PDF generation for the AI Readiness report. Owner-only —
-// the requesting visitor must be signed in as the lead who owns the
-// session. Public share-token recipients still get a PDF via the
-// browser print dialog (the print stylesheet in globals.css covers
-// them); only owners can hit this server-rendered route.
-//
-// Implementation: launches headless Chromium via Puppeteer, sets the
-// lead session cookie programmatically, navigates to the report page,
-// captures as PDF. The on-screen layout already includes the cover
-// page redaction + section page breaks from C-1 polish; Puppeteer
-// just removes the browser-default chrome (date / URL / page count)
-// that Ctrl+P leaves in place.
-
 const PDF_TIMEOUT_MS = 45_000;
 
-// Inline HTML escape for the Puppeteer header template. Lead-supplied
-// values (name, organisation) get rendered into the page-margin
-// letterhead, so we defend against `<`, `&`, `"` in user input.
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -44,7 +26,6 @@ export async function GET(
 ) {
   const { sessionId } = await ctx.params;
 
-  // UUID guard before any DB / Puppeteer work.
   if (
     !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
       sessionId,
@@ -53,19 +34,15 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
-  // Owner check: cookie's lead must own this session.
-  const session = await getLeadFromCookies();
-  if (!session) {
+  const auth = await getCurrentUser();
+  if (!auth) {
     return new Response("Sign in to download a PDF.", { status: 401 });
   }
 
   const db = getDb();
-  // Single JOIN-light query: owner check + recipient data for the
-  // page-margin letterhead. lead can be NULL on legacy pre-W4 sessions
-  // (rare in practice) — header falls back to date-only when so.
   const rows = await db
     .select({
-      leadId: assessmentSession.leadId,
+      userId: assessmentSession.userId,
       firstName: lead.firstName,
       lastName: lead.lastName,
       organisation: lead.organisation,
@@ -76,34 +53,26 @@ export async function GET(
     .where(eq(assessmentSession.id, sessionId))
     .limit(1);
 
-  if (rows.length === 0 || rows[0].leadId !== session.leadId) {
-    // 404 for any owner-mismatch — same pattern as the report page.
+  if (rows.length === 0 || rows[0].userId !== auth.user.id) {
     return new Response("Not found", { status: 404 });
   }
   const recipientRow = rows[0];
 
-  // Pull the raw cookie value so Puppeteer can set it on the page it
-  // navigates. We have to hand it back to the headless browser because
-  // the route page itself enforces owner-only access.
-  const cookieStore = await cookies();
-  const leadCookieValue = cookieStore.get(LEAD_SESSION_COOKIE)?.value;
-  if (!leadCookieValue) {
-    return new Response("Not found", { status: 404 });
-  }
+  // Mint a fresh session for Puppeteer to use. The report page now
+  // checks archos_session (getCurrentUser), so the headless browser
+  // needs a valid JWT. Minting fresh avoids the 5-min JWT expiring
+  // mid-navigation.
+  const puppeteerSession = await issueSession({
+    userId: auth.user.id,
+    ipAddress: null,
+    userAgent: "Puppeteer-PDF-Generator",
+  });
 
-  // Use the publicly-reachable origin (NEXT_PUBLIC_SITE_URL on Render,
-  // request.url on local). See lib/public-origin.ts for the why.
   const publicOrigin = getPublicOrigin(request);
   const reportUrl = `${publicOrigin}/tools/ai-readiness/report/${sessionId}`;
   const cookieUrl = new URL(publicOrigin);
   const isHttps = cookieUrl.protocol === "https:";
 
-  // Build the page-margin letterhead the Puppeteer headerTemplate will
-  // render on every page. Replaces the "Prepared for / Prepared on"
-  // block that used to live on the cover (eating ~120px of vertical
-  // space that the summary page needed for risk flags + domain
-  // breakdown). Letterhead pattern: small, gray, persistent — like a
-  // real consulting deliverable's top-of-page identifier.
   const preparedOn = (
     recipientRow.generatedAt ?? new Date()
   ).toLocaleDateString("en-AU", {
@@ -139,25 +108,15 @@ export async function GET(
   try {
     browser = await puppeteer.launch({
       headless: true,
-      // --no-sandbox needed on Render's container runtime where the
-      // process doesn't have the setuid sandbox helper.
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
 
     const page = await browser.newPage();
-
-    // Switch to print media BEFORE navigation so the page loads with
-    // the @media print rules already active. Doing this post-goto
-    // leaves React hydrated with screen styles that the pdf() pass
-    // doesn't always re-resolve.
     await page.emulateMediaType("print");
 
-    // Set the lead session cookie so the report page authorises this
-    // self-call. Cookie domain must match what Puppeteer navigates to,
-    // which is publicOrigin (NEXT_PUBLIC_SITE_URL on Render).
     await page.setCookie({
-      name: LEAD_SESSION_COOKIE,
-      value: leadCookieValue,
+      name: SESSION_COOKIE,
+      value: puppeteerSession.cookieValue,
       domain: cookieUrl.hostname,
       path: "/",
       httpOnly: true,
@@ -170,18 +129,10 @@ export async function GET(
       timeout: PDF_TIMEOUT_MS,
     });
 
-    // Force light theme via a class on <html>. Chromium's print media
-    // emulation has been unreliable in recent Puppeteer versions, so
-    // we don't rely on @media print firing for the pdf() call. The
-    // .pdf-mode class overrides the Tailwind theme tokens (set in
-    // globals.css) so bg-canvas, text-ink, etc. all resolve to light.
     await page.evaluate(() => {
       document.documentElement.classList.add("pdf-mode");
     });
 
-    // Pull the print-rendered PDF. Margins match the @page rule in
-    // globals.css so the on-screen-when-printing layout is preserved.
-    // displayHeaderFooter adds page numbers in the bottom margin.
     const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
@@ -192,19 +143,7 @@ export async function GET(
         left: "0.75in",
       },
       displayHeaderFooter: true,
-      // Page-margin letterhead: "Prepared for X · Org" on the left,
-      // "DD Month YYYY" on the right. Same recipient data that used
-      // to live on the cover, repositioned to every page's top
-      // margin so the cover content area stays clean for the
-      // summary content.
       headerTemplate: headerHtml,
-      // Centered "page / total" footer. Skipped on the first page
-      // (cover) so the cover stays clean; this is what Chromium does
-      // when the footer template starts with the .pageNumber selector
-      // and the page is page 1 of N — actually Chromium always
-      // renders header/footer, so we keep page numbers on every page
-      // including the cover. Acceptable trade-off vs the alternative
-      // of no page numbers at all.
       footerTemplate: `
         <div style="
           font-size: 9px;
@@ -223,7 +162,6 @@ export async function GET(
       preferCSSPageSize: false,
     });
 
-    // Friendly filename: prefix + short session id. Recipient can rename.
     const filename = `ai-readiness-report-${sessionId.slice(0, 8)}.pdf`;
     return new Response(new Uint8Array(pdf), {
       status: 200,
@@ -235,9 +173,10 @@ export async function GET(
     });
   } catch (err) {
     console.error("PDF generation failed:", err);
-    return new Response("Could not generate PDF. Try the browser print dialog instead.", {
-      status: 500,
-    });
+    return new Response(
+      "Could not generate PDF. Try the browser print dialog instead.",
+      { status: 500 },
+    );
   } finally {
     if (browser) {
       try {

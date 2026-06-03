@@ -18,8 +18,7 @@ export function LeadSignOutButton() {
     // because the URL bar doesn't change. Home is always a safe
     // landing: works signed-in or signed-out, header re-renders to
     // show "Sign in" again.
-    router.replace("/");
-    router.refresh();
+    window.location.href = "/";
   }
 
   return (
