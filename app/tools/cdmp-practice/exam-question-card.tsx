@@ -28,16 +28,25 @@ export function ExamQuestionCard({
   const [selected, setSelected] = useState<string | null>(
     previousAnswer ?? null,
   );
-  const [confirmed, setConfirmed] = useState(!!previousAnswer);
-
-  function handleConfirm() {
-    if (!selected) return;
-    setConfirmed(true);
-    onConfirm(selected);
-  }
 
   const isLast = questionNumber === totalQuestions;
-  const allAnswered = answeredCount >= totalQuestions;
+  const allAnswered = answeredCount >= totalQuestions - (previousAnswer ? 0 : 1);
+
+  function handleNext() {
+    if (!selected) return;
+    onConfirm(selected);
+    if (!isLast) {
+      onNavigate?.(questionNumber);
+    } else if (allAnswered) {
+      onNavigate?.(-1);
+    }
+  }
+
+  function getButtonLabel(): string {
+    if (isLast && (allAnswered || selected)) return "Finish exam";
+    if (previousAnswer && selected !== previousAnswer) return "Update & next";
+    return "Next";
+  }
 
   return (
     <motion.div
@@ -68,10 +77,7 @@ export function ExamQuestionCard({
             <button
               key={option.code}
               type="button"
-              onClick={() => {
-                setSelected(option.code);
-                setConfirmed(false);
-              }}
+              onClick={() => setSelected(option.code)}
               className={`flex w-full items-start gap-3 rounded-lg border px-5 py-4 text-left transition-colors ${
                 isSelected
                   ? "border-primary bg-primary/5 text-ink"
@@ -105,42 +111,26 @@ export function ExamQuestionCard({
         )}
 
         <AnimatePresence>
-          {selected && !confirmed && (
+          {selected && (
             <motion.button
               type="button"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              onClick={handleConfirm}
-              className="inline-flex items-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-white transition-colors duration-150 hover:bg-primary-hover"
+              onClick={handleNext}
+              className={`inline-flex items-center rounded-md px-6 py-3 text-sm font-medium text-white transition-colors duration-150 ${
+                isLast && (allAnswered || selected)
+                  ? "bg-semantic-success hover:bg-semantic-success/90"
+                  : "bg-primary hover:bg-primary-hover"
+              }`}
             >
-              {previousAnswer ? "Update answer" : "Confirm answer"}
+              {getButtonLabel()}
             </motion.button>
           )}
         </AnimatePresence>
-
-        {confirmed && !isLast && (
-          <button
-            type="button"
-            onClick={() => onNavigate?.(questionNumber)}
-            className="inline-flex items-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-white transition-colors duration-150 hover:bg-primary-hover"
-          >
-            Next
-          </button>
-        )}
-
-        {confirmed && isLast && allAnswered && (
-          <button
-            type="button"
-            onClick={() => onNavigate?.(-1)}
-            className="inline-flex items-center rounded-md bg-semantic-success px-6 py-3 text-sm font-medium text-white transition-colors duration-150 hover:bg-semantic-success/90"
-          >
-            Finish exam
-          </button>
-        )}
       </div>
 
-      {confirmed && !allAnswered && (
+      {answeredCount > 0 && answeredCount < totalQuestions && (
         <p className="mt-3 text-[11px] text-ink-subtle">
           {answeredCount}/{totalQuestions} answered
         </p>
