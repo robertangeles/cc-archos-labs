@@ -65,21 +65,6 @@ export function LandingHero({ onStart }: { onStart: () => void }) {
         <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_1fr]">
           {/* Left: CTA + announcements */}
           <div className="flex flex-col gap-4">
-            <div className="flex flex-col items-start gap-3">
-              <button
-                type="button"
-                onClick={onStart}
-                className="inline-flex items-center rounded-md bg-primary px-8 py-3.5 text-base font-medium text-white transition-colors duration-150 hover:bg-primary-hover"
-              >
-                Start practicing
-              </button>
-              <p className="text-[13px] text-ink-subtle">
-                100 questions &middot; 5 choices &middot; 90 minutes &middot; Open book
-                <br />
-                Shorter sessions: 20, 40, or 60 questions.
-              </p>
-            </div>
-
             <div className="rounded-lg border border-semantic-success/20 bg-semantic-success/5 px-5 py-4">
               <p className="text-sm font-medium text-semantic-success">
                 Free for early adopters
@@ -95,6 +80,21 @@ export function LandingHero({ onStart }: { onStart: () => void }) {
               </p>
               <p className="mt-1 text-[13px] text-ink-subtle">
                 Coming soon. Targeted practice for each of the 14 DMBOK knowledge areas.
+              </p>
+            </div>
+
+            <div className="flex flex-col items-start gap-3 pt-2">
+              <button
+                type="button"
+                onClick={onStart}
+                className="inline-flex items-center rounded-md bg-primary px-8 py-3.5 text-base font-medium text-white transition-colors duration-150 hover:bg-primary-hover"
+              >
+                Start practicing
+              </button>
+              <p className="text-[13px] text-ink-subtle">
+                100 questions &middot; 5 choices &middot; 90 minutes &middot; Open book
+                <br />
+                Shorter sessions: 20, 40, or 60 questions.
               </p>
             </div>
           </div>
