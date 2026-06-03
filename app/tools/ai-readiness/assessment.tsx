@@ -143,6 +143,33 @@ export function Assessment({ content }: { content: DiagnosticContent }) {
     persistState(state);
   }, [state, hydrated]);
 
+  useEffect(() => {
+    if (state.phase !== "registration" || state.registrationSubmitting) return;
+    const answerCount = Object.keys(state.answers).length;
+    let cancelled = false;
+    fetch("/api/auth/me")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.user) return;
+        if (answerCount === 0) {
+          clearState();
+          setState(INITIAL_STATE);
+          return;
+        }
+        const nameParts = (data.user.displayName ?? "").split(" ");
+        onRegistrationSubmit({
+          firstName: nameParts[0] || data.user.email,
+          lastName: nameParts.slice(1).join(" ") || "",
+          email: data.user.email,
+          jobTitle: "",
+          organisation: "",
+        });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.phase]);
+
   function begin() {
     setState({
       phase: "questions",

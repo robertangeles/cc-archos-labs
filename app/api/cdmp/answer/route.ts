@@ -67,19 +67,29 @@ export async function POST(request: Request) {
 
   const isCorrect = body.userAnswer === body.correctAnswer;
 
-  await db.insert(cdmpExamAnswer).values({
-    sessionId: body.sessionId,
-    questionIndex: body.questionIndex,
-    questionText: body.questionText ?? "",
-    options: body.options ?? [],
-    userAnswer: body.userAnswer,
-    correctAnswer: body.correctAnswer ?? "",
-    isCorrect,
-    knowledgeArea: body.knowledgeArea ?? "",
-    explanation: body.explanation ?? "",
-    dmbokChapterRef: body.dmbokChapterRef ?? "",
-    chunkIds: body.chunkIds ?? [],
-  });
+  await db
+    .insert(cdmpExamAnswer)
+    .values({
+      sessionId: body.sessionId,
+      questionIndex: body.questionIndex,
+      questionText: body.questionText ?? "",
+      options: body.options ?? [],
+      userAnswer: body.userAnswer,
+      correctAnswer: body.correctAnswer ?? "",
+      isCorrect,
+      knowledgeArea: body.knowledgeArea ?? "",
+      explanation: body.explanation ?? "",
+      dmbokChapterRef: body.dmbokChapterRef ?? "",
+      chunkIds: body.chunkIds ?? [],
+    })
+    .onConflictDoUpdate({
+      target: [cdmpExamAnswer.sessionId, cdmpExamAnswer.questionIndex],
+      set: {
+        userAnswer: body.userAnswer,
+        isCorrect,
+        updatedAt: new Date(),
+      },
+    });
 
   return NextResponse.json({ isCorrect });
 }

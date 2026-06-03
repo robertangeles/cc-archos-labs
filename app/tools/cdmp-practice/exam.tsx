@@ -103,7 +103,7 @@ export function Exam() {
         dmbokChapterRef: question.dmbokChapterRef,
       };
 
-      await fetch("/api/cdmp/answer", {
+      fetch("/api/cdmp/answer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -118,38 +118,48 @@ export function Exam() {
           dmbokChapterRef: question.dmbokChapterRef,
           chunkIds: question.chunkIds,
         }),
+      }).catch(() => {});
+
+      setState((prev) => {
+        const existing = prev.answeredDetails.findIndex(
+          (a) => a.questionIndex === state.currentIndex,
+        );
+        const updatedAnswers =
+          existing >= 0
+            ? prev.answeredDetails.map((a, i) => (i === existing ? answerDetail : a))
+            : [...prev.answeredDetails, answerDetail];
+        return { ...prev, answeredDetails: updatedAnswers };
       });
+    },
+    [state.currentIndex, state.questions, state.sessionId],
+  );
 
-      const nextIndex = state.currentIndex + 1;
-      const updatedAnswers = [...state.answeredDetails, answerDetail];
-
-      if (nextIndex >= state.questions.length) {
-        setState((prev) => ({ ...prev, phase: "loading", answeredDetails: updatedAnswers }));
-
+  const handleNavigate = useCallback(
+    async (targetIndex: number) => {
+      if (targetIndex === -1) {
+        setState((prev) => ({ ...prev, phase: "loading" }));
         const res = await fetch("/api/cdmp/complete", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionId: state.sessionId }),
         });
-
         if (res.ok) {
           const data = await res.json();
-          setState((prev) => ({
-            ...prev,
-            phase: "results",
-            result: data.result,
-          }));
+          setState((prev) => ({ ...prev, phase: "results", result: data.result }));
         }
-      } else {
-        setState((prev) => ({
-          ...prev,
-          currentIndex: nextIndex,
-          answeredDetails: updatedAnswers,
-        }));
+        return;
       }
+      setState((prev) => ({ ...prev, currentIndex: targetIndex }));
     },
-    [state.currentIndex, state.questions, state.sessionId, state.answeredDetails],
+    [state.sessionId],
   );
+
+  const handlePrevious = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      currentIndex: Math.max(0, prev.currentIndex - 1),
+    }));
+  }, []);
 
   const handleTimerExpired = useCallback(async () => {
     if (!state.sessionId) return;
@@ -281,6 +291,10 @@ export function Exam() {
       const question = state.questions[state.currentIndex];
       if (!question) return null;
 
+      const existingAnswer = state.answeredDetails.find(
+        (a) => a.questionIndex === state.currentIndex,
+      );
+
       return (
         <div className="flex flex-1 flex-col">
           <ExamProgressBar
@@ -295,7 +309,11 @@ export function Exam() {
             question={question}
             questionNumber={state.currentIndex + 1}
             totalQuestions={state.questions.length}
+            previousAnswer={existingAnswer?.userAnswer}
             onConfirm={handleAnswer}
+            onPrevious={handlePrevious}
+            onNavigate={handleNavigate}
+            answeredCount={state.answeredDetails.length}
           />
         </div>
       );

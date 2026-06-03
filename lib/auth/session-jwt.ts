@@ -89,17 +89,38 @@ export async function verifySessionJwt(
   try {
     const secret = getAuthSecret();
     const { payload } = await jwtVerify(token, secret);
-    if (
-      typeof payload.userId !== "string" ||
-      payload.userId.length === 0 ||
-      typeof payload.sessionId !== "string" ||
-      payload.sessionId.length === 0 ||
-      typeof payload.tokenVersion !== "number"
-    ) {
-      return null;
-    }
-    return payload as unknown as SessionJwtPayload;
+    return extractPayload(payload);
   } catch {
     return null;
   }
+}
+
+export async function verifySessionJwtIgnoreExpiry(
+  token: string,
+): Promise<SessionJwtPayload | null> {
+  if (typeof token !== "string" || token.length === 0) return null;
+  try {
+    const secret = getAuthSecret();
+    const { payload } = await jwtVerify(token, secret, {
+      clockTolerance: 365 * 24 * 60 * 60,
+    });
+    return extractPayload(payload);
+  } catch {
+    return null;
+  }
+}
+
+function extractPayload(
+  payload: Record<string, unknown>,
+): SessionJwtPayload | null {
+  if (
+    typeof payload.userId !== "string" ||
+    payload.userId.length === 0 ||
+    typeof payload.sessionId !== "string" ||
+    payload.sessionId.length === 0 ||
+    typeof payload.tokenVersion !== "number"
+  ) {
+    return null;
+  }
+  return payload as unknown as SessionJwtPayload;
 }

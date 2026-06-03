@@ -19,6 +19,31 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
+function formatTime(date: Date | null): string {
+  if (!date) return "-";
+  return new Date(date).toLocaleTimeString("en-AU", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatDate(date: Date | null): string {
+  if (!date) return "";
+  return new Date(date).toLocaleDateString("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function durationMinutes(start: Date | null, end: Date | null): string {
+  if (!start || !end) return "-";
+  const ms = new Date(end).getTime() - new Date(start).getTime();
+  const mins = Math.round(ms / 60000);
+  if (mins < 1) return "<1 min";
+  return `${mins} min`;
+}
+
 export default async function AccountPage() {
   const auth = await getCurrentUser();
   if (!auth) {
@@ -32,6 +57,7 @@ export default async function AccountPage() {
       status: cdmpExamSession.status,
       questionCount: cdmpExamSession.questionCount,
       scorePercent: cdmpExamSession.scorePercent,
+      startedAt: cdmpExamSession.startedAt,
       completedAt: cdmpExamSession.completedAt,
       createdAt: cdmpExamSession.createdAt,
     })
@@ -64,7 +90,12 @@ export default async function AccountPage() {
         )}
 
         <div className="mt-10">
-          <h2 className="text-lg font-semibold text-ink">CDMP Practice History</h2>
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-lg font-semibold text-ink">CDMP Practice History</h2>
+            {completed.length > 0 && (
+              <span className="text-[11px] text-ink-tertiary">Last 20 sessions kept</span>
+            )}
+          </div>
           {completed.length === 0 ? (
             <p className="mt-3 text-sm text-ink-subtle">
               No completed practice exams yet.{" "}
@@ -78,32 +109,60 @@ export default async function AccountPage() {
             </p>
           ) : (
             <ul className="mt-4 space-y-2">
-              {completed.map((exam) => (
-                <li
-                  key={exam.id}
-                  className="flex items-center justify-between rounded-lg border border-hairline bg-surface-1 px-5 py-3"
-                >
-                  <div>
-                    <span className="text-sm font-medium text-ink">
-                      {exam.questionCount}-question exam
-                    </span>
-                    <span className="ml-3 text-xs text-ink-subtle">
-                      {exam.completedAt
-                        ? new Date(exam.completedAt).toLocaleDateString()
-                        : ""}
-                    </span>
-                  </div>
-                  <span
-                    className={`text-sm font-semibold ${
-                      (exam.scorePercent ?? 0) >= 60
-                        ? "text-green-500"
-                        : "text-red-500"
-                    }`}
-                  >
-                    {exam.scorePercent ?? 0}%
-                  </span>
-                </li>
-              ))}
+              {completed.map((exam, idx) => {
+                const prevExam = completed[idx + 1];
+                const score = exam.scorePercent ?? 0;
+                const prevScore = prevExam?.scorePercent ?? null;
+                const diff = prevScore !== null ? score - prevScore : null;
+
+                return (
+                  <li key={exam.id}>
+                    <Link
+                      href={`/tools/cdmp-practice/history/${exam.id}`}
+                      className="flex items-center justify-between rounded-lg border border-hairline bg-surface-1 px-5 py-3 transition-colors duration-150 hover:border-hairline-strong hover:bg-surface-2"
+                    >
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-medium text-ink">
+                            {exam.questionCount}-question exam
+                          </span>
+                          <span className="text-xs text-ink-subtle">
+                            {formatDate(exam.createdAt)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-[11px] text-ink-tertiary">
+                          <span>
+                            {formatTime(exam.startedAt)} - {formatTime(exam.completedAt)}
+                          </span>
+                          <span>
+                            {durationMinutes(exam.startedAt, exam.completedAt)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {diff !== null && diff !== 0 && (
+                          <span
+                            className={`text-[11px] font-medium ${
+                              diff > 0 ? "text-semantic-success" : "text-semantic-error"
+                            }`}
+                          >
+                            {diff > 0 ? "+" : ""}{diff}%
+                          </span>
+                        )}
+                        <span
+                          className={`text-sm font-semibold ${
+                            score >= 60
+                              ? "text-semantic-success"
+                              : "text-semantic-error"
+                          }`}
+                        >
+                          {score}%
+                        </span>
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

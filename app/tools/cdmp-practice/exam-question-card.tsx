@@ -8,27 +8,40 @@ interface QuestionCardProps {
   question: GeneratedQuestion;
   questionNumber: number;
   totalQuestions: number;
+  previousAnswer?: string;
   onConfirm: (answerCode: string) => void;
+  onPrevious?: () => void;
+  onNavigate?: (index: number) => void;
+  answeredCount: number;
 }
 
 export function ExamQuestionCard({
   question,
   questionNumber,
   totalQuestions,
+  previousAnswer,
   onConfirm,
+  onPrevious,
+  onNavigate,
+  answeredCount,
 }: QuestionCardProps) {
-  const [selected, setSelected] = useState<string | null>(null);
-  const [confirmed, setConfirmed] = useState(false);
+  const [selected, setSelected] = useState<string | null>(
+    previousAnswer ?? null,
+  );
+  const [confirmed, setConfirmed] = useState(!!previousAnswer);
 
   function handleConfirm() {
-    if (!selected || confirmed) return;
+    if (!selected) return;
     setConfirmed(true);
     onConfirm(selected);
   }
 
+  const isLast = questionNumber === totalQuestions;
+  const allAnswered = answeredCount >= totalQuestions;
+
   return (
     <motion.div
-      key={question.questionText.slice(0, 40)}
+      key={questionNumber}
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
@@ -55,16 +68,14 @@ export function ExamQuestionCard({
             <button
               key={option.code}
               type="button"
-              disabled={confirmed}
-              onClick={() => setSelected(option.code)}
+              onClick={() => {
+                setSelected(option.code);
+                setConfirmed(false);
+              }}
               className={`flex w-full items-start gap-3 rounded-lg border px-5 py-4 text-left transition-colors ${
-                confirmed
-                  ? isSelected
-                    ? "border-primary bg-primary/5"
-                    : "border-hairline bg-surface-1 opacity-60"
-                  : isSelected
-                    ? "border-primary bg-primary/5 text-ink"
-                    : "border-hairline bg-surface-1 text-ink hover:border-primary/40"
+                isSelected
+                  ? "border-primary bg-primary/5 text-ink"
+                  : "border-hairline bg-surface-1 text-ink hover:border-primary/40"
               }`}
             >
               <span
@@ -82,23 +93,58 @@ export function ExamQuestionCard({
         })}
       </div>
 
-      <AnimatePresence>
-        {selected && !confirmed && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
+      <div className="mt-6 flex items-center gap-3">
+        {onPrevious && questionNumber > 1 && (
+          <button
+            type="button"
+            onClick={onPrevious}
+            className="inline-flex items-center rounded-md border border-hairline bg-surface-1 px-5 py-3 text-sm font-medium text-ink transition-colors duration-150 hover:bg-surface-2"
           >
-            <button
-              type="button"
-              onClick={handleConfirm}
-              className="mt-6 inline-flex items-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-white transition-colors duration-150 hover:bg-primary-hover"
-            >
-              Confirm answer
-            </button>
-          </motion.div>
+            Previous
+          </button>
         )}
-      </AnimatePresence>
+
+        <AnimatePresence>
+          {selected && !confirmed && (
+            <motion.button
+              type="button"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              onClick={handleConfirm}
+              className="inline-flex items-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-white transition-colors duration-150 hover:bg-primary-hover"
+            >
+              {previousAnswer ? "Update answer" : "Confirm answer"}
+            </motion.button>
+          )}
+        </AnimatePresence>
+
+        {confirmed && !isLast && (
+          <button
+            type="button"
+            onClick={() => onNavigate?.(questionNumber)}
+            className="inline-flex items-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-white transition-colors duration-150 hover:bg-primary-hover"
+          >
+            Next
+          </button>
+        )}
+
+        {confirmed && isLast && allAnswered && (
+          <button
+            type="button"
+            onClick={() => onNavigate?.(-1)}
+            className="inline-flex items-center rounded-md bg-semantic-success px-6 py-3 text-sm font-medium text-white transition-colors duration-150 hover:bg-semantic-success/90"
+          >
+            Finish exam
+          </button>
+        )}
+      </div>
+
+      {confirmed && !allAnswered && (
+        <p className="mt-3 text-[11px] text-ink-subtle">
+          {answeredCount}/{totalQuestions} answered
+        </p>
+      )}
     </motion.div>
   );
 }

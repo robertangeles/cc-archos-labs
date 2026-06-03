@@ -1957,6 +1957,11 @@ export const cdmpExamAnswer = pgTable(
     index("cdmp_exam_answer_session_id_idx").on(table.sessionId),
     // Per-chapter analytics: "how do users perform on data_governance?"
     index("cdmp_exam_answer_knowledge_area_idx").on(table.knowledgeArea),
+    // One answer per question per session. Enables upsert when user changes answer.
+    unique("cdmp_exam_answer_session_question_uniq").on(
+      table.sessionId,
+      table.questionIndex,
+    ),
   ],
 );
 

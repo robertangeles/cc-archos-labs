@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import {
   SESSION_COOKIE,
   verifySessionJwt,
+  verifySessionJwtIgnoreExpiry,
   type SessionJwtPayload,
 } from "./session-jwt";
 
@@ -46,5 +47,7 @@ export async function getSessionJwtFromCookies(): Promise<SessionJwtPayload | nu
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  return verifySessionJwt(token);
+  const valid = await verifySessionJwt(token);
+  if (valid) return valid;
+  return verifySessionJwtIgnoreExpiry(token);
 }
