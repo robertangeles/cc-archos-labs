@@ -53,7 +53,7 @@ export function LoginForm({
         setError(data.error === "csrf" ? "Security check failed. Reload and try again." : data.error || "Invalid email or password.");
         return;
       }
-      router.push(redirect);
+      window.location.href = redirect;
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
