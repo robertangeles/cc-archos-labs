@@ -64,7 +64,7 @@ export function LandingHero({ onStart }: { onStart: () => void }) {
 
         <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_1fr]">
           {/* Left: CTA + announcements */}
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col justify-between gap-4">
             <div className="rounded-lg border border-semantic-success/20 bg-semantic-success/5 px-5 py-4">
               <p className="text-sm font-medium text-semantic-success">
                 Free for early adopters

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { LandingHero } from "./landing-hero";
 import { ExamConfig } from "./exam-config";
 import { ExamQuestionCard } from "./exam-question-card";
@@ -8,6 +8,37 @@ import { ExamProgressBar } from "./exam-progress-bar";
 import { ExamResults, type AnswerDetail } from "./exam-results";
 import type { GeneratedQuestion } from "@/lib/cdmp/generate";
 import type { ExamResult } from "@/lib/cdmp/scoring";
+
+const LOADING_MESSAGES = [
+  "Generating your practice exam...",
+  "Pulling from DMBOK knowledge base...",
+  "Crafting questions across 14 chapters...",
+  "Verifying answer accuracy...",
+  "Balancing chapter weightings...",
+  "Building your exam session...",
+  "Cross-referencing DMBOK sources...",
+  "Almost there...",
+];
+
+function LoadingScreen() {
+  const [msgIndex, setMsgIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setMsgIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 py-32">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <p className="h-5 text-sm text-ink-subtle transition-opacity duration-300">
+        {LOADING_MESSAGES[msgIndex]}
+      </p>
+    </div>
+  );
+}
 
 type Phase = "landing" | "config" | "exam" | "loading" | "results";
 
@@ -260,14 +291,7 @@ export function Exam() {
       );
 
     case "loading":
-      return (
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 py-32">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-ink-subtle">
-            Generating your practice exam...
-          </p>
-        </div>
-      );
+      return <LoadingScreen />;
 
     case "exam": {
       if (state.questions.length === 0) {
