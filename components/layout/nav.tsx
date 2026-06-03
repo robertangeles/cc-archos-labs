@@ -92,15 +92,15 @@ function ProfileMenu({ firstName }: { firstName: string }) {
           {/* Identity row — non-interactive label so the user knows
               which account they're signed in as. Stays at the top so
               future menu items (Account, Settings) read below it. */}
-          <p className="px-3 py-2 text-[11px] uppercase tracking-[0.08em] text-ink-subtle/70">
-            Signed in as
-          </p>
-          <p className="px-3 pb-2 text-sm font-medium text-ink">
+          <Link
+            href="/account"
+            onClick={() => setOpen(false)}
+            className="block rounded px-3 py-2 text-sm font-medium text-ink transition-colors duration-150 hover:bg-canvas"
+          >
             {firstName}
-          </p>
+            <span className="block text-[11px] font-normal text-ink-subtle">Your account</span>
+          </Link>
           <div className="my-1 border-t border-hairline" />
-          {/* Future profile menu items slot in here. When the profile
-              page exists, add a "Your account" Link above Sign out. */}
           <LeadSignOutButton />
         </div>
       ) : null}

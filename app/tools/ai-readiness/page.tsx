@@ -33,5 +33,9 @@ export default async function AIReadinessAssessmentPage({
     }
   }
 
-  return <Assessment content={content} />;
+  const user = auth
+    ? { email: auth.user.email, displayName: auth.user.displayName }
+    : null;
+
+  return <Assessment content={content} authenticatedUser={user} />;
 }

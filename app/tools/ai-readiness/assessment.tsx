@@ -75,8 +75,12 @@ function loadState(): SessionState {
       typeof parsed.answers === "object" &&
       parsed.answers !== null
     ) {
-      // If a refresh happened while a registration submit was in flight,
-      // resume on the registration phase clean (no submitting flag).
+      // Never resume on the registration phase. If the user navigated
+      // away or refreshed mid-gate, the stale state creates a dead-end
+      // form. Reset to welcome so they start fresh.
+      if (parsed.phase === "registration" || parsed.phase === "error") {
+        return INITIAL_STATE;
+      }
       return {
         phase: parsed.phase as Phase,
         answers: parsed.answers,
@@ -113,7 +117,18 @@ function clearState() {
   }
 }
 
-export function Assessment({ content }: { content: DiagnosticContent }) {
+interface AuthenticatedUser {
+  email: string;
+  displayName: string | null;
+}
+
+export function Assessment({
+  content,
+  authenticatedUser,
+}: {
+  content: DiagnosticContent;
+  authenticatedUser?: AuthenticatedUser | null;
+}) {
   const [state, setState] = useState<SessionState>(INITIAL_STATE);
   const [hydrated, setHydrated] = useState(false);
   const router = useRouter();
@@ -128,11 +143,6 @@ export function Assessment({ content }: { content: DiagnosticContent }) {
   const getQuestion = (id: string): Question | undefined => questionsById[id];
 
   useEffect(() => {
-    // SSR-safe localStorage hydration: this is a client component but
-    // Next.js still renders it on the server, so localStorage isn't
-    // available at first render. Effect runs only on the client after
-    // mount. React 19's set-state-in-effect rule flags this — for
-    // genuine external-state hydration the pattern is correct.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setState(loadState());
     setHydrated(true);
@@ -142,33 +152,6 @@ export function Assessment({ content }: { content: DiagnosticContent }) {
     if (!hydrated) return;
     persistState(state);
   }, [state, hydrated]);
-
-  useEffect(() => {
-    if (state.phase !== "registration" || state.registrationSubmitting) return;
-    const answerCount = Object.keys(state.answers).length;
-    let cancelled = false;
-    fetch("/api/auth/me")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (cancelled || !data?.user) return;
-        if (answerCount === 0) {
-          clearState();
-          setState(INITIAL_STATE);
-          return;
-        }
-        const nameParts = (data.user.displayName ?? "").split(" ");
-        onRegistrationSubmit({
-          firstName: nameParts[0] || data.user.email,
-          lastName: nameParts.slice(1).join(" ") || "",
-          email: data.user.email,
-          jobTitle: "",
-          organisation: "",
-        });
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.phase]);
 
   function begin() {
     setState({
@@ -186,7 +169,15 @@ export function Assessment({ content }: { content: DiagnosticContent }) {
       };
       const nextId = getNextQuestionId(newAnswers, questionId);
       if (nextId === null) {
-        // Final answer — show registration gate (don't fire API yet).
+        if (authenticatedUser) {
+          submitForAuthenticatedUser(newAnswers);
+          return {
+            phase: "registration",
+            answers: newAnswers,
+            currentQuestionId: null,
+            registrationSubmitting: true,
+          };
+        }
         return {
           phase: "registration",
           answers: newAnswers,
@@ -200,6 +191,54 @@ export function Assessment({ content }: { content: DiagnosticContent }) {
       };
     });
   }
+
+  async function submitForAuthenticatedUser(answers: SessionAnswers) {
+    const nameParts = (authenticatedUser!.displayName ?? "").split(" ");
+    const lead: LeadInput = {
+      firstName: nameParts[0] || authenticatedUser!.email,
+      lastName: nameParts.slice(1).join(" ") || "-",
+      email: authenticatedUser!.email,
+      jobTitle: "-",
+      organisation: "-",
+    };
+
+    try {
+      const res = await fetch("/api/diagnostic/generate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ answers, lead }),
+      });
+      const json = (await res.json().catch(() => null)) as
+        | { ok: boolean; sessionId?: string; error?: string }
+        | null;
+
+      if (res.ok && json?.ok && json.sessionId) {
+        clearState();
+        router.push(`/tools/ai-readiness/report/${json.sessionId}`);
+        return;
+      }
+
+      setState((prev) => ({
+        ...prev,
+        registrationSubmitting: false,
+        registrationError: json?.error ?? "Could not generate your report. Please try again.",
+      }));
+    } catch {
+      setState((prev) => ({ ...prev, registrationSubmitting: false }));
+    }
+  }
+
+  useEffect(() => {
+    if (
+      state.phase === "registration" &&
+      authenticatedUser &&
+      !state.registrationSubmitting &&
+      Object.keys(state.answers).length > 0
+    ) {
+      submitForAuthenticatedUser(state.answers);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.phase, authenticatedUser]);
 
   async function onRegistrationSubmit(lead: LeadInput) {
     setState((prev) => ({
@@ -260,6 +299,14 @@ export function Assessment({ content }: { content: DiagnosticContent }) {
   }
 
   if (state.phase === "registration") {
+    if (authenticatedUser && !state.registrationError) {
+      return (
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 py-32">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-sm text-ink-subtle">Generating your report...</p>
+        </div>
+      );
+    }
     return (
       <RegistrationGate
         onSubmit={onRegistrationSubmit}

@@ -128,12 +128,19 @@ export function LoginForm({
           <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
         </div>
 
-        <PasswordInput
-          label="Password"
-          value={password}
-          onChange={setPassword}
-          required
-        />
+        <div>
+          <PasswordInput
+            label="Password"
+            value={password}
+            onChange={setPassword}
+            required
+          />
+          <div className="mt-1 text-right">
+            <Link href="/forgot-password" className="text-xs text-primary hover:text-primary-hover">
+              Forgot password?
+            </Link>
+          </div>
+        </div>
 
         <TurnstileWidget siteKey={turnstileSiteKey} onToken={setTurnstileToken} />
 
