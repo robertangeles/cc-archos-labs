@@ -80,6 +80,24 @@ export function LandingHero({ onStart }: { onStart: () => void }) {
           </p>
         </div>
 
+        <div className="mt-10 rounded-lg border border-semantic-success/20 bg-semantic-success/5 px-5 py-4">
+          <p className="text-sm font-medium text-semantic-success">
+            Free for early adopters
+          </p>
+          <p className="mt-1 text-[13px] leading-relaxed text-ink-subtle">
+            This practice exam is free for the first 3 months. Sign up during this period and it stays free for you forever.
+          </p>
+        </div>
+
+        <div className="mt-4 rounded-lg border border-hairline bg-surface-1 px-5 py-4">
+          <p className="text-sm font-medium text-ink">
+            Specialist Practice Exams
+          </p>
+          <p className="mt-1 text-[13px] text-ink-subtle">
+            Coming soon. Targeted practice for each of the 14 DMBOK knowledge areas.
+          </p>
+        </div>
+
         <div className="mt-12">
           <button
             type="button"
