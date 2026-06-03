@@ -3,7 +3,7 @@ title: Always validate persisted client state on load
 category: lessons-learned
 created: 2026-06-03
 updated: 2026-06-03
-related: [[cdmp-practice-exam]]
+related: []
 ---
 
 Client-side persisted state (localStorage, sessionStorage) can become stale and cause broken UX.

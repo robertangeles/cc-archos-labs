@@ -107,5 +107,8 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 - [Archos Labs HQ — Build Backlog](backlog/backlog.md) — prioritised build list, ordered by what unblocks revenue and reduces risk (describes **intent**; for ship state read [[state]])
 - [Shipped Backlog Items](backlog/shipped.md) — historical record of items moved out of the backlog once shipped; indexes Phase 0 / 1 / 1.E / 2 / 2.5
 
+## lessons-learned
+- [Validate localStorage state on mount](lessons-learned/2026-06-03-stale-localstorage-state.md) — Never show a form from stale localStorage. Validate persisted state on mount.
+
 ## state
 - [Project state — auto-generated](state.md) — **source of truth for ship state.** Read this before claiming any route, API endpoint, or component does not exist. Regenerated on every commit touching `app/` or `components/` via `scripts/wiki-state.mjs`.
