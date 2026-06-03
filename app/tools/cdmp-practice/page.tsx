@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { buildPageMetadata, getSiteSettings } from "@/lib/site-config";
-import { getSiteUrl } from "@/lib/public-origin";
+import { buildPageMetadata, getSiteSettings, getSiteUrl } from "@/lib/site-config";
 import { buildCdmpPracticeExamLd } from "@/lib/schema-org";
 import { Exam } from "./exam";
 
