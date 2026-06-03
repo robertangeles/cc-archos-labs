@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 
   const config = await getCdmpConfig();
 
-  let body: { questionCount?: number; timerEnabled?: boolean };
+  let body: { questionCount?: number; timerEnabled?: boolean; weakChapters?: string[] };
   try {
     body = await request.json();
   } catch {
@@ -44,7 +44,18 @@ export async function POST(request: Request) {
     })
     .returning({ id: cdmpExamSession.id });
 
-  const distribution = distributeQuestions(questionCount, config.knowledgeAreas);
+  const validSlugs = new Set(config.knowledgeAreas.map((a) => a.slug));
+  const weakChapters = body.weakChapters;
+  if (weakChapters) {
+    if (!Array.isArray(weakChapters) || weakChapters.length > 14 || weakChapters.some((s) => typeof s !== "string" || !validSlugs.has(s))) {
+      return NextResponse.json(
+        { error: "weakChapters must be an array of valid knowledge area slugs" },
+        { status: 400 },
+      );
+    }
+  }
+
+  const distribution = distributeQuestions(questionCount, config.knowledgeAreas, weakChapters);
   console.log(
     "[cdmp/start] distribution:",
     distribution.map((d) => `${d.slug}:${d.questionCount}`).join(", "),

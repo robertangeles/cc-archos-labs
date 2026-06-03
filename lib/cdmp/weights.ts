@@ -10,7 +10,11 @@ export interface ChapterDistribution {
 export function distributeQuestions(
   total: number,
   knowledgeAreas: KnowledgeArea[],
+  weakChapters?: string[],
 ): ChapterDistribution[] {
+  if (weakChapters && weakChapters.length > 0) {
+    return distributeWeakFocused(total, knowledgeAreas, weakChapters);
+  }
   const raw = knowledgeAreas.map((area) => ({
     slug: area.slug,
     label: area.label,
@@ -46,4 +50,45 @@ export function distributeQuestions(
     chapter,
     questionCount,
   }));
+}
+
+function distributeWeakFocused(
+  total: number,
+  knowledgeAreas: KnowledgeArea[],
+  weakChapters: string[],
+): ChapterDistribution[] {
+  const weakSet = new Set(weakChapters);
+  const weakAreas = knowledgeAreas.filter((a) => weakSet.has(a.slug));
+  const strongAreas = knowledgeAreas.filter((a) => !weakSet.has(a.slug));
+
+  const weakTotal = Math.round(total * 0.8);
+  const strongTotal = total - weakTotal;
+
+  const weakDist = weakAreas.length > 0
+    ? evenDistribute(weakTotal, weakAreas)
+    : [];
+  const strongDist = strongAreas.length > 0
+    ? evenDistribute(strongTotal, strongAreas)
+    : [];
+
+  return [...weakDist, ...strongDist];
+}
+
+function evenDistribute(
+  total: number,
+  areas: KnowledgeArea[],
+): ChapterDistribution[] {
+  const base = Math.floor(total / areas.length);
+  let remainder = total - base * areas.length;
+
+  return areas.map((area) => {
+    const extra = remainder > 0 ? 1 : 0;
+    if (extra) remainder--;
+    return {
+      slug: area.slug,
+      label: area.label,
+      chapter: area.chapter,
+      questionCount: Math.max(1, base + extra),
+    };
+  });
 }

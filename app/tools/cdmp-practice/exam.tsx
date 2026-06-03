@@ -184,6 +184,53 @@ export function Exam() {
     });
   }, []);
 
+  const handlePracticeWeak = useCallback(
+    async (weakChapters: string[]) => {
+      const questionCount = state.config?.questionCount ?? 20;
+      setState((prev) => ({ ...prev, phase: "loading", error: null }));
+
+      try {
+        const res = await fetch("/api/cdmp/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            questionCount,
+            timerEnabled: state.config?.timerEnabled ?? true,
+            weakChapters,
+          }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          if (res.status === 401) {
+            window.location.href = "/login?redirect=/tools/cdmp-practice";
+            return;
+          }
+          throw new Error(data.error || "Failed to start exam");
+        }
+
+        const data = await res.json();
+        setState((prev) => ({
+          ...prev,
+          phase: "exam",
+          sessionId: data.sessionId,
+          config: data.config,
+          questions: data.questions,
+          currentIndex: 0,
+          answeredDetails: [],
+          result: null,
+        }));
+      } catch (err) {
+        setState((prev) => ({
+          ...prev,
+          phase: "config",
+          error: err instanceof Error ? err.message : "Something went wrong",
+        }));
+      }
+    },
+    [state.config],
+  );
+
   switch (state.phase) {
     case "landing":
       return (
@@ -256,6 +303,6 @@ export function Exam() {
 
     case "results":
       if (!state.result) return null;
-      return <ExamResults result={state.result} answers={state.answeredDetails} onRetry={handleRetry} />;
+      return <ExamResults result={state.result} answers={state.answeredDetails} onRetry={handleRetry} onPracticeWeak={handlePracticeWeak} />;
   }
 }

@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import { cdmpExamSession, cdmpExamAnswer } from "@/lib/db/schema";
 import { requireUser } from "@/lib/cdmp/auth";
 import { scoreExam, type AnswerRecord } from "@/lib/cdmp/scoring";
+import { getCdmpConfig } from "@/lib/cdmp/config";
 
 export async function POST(request: Request) {
   const auth = await requireUser();
@@ -59,7 +60,8 @@ export async function POST(request: Request) {
     isCorrect: a.isCorrect,
   }));
 
-  const result = scoreExam(answerRecords);
+  const config = await getCdmpConfig();
+  const result = scoreExam(answerRecords, config.knowledgeAreas);
 
   await db
     .update(cdmpExamSession)

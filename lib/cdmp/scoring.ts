@@ -53,8 +53,8 @@ export function scoreExam(
     (knowledgeAreas ?? []).map((a) => [a.slug, a.label]),
   );
 
-  const perChapter: ChapterScore[] = [...chapterMap.entries()]
-    .map(([slug, entry]) => ({
+  const testedChapters: ChapterScore[] = [...chapterMap.entries()].map(
+    ([slug, entry]) => ({
       slug,
       label: areaLabels.get(slug) ?? slug,
       totalQuestions: entry.total,
@@ -63,8 +63,21 @@ export function scoreExam(
         entry.total > 0
           ? Math.round((entry.correct / entry.total) * 100)
           : 0,
-    }))
-    .filter((c) => c.totalQuestions > 0);
+    }),
+  );
+
+  const testedSlugs = new Set(testedChapters.map((c) => c.slug));
+  const untestedChapters: ChapterScore[] = (knowledgeAreas ?? [])
+    .filter((a) => !testedSlugs.has(a.slug))
+    .map((a) => ({
+      slug: a.slug,
+      label: a.label,
+      totalQuestions: 0,
+      correctCount: 0,
+      percentCorrect: -1,
+    }));
+
+  const perChapter = [...testedChapters, ...untestedChapters];
 
   return {
     totalQuestions,

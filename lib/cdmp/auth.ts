@@ -2,7 +2,8 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { getSessionJwtFromCookies } from "@/lib/auth/cookies";
-import { loadActiveSession, type LoadedSession } from "@/lib/auth/session";
+import { loadActiveSession, refreshSession, type LoadedSession } from "@/lib/auth/session";
+import { setSessionCookie } from "@/lib/auth/cookies";
 import { getSessionFromCookies } from "@/lib/auth-server";
 import { getDb } from "@/lib/db";
 import { users } from "@/lib/db/schema";
@@ -24,6 +25,9 @@ export async function requireUser(): Promise<
           ),
         };
       }
+      refreshSession(jwt.sessionId).then((result) => {
+        if (result) setSessionCookie(result.cookieValue);
+      }).catch(() => {});
       return { ok: true, session };
     }
   }

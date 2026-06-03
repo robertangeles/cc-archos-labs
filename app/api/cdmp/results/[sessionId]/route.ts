@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import { cdmpExamSession, cdmpExamAnswer } from "@/lib/db/schema";
 import { requireUser } from "@/lib/cdmp/auth";
 import { scoreExam, type AnswerRecord } from "@/lib/cdmp/scoring";
+import { getCdmpConfig } from "@/lib/cdmp/config";
 
 export async function GET(
   _request: NextRequest,
@@ -54,7 +55,8 @@ export async function GET(
     isCorrect: a.isCorrect,
   }));
 
-  const result = scoreExam(answerRecords);
+  const config = await getCdmpConfig();
+  const result = scoreExam(answerRecords, config.knowledgeAreas);
 
   return NextResponse.json({
     session: sessions[0],
