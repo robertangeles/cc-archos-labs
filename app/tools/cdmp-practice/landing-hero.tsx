@@ -1,8 +1,28 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 
+const TOPICS = [
+  { topic: "Data Governance", pct: 11 },
+  { topic: "Data Modelling and Design", pct: 11 },
+  { topic: "Data Quality", pct: 11 },
+  { topic: "Metadata Management", pct: 11 },
+  { topic: "Master and Reference Data Management", pct: 10 },
+  { topic: "Data Warehousing and Business Intelligence", pct: 10 },
+  { topic: "Data Architecture", pct: 6 },
+  { topic: "Data Storage and Operations", pct: 6 },
+  { topic: "Data Security", pct: 6 },
+  { topic: "Data Integration and Interoperability", pct: 6 },
+  { topic: "Document and Content Management", pct: 6 },
+  { topic: "Data Ethics", pct: 2 },
+  { topic: "Big Data", pct: 2 },
+  { topic: "Data Management Process", pct: 2 },
+];
+
 export function LandingHero({ onStart }: { onStart: () => void }) {
+  const [showTopics, setShowTopics] = useState(false);
+
   return (
     <motion.section
       initial={{ opacity: 0, y: 8 }}
@@ -45,62 +65,70 @@ export function LandingHero({ onStart }: { onStart: () => void }) {
           ))}
         </div>
 
-        <div className="mt-16">
-          <h2 className="text-lg font-semibold text-ink">
-            Exam Coverage by DMBOK Topic
-          </h2>
-          <p className="mt-2 text-sm text-ink-subtle">
-            The Data Management Fundamentals exam covers 14 topics. There are 11
-            knowledge areas, plus Data Management Process, Ethics, and Big Data.
+        <div className="mt-10 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-6">
+          <button
+            type="button"
+            onClick={onStart}
+            className="inline-flex items-center rounded-md bg-primary px-8 py-3.5 text-base font-medium text-white transition-colors duration-150 hover:bg-primary-hover"
+          >
+            Start practicing
+          </button>
+          <p className="text-[13px] text-ink-subtle">
+            100 questions &middot; 5 choices &middot; 90 minutes &middot; Open book
+            <br />
+            Shorter sessions: 20, 40, or 60 questions.
           </p>
-
-          <div className="mt-6 space-y-2.5">
-            {[
-              { topic: "Data Governance", pct: 11 },
-              { topic: "Data Modelling and Design", pct: 11 },
-              { topic: "Data Quality", pct: 11 },
-              { topic: "Metadata Management", pct: 11 },
-              { topic: "Master and Reference Data Management", pct: 10 },
-              { topic: "Data Warehousing and Business Intelligence", pct: 10 },
-              { topic: "Data Architecture", pct: 6 },
-              { topic: "Data Storage and Operations", pct: 6 },
-              { topic: "Data Security", pct: 6 },
-              { topic: "Data Integration and Interoperability", pct: 6 },
-              { topic: "Document and Content Management", pct: 6 },
-              { topic: "Data Ethics", pct: 2 },
-              { topic: "Big Data", pct: 2 },
-              { topic: "Data Management Process", pct: 2 },
-            ].map((item) => (
-              <div key={item.topic} className="flex items-center gap-3">
-                <div className="h-2 flex-1 rounded-full bg-ink-subtle/10">
-                  <div
-                    className="h-full rounded-full bg-primary/60"
-                    style={{ width: `${item.pct * 9}%` }}
-                  />
-                </div>
-                <span className="w-[280px] shrink-0 text-sm text-ink sm:w-[320px]">
-                  {item.topic}
-                </span>
-                <span className="w-10 shrink-0 text-right text-sm font-medium text-ink-subtle">
-                  {item.pct}%
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onStart}
-          className="mt-12 inline-flex w-fit items-center rounded-md bg-primary px-8 py-3.5 text-base font-medium text-white transition-colors duration-150 hover:bg-primary-hover"
-        >
-          Start practicing
-        </button>
+        <div className="mt-12">
+          <button
+            type="button"
+            onClick={() => setShowTopics(!showTopics)}
+            className="flex items-center gap-2 text-sm font-medium text-ink-subtle transition-colors duration-150 hover:text-ink"
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 12 12"
+              className={`transition-transform duration-150 ${showTopics ? "rotate-90" : ""}`}
+            >
+              <path
+                d="M4 2l4 4-4 4"
+                stroke="currentColor"
+                fill="none"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            Exam coverage by DMBOK topic (14 chapters)
+          </button>
 
-        <div className="mt-8 space-y-2 text-[13px] leading-[1.6] text-ink-subtle">
-          <p>100 questions &middot; 5 choices &middot; 90 minutes &middot; Open book</p>
-          <p>Shorter sessions available: 20, 40, or 60 questions.</p>
-          <p>Register for an account to start practicing.</p>
+          {showTopics && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              transition={{ duration: 0.2 }}
+              className="mt-4 space-y-2"
+            >
+              {TOPICS.map((item) => (
+                <div key={item.topic} className="flex items-center gap-3">
+                  <div className="h-1.5 flex-1 rounded-full bg-ink-subtle/10">
+                    <div
+                      className="h-full rounded-full bg-primary/60"
+                      style={{ width: `${item.pct * 9}%` }}
+                    />
+                  </div>
+                  <span className="w-[260px] shrink-0 text-[13px] text-ink sm:w-[300px]">
+                    {item.topic}
+                  </span>
+                  <span className="w-8 shrink-0 text-right text-[13px] font-medium text-ink-subtle">
+                    {item.pct}%
+                  </span>
+                </div>
+              ))}
+            </motion.div>
+          )}
         </div>
       </div>
     </motion.section>
