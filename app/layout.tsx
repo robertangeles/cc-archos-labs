@@ -27,9 +27,16 @@ const geistMono = Geist_Mono({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  // Root metadata — title + OG defaults derived from site_setting admin row.
-  // Per-page metadata overrides specific fields via buildPageMetadata({title, description, path}).
-  return buildPageMetadata({});
+  const meta = await buildPageMetadata({});
+  return {
+    ...meta,
+    alternates: {
+      ...meta.alternates,
+      types: {
+        "application/rss+xml": "/blog/feed.xml",
+      },
+    },
+  };
 }
 
 export default async function RootLayout({
