@@ -39,7 +39,7 @@ export async function GET() {
     ];
     if (p.excerpt) {
       parts.push(
-        `      <description>${xmlEscape(p.excerpt)}</description>`,
+        `      <description><![CDATA[${p.excerpt}]]></description>`,
       );
     }
     if (p.publishedAt) {
