@@ -23,10 +23,6 @@ interface SearchParams {
   page?: string;
 }
 
-// generateMetadata reads searchParams so paginated /blog?page=N URLs get
-// a self-canonical (otherwise both /blog and /blog?page=N declared
-// canonical=/blog, which contradicts the paginated URLs being submitted
-// to the sitemap).
 export async function generateMetadata({
   searchParams,
 }: {
@@ -35,13 +31,17 @@ export async function generateMetadata({
   const params = await searchParams;
   const pageNum = parsePage(params.page);
   const path = pageNum > 1 ? `/blog?page=${pageNum}` : "/blog";
-  return buildPageMetadata({
+  const meta = await buildPageMetadata({
     title: "The Translation Layer",
     description:
       "Essays on AI program risk, data architecture, and what actually breaks in transformation. By Rob Angeles, Archos Labs.",
     path,
     ogType: "website",
   });
+  if (pageNum > 1) {
+    return { ...meta, robots: { index: false, follow: true } };
+  }
+  return meta;
 }
 
 export default async function BlogIndexPage({

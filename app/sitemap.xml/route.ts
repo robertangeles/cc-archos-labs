@@ -19,11 +19,7 @@ import { getSiteUrl } from "../../lib/site-config";
 // strict schema order.
 export const revalidate = 3600;
 
-const STATIC_PAGES_LAST_MOD = new Date("2026-05-21");
-
-// Must match lib/posts.ts listPosts() default page size — otherwise the
-// sitemap submits paginated URLs that don't exist.
-const POSTS_PER_PAGE = 10;
+const STATIC_PAGES_LAST_MOD = new Date("2026-06-05");
 
 type ChangeFreq =
   | "always"
@@ -107,6 +103,12 @@ async function buildEntries(): Promise<UrlEntry[]> {
       priority: 0.8,
     },
     {
+      loc: `${base}/consulting`,
+      lastmod: STATIC_PAGES_LAST_MOD,
+      changefreq: "yearly",
+      priority: 0.8,
+    },
+    {
       loc: `${base}/contact`,
       lastmod: STATIC_PAGES_LAST_MOD,
       changefreq: "yearly",
@@ -168,16 +170,6 @@ async function buildEntries(): Promise<UrlEntry[]> {
     priority: 0.9,
   });
 
-  const totalBlogPages = Math.max(1, Math.ceil(posts.length / POSTS_PER_PAGE));
-  for (let n = 2; n <= totalBlogPages; n++) {
-    entries.push({
-      loc: `${base}/blog?page=${n}`,
-      lastmod: blogIndexLastMod,
-      changefreq: "monthly",
-      priority: 0.4,
-    });
-  }
-
   const now = Date.now();
   for (const c of categoryStats) {
     const ageDays = (now - c.mostRecentPublishedAt.getTime()) / 86_400_000;
@@ -189,15 +181,6 @@ async function buildEntries(): Promise<UrlEntry[]> {
       changefreq: cf,
       priority: 0.6,
     });
-    const totalCatPages = Math.max(1, Math.ceil(c.postCount / POSTS_PER_PAGE));
-    for (let n = 2; n <= totalCatPages; n++) {
-      entries.push({
-        loc: `${base}/blog/category/${c.slug}?page=${n}`,
-        lastmod: c.mostRecentPublishedAt,
-        changefreq: cf,
-        priority: 0.3,
-      });
-    }
   }
 
   for (const p of posts) {

@@ -29,13 +29,11 @@ export async function generateMetadata({
   if (!category) {
     return buildPageMetadata({ title: "Category not found" });
   }
-  // Paginated category URLs get a self-canonical so the sitemap can submit
-  // /blog/category/x?page=N without contradicting the rendered HTML.
   const { page: pageParam } = await searchParams;
   const pageNum = parsePage(pageParam);
   const basePath = `/blog/category/${category.slug}`;
   const path = pageNum > 1 ? `${basePath}?page=${pageNum}` : basePath;
-  return buildPageMetadata({
+  const meta = await buildPageMetadata({
     title: category.name,
     description:
       category.description ??
@@ -43,6 +41,10 @@ export async function generateMetadata({
     path,
     ogType: "website",
   });
+  if (pageNum > 1) {
+    return { ...meta, robots: { index: false, follow: true } };
+  }
+  return meta;
 }
 
 export default async function CategoryPage({
