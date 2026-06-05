@@ -2,8 +2,8 @@
 title: Wiki Index
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-22
-related: [[state]], [[backlog]], [[shipped]], [[book-a-call-architecture]], [[booking-prompts-in-db]], [[claude-eval-suites]], [[lead-session-and-owner-only-reports]], [[magic-link-sign-in]], [[transactional-email-rendering]], [[integration-config]], [[design-system]], [[2026-05-20-wiki-karpathy-ops]], [[2026-05-20-posts-admin-phase-d-backend]], [[2026-05-20-posts-admin-phase-d-ui]], [[2026-05-21-sitemap-aieo-fixes]], [[2026-05-21-indexnow]]
+updated: 2026-06-05
+related: [[state]], [[backlog]], [[shipped]], [[book-a-call-architecture]], [[booking-prompts-in-db]], [[claude-eval-suites]], [[lead-session-and-owner-only-reports]], [[magic-link-sign-in]], [[transactional-email-rendering]], [[integration-config]], [[design-system]], [[2026-05-20-wiki-karpathy-ops]], [[2026-05-20-posts-admin-phase-d-backend]], [[2026-05-20-posts-admin-phase-d-ui]], [[2026-05-21-sitemap-aieo-fixes]], [[2026-05-21-indexnow]], [[2026-06-05-seo-crawl-budget-pagination-fix]]
 ---
 
 Master catalog of all wiki pages. Read this at the start of every session. For current ship state by route / endpoint / component, read [[state]] first (auto-generated, always fresh). For runtime topology and the (unusual) single-environment, single-DB posture, read [[deployment-architecture]] before suggesting any deploy / migration / cutover runbook.
@@ -34,6 +34,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 
 ## decisions
 - [No on-site comments — reply-by-email instead](decisions/2026-05-24-no-comments-reply-by-email.md) — promotes the Phase D one-liner "not a planned surface for this brand" into a written policy with reasoning. Reference set (Stratechery, McKenzie, Stripe Press, A16Z, FirstRound, Evans) all have zero on-site comments. Reply-by-email selects for higher-signal feedback and lands in Rob's inbox where it can become a consulting conversation. Implementation: [[2026-05-24-blog-tidy-ceo-review]] T5.
+- [SEO crawl budget fix — remove pagination from sitemap](decisions/2026-06-05-seo-crawl-budget-pagination-fix.md) — GSC 320 discovered / 28 indexed. Root cause: ~48 pagination `?page=N` URLs diluting crawl budget on a young site. Removed from sitemap, added noindex on paginated pages, added `/consulting` to sitemap, bumped lastmod, cleared 120 clean needsReview posts. PR #131.
 - [Sitemap — ISR + custom XML route over force-dynamic MetadataRoute](decisions/2026-05-24-sitemap-cold-start-cacheable.md) — `app/sitemap.ts` replaced with `app/sitemap.xml/route.ts` (hand-built XML in canonical XSD order, `revalidate=3600`) + `next.config.ts` `Cache-Control: public, s-maxage=3600, stale-while-revalidate=86400`. Fixes GSC "Couldn't fetch" (Render cold-start vs Googlebot's fetch budget) and the non-canonical `<image:image>` element position in one PR.
 - [IndexNow push-indexing client — May 2026](decisions/2026-05-21-indexnow.md) — push-side counterpart to the sitemap. `lib/indexnow.ts` + `app/indexnow.txt/route.ts` wired into every write path (posts admin, pages admin, scheduled publisher cron). Fire-and-forget with 5-min same-URL debounce. Submits to `api.indexnow.org` which fans out to Bing/Yandex/Naver/Seznam/Yep/Amazon. Google does NOT participate.
 - [Sitemap AIEO fixes — May 2026](decisions/2026-05-21-sitemap-aieo-fixes.md) — image sitemap extension for all 253 posts, stable static-page lastmod, /about + /tools/ai-readiness + CMS pages added, paginated /blog?page=N entries with matching self-canonicals on /blog and /blog/category pages, data-driven category changefreq. Unblocks GSC + Bing Webmaster Tools submission.

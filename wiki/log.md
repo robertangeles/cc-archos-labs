@@ -8,6 +8,23 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-06-05 — SEO crawl budget fix
+
+**Problem:** GSC showed 320 pages discovered, only 28 indexed. All 290 non-indexed had "Discovered – currently not indexed" with Last crawled = 1970-01-01 (never crawled).
+
+**Root cause:** Not content quality — crawl budget allocation. ~48 pagination URLs in sitemap competing for limited crawl slots on a young site (~2 weeks in GSC).
+
+**Changes (PR #131):**
+- Removed pagination URLs from sitemap (blog + category `?page=N`)
+- Added `noindex, follow` on paginated pages (page > 1)
+- Added `/consulting` to sitemap (was missing)
+- Bumped `STATIC_PAGES_LAST_MOD` to 2026-06-05
+- Cleared `needsReview` on 120 posts (DB audit: zero placeholders, all 300+ words)
+
+**Wiki:** Created [[2026-06-05-seo-crawl-budget-pagination-fix]]
+
+**Follow-up:** Resubmit sitemap in GSC. Manually request indexing for 5 core pages. Monitor weekly.
+
 ## 2026-06-02 — Local dev bring-up + auth testing + CDMP generation perf fix
 
 Long session on `feature/cdmp-practice-exam` (unmerged: CDMP practice exam + site-wide auth consolidation). Brought local dev up from zero, tested the full auth surface against prod, and fixed a severe CDMP question-generation perf bug. Local `main` is 9 commits behind `origin/main` — flagged, not synced.
