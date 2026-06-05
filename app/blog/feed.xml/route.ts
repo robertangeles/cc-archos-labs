@@ -25,7 +25,7 @@ export async function GET() {
   ]);
 
   const siteUrl = getSiteUrl();
-  const posts = allPosts.slice(0, 20);
+  const posts = allPosts.slice(0, 22);
   const lastBuildDate =
     posts[0]?.publishedAt?.toUTCString() ?? new Date().toUTCString();
 
