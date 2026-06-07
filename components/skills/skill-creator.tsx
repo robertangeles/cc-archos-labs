@@ -24,7 +24,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-const STEP_LABELS = ["Basics", "Inputs", "Prompt", "Model", "Review"];
+const STEP_LABELS = ["Basics", "Inputs", "Prompt", "Model", "Outputs", "Review"];
 
 const CATEGORY_META: Record<
   SkillCategory,
@@ -93,7 +93,7 @@ export function SkillCreator({
   );
   const [maxTokens, setMaxTokens] = useState(initialData?.maxTokens ?? 4000);
 
-  const [outputs] = useState<SkillOutputDef[]>(
+  const [outputs, setOutputs] = useState<SkillOutputDef[]>(
     initialData?.outputs?.length ? initialData.outputs : [emptyOutput()],
   );
 
@@ -105,7 +105,27 @@ export function SkillCreator({
       );
     if (step === 2) return promptTemplate.trim().length > 0;
     if (step === 3) return defaultModel.length > 0;
+    if (step === 4)
+      return outputs.every(
+        (o) => o.key.trim().length > 0 && o.label.trim().length > 0,
+      );
     return true;
+  }
+
+  function addOutput() {
+    setOutputs([...outputs, { key: "", type: "text", label: "" }]);
+  }
+
+  function removeOutput(idx: number) {
+    setOutputs(outputs.filter((_, i) => i !== idx));
+  }
+
+  function updateOutput(idx: number, field: string, value: unknown) {
+    setOutputs(
+      outputs.map((out, i) =>
+        i === idx ? { ...out, [field]: value } : out,
+      ),
+    );
   }
 
   function addInput() {
@@ -170,29 +190,36 @@ export function SkillCreator({
 
   return (
     <div className="w-full">
-      {/* Step indicator */}
+      {/* Step breadcrumbs — all steps are clickable */}
       <div className="mb-8 flex items-center gap-2">
         {STEP_LABELS.map((label, i) => (
           <div key={label} className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => i < step && setStep(i)}
-              disabled={i > step}
-              className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition-colors ${
+              onClick={() => setStep(i)}
+              className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition-colors cursor-pointer ${
                 i === step
                   ? "bg-primary text-primary-foreground"
                   : i < step
-                    ? "bg-primary/20 text-primary cursor-pointer"
-                    : "bg-surface-2 text-ink-tertiary"
+                    ? "bg-primary/20 text-primary hover:bg-primary/30"
+                    : "bg-surface-2 text-ink-tertiary hover:bg-surface-3"
               }`}
             >
               {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
             </button>
-            <span
-              className={`text-xs ${i === step ? "font-medium text-ink" : "text-ink-tertiary"}`}
+            <button
+              type="button"
+              onClick={() => setStep(i)}
+              className={`text-xs cursor-pointer transition-colors ${
+                i === step
+                  ? "font-medium text-ink"
+                  : i < step
+                    ? "text-primary hover:text-primary-hover"
+                    : "text-ink-tertiary hover:text-ink-subtle"
+              }`}
             >
               {label}
-            </span>
+            </button>
             {i < STEP_LABELS.length - 1 && (
               <div className="mx-1 h-px w-4 bg-hairline" />
             )}
@@ -453,8 +480,99 @@ export function SkillCreator({
         </div>
       )}
 
-      {/* Step 4: Review */}
+      {/* Step 4: Outputs */}
       {step === 4 && (
+        <div className="space-y-4">
+          <p className="text-sm text-ink-subtle">
+            Define how the output should be rendered. The type tells the UI
+            whether to display the result as plain text, a markdown preview,
+            or a JSON code block.
+          </p>
+          {outputs.map((out, idx) => (
+            <div
+              key={idx}
+              className="rounded-lg border border-hairline bg-surface-1 p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-medium uppercase text-ink-tertiary">
+                        Key
+                      </label>
+                      <input
+                        type="text"
+                        value={out.key}
+                        onChange={(e) =>
+                          updateOutput(
+                            idx,
+                            "key",
+                            e.target.value
+                              .toLowerCase()
+                              .replace(/[^a-z0-9_]/g, ""),
+                          )
+                        }
+                        placeholder="e.g. result"
+                        className="mt-1 block w-full rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm text-ink focus:border-primary focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium uppercase text-ink-tertiary">
+                        Label
+                      </label>
+                      <input
+                        type="text"
+                        value={out.label}
+                        onChange={(e) =>
+                          updateOutput(idx, "label", e.target.value)
+                        }
+                        placeholder="e.g. Result"
+                        className="mt-1 block w-full rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm text-ink focus:border-primary focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium uppercase text-ink-tertiary">
+                      Type
+                    </label>
+                    <select
+                      value={out.type}
+                      onChange={(e) =>
+                        updateOutput(idx, "type", e.target.value)
+                      }
+                      className="mt-1 rounded-md border border-hairline bg-canvas px-3 py-1.5 text-sm text-ink focus:border-primary focus:outline-none"
+                    >
+                      <option value="text">Plain Text</option>
+                      <option value="markdown">Markdown</option>
+                      <option value="json">JSON</option>
+                    </select>
+                  </div>
+                </div>
+                {outputs.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeOutput(idx)}
+                    className="mt-1 text-ink-tertiary hover:text-semantic-error"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={addOutput}
+            className="flex items-center gap-1.5 text-sm text-primary hover:text-primary-hover"
+          >
+            <Plus className="h-4 w-4" />
+            Add Output
+          </button>
+        </div>
+      )}
+
+      {/* Step 5: Review */}
+      {step === 5 && (
         <div className="space-y-4">
           <div className="rounded-lg border border-hairline bg-surface-1 p-5">
             <dl className="space-y-3 text-sm">
@@ -543,7 +661,7 @@ export function SkillCreator({
           {step === 0 ? "Cancel" : "Back"}
         </button>
 
-        {step < 4 ? (
+        {step < 5 ? (
           <button
             type="button"
             disabled={!canProceed()}
