@@ -10,6 +10,8 @@ import {
   vector,
   index,
   unique,
+  uniqueIndex,
+  varchar,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
@@ -1383,6 +1385,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   cdmpExamSessions: many(cdmpExamSession),
   assessmentSessions: many(assessmentSession),
   magicLinkTokens: many(magicLinkToken),
+  skills: many(skill),
 }));
 
 export const oauthAccountRelations = relations(oauthAccount, ({ one }) => ({
@@ -2066,3 +2069,205 @@ export const cdmpQuestionFlagRelations = relations(
     }),
   }),
 );
+
+// ============================================================================
+// skill — Skills Builder (workspace feature)
+// ============================================================================
+// A reusable AI prompt template with structured inputs, model config, and
+// versioning. v1 is single-user (Rob's consulting toolkit). Community
+// features (fork, favorites, public visibility) deferred to v2.
+//
+// Normal form: 2NF. prompt_template and system_prompt are scalar columns
+// (not embedded in JSONB). Inputs and outputs are normalized into separate
+// tables. The only JSONB exception is skill_versions.config which stores
+// full version snapshots for rollback/audit.
+
+export const skill = pgTable(
+  "skill",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: varchar("slug", { length: 100 }).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description").notNull(),
+    // repurpose | generate | research | transform | extract | plan
+    category: varchar("category", { length: 50 }).notNull(),
+    currentVersion: integer("current_version").notNull().default(1),
+    userId: uuid("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    promptTemplate: text("prompt_template").notNull().default(""),
+    systemPrompt: text("system_prompt"),
+    // OpenRouter model ID, e.g. 'anthropic/claude-sonnet-4-20250514'
+    defaultModel: varchar("default_model", { length: 100 }),
+    // 0.0-2.0, validated by Zod at the API layer.
+    temperature: numeric("temperature", { precision: 3, scale: 2 }),
+    // 1-32000, validated by Zod. Clamped to model max if exceeded.
+    maxTokens: integer("max_tokens"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // Lookup skills by owner.
+    index("skill_user_id_idx").on(table.userId),
+    // Slug scoped to user (namespace isolation).
+    uniqueIndex("skill_user_slug_idx").on(table.userId, table.slug),
+  ],
+);
+
+export type Skill = typeof skill.$inferSelect;
+export type NewSkill = typeof skill.$inferInsert;
+
+// ============================================================================
+// skill_input — Skills Builder (normalized input definitions)
+// ============================================================================
+// Normal form: 2NF. Each row defines one input variable for a skill's
+// prompt template. The key maps to a {{variable}} placeholder in
+// prompt_template.
+
+export const skillInput = pgTable(
+  "skill_input",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    skillId: uuid("skill_id")
+      .notNull()
+      .references(() => skill.id, { onDelete: "cascade" }),
+    // Template variable name, e.g. 'content', 'topic'.
+    key: varchar("key", { length: 100 }).notNull(),
+    // text | multiline | select
+    type: varchar("type", { length: 30 }).notNull(),
+    label: varchar("label", { length: 255 }).notNull(),
+    description: text("description"),
+    isRequired: boolean("is_required").notNull().default(false),
+    defaultValue: varchar("default_value", { length: 500 }),
+    // string[] — only used when type='select'. Application validates shape.
+    options: jsonb("options").notNull().default([]),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // List inputs for a skill in order.
+    index("skill_input_skill_id_idx").on(table.skillId),
+  ],
+);
+
+export type SkillInput = typeof skillInput.$inferSelect;
+export type NewSkillInput = typeof skillInput.$inferInsert;
+
+// ============================================================================
+// skill_output — Skills Builder (normalized output definitions)
+// ============================================================================
+// Normal form: 2NF. Defines expected output structure so the frontend
+// knows how to render LLM responses (markdown preview vs raw JSON vs
+// plain text).
+
+export const skillOutput = pgTable(
+  "skill_output",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    skillId: uuid("skill_id")
+      .notNull()
+      .references(() => skill.id, { onDelete: "cascade" }),
+    key: varchar("key", { length: 100 }).notNull(),
+    // text | markdown | json
+    type: varchar("type", { length: 30 }).notNull(),
+    label: varchar("label", { length: 255 }).notNull(),
+    description: text("description"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // List outputs for a skill in order.
+    index("skill_output_skill_id_idx").on(table.skillId),
+  ],
+);
+
+export type SkillOutput = typeof skillOutput.$inferSelect;
+export type NewSkillOutput = typeof skillOutput.$inferInsert;
+
+// ============================================================================
+// skill_version — Skills Builder (config snapshots for rollback/audit)
+// ============================================================================
+// Normal form: 1NF — config JSONB stores a full value-copy snapshot
+// of the skill's inputs, outputs, prompt, and model config at a point
+// in time. Shape: { inputs: SkillInputDef[], outputs: SkillOutputDef[],
+//   promptTemplate: string, systemPrompt?: string, temperature: number,
+//   maxTokens: number, defaultModel: string }
+//
+// A new version row is created whenever prompt_template, system_prompt,
+// inputs, or outputs change. Metadata-only edits (name, description,
+// category) do NOT create a version.
+
+export const skillVersion = pgTable(
+  "skill_version",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    skillId: uuid("skill_id")
+      .notNull()
+      .references(() => skill.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    config: jsonb("config").notNull(),
+    changelog: text("changelog"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // List versions for a skill.
+    index("skill_version_skill_id_idx").on(table.skillId),
+  ],
+);
+
+export type SkillVersion = typeof skillVersion.$inferSelect;
+export type NewSkillVersion = typeof skillVersion.$inferInsert;
+
+// ============================================================================
+// Relations — Skills Builder
+// ============================================================================
+
+export const skillRelations = relations(skill, ({ one, many }) => ({
+  user: one(users, {
+    fields: [skill.userId],
+    references: [users.id],
+  }),
+  inputs: many(skillInput),
+  outputs: many(skillOutput),
+  versions: many(skillVersion),
+}));
+
+export const skillInputRelations = relations(skillInput, ({ one }) => ({
+  skill: one(skill, {
+    fields: [skillInput.skillId],
+    references: [skill.id],
+  }),
+}));
+
+export const skillOutputRelations = relations(skillOutput, ({ one }) => ({
+  skill: one(skill, {
+    fields: [skillOutput.skillId],
+    references: [skill.id],
+  }),
+}));
+
+export const skillVersionRelations = relations(skillVersion, ({ one }) => ({
+  skill: one(skill, {
+    fields: [skillVersion.skillId],
+    references: [skill.id],
+  }),
+}));

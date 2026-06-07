@@ -8,14 +8,16 @@ import { cdmpExamSession, assessmentSession, users } from "@/lib/db/schema";
 import { SignOutButton } from "./sign-out-button";
 import { HistoryTabs } from "./history-tabs";
 import { ProfileEdit } from "./profile-edit";
+import { WorkspaceTabs } from "./workspace-tabs";
+import { SkillsList } from "@/components/skills/skills-list";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
-    title: "Your Account",
-    description: "Manage your Archos Labs account and review your activity.",
+    title: "Your Workspace",
+    description: "Manage your profile, skills, and activity on Archos Labs.",
     path: "/account",
   });
 }
@@ -72,7 +74,7 @@ export default async function AccountPage() {
   return (
     <main className="flex flex-1 flex-col bg-canvas px-6 py-16 md:px-12 md:py-24">
       <div className="mx-auto w-full max-w-[720px]">
-        <p className="uppercase text-eyebrow text-ink-subtle">Your Account</p>
+        <p className="uppercase text-eyebrow text-ink-subtle">Your Workspace</p>
         <h1 className="mt-4 text-3xl font-semibold text-ink md:text-4xl">
           {auth.user.displayName || auth.user.email}
         </h1>
@@ -90,19 +92,44 @@ export default async function AccountPage() {
           </div>
         )}
 
-        <div className="mt-10 rounded-lg border border-hairline bg-surface-1 p-6">
-          <h2 className="text-body-sm font-semibold text-ink">Profile</h2>
-          <div className="mt-4">
-            <ProfileEdit
-              displayName={auth.user.displayName || ""}
-              email={auth.user.email}
-              hasPassword={hasPassword}
-            />
-          </div>
-        </div>
-
         <div className="mt-10">
-          <HistoryTabs cdmpExams={completed} assessments={assessments} />
+          <WorkspaceTabs
+            tabs={[
+              {
+                key: "profile",
+                label: "Profile",
+                content: (
+                  <div className="rounded-lg border border-hairline bg-surface-1 p-6">
+                    <h2 className="text-body-sm font-semibold text-ink">
+                      Profile
+                    </h2>
+                    <div className="mt-4">
+                      <ProfileEdit
+                        displayName={auth.user.displayName || ""}
+                        email={auth.user.email}
+                        hasPassword={hasPassword}
+                      />
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                key: "skills",
+                label: "Skills",
+                content: <SkillsList />,
+              },
+              {
+                key: "history",
+                label: "History",
+                content: (
+                  <HistoryTabs
+                    cdmpExams={completed}
+                    assessments={assessments}
+                  />
+                ),
+              },
+            ]}
+          />
         </div>
 
         <div className="mt-10 border-t border-hairline pt-6">

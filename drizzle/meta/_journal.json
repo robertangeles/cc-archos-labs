@@ -134,6 +134,13 @@
       "when": 1779676829874,
       "tag": "0018_silly_blade",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1780795718888,
+      "tag": "0019_skills-builder",
+      "breakpoints": true
     }
   ]
 }
