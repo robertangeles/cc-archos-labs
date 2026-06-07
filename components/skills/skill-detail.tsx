@@ -290,11 +290,11 @@ export function SkillDetail({ skill }: { skill: SkillData }) {
       <div className="mt-8">
         <button
           type="button"
-          onClick={() => router.push("/account")}
+          onClick={() => router.push("/account/skills")}
           className="flex items-center gap-1.5 text-sm text-ink-subtle hover:text-ink"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to workspace
+          Back to skills
         </button>
       </div>
     </div>

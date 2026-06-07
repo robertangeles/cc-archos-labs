@@ -487,7 +487,7 @@ export function SkillCreator() {
       <div className="mt-8 flex items-center justify-between">
         <button
           type="button"
-          onClick={() => (step === 0 ? router.push("/account") : setStep(step - 1))}
+          onClick={() => (step === 0 ? router.push("/account/skills") : setStep(step - 1))}
           className="flex items-center gap-1.5 text-sm text-ink-subtle hover:text-ink"
         >
           <ArrowLeft className="h-4 w-4" />

@@ -5,7 +5,6 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import * as skillService from "@/lib/skills/service";
 import { SkillDetail } from "@/components/skills/skill-detail";
 
-export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
@@ -35,7 +34,7 @@ export default async function SkillDetailPage({
   const skill = await skillService.getSkill(id, auth.user.id);
 
   if (!skill) {
-    redirect("/account");
+    redirect("/account/skills");
   }
 
   const serialized = {
@@ -55,11 +54,5 @@ export default async function SkillDetailPage({
     })),
   };
 
-  return (
-    <main className="flex flex-1 flex-col bg-canvas px-6 py-16 md:px-12 md:py-24">
-      <div className="mx-auto w-full max-w-[720px]">
-        <SkillDetail skill={serialized} />
-      </div>
-    </main>
-  );
+  return <SkillDetail skill={serialized} />;
 }

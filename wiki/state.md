@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-07T02:05:55.716Z
+generated: 2026-06-07T02:45:58.721Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -9,7 +9,7 @@ Auto-generated snapshot of what is currently shipped. **Source of truth for ship
 
 Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `app/` or `components/` to fire the pre-commit hook.
 
-## Routes (49)
+## Routes (51)
 
 | Route | File | Last shipped |
 |-------|------|--------------|
@@ -20,9 +20,11 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/(auth)/register` | [app/(auth)/register/page.tsx](../app/(auth)/register/page.tsx) | 2026-06-03 |
 | `/[...slug]` | [app/[...slug]/page.tsx](../app/[...slug]/page.tsx) | 2026-05-18 |
 | `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-27 |
-| `/account` | [app/account/page.tsx](../app/account/page.tsx) | 2026-06-03 |
-| `/account/skills/[id]` | [app/account/skills/[id]/page.tsx](../app/account/skills/[id]/page.tsx) | unknown |
-| `/account/skills/new` | [app/account/skills/new/page.tsx](../app/account/skills/new/page.tsx) | unknown |
+| `/account` | [app/account/page.tsx](../app/account/page.tsx) | 2026-06-07 |
+| `/account/history` | [app/account/history/page.tsx](../app/account/history/page.tsx) | unknown |
+| `/account/skills` | [app/account/skills/page.tsx](../app/account/skills/page.tsx) | unknown |
+| `/account/skills/[id]` | [app/account/skills/[id]/page.tsx](../app/account/skills/[id]/page.tsx) | 2026-06-07 |
+| `/account/skills/new` | [app/account/skills/new/page.tsx](../app/account/skills/new/page.tsx) | 2026-06-07 |
 | `/admin/(authed)/auth` | [app/admin/(authed)/auth/page.tsx](../app/admin/(authed)/auth/page.tsx) | 2026-05-26 |
 | `/admin/(authed)/blog` | [app/admin/(authed)/blog/page.tsx](../app/admin/(authed)/blog/page.tsx) | 2026-05-20 |
 | `/admin/(authed)/blog/posts` | [app/admin/(authed)/blog/posts/page.tsx](../app/admin/(authed)/blog/posts/page.tsx) | 2026-05-21 |
@@ -144,10 +146,10 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/diagnostic/share/[id]/revoke` | [app/api/diagnostic/share/[id]/revoke/route.ts](../app/api/diagnostic/share/[id]/revoke/route.ts) | 2026-06-03 |
 | `/api/events` | [app/api/events/route.ts](../app/api/events/route.ts) | 2026-05-18 |
 | `/api/health/cron` | [app/api/health/cron/route.ts](../app/api/health/cron/route.ts) | 2026-05-17 |
-| `/api/skills` | [app/api/skills/route.ts](../app/api/skills/route.ts) | unknown |
-| `/api/skills/[id]` | [app/api/skills/[id]/route.ts](../app/api/skills/[id]/route.ts) | unknown |
-| `/api/skills/[id]/execute` | [app/api/skills/[id]/execute/route.ts](../app/api/skills/[id]/execute/route.ts) | unknown |
-| `/api/skills/[id]/versions` | [app/api/skills/[id]/versions/route.ts](../app/api/skills/[id]/versions/route.ts) | unknown |
+| `/api/skills` | [app/api/skills/route.ts](../app/api/skills/route.ts) | 2026-06-07 |
+| `/api/skills/[id]` | [app/api/skills/[id]/route.ts](../app/api/skills/[id]/route.ts) | 2026-06-07 |
+| `/api/skills/[id]/execute` | [app/api/skills/[id]/execute/route.ts](../app/api/skills/[id]/execute/route.ts) | 2026-06-07 |
+| `/api/skills/[id]/versions` | [app/api/skills/[id]/versions/route.ts](../app/api/skills/[id]/versions/route.ts) | 2026-06-07 |
 
 ## Components (71)
 
@@ -210,10 +212,10 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/sections/home/service-card.tsx](../components/sections/home/service-card.tsx) | 2026-05-27 |
 | [components/sections/home/sticky-mobile-cta.tsx](../components/sections/home/sticky-mobile-cta.tsx) | 2026-05-18 |
 | [components/sections/home/timeline.tsx](../components/sections/home/timeline.tsx) | 2026-05-27 |
-| [components/skills/model-selector.tsx](../components/skills/model-selector.tsx) | unknown |
-| [components/skills/skill-creator.tsx](../components/skills/skill-creator.tsx) | unknown |
-| [components/skills/skill-detail.tsx](../components/skills/skill-detail.tsx) | unknown |
-| [components/skills/skills-list.tsx](../components/skills/skills-list.tsx) | unknown |
+| [components/skills/model-selector.tsx](../components/skills/model-selector.tsx) | 2026-06-07 |
+| [components/skills/skill-creator.tsx](../components/skills/skill-creator.tsx) | 2026-06-07 |
+| [components/skills/skill-detail.tsx](../components/skills/skill-detail.tsx) | 2026-06-07 |
+| [components/skills/skills-list.tsx](../components/skills/skills-list.tsx) | 2026-06-07 |
 | [components/ui/add-to-calendar-buttons.tsx](../components/ui/add-to-calendar-buttons.tsx) | 2026-05-15 |
 | [components/ui/button.tsx](../components/ui/button.tsx) | 2026-05-15 |
 | [components/ui/day-cell.tsx](../components/ui/day-cell.tsx) | 2026-05-15 |
