@@ -1386,6 +1386,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   assessmentSessions: many(assessmentSession),
   magicLinkTokens: many(magicLinkToken),
   skills: many(skill),
+  workflows: many(workflow),
+  workflowExecutionRuns: many(workflowExecutionRun),
 }));
 
 export const oauthAccountRelations = relations(oauthAccount, ({ one }) => ({
@@ -2249,6 +2251,7 @@ export const skillRelations = relations(skill, ({ one, many }) => ({
   inputs: many(skillInput),
   outputs: many(skillOutput),
   versions: many(skillVersion),
+  workflowSteps: many(workflowStep),
 }));
 
 export const skillInputRelations = relations(skillInput, ({ one }) => ({
@@ -2271,3 +2274,377 @@ export const skillVersionRelations = relations(skillVersion, ({ one }) => ({
     references: [skill.id],
   }),
 }));
+
+// ============================================================================
+// workflow — Workflows (AI orchestration pipelines)
+// ============================================================================
+// Normal form: 2NF. Fields and steps are normalized into child tables.
+// A workflow chains multiple skills into a sequential pipeline: "one idea
+// in, twelve assets out." v1 is single-user (Rob's consulting toolkit).
+
+export const workflow = pgTable(
+  "workflow",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "set null" } as never),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description"),
+    // draft | published | archived
+    status: text("status").notNull().default("draft"),
+    // JSONB exception: freeform style config, validated by Zod
+    style: jsonb("style"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // Lookup workflows by owner.
+    index("workflow_user_id_idx").on(table.userId),
+    // Name scoped to user (namespace isolation).
+    uniqueIndex("workflow_user_name_idx").on(table.userId, table.name),
+  ],
+);
+
+export type Workflow = typeof workflow.$inferSelect;
+export type NewWorkflow = typeof workflow.$inferInsert;
+
+// ============================================================================
+// workflow_field — Workflows (normalized input field definitions)
+// ============================================================================
+// Normal form: 2NF. Each row defines one input field in the workflow's
+// input form. Users fill these before executing.
+
+export const workflowField = pgTable(
+  "workflow_field",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workflowId: uuid("workflow_id")
+      .notNull()
+      .references(() => workflow.id, { onDelete: "cascade" }),
+    // Client-assigned identifier for template variable binding.
+    fieldId: varchar("field_id", { length: 100 }).notNull(),
+    // text | image | dropdown | multiline | document
+    type: varchar("type", { length: 30 }).notNull(),
+    label: varchar("label", { length: 255 }).notNull(),
+    placeholder: text("placeholder"),
+    isRequired: boolean("is_required").notNull().default(false),
+    // JSONB exception: string[] for dropdown options, validated by Zod.
+    options: jsonb("options").notNull().default([]),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // List fields for a workflow in order.
+    index("workflow_field_workflow_id_idx").on(table.workflowId),
+  ],
+);
+
+export type WorkflowField = typeof workflowField.$inferSelect;
+export type NewWorkflowField = typeof workflowField.$inferInsert;
+
+// ============================================================================
+// workflow_step — Workflows (normalized pipeline step definitions)
+// ============================================================================
+// Normal form: 2NF. inputMappings, overrides, and editorConfig are JSONB
+// (opaque config blobs validated by Zod, not relational data).
+
+export const workflowStep = pgTable(
+  "workflow_step",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workflowId: uuid("workflow_id")
+      .notNull()
+      .references(() => workflow.id, { onDelete: "cascade" }),
+    // Client-assigned step identifier.
+    stepId: varchar("step_id", { length: 100 }).notNull(),
+    skillId: uuid("skill_id").references(() => skill.id, {
+      onDelete: "set null",
+    }),
+    skillVersion: integer("skill_version"),
+    model: varchar("model", { length: 100 }).notNull().default(""),
+    provider: varchar("provider", { length: 50 }),
+    prompt: text("prompt").notNull().default(""),
+    // JSONB exception: model capability flags.
+    capabilities: jsonb("capabilities").notNull().default([]),
+    // JSONB exception: step chaining rules {targetField: "step.X.outputKey"}.
+    inputMappings: jsonb("input_mappings").notNull().default({}),
+    // JSONB exception: runtime overrides {temperature?, maxTokens?, systemPrompt?}.
+    overrides: jsonb("overrides").notNull().default({}),
+    // JSONB exception: {enabled, model, systemPrompt, maxRounds, approvalMode}.
+    editorConfig: jsonb("editor_config"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // List steps for a workflow in order.
+    index("workflow_step_workflow_id_idx").on(table.workflowId),
+    // Lookup by skill (FK index).
+    index("workflow_step_skill_id_idx").on(table.skillId),
+  ],
+);
+
+export type WorkflowStep = typeof workflowStep.$inferSelect;
+export type NewWorkflowStep = typeof workflowStep.$inferInsert;
+
+// ============================================================================
+// workflow_execution_run — Workflows (completed execution snapshots)
+// ============================================================================
+// Normal form: 1NF — inputs and step_results are JSONB snapshots of the
+// execution state at completion. Not relational; used for history replay.
+
+export const workflowExecutionRun = pgTable(
+  "workflow_execution_run",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workflowId: uuid("workflow_id")
+      .notNull()
+      .references(() => workflow.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    // JSONB exception: snapshot of user-provided inputs.
+    inputs: jsonb("inputs").notNull(),
+    // JSONB exception: StepResult[] array snapshot.
+    stepResults: jsonb("step_results").notNull(),
+    // completed | failed | partial
+    status: text("status").notNull(),
+    totalDurationMs: integer("total_duration_ms"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // List runs for a workflow.
+    index("workflow_execution_run_workflow_id_idx").on(table.workflowId),
+    // List runs by user.
+    index("workflow_execution_run_user_id_idx").on(table.userId),
+  ],
+);
+
+export type WorkflowExecutionRun = typeof workflowExecutionRun.$inferSelect;
+export type NewWorkflowExecutionRun = typeof workflowExecutionRun.$inferInsert;
+
+// ============================================================================
+// workflow_execution_log — Workflows (per-step telemetry)
+// ============================================================================
+// Normal form: 2NF. Append-only telemetry — no updated_at.
+
+export const workflowExecutionLog = pgTable(
+  "workflow_execution_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    runId: uuid("run_id")
+      .notNull()
+      .references(() => workflowExecutionRun.id, { onDelete: "cascade" }),
+    workflowId: uuid("workflow_id")
+      .notNull()
+      .references(() => workflow.id as never),
+    userId: uuid("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    stepIndex: integer("step_index").notNull(),
+    skillName: text("skill_name"),
+    // Snapshot, not FK — skill may be deleted later.
+    skillId: uuid("skill_id"),
+    model: varchar("model", { length: 100 }),
+    provider: varchar("provider", { length: 50 }),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    durationMs: integer("duration_ms"),
+    // success | error
+    status: text("status").notNull(),
+    editorRounds: integer("editor_rounds"),
+    estimatedCostUsd: numeric("estimated_cost_usd"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // List logs for a run.
+    index("workflow_execution_log_run_id_idx").on(table.runId),
+    // List logs for a workflow.
+    index("workflow_execution_log_workflow_id_idx").on(table.workflowId),
+  ],
+);
+
+export type WorkflowExecutionLog = typeof workflowExecutionLog.$inferSelect;
+export type NewWorkflowExecutionLog = typeof workflowExecutionLog.$inferInsert;
+
+// ============================================================================
+// workflow_pending_approval — Workflows (editor loop manual approval queue)
+// ============================================================================
+// Normal form: 2NF.
+
+export const workflowPendingApproval = pgTable(
+  "workflow_pending_approval",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workflowId: uuid("workflow_id")
+      .notNull()
+      .references(() => workflow.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    stepIndex: integer("step_index").notNull(),
+    round: integer("round").notNull(),
+    generatorOutput: text("generator_output"),
+    editorFeedback: text("editor_feedback"),
+    // pending | approved | revised
+    status: text("status").notNull().default("pending"),
+    userAction: text("user_action"),
+    userFeedback: text("user_feedback"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("workflow_pending_approval_workflow_id_idx").on(table.workflowId),
+    index("workflow_pending_approval_user_id_idx").on(table.userId),
+  ],
+);
+
+export type WorkflowPendingApproval =
+  typeof workflowPendingApproval.$inferSelect;
+export type NewWorkflowPendingApproval =
+  typeof workflowPendingApproval.$inferInsert;
+
+// ============================================================================
+// workflow_exec_token — Workflows (DB-backed SSE execution tokens)
+// ============================================================================
+// Normal form: 2NF. Single-use tokens for SSE streaming auth.
+// Survives deploys (unlike in-memory tokens).
+
+export const workflowExecToken = pgTable(
+  "workflow_exec_token",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workflowId: uuid("workflow_id")
+      .notNull()
+      .references(() => workflow.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    token: varchar("token", { length: 64 }).notNull().unique(),
+    // JSONB exception: snapshot of user-provided inputs for this execution.
+    inputs: jsonb("inputs").notNull(),
+    role: varchar("role", { length: 50 }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // Token lookup.
+    index("workflow_exec_token_token_idx").on(table.token),
+    // Cleanup expired tokens for a workflow.
+    index("workflow_exec_token_workflow_id_idx").on(table.workflowId),
+  ],
+);
+
+export type WorkflowExecToken = typeof workflowExecToken.$inferSelect;
+export type NewWorkflowExecToken = typeof workflowExecToken.$inferInsert;
+
+// ============================================================================
+// Relations — Workflows
+// ============================================================================
+
+export const workflowRelations = relations(workflow, ({ one, many }) => ({
+  user: one(users, {
+    fields: [workflow.userId],
+    references: [users.id],
+  }),
+  fields: many(workflowField),
+  steps: many(workflowStep),
+  executionRuns: many(workflowExecutionRun),
+  pendingApprovals: many(workflowPendingApproval),
+  execTokens: many(workflowExecToken),
+}));
+
+export const workflowFieldRelations = relations(
+  workflowField,
+  ({ one }) => ({
+    workflow: one(workflow, {
+      fields: [workflowField.workflowId],
+      references: [workflow.id],
+    }),
+  }),
+);
+
+export const workflowStepRelations = relations(workflowStep, ({ one }) => ({
+  workflow: one(workflow, {
+    fields: [workflowStep.workflowId],
+    references: [workflow.id],
+  }),
+  skill: one(skill, {
+    fields: [workflowStep.skillId],
+    references: [skill.id],
+  }),
+}));
+
+export const workflowExecutionRunRelations = relations(
+  workflowExecutionRun,
+  ({ one, many }) => ({
+    workflow: one(workflow, {
+      fields: [workflowExecutionRun.workflowId],
+      references: [workflow.id],
+    }),
+    user: one(users, {
+      fields: [workflowExecutionRun.userId],
+      references: [users.id],
+    }),
+    logs: many(workflowExecutionLog),
+  }),
+);
+
+export const workflowExecutionLogRelations = relations(
+  workflowExecutionLog,
+  ({ one }) => ({
+    run: one(workflowExecutionRun, {
+      fields: [workflowExecutionLog.runId],
+      references: [workflowExecutionRun.id],
+    }),
+  }),
+);
+
+export const workflowPendingApprovalRelations = relations(
+  workflowPendingApproval,
+  ({ one }) => ({
+    workflow: one(workflow, {
+      fields: [workflowPendingApproval.workflowId],
+      references: [workflow.id],
+    }),
+  }),
+);
+
+export const workflowExecTokenRelations = relations(
+  workflowExecToken,
+  ({ one }) => ({
+    workflow: one(workflow, {
+      fields: [workflowExecToken.workflowId],
+      references: [workflow.id],
+    }),
+    user: one(users, {
+      fields: [workflowExecToken.userId],
+      references: [users.id],
+    }),
+  }),
+);

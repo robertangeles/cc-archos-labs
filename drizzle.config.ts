@@ -15,4 +15,6 @@ export default {
   },
   verbose: true,
   strict: false,
+  extensionsFilters: ["postgis"],
+  tablesFilter: ["!__drizzle_applied"],
 } satisfies Config;

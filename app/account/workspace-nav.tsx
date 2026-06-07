@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   User,
   Sparkles,
+  GitBranch,
   Clock,
   type LucideIcon,
 } from "lucide-react";
@@ -18,6 +19,7 @@ interface NavItem {
 const items: NavItem[] = [
   { href: "/account", label: "Profile", icon: User },
   { href: "/account/skills", label: "Skills", icon: Sparkles },
+  { href: "/account/workflows", label: "Workflows", icon: GitBranch },
   { href: "/account/history", label: "History", icon: Clock },
 ];
 

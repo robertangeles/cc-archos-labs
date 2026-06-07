@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-07T05:44:37.569Z
+generated: 2026-06-07T12:56:26.088Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -9,7 +9,7 @@ Auto-generated snapshot of what is currently shipped. **Source of truth for ship
 
 Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `app/` or `components/` to fire the pre-commit hook.
 
-## Routes (52)
+## Routes (55)
 
 | Route | File | Last shipped |
 |-------|------|--------------|
@@ -26,6 +26,9 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/account/skills/[id]` | [app/account/skills/[id]/page.tsx](../app/account/skills/[id]/page.tsx) | 2026-06-07 |
 | `/account/skills/[id]/edit` | [app/account/skills/[id]/edit/page.tsx](../app/account/skills/[id]/edit/page.tsx) | 2026-06-07 |
 | `/account/skills/new` | [app/account/skills/new/page.tsx](../app/account/skills/new/page.tsx) | 2026-06-07 |
+| `/account/workflows` | [app/account/workflows/page.tsx](../app/account/workflows/page.tsx) | 2026-06-07 |
+| `/account/workflows/[id]` | [app/account/workflows/[id]/page.tsx](../app/account/workflows/[id]/page.tsx) | 2026-06-07 |
+| `/account/workflows/new` | [app/account/workflows/new/page.tsx](../app/account/workflows/new/page.tsx) | 2026-06-07 |
 | `/admin/(authed)/auth` | [app/admin/(authed)/auth/page.tsx](../app/admin/(authed)/auth/page.tsx) | 2026-05-26 |
 | `/admin/(authed)/blog` | [app/admin/(authed)/blog/page.tsx](../app/admin/(authed)/blog/page.tsx) | 2026-05-20 |
 | `/admin/(authed)/blog/posts` | [app/admin/(authed)/blog/posts/page.tsx](../app/admin/(authed)/blog/posts/page.tsx) | 2026-05-21 |
@@ -66,7 +69,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-06-03 |
 | `/tools/cdmp-practice/history/[sessionId]` | [app/tools/cdmp-practice/history/[sessionId]/page.tsx](../app/tools/cdmp-practice/history/[sessionId]/page.tsx) | 2026-06-03 |
 
-## API endpoints (83)
+## API endpoints (87)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -74,8 +77,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/google-oauth/cb` | [app/api/admin/google-oauth/cb/route.ts](../app/api/admin/google-oauth/cb/route.ts) | 2026-05-31 |
 | `/api/admin/google-oauth/disconnect` | [app/api/admin/google-oauth/disconnect/route.ts](../app/api/admin/google-oauth/disconnect/route.ts) | 2026-05-22 |
 | `/api/admin/google-oauth/start` | [app/api/admin/google-oauth/start/route.ts](../app/api/admin/google-oauth/start/route.ts) | 2026-05-15 |
-| `/api/admin/integrations` | [app/api/admin/integrations/route.ts](../app/api/admin/integrations/route.ts) | 2026-05-17 |
-| `/api/admin/integrations/models` | [app/api/admin/integrations/models/route.ts](../app/api/admin/integrations/models/route.ts) | unknown |
+| `/api/admin/integrations` | [app/api/admin/integrations/route.ts](../app/api/admin/integrations/route.ts) | 2026-06-07 |
+| `/api/admin/integrations/models` | [app/api/admin/integrations/models/route.ts](../app/api/admin/integrations/models/route.ts) | 2026-06-07 |
 | `/api/admin/integrations/reveal` | [app/api/admin/integrations/reveal/route.ts](../app/api/admin/integrations/reveal/route.ts) | 2026-05-15 |
 | `/api/admin/integrations/reveal-auth` | [app/api/admin/integrations/reveal-auth/route.ts](../app/api/admin/integrations/reveal-auth/route.ts) | 2026-05-15 |
 | `/api/admin/integrations/rotate-master-key` | [app/api/admin/integrations/rotate-master-key/route.ts](../app/api/admin/integrations/rotate-master-key/route.ts) | 2026-05-15 |
@@ -152,14 +155,18 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/skills/[id]` | [app/api/skills/[id]/route.ts](../app/api/skills/[id]/route.ts) | 2026-06-07 |
 | `/api/skills/[id]/execute` | [app/api/skills/[id]/execute/route.ts](../app/api/skills/[id]/execute/route.ts) | 2026-06-07 |
 | `/api/skills/[id]/versions` | [app/api/skills/[id]/versions/route.ts](../app/api/skills/[id]/versions/route.ts) | 2026-06-07 |
-| `/api/skills/models` | [app/api/skills/models/route.ts](../app/api/skills/models/route.ts) | unknown |
+| `/api/skills/models` | [app/api/skills/models/route.ts](../app/api/skills/models/route.ts) | 2026-06-07 |
+| `/api/workflows` | [app/api/workflows/route.ts](../app/api/workflows/route.ts) | 2026-06-07 |
+| `/api/workflows/[id]` | [app/api/workflows/[id]/route.ts](../app/api/workflows/[id]/route.ts) | 2026-06-07 |
+| `/api/workflows/[id]/duplicate` | [app/api/workflows/[id]/duplicate/route.ts](../app/api/workflows/[id]/duplicate/route.ts) | 2026-06-07 |
+| `/api/workflows/[id]/execute` | [app/api/workflows/[id]/execute/route.ts](../app/api/workflows/[id]/execute/route.ts) | 2026-06-07 |
 
-## Components (72)
+## Components (80)
 
 | File | Last shipped |
 |------|--------------|
 | [components/admin/integrations/integrations-grid.tsx](../components/admin/integrations/integrations-grid.tsx) | 2026-05-17 |
-| [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-05-18 |
+| [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-06-07 |
 | [components/analytics/analytics-client.tsx](../components/analytics/analytics-client.tsx) | 2026-05-18 |
 | [components/blog/author-bio.tsx](../components/blog/author-bio.tsx) | 2026-05-24 |
 | [components/blog/category-chips.tsx](../components/blog/category-chips.tsx) | 2026-05-20 |
@@ -219,7 +226,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/skills/skill-creator.tsx](../components/skills/skill-creator.tsx) | 2026-06-07 |
 | [components/skills/skill-detail.tsx](../components/skills/skill-detail.tsx) | 2026-06-07 |
 | [components/skills/skills-list.tsx](../components/skills/skills-list.tsx) | 2026-06-07 |
-| [components/skills/use-enabled-models.ts](../components/skills/use-enabled-models.ts) | unknown |
+| [components/skills/use-enabled-models.ts](../components/skills/use-enabled-models.ts) | 2026-06-07 |
 | [components/ui/add-to-calendar-buttons.tsx](../components/ui/add-to-calendar-buttons.tsx) | 2026-05-15 |
 | [components/ui/button.tsx](../components/ui/button.tsx) | 2026-05-15 |
 | [components/ui/day-cell.tsx](../components/ui/day-cell.tsx) | 2026-05-15 |
@@ -230,4 +237,12 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/ui/slot-pill.tsx](../components/ui/slot-pill.tsx) | 2026-05-15 |
 | [components/ui/step-heading.tsx](../components/ui/step-heading.tsx) | 2026-05-15 |
 | [components/ui/trust-micro.tsx](../components/ui/trust-micro.tsx) | 2026-05-15 |
+| [components/workflows/edit-tab.tsx](../components/workflows/edit-tab.tsx) | 2026-06-07 |
+| [components/workflows/field-builder.tsx](../components/workflows/field-builder.tsx) | 2026-06-07 |
+| [components/workflows/run-tab.tsx](../components/workflows/run-tab.tsx) | 2026-06-07 |
+| [components/workflows/step-designer.tsx](../components/workflows/step-designer.tsx) | 2026-06-07 |
+| [components/workflows/workflow-builder.tsx](../components/workflows/workflow-builder.tsx) | 2026-06-07 |
+| [components/workflows/workflow-creator.tsx](../components/workflows/workflow-creator.tsx) | 2026-06-07 |
+| [components/workflows/workflow-settings.tsx](../components/workflows/workflow-settings.tsx) | 2026-06-07 |
+| [components/workflows/workflows-list.tsx](../components/workflows/workflows-list.tsx) | 2026-06-07 |
 
