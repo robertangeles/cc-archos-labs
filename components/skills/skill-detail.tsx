@@ -81,7 +81,7 @@ export function SkillDetail({ skill }: { skill: SkillData }) {
     return defaults;
   });
   const [modelOverride, setModelOverride] = useState(
-    skill.defaultModel ?? "anthropic/claude-sonnet-4-20250514",
+    skill.defaultModel ?? "anthropic/claude-sonnet-4.6",
   );
   const [executing, setExecuting] = useState(false);
   const [result, setResult] = useState<string | null>(null);

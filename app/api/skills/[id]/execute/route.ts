@@ -50,7 +50,7 @@ export async function POST(
   }
 
   const model =
-    parsed.data.model ?? skill.defaultModel ?? "anthropic/claude-sonnet-4-20250514";
+    parsed.data.model ?? skill.defaultModel ?? "anthropic/claude-sonnet-4.6";
 
   try {
     const result = await executeSkill({

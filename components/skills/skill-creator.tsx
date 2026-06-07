@@ -86,7 +86,7 @@ export function SkillCreator({
   const [systemPrompt, setSystemPrompt] = useState(initialData?.systemPrompt ?? "");
 
   const [defaultModel, setDefaultModel] = useState(
-    initialData?.defaultModel ?? "anthropic/claude-sonnet-4-20250514",
+    initialData?.defaultModel ?? "anthropic/claude-sonnet-4.6",
   );
   const [temperature, setTemperature] = useState(
     initialData?.temperature ? Number(initialData.temperature) : 0.7,

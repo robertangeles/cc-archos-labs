@@ -84,11 +84,23 @@ export async function executeSkill(opts: {
     clearTimeout(timer);
   }
 
-  if (response.status === 429) {
-    throw new ExecuteError("Model is busy. Try again in a moment.", 429);
-  }
   if (!response.ok) {
-    throw new ExecuteError("AI service temporarily unavailable.", 502);
+    let errorMsg = "AI service temporarily unavailable.";
+    try {
+      const errBody = (await response.json()) as {
+        error?: { message?: string };
+      };
+      if (errBody?.error?.message) {
+        errorMsg = errBody.error.message;
+      }
+    } catch {
+      // keep default message
+    }
+
+    if (response.status === 429) {
+      throw new ExecuteError("Model is busy. Try again in a moment.", 429);
+    }
+    throw new ExecuteError(errorMsg, response.status >= 500 ? 502 : response.status);
   }
 
   let body: unknown;
