@@ -21,6 +21,8 @@ import {
   Zap,
   Gem,
   ClipboardList,
+  History,
+  ChevronDown,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -93,6 +95,11 @@ export function SkillDetail({ skill }: { skill: SkillData }) {
   const [deleting, setDeleting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [versions, setVersions] = useState<
+    Array<{ id: string; version: number; changelog: string | null; createdAt: string }>
+  >([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const outputType = skill.outputs[0]?.type ?? "text";
@@ -193,6 +200,23 @@ export function SkillDetail({ skill }: { skill: SkillData }) {
     a.click();
     URL.revokeObjectURL(url);
     setMenuOpen(false);
+  }
+
+  async function toggleHistory() {
+    const next = !historyOpen;
+    setHistoryOpen(next);
+    if (next && versions.length === 0) {
+      setVersionsLoading(true);
+      try {
+        const res = await fetch(`/api/skills/${skill.id}/versions`);
+        const data = await res.json();
+        if (res.ok) setVersions(data.versions ?? []);
+      } catch {
+        // silent
+      } finally {
+        setVersionsLoading(false);
+      }
+    }
   }
 
   function copyAsPrompt() {
@@ -312,6 +336,54 @@ export function SkillDetail({ skill }: { skill: SkillData }) {
           {skill.description}
         </p>
       </div>
+
+      {/* ── Version history (collapsible) ── */}
+      <button
+        type="button"
+        onClick={toggleHistory}
+        className="flex items-center gap-1.5 text-[11px] text-ink-tertiary transition-colors hover:text-ink-subtle"
+      >
+        <History className="h-3 w-3" />
+        Version history
+        <ChevronDown
+          className={`h-3 w-3 transition-transform ${historyOpen ? "rotate-180" : ""}`}
+        />
+      </button>
+      {historyOpen && (
+        <div className="rounded-lg border border-hairline bg-surface-1">
+          <div className="divide-y divide-hairline">
+            {versionsLoading && (
+              <div className="px-5 py-3">
+                <Loader2 className="h-4 w-4 animate-spin text-ink-tertiary" />
+              </div>
+            )}
+            {!versionsLoading && versions.length === 0 && (
+              <p className="px-5 py-3 text-sm text-ink-tertiary">
+                No version history available.
+              </p>
+            )}
+            {versions.map((v) => (
+              <div key={v.id} className="flex items-baseline justify-between px-5 py-3">
+                <div className="flex items-baseline gap-3">
+                  <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-ink-subtle">
+                    v{v.version}
+                  </span>
+                  <span className="text-sm text-ink">
+                    {v.changelog || "No changelog"}
+                  </span>
+                </div>
+                <span className="shrink-0 text-[11px] text-ink-tertiary">
+                  {new Date(v.createdAt).toLocaleDateString("en-AU", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Two-column: inputs | output ── */}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
