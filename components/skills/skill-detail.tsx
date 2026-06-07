@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ModelSelector } from "./model-selector";
 import { OPENROUTER_MODELS } from "@/lib/skills/types";
+import { useEnabledModels } from "./use-enabled-models";
 import {
   Play,
   Trash2,
@@ -74,6 +75,7 @@ const CATEGORY_META: Record<string, { icon: LucideIcon; label: string }> = {
 
 export function SkillDetail({ skill }: { skill: SkillData }) {
   const router = useRouter();
+  const enabledModels = useEnabledModels();
   const [inputValues, setInputValues] = useState<Record<string, string>>(() => {
     const defaults: Record<string, string> = {};
     for (const inp of skill.inputs) {
@@ -468,6 +470,7 @@ export function SkillDetail({ skill }: { skill: SkillData }) {
                 <ModelSelector
                   value={modelOverride}
                   onChange={setModelOverride}
+                  models={enabledModels ?? undefined}
                 />
               </div>
             </div>

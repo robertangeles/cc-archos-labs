@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { OPENROUTER_MODELS } from "@/lib/skills/types";
 
 // Shape that mirrors getIntegrationConfigRedacted() — secrets are
 // pre-redacted server-side. Client never holds plaintext secrets
@@ -12,6 +13,8 @@ export interface RedactedConfig {
   contactRecipientEmail: string;
   resendFromEmail: string;
   llmModelId: string | null;
+  llmEnabledModels: string[];
+  llmCustomModels: Array<{ id: string; name: string; provider: string; description: string }>;
   // Plaintext on the wire: identifier-grade, browser sees it during OAuth anyway.
   googleOauthClientId: string | null;
   // Always redacted: this is the real credential.
@@ -364,6 +367,17 @@ export function IntegrationsPanel({
             provider="openrouter"
             status={testOpenrouter}
             onClick={() => handleTest("openrouter")}
+          />
+          <ModelEnablement
+            enabledModels={config.llmEnabledModels}
+            customModels={config.llmCustomModels}
+            siteDefault={config.llmModelId}
+            onUpdate={(models) => {
+              setConfig((c) => ({ ...c, llmEnabledModels: models }));
+            }}
+            onCustomModelsUpdate={(custom) => {
+              setConfig((c) => ({ ...c, llmCustomModels: custom }));
+            }}
           />
         </Section>
       )}
@@ -764,6 +778,8 @@ function RevealAuthModal({
     contactRecipientEmail: "",
     resendFromEmail: "",
     llmModelId: "",
+    llmEnabledModels: "",
+    llmCustomModels: "",
     googleOauthClientId: "",
     googleOauthClientSecret: "Google OAuth Client Secret",
     turnstileSiteKey: "",
@@ -950,6 +966,402 @@ function RotateMasterKeyModal({ onClose }: { onClose: () => void }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+interface ModelEntry {
+  id: string;
+  name: string;
+  provider: string;
+  description: string;
+}
+
+function groupModels(models: ModelEntry[]) {
+  const groups: { provider: string; models: ModelEntry[] }[] = [];
+  const seen = new Map<string, ModelEntry[]>();
+  for (const m of models) {
+    let arr = seen.get(m.provider);
+    if (!arr) {
+      arr = [];
+      seen.set(m.provider, arr);
+      groups.push({ provider: m.provider, models: arr });
+    }
+    arr.push(m);
+  }
+  return groups;
+}
+
+function ModelEnablement({
+  enabledModels,
+  customModels,
+  siteDefault,
+  onUpdate,
+  onCustomModelsUpdate,
+}: {
+  enabledModels: string[];
+  customModels: Array<{ id: string; name: string; provider: string; description: string }>;
+  siteDefault: string | null;
+  onUpdate: (models: string[]) => void;
+  onCustomModelsUpdate: (models: Array<{ id: string; name: string; provider: string; description: string }>) => void;
+}) {
+  const allModels: ModelEntry[] = [
+    ...OPENROUTER_MODELS.map((m) => ({ id: m.id, name: m.name, provider: m.provider, description: m.description })),
+    ...customModels,
+  ];
+  const modelGroups = groupModels(allModels);
+
+  const enabledSet = new Set(enabledModels);
+  const [status, setStatus] = useState<SaveStatus>({ kind: "idle" });
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    for (const group of groupModels(
+      OPENROUTER_MODELS.map((m) => ({ id: m.id, name: m.name, provider: m.provider, description: m.description })),
+    )) {
+      const hasEnabled = group.models.some((m) => enabledModels.includes(m.id));
+      if (!hasEnabled) initial.add(group.provider);
+    }
+    return initial;
+  });
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestModels = useRef(enabledModels);
+  useEffect(() => {
+    latestModels.current = enabledModels;
+  }, [enabledModels]);
+
+  const persist = useCallback(async (next: string[]) => {
+    setStatus({ kind: "saving" });
+    try {
+      const resp = await fetch("/api/admin/integrations", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ field: "llmEnabledModels", value: next }),
+      });
+      const body = await resp.json();
+      if (!resp.ok || !body.ok) {
+        onUpdate(latestModels.current);
+        setStatus({ kind: "error", message: body.error ?? "Save failed." });
+        setTimeout(() => setStatus({ kind: "idle" }), 5000);
+        return;
+      }
+      setStatus({ kind: "saved" });
+      setTimeout(() => setStatus({ kind: "idle" }), 2000);
+    } catch {
+      onUpdate(latestModels.current);
+      setStatus({ kind: "error", message: "Network error." });
+      setTimeout(() => setStatus({ kind: "idle" }), 5000);
+    }
+  }, [onUpdate]);
+
+  function toggle(modelId: string, enabled: boolean) {
+    const next = enabled
+      ? [...enabledModels, modelId]
+      : enabledModels.filter((id) => id !== modelId);
+    onUpdate(next);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => persist(next), 300);
+  }
+
+  function toggleProvider(provider: string, enable: boolean) {
+    const group = modelGroups.find((g) => g.provider === provider);
+    if (!group) return;
+    const ids = new Set(group.models.map((m) => m.id));
+    const next = enable
+      ? [...enabledModels.filter((id) => !ids.has(id)), ...Array.from(ids)]
+      : enabledModels.filter((id) => !ids.has(id));
+    onUpdate(next);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => persist(next), 300);
+  }
+
+  function toggleCollapse(provider: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(provider)) next.delete(provider);
+      else next.add(provider);
+      return next;
+    });
+  }
+
+  const count = enabledModels.length;
+  const total = allModels.length;
+
+  return (
+    <div className="border-t border-hairline pt-5">
+      <div className="mb-4 flex items-baseline justify-between">
+        <h3 className="text-[22px] font-medium tracking-[-0.4px] text-ink">
+          Enabled Models
+        </h3>
+        <span className="text-xs text-ink-subtle">
+          {count} of {total} enabled
+        </span>
+      </div>
+
+      <div className="space-y-1">
+        {modelGroups.map((group) => {
+          const allEnabled = group.models.every((m) => enabledSet.has(m.id));
+          const enabledCount = group.models.filter((m) => enabledSet.has(m.id)).length;
+          const isCollapsed = collapsed.has(group.provider);
+          return (
+            <div key={group.provider} className="rounded-md border border-hairline/50">
+              <button
+                type="button"
+                aria-expanded={!isCollapsed}
+                onClick={() => toggleCollapse(group.provider)}
+                className="flex w-full items-center justify-between px-3 py-2.5 text-left transition-colors hover:bg-surface-1/50"
+              >
+                <div className="flex items-center gap-2">
+                  <svg
+                    className={`h-3 w-3 text-ink-tertiary transition-transform duration-150 ${isCollapsed ? "" : "rotate-90"}`}
+                    viewBox="0 0 12 12"
+                    fill="currentColor"
+                  >
+                    <path d="M4.5 2l4 4-4 4V2z" />
+                  </svg>
+                  <span className="text-[13px] font-medium uppercase tracking-[0.4px] text-ink-subtle">
+                    {group.provider}
+                  </span>
+                  <span className="text-[11px] text-ink-tertiary">
+                    {enabledCount}/{group.models.length}
+                  </span>
+                </div>
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleProvider(group.provider, !allEnabled);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleProvider(group.provider, !allEnabled);
+                    }
+                  }}
+                  className="text-xs text-ink-tertiary transition-colors hover:text-ink-subtle"
+                >
+                  {allEnabled ? "Disable all" : "Enable all"}
+                </span>
+              </button>
+              {!isCollapsed && (
+                <div className="border-t border-hairline/30 px-3 pb-2 pt-1">
+                  {group.models.map((model) => {
+                    const isOn = enabledSet.has(model.id);
+                    const isDefault = model.id === siteDefault;
+                    return (
+                      <div
+                        key={model.id}
+                        className="flex min-h-[56px] items-center gap-3 py-1.5"
+                      >
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={isOn}
+                          aria-label={`Enable ${model.name}`}
+                          onClick={() => toggle(model.id, !isOn)}
+                          className={`relative mt-0.5 h-5 w-9 shrink-0 self-start rounded-full transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-focus/50 ${
+                            isOn ? "bg-primary" : "bg-surface-2"
+                          }`}
+                        >
+                          <span
+                            className={`absolute top-[2px] left-[2px] h-4 w-4 rounded-full bg-white transition-transform duration-150 ease-in-out ${
+                              isOn ? "translate-x-4" : "translate-x-0"
+                            }`}
+                          />
+                        </button>
+                        <div className="min-w-0 flex-1">
+                          <span className="text-sm text-ink">{model.name}</span>
+                          <p className="text-[12px] leading-tight text-ink-tertiary">{model.description}</p>
+                        </div>
+                        {isDefault && (
+                          <svg
+                            className="h-3.5 w-3.5 shrink-0 text-primary"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-label="Site default model"
+                          >
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {siteDefault && !enabledSet.has(siteDefault) && enabledModels.length > 0 && (
+        <p className="mt-3 text-xs text-ink-subtle">
+          The site default model is not in the enabled list. Users cannot
+          select it in the Skills Builder.
+        </p>
+      )}
+
+      <AddModelForm
+        existingIds={new Set(allModels.map((m) => m.id))}
+        onAdd={async (model) => {
+          const newCustom = [...customModels, model];
+          onCustomModelsUpdate(newCustom);
+          try {
+            await fetch("/api/admin/integrations", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ field: "llmCustomModels", value: newCustom }),
+            });
+          } catch { /* toggle will persist the enabled state */ }
+          toggle(model.id, true);
+        }}
+      />
+
+      {status.kind === "saving" && (
+        <p className="mt-2 text-xs text-ink-subtle">Saving...</p>
+      )}
+      {status.kind === "saved" && (
+        <p className="mt-2 text-xs text-semantic-success">Saved</p>
+      )}
+      {status.kind === "error" && (
+        <p className="mt-2 text-xs text-semantic-error">{status.message}</p>
+      )}
+    </div>
+  );
+}
+
+interface CatalogModel {
+  id: string;
+  name: string;
+  provider: string;
+  description: string;
+  contextLength: number | null;
+}
+
+function AddModelForm({
+  existingIds,
+  onAdd,
+}: {
+  existingIds: Set<string>;
+  onAdd: (model: ModelEntry) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [catalog, setCatalog] = useState<CatalogModel[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [focused, setFocused] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setFocused(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const fetchCatalog = useCallback(async () => {
+    if (catalog !== null || loading) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const resp = await fetch("/api/admin/integrations/models");
+      const body = await resp.json();
+      if (!body.ok) {
+        setError(body.error ?? "Failed to fetch models.");
+        return;
+      }
+      setCatalog(body.models ?? []);
+    } catch {
+      setError("Network error fetching model catalog.");
+    } finally {
+      setLoading(false);
+    }
+  }, [catalog, loading]);
+
+  const filtered = (() => {
+    if (!catalog) return [];
+    const q = query.toLowerCase().trim();
+    if (!q) return catalog.filter((m) => !existingIds.has(m.id)).slice(0, 20);
+    return catalog
+      .filter((m) => !existingIds.has(m.id))
+      .filter(
+        (m) =>
+          m.name.toLowerCase().includes(q) ||
+          m.provider.toLowerCase().includes(q) ||
+          m.id.toLowerCase().includes(q) ||
+          m.description.toLowerCase().includes(q),
+      )
+      .slice(0, 20);
+  })();
+
+  function handleSelect(model: CatalogModel) {
+    onAdd({
+      id: model.id,
+      name: model.name,
+      provider: model.provider,
+      description: model.description || "Custom model",
+    });
+    setQuery("");
+    setFocused(false);
+  }
+
+  const showResults = focused && catalog !== null && query.length > 0;
+
+  return (
+    <div className="mt-4 border-t border-hairline/50 pt-4" ref={containerRef}>
+      <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.08em] text-ink-subtle">
+        Add a model
+      </p>
+      <div className="relative">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setError(null); }}
+          onFocus={() => { setFocused(true); fetchCatalog(); }}
+          placeholder="Search OpenRouter models..."
+          className={inputClass}
+        />
+        {loading && (
+          <p className="mt-1 text-xs text-ink-subtle">Loading OpenRouter catalog...</p>
+        )}
+        {error && <p className="mt-1 text-xs text-semantic-error">{error}</p>}
+        {showResults && (
+          <div className="absolute top-full left-0 z-50 mt-1 max-h-[320px] w-full overflow-y-auto rounded-md border border-hairline bg-surface-2 shadow-xl">
+            {filtered.length === 0 ? (
+              <p className="px-3 py-3 text-sm text-ink-subtle">
+                No models match &ldquo;{query}&rdquo;
+              </p>
+            ) : (
+              filtered.map((model) => (
+                <button
+                  key={model.id}
+                  type="button"
+                  onClick={() => handleSelect(model)}
+                  className="flex w-full flex-col gap-0.5 border-b border-hairline/30 px-3 py-2.5 text-left transition-colors last:border-b-0 hover:bg-surface-3"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-ink">{model.name}</span>
+                    <span className="text-[11px] text-ink-tertiary">{model.provider}</span>
+                  </div>
+                  {model.description && (
+                    <p className="line-clamp-2 text-[12px] leading-tight text-ink-subtle">
+                      {model.description}
+                    </p>
+                  )}
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+      {!focused && !loading && (
+        <p className="mt-1 text-[11px] text-ink-tertiary">
+          Type to search all OpenRouter models by name, provider, or description.
+        </p>
+      )}
     </div>
   );
 }

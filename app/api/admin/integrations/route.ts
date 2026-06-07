@@ -34,6 +34,8 @@ const PATCH_FIELDS = [
   "contactRecipientEmail",
   "resendFromEmail",
   "llmModelId",
+  "llmEnabledModels",
+  "llmCustomModels",
   "googleOauthClientId",
   "googleOauthClientSecret",
   "turnstileSiteKey",
@@ -43,10 +45,10 @@ const PATCH_FIELDS = [
 const PatchSchema = z.object({
   field: z.enum(PATCH_FIELDS),
   // Validated downstream against the field's specific Zod rule inside
-  // updateIntegrationSecret. Here we just enforce string|null at the
-  // wire boundary. llmModelId is the only field that legitimately
-  // takes null (signals "use the default model").
-  value: z.union([z.string(), z.null()]),
+  // updateIntegrationSecret. Here we just enforce string|null|string[]
+  // at the wire boundary. llmModelId takes null (signals "use the
+  // default model"). llmEnabledModels takes a string[] of model IDs.
+  value: z.union([z.string(), z.null(), z.array(z.string()), z.array(z.object({ id: z.string(), name: z.string(), provider: z.string(), description: z.string().optional() }))]),
 });
 
 export async function GET() {

@@ -160,6 +160,12 @@ function decryptAndValidate(rawValue: unknown): IntegrationConfig {
   if (decrypted.turnstileSiteKey === undefined) {
     decrypted.turnstileSiteKey = null;
   }
+  if (decrypted.llmEnabledModels === undefined || decrypted.llmEnabledModels === null) {
+    decrypted.llmEnabledModels = [];
+  }
+  if (decrypted.llmCustomModels === undefined || decrypted.llmCustomModels === null) {
+    decrypted.llmCustomModels = [];
+  }
 
   const parsed = IntegrationConfigSchema.safeParse(decrypted);
   if (!parsed.success) {
@@ -203,6 +209,8 @@ function readFromEnv(): IntegrationConfig {
     // Turnstile keys never lived in env historically — null in fallback.
     turnstileSiteKey: process.env.TURNSTILE_SITE_KEY || null,
     turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY || null,
+    llmEnabledModels: [],
+    llmCustomModels: [],
   };
 
   const parsed = IntegrationConfigSchema.safeParse(config);
@@ -349,6 +357,8 @@ export async function migrateEnvToDB(): Promise<{
     googleOauthClientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? null,
     turnstileSiteKey: process.env.TURNSTILE_SITE_KEY ?? null,
     turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY ?? null,
+    llmEnabledModels: null,
+    llmCustomModels: null,
   };
 
   const written: Array<keyof IntegrationConfig> = [];
@@ -388,6 +398,12 @@ export async function migrateEnvToDB(): Promise<{
     }
     if (merged.llmModelId === undefined) {
       merged.llmModelId = CONFIG_DEFAULTS.llmModelId;
+    }
+    if (merged.llmEnabledModels === undefined) {
+      merged.llmEnabledModels = CONFIG_DEFAULTS.llmEnabledModels;
+    }
+    if (merged.llmCustomModels === undefined) {
+      merged.llmCustomModels = CONFIG_DEFAULTS.llmCustomModels;
     }
 
     await tx
@@ -523,6 +539,8 @@ export async function getIntegrationConfigRedacted(): Promise<{
   contactRecipientEmail: string;
   resendFromEmail: string;
   llmModelId: string | null;
+  llmEnabledModels: string[];
+  llmCustomModels: Array<{ id: string; name: string; provider: string; description: string }>;
   googleOauthClientId: string | null;
   googleOauthClientSecret: string;
   turnstileSiteKey: string | null;
@@ -536,6 +554,8 @@ export async function getIntegrationConfigRedacted(): Promise<{
     contactRecipientEmail: config.contactRecipientEmail,
     resendFromEmail: config.resendFromEmail,
     llmModelId: config.llmModelId,
+    llmEnabledModels: config.llmEnabledModels,
+    llmCustomModels: config.llmCustomModels,
     // Client ID is identifier-grade — surface the full value so the
     // admin can confirm it matches the Google Cloud Console panel.
     googleOauthClientId: config.googleOauthClientId,

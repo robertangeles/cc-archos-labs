@@ -43,6 +43,15 @@ export const IntegrationConfigSchema = z.object({
   // the source of truth is the Settings UI. Provider-agnostic name
   // even though today's value is a Claude model identifier.
   llmModelId: z.string().min(1).nullable(),
+  // Admin-curated list of OpenRouter model IDs that users can select
+  // in the Skills Builder. Empty array = no models available.
+  llmEnabledModels: z.array(z.string()).default([]),
+  llmCustomModels: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    provider: z.string(),
+    description: z.string().default("Custom model"),
+  })).default([]),
 
   // Google OAuth client credentials for the Book-a-Call flow. Lives in
   // the DB rather than env so the same secret-handling discipline (audit
@@ -107,9 +116,11 @@ export const CONFIG_DEFAULTS = {
   // pick a sensible default rather than throw. Domain matches the brand.
   resendFromEmail: "Archos Labs <hello@archoslabs.xyz>",
   llmModelId: null,
+  llmEnabledModels: [] as string[],
+  llmCustomModels: [] as Array<{ id: string; name: string; provider: string; description: string }>,
 } as const satisfies Pick<
   IntegrationConfig,
-  "contactRecipientEmail" | "resendFromEmail" | "llmModelId"
+  "contactRecipientEmail" | "resendFromEmail" | "llmModelId" | "llmEnabledModels" | "llmCustomModels"
 >;
 
 // Storage shape inside site_setting.value for key='integration_secrets'.
@@ -126,6 +137,13 @@ export const StoredIntegrationConfigSchema = z.object({
   contactRecipientEmail: z.string().min(1),
   resendFromEmail: z.string().min(1),
   llmModelId: z.string().min(1).nullable(),
+  llmEnabledModels: z.array(z.string()).nullish(),
+  llmCustomModels: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    provider: z.string(),
+    description: z.string().optional(),
+  })).nullish(),
 
   // Google OAuth credentials. `.nullish()` so a stored blob written
   // before these fields existed still parses — missing-key reads back
