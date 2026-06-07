@@ -7,11 +7,13 @@ import { OPENROUTER_MODELS } from "@/lib/skills/types";
 import {
   Play,
   Trash2,
+  Pencil,
   ArrowLeft,
   Loader2,
   Copy,
   Check,
 } from "lucide-react";
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 
 interface SkillInputRow {
@@ -143,14 +145,23 @@ export function SkillDetail({ skill }: { skill: SkillData }) {
           <h2 className="mt-1 text-xl font-semibold text-ink">{skill.name}</h2>
           <p className="mt-1 text-sm text-ink-subtle">{skill.description}</p>
         </div>
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={deleting}
-          className="text-ink-tertiary hover:text-semantic-error"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/account/skills/${skill.id}/edit`}
+            className="flex items-center gap-1.5 rounded-md border border-hairline px-3 py-1.5 text-sm text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Edit
+          </Link>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting}
+            className="text-ink-tertiary hover:text-semantic-error"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {/* Input form */}

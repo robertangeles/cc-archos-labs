@@ -46,28 +46,56 @@ function emptyOutput(): SkillOutputDef {
   return { key: "result", type: "markdown", label: "Result" };
 }
 
-export function SkillCreator() {
+export interface SkillCreatorInitialData {
+  id: string;
+  name: string;
+  description: string;
+  category: SkillCategory;
+  promptTemplate: string;
+  systemPrompt: string | null;
+  defaultModel: string | null;
+  temperature: string | null;
+  maxTokens: number | null;
+  inputs: SkillInputDef[];
+  outputs: SkillOutputDef[];
+}
+
+export function SkillCreator({
+  initialData,
+}: {
+  initialData?: SkillCreatorInitialData;
+} = {}) {
   const router = useRouter();
+  const isEdit = !!initialData;
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [changelog, setChangelog] = useState("");
 
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState<SkillCategory>("generate");
+  const [name, setName] = useState(initialData?.name ?? "");
+  const [description, setDescription] = useState(initialData?.description ?? "");
+  const [category, setCategory] = useState<SkillCategory>(
+    (initialData?.category as SkillCategory) ?? "generate",
+  );
 
-  const [inputs, setInputs] = useState<SkillInputDef[]>([emptyInput()]);
+  const [inputs, setInputs] = useState<SkillInputDef[]>(
+    initialData?.inputs?.length ? initialData.inputs : [emptyInput()],
+  );
 
-  const [promptTemplate, setPromptTemplate] = useState("");
-  const [systemPrompt, setSystemPrompt] = useState("");
+  const [promptTemplate, setPromptTemplate] = useState(initialData?.promptTemplate ?? "");
+  const [systemPrompt, setSystemPrompt] = useState(initialData?.systemPrompt ?? "");
 
   const [defaultModel, setDefaultModel] = useState(
-    "anthropic/claude-sonnet-4-20250514",
+    initialData?.defaultModel ?? "anthropic/claude-sonnet-4-20250514",
   );
-  const [temperature, setTemperature] = useState(0.7);
-  const [maxTokens, setMaxTokens] = useState(4000);
+  const [temperature, setTemperature] = useState(
+    initialData?.temperature ? Number(initialData.temperature) : 0.7,
+  );
+  const [maxTokens, setMaxTokens] = useState(initialData?.maxTokens ?? 4000);
 
-  const [outputs] = useState<SkillOutputDef[]>([emptyOutput()]);
+  const [outputs] = useState<SkillOutputDef[]>(
+    initialData?.outputs?.length ? initialData.outputs : [emptyOutput()],
+  );
 
   function canProceed(): boolean {
     if (step === 0) return name.trim().length > 0 && description.trim().length > 0;
@@ -104,28 +132,35 @@ export function SkillCreator() {
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch("/api/skills", {
-        method: "POST",
+      const url = isEdit ? `/api/skills/${initialData.id}` : "/api/skills";
+      const method = isEdit ? "PUT" : "POST";
+      const body: Record<string, unknown> = {
+        name: name.trim(),
+        description: description.trim(),
+        category,
+        promptTemplate,
+        systemPrompt: systemPrompt || undefined,
+        defaultModel,
+        temperature,
+        maxTokens,
+        inputs: inputs.filter((i) => i.key.trim()),
+        outputs,
+      };
+      if (isEdit && changelog.trim()) {
+        body.changelog = changelog.trim();
+      }
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          description: description.trim(),
-          category,
-          promptTemplate,
-          systemPrompt: systemPrompt || undefined,
-          defaultModel,
-          temperature,
-          maxTokens,
-          inputs: inputs.filter((i) => i.key.trim()),
-          outputs,
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Failed to create skill.");
+        setError(data.error ?? `Failed to ${isEdit ? "update" : "create"} skill.`);
         return;
       }
-      router.push(`/account/skills/${data.skill.id}`);
+      const skillId = isEdit ? initialData.id : data.skill.id;
+      router.push(`/account/skills/${skillId}`);
     } catch {
       setError("Network error.");
     } finally {
@@ -477,6 +512,20 @@ export function SkillCreator() {
               </div>
             </dl>
           </div>
+          {isEdit && (
+            <div className="mt-4">
+              <label className="block text-xs font-medium uppercase tracking-wider text-ink-subtle">
+                Changelog (optional)
+              </label>
+              <input
+                type="text"
+                value={changelog}
+                onChange={(e) => setChangelog(e.target.value)}
+                placeholder="What changed in this version?"
+                className="mt-1 block w-full rounded-md border border-hairline bg-surface-1 px-4 py-2.5 text-sm text-ink placeholder:text-ink-tertiary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+          )}
           {error && (
             <p className="text-sm text-semantic-error">{error}</p>
           )}
@@ -511,7 +560,9 @@ export function SkillCreator() {
             onClick={handleSave}
             className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-50"
           >
-            {saving ? "Creating..." : "Create Skill"}
+            {saving
+              ? isEdit ? "Saving..." : "Creating..."
+              : isEdit ? "Save Changes" : "Create Skill"}
             <Check className="h-4 w-4" />
           </button>
         )}

@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-07T02:45:58.721Z
+generated: 2026-06-07T02:51:07.108Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -9,7 +9,7 @@ Auto-generated snapshot of what is currently shipped. **Source of truth for ship
 
 Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `app/` or `components/` to fire the pre-commit hook.
 
-## Routes (51)
+## Routes (52)
 
 | Route | File | Last shipped |
 |-------|------|--------------|
@@ -21,9 +21,10 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/[...slug]` | [app/[...slug]/page.tsx](../app/[...slug]/page.tsx) | 2026-05-18 |
 | `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-27 |
 | `/account` | [app/account/page.tsx](../app/account/page.tsx) | 2026-06-07 |
-| `/account/history` | [app/account/history/page.tsx](../app/account/history/page.tsx) | unknown |
-| `/account/skills` | [app/account/skills/page.tsx](../app/account/skills/page.tsx) | unknown |
+| `/account/history` | [app/account/history/page.tsx](../app/account/history/page.tsx) | 2026-06-07 |
+| `/account/skills` | [app/account/skills/page.tsx](../app/account/skills/page.tsx) | 2026-06-07 |
 | `/account/skills/[id]` | [app/account/skills/[id]/page.tsx](../app/account/skills/[id]/page.tsx) | 2026-06-07 |
+| `/account/skills/[id]/edit` | [app/account/skills/[id]/edit/page.tsx](../app/account/skills/[id]/edit/page.tsx) | unknown |
 | `/account/skills/new` | [app/account/skills/new/page.tsx](../app/account/skills/new/page.tsx) | 2026-06-07 |
 | `/admin/(authed)/auth` | [app/admin/(authed)/auth/page.tsx](../app/admin/(authed)/auth/page.tsx) | 2026-05-26 |
 | `/admin/(authed)/blog` | [app/admin/(authed)/blog/page.tsx](../app/admin/(authed)/blog/page.tsx) | 2026-05-20 |
