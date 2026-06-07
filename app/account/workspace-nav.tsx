@@ -2,13 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  User,
-  Sparkles,
-  GitBranch,
-  Clock,
-  type LucideIcon,
-} from "lucide-react";
+import { Sparkles, GitBranch, Clock, type LucideIcon } from "lucide-react";
 
 interface NavItem {
   href: string;
@@ -17,7 +11,6 @@ interface NavItem {
 }
 
 const items: NavItem[] = [
-  { href: "/account", label: "Profile", icon: User },
   { href: "/account/skills", label: "Skills", icon: Sparkles },
   { href: "/account/workflows", label: "Workflows", icon: GitBranch },
   { href: "/account/history", label: "History", icon: Clock },
@@ -28,15 +21,9 @@ export function WorkspaceNav() {
 
   return (
     <nav className="flex flex-col gap-y-1">
-      <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.1em] text-ink-subtle/70">
-        Workspace
-      </p>
       {items.map((item) => {
-        const active =
-          item.href === "/account"
-            ? pathname === "/account"
-            : pathname.startsWith(item.href);
         const Icon = item.icon;
+        const active = pathname.startsWith(item.href);
         return (
           <Link
             key={item.href}

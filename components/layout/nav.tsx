@@ -100,6 +100,14 @@ function ProfileMenu({ firstName }: { firstName: string }) {
             {firstName}
             <span className="block text-[11px] font-normal text-ink-subtle">Your account</span>
           </Link>
+          <Link
+            href="/account/workspace"
+            onClick={() => setOpen(false)}
+            role="menuitem"
+            className="block rounded px-3 py-2 text-sm text-ink-subtle transition-colors duration-150 hover:bg-canvas hover:text-ink"
+          >
+            My Workspace
+          </Link>
           <div className="my-1 border-t border-hairline" />
           <LeadSignOutButton />
         </div>

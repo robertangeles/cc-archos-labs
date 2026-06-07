@@ -20,6 +20,7 @@
 // top-level slugs belong here.
 export const RESERVED_SLUGS = new Set<string>([
   "about",
+  "account",
   "admin",
   "ai-readiness-assessment",
   "api",
