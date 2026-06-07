@@ -12,6 +12,8 @@ import {
   Loader2,
   Copy,
   Check,
+  Download,
+  Clipboard,
 } from "lucide-react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
@@ -130,6 +132,53 @@ export function SkillDetail({ skill }: { skill: SkillData }) {
     }
   }
 
+  function exportAsSkillMd() {
+    const lines: string[] = [
+      "---",
+      `name: ${skill.slug}`,
+      `description: ${skill.description}`,
+      "---",
+      "",
+    ];
+    if (skill.systemPrompt) {
+      lines.push("## System Prompt", "", skill.systemPrompt, "");
+    }
+    if (skill.inputs.length > 0) {
+      lines.push("## Inputs", "");
+      for (const inp of skill.inputs) {
+        lines.push(
+          `- **${inp.label}** (\`${inp.key}\`, ${inp.type}${inp.isRequired ? ", required" : ""})${inp.description ? ": " + inp.description : ""}`,
+        );
+      }
+      lines.push("");
+    }
+    lines.push("## Skill Instructions", "", skill.promptTemplate);
+
+    const blob = new Blob([lines.join("\n")], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${skill.slug}.SKILL.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function copyAsPrompt() {
+    const parts: string[] = [];
+    if (skill.systemPrompt) {
+      parts.push(`[System Prompt]\n${skill.systemPrompt}`);
+    }
+    parts.push(`[Prompt Template]\n${skill.promptTemplate}`);
+    if (skill.inputs.length > 0) {
+      parts.push(
+        `[Inputs]\n${skill.inputs.map((i) => `- ${i.label} ({{${i.key}}}): ${i.description ?? i.type}`).join("\n")}`,
+      );
+    }
+    navigator.clipboard.writeText(parts.join("\n\n"));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
   const modelName =
     OPENROUTER_MODELS.find((m) => m.id === modelOverride)?.name ??
     modelOverride;
@@ -146,6 +195,24 @@ export function SkillDetail({ skill }: { skill: SkillData }) {
           <p className="mt-1 text-sm text-ink-subtle">{skill.description}</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={exportAsSkillMd}
+            className="flex items-center gap-1.5 rounded-md border border-hairline px-3 py-1.5 text-sm text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
+            title="Download as SKILL.md for Claude Code"
+          >
+            <Download className="h-3.5 w-3.5" />
+            SKILL.md
+          </button>
+          <button
+            type="button"
+            onClick={copyAsPrompt}
+            className="flex items-center gap-1.5 rounded-md border border-hairline px-3 py-1.5 text-sm text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
+            title="Copy prompt to clipboard for Claude.ai"
+          >
+            <Clipboard className="h-3.5 w-3.5" />
+            Copy Prompt
+          </button>
           <Link
             href={`/account/skills/${skill.id}/edit`}
             className="flex items-center gap-1.5 rounded-md border border-hairline px-3 py-1.5 text-sm text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
