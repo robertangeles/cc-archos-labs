@@ -266,13 +266,14 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
   const checksum = createHash("sha256").update(buffer).digest("hex");
 
-  // ---- Build filename + R2 key per Rob's convention --------------------
-  //   `{slug}-featured-01.{ext}`   (lowercase, no spaces — handled by
-  //   slug which is already kebab-case)
-  // The R2 key includes the post-scoped path prefix so different
-  // posts can have the same -01.png basename without collision.
+  // ---- Build filename + R2 key ------------------------------------------
+  // Content-addressed: the first 8 chars of the file's sha256 checksum
+  // are embedded in the filename so each upload gets a unique URL.
+  // This busts CDN/browser caches (R2 objects are served with immutable
+  // headers) without changing the cache policy itself.
   const ext = MIME_TO_EXT[mime];
-  const filename = `${existing.slug}-featured-01.${ext}`;
+  const cacheBust = checksum.slice(0, 8);
+  const filename = `${existing.slug}-featured-${cacheBust}.${ext}`;
   const r2Key = `blog/${existing.slug}/${filename}`;
 
   // ---- Resolve uploader id ---------------------------------------------
