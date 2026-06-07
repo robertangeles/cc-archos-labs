@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-07T04:08:52.954Z
+generated: 2026-06-07T05:44:37.569Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -66,7 +66,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-06-03 |
 | `/tools/cdmp-practice/history/[sessionId]` | [app/tools/cdmp-practice/history/[sessionId]/page.tsx](../app/tools/cdmp-practice/history/[sessionId]/page.tsx) | 2026-06-03 |
 
-## API endpoints (81)
+## API endpoints (83)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -75,6 +75,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/google-oauth/disconnect` | [app/api/admin/google-oauth/disconnect/route.ts](../app/api/admin/google-oauth/disconnect/route.ts) | 2026-05-22 |
 | `/api/admin/google-oauth/start` | [app/api/admin/google-oauth/start/route.ts](../app/api/admin/google-oauth/start/route.ts) | 2026-05-15 |
 | `/api/admin/integrations` | [app/api/admin/integrations/route.ts](../app/api/admin/integrations/route.ts) | 2026-05-17 |
+| `/api/admin/integrations/models` | [app/api/admin/integrations/models/route.ts](../app/api/admin/integrations/models/route.ts) | unknown |
 | `/api/admin/integrations/reveal` | [app/api/admin/integrations/reveal/route.ts](../app/api/admin/integrations/reveal/route.ts) | 2026-05-15 |
 | `/api/admin/integrations/reveal-auth` | [app/api/admin/integrations/reveal-auth/route.ts](../app/api/admin/integrations/reveal-auth/route.ts) | 2026-05-15 |
 | `/api/admin/integrations/rotate-master-key` | [app/api/admin/integrations/rotate-master-key/route.ts](../app/api/admin/integrations/rotate-master-key/route.ts) | 2026-05-15 |
@@ -151,8 +152,9 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/skills/[id]` | [app/api/skills/[id]/route.ts](../app/api/skills/[id]/route.ts) | 2026-06-07 |
 | `/api/skills/[id]/execute` | [app/api/skills/[id]/execute/route.ts](../app/api/skills/[id]/execute/route.ts) | 2026-06-07 |
 | `/api/skills/[id]/versions` | [app/api/skills/[id]/versions/route.ts](../app/api/skills/[id]/versions/route.ts) | 2026-06-07 |
+| `/api/skills/models` | [app/api/skills/models/route.ts](../app/api/skills/models/route.ts) | unknown |
 
-## Components (71)
+## Components (72)
 
 | File | Last shipped |
 |------|--------------|
@@ -217,6 +219,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/skills/skill-creator.tsx](../components/skills/skill-creator.tsx) | 2026-06-07 |
 | [components/skills/skill-detail.tsx](../components/skills/skill-detail.tsx) | 2026-06-07 |
 | [components/skills/skills-list.tsx](../components/skills/skills-list.tsx) | 2026-06-07 |
+| [components/skills/use-enabled-models.ts](../components/skills/use-enabled-models.ts) | unknown |
 | [components/ui/add-to-calendar-buttons.tsx](../components/ui/add-to-calendar-buttons.tsx) | 2026-05-15 |
 | [components/ui/button.tsx](../components/ui/button.tsx) | 2026-05-15 |
 | [components/ui/day-cell.tsx](../components/ui/day-cell.tsx) | 2026-05-15 |

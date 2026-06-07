@@ -1,0 +1,28 @@
+"use client";
+
+import { useState, useEffect } from "react";
+
+interface ModelEntry {
+  id: string;
+  name: string;
+  provider: string;
+}
+
+export function useEnabledModels() {
+  const [models, setModels] = useState<ModelEntry[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/skills/models")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.models) setModels(data.models);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return models;
+}

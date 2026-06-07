@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ModelSelector } from "./model-selector";
+import { useEnabledModels } from "./use-enabled-models";
 import {
   SKILL_CATEGORIES,
   type SkillCategory,
@@ -66,6 +67,7 @@ export function SkillCreator({
   initialData?: SkillCreatorInitialData;
 } = {}) {
   const router = useRouter();
+  const enabledModels = useEnabledModels();
   const isEdit = !!initialData;
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -441,7 +443,7 @@ export function SkillCreator({
               Default Model
             </label>
             <div className="mt-1">
-              <ModelSelector value={defaultModel} onChange={setDefaultModel} />
+              <ModelSelector value={defaultModel} onChange={setDefaultModel} models={enabledModels ?? undefined} />
             </div>
           </div>
           <div>
