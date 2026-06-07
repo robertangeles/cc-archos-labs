@@ -228,10 +228,15 @@ export function SkillDetail({ skill }: { skill: SkillData }) {
             <CatIcon className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold tracking-tight text-ink">
-              {skill.name}
-            </h2>
-            <div className="flex items-center gap-2">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight text-ink">
+                {skill.name}
+              </h2>
+              <p className="mt-0.5 line-clamp-2 text-sm text-ink-subtle">
+                {skill.description}
+              </p>
+            </div>
+            <div className="mt-1 flex items-center gap-2">
               <span className="text-[11px] font-medium text-ink-tertiary">
                 {catMeta.label}
               </span>
