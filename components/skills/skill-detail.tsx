@@ -15,7 +15,6 @@ import {
   Download,
   Clipboard,
   MoreHorizontal,
-  ChevronDown,
   RefreshCw,
   Sparkles,
   Search,
@@ -214,281 +213,278 @@ export function SkillDetail({ skill }: { skill: SkillData }) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* ── Back nav ── */}
-      <button
-        type="button"
-        onClick={() => router.push("/account/skills")}
-        className="flex items-center gap-1.5 text-xs text-ink-tertiary transition-colors hover:text-ink-subtle"
-      >
-        <ArrowLeft className="h-3 w-3" />
-        All skills
-      </button>
-
-      {/* ── Header card ── */}
-      <div className="rounded-lg border border-hairline bg-surface-1 p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <CatIcon className="h-6 w-6" />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold tracking-tight text-ink">
-                {skill.name}
-              </h2>
-              <p className="mt-1 text-sm leading-relaxed text-ink-subtle">
-                {skill.description}
-              </p>
-              <div className="mt-3 flex items-center gap-2">
-                <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-[11px] font-medium text-ink-subtle">
-                  {catMeta.label}
-                </span>
-                <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-[11px] font-medium text-ink-subtle">
-                  v{skill.currentVersion}
-                </span>
-                <span className="text-[11px] text-ink-tertiary">
-                  Updated{" "}
-                  {new Date(skill.updatedAt).toLocaleDateString("en-AU", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </span>
-              </div>
+    <div className="space-y-4">
+      {/* ── Compact header bar ── */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => router.push("/account/skills")}
+            className="flex h-8 w-8 items-center justify-center rounded-md text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink-subtle"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <CatIcon className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight text-ink">
+              {skill.name}
+            </h2>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-medium text-ink-tertiary">
+                {catMeta.label}
+              </span>
+              <span className="text-ink-tertiary">&middot;</span>
+              <span className="text-[11px] text-ink-tertiary">
+                v{skill.currentVersion}
+              </span>
             </div>
           </div>
+        </div>
 
-          {/* ── Actions ── */}
-          <div className="flex items-center gap-2">
-            <Link
-              href={`/account/skills/${skill.id}/edit`}
-              className="flex items-center gap-1.5 rounded-md border border-hairline px-3 py-1.5 text-sm text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/account/skills/${skill.id}/edit`}
+            className="flex items-center gap-1.5 rounded-md border border-hairline px-3 py-1.5 text-sm text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Edit
+          </Link>
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-hairline text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
             >
-              <Pencil className="h-3.5 w-3.5" />
-              Edit
-            </Link>
-
-            {/* ── More menu ── */}
-            <div className="relative" ref={menuRef}>
-              <button
-                type="button"
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="flex h-8 w-8 items-center justify-center rounded-md border border-hairline text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </button>
-              {menuOpen && (
-                <div className="absolute right-0 z-10 mt-1 w-52 rounded-lg border border-hairline bg-surface-2 py-1 shadow-lg shadow-black/30">
-                  <button
-                    type="button"
-                    onClick={exportAsSkillMd}
-                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-ink-subtle transition-colors hover:bg-surface-3 hover:text-ink"
-                  >
-                    <Download className="h-4 w-4" />
-                    <div>
-                      <p className="font-medium">Export SKILL.md</p>
-                      <p className="text-[11px] text-ink-tertiary">
-                        For Claude Code
-                      </p>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={copyAsPrompt}
-                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-ink-subtle transition-colors hover:bg-surface-3 hover:text-ink"
-                  >
-                    <Clipboard className="h-4 w-4" />
-                    <div>
-                      <p className="font-medium">Copy prompt</p>
-                      <p className="text-[11px] text-ink-tertiary">
-                        For Claude.ai or any LLM
-                      </p>
-                    </div>
-                  </button>
-                  <div className="my-1 border-t border-hairline" />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      handleDelete();
-                    }}
-                    disabled={deleting}
-                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-semantic-error/80 transition-colors hover:bg-semantic-error/10 hover:text-semantic-error"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete skill
-                  </button>
-                </div>
-              )}
-            </div>
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 z-10 mt-1 w-52 rounded-lg border border-hairline bg-surface-2 py-1 shadow-lg shadow-black/30">
+                <button
+                  type="button"
+                  onClick={exportAsSkillMd}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-ink-subtle transition-colors hover:bg-surface-3 hover:text-ink"
+                >
+                  <Download className="h-4 w-4" />
+                  <div>
+                    <p className="font-medium">Export SKILL.md</p>
+                    <p className="text-[11px] text-ink-tertiary">
+                      For Claude Code
+                    </p>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={copyAsPrompt}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-ink-subtle transition-colors hover:bg-surface-3 hover:text-ink"
+                >
+                  <Clipboard className="h-4 w-4" />
+                  <div>
+                    <p className="font-medium">Copy prompt</p>
+                    <p className="text-[11px] text-ink-tertiary">
+                      For Claude.ai or any LLM
+                    </p>
+                  </div>
+                </button>
+                <div className="my-1 border-t border-hairline" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    handleDelete();
+                  }}
+                  disabled={deleting}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-semantic-error/80 transition-colors hover:bg-semantic-error/10 hover:text-semantic-error"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete skill
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* ── Execution panel ── */}
-      <div className="rounded-lg border border-hairline bg-surface-1">
-        <div className="border-b border-hairline px-6 py-3">
-          <p className="text-xs font-medium uppercase tracking-wider text-ink-subtle">
-            Run
-          </p>
-        </div>
-        <div className="p-6">
-          <div className="space-y-4">
-            {skill.inputs.length > 0 && (
-              <div className="space-y-4">
-                {skill.inputs.map((inp) => (
-                  <div key={inp.key}>
-                    <label className="block text-xs font-medium uppercase tracking-wider text-ink-subtle">
-                      {inp.label}
-                      {inp.isRequired && (
-                        <span className="ml-1 text-semantic-error">*</span>
-                      )}
-                    </label>
-                    {inp.description && (
-                      <p className="mt-0.5 text-[11px] text-ink-tertiary">
-                        {inp.description}
-                      </p>
-                    )}
-                    {inp.type === "multiline" ? (
-                      <textarea
-                        value={inputValues[inp.key] ?? ""}
-                        onChange={(e) =>
-                          setInputValues({
-                            ...inputValues,
-                            [inp.key]: e.target.value,
-                          })
-                        }
-                        rows={4}
-                        className="mt-1.5 block w-full rounded-md border border-hairline bg-canvas px-4 py-2.5 text-sm text-ink placeholder:text-ink-tertiary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                      />
-                    ) : inp.type === "select" ? (
-                      <select
-                        value={inputValues[inp.key] ?? ""}
-                        onChange={(e) =>
-                          setInputValues({
-                            ...inputValues,
-                            [inp.key]: e.target.value,
-                          })
-                        }
-                        className="mt-1.5 block w-full rounded-md border border-hairline bg-canvas px-4 py-2.5 text-sm text-ink focus:border-primary focus:outline-none"
-                      >
-                        <option value="">Select...</option>
-                        {(inp.options as string[] | null)?.map((opt) => (
-                          <option key={opt} value={opt}>
-                            {opt}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        type="text"
-                        value={inputValues[inp.key] ?? ""}
-                        onChange={(e) =>
-                          setInputValues({
-                            ...inputValues,
-                            [inp.key]: e.target.value,
-                          })
-                        }
-                        className="mt-1.5 block w-full rounded-md border border-hairline bg-canvas px-4 py-2.5 text-sm text-ink placeholder:text-ink-tertiary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                      />
-                    )}
-                  </div>
-                ))}
+      {/* ── Two-column: inputs | output ── */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+        {/* Left column: inputs + run */}
+        <div className="rounded-lg border border-hairline bg-surface-1">
+          <div className="border-b border-hairline px-5 py-3">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-ink-subtle">
+              Inputs
+            </p>
+          </div>
+          <div className="space-y-4 p-5">
+            {skill.inputs.map((inp) => (
+              <div key={inp.key}>
+                <label className="block text-[11px] font-medium uppercase tracking-wider text-ink-subtle">
+                  {inp.label}
+                  {inp.isRequired && (
+                    <span className="ml-1 text-semantic-error">*</span>
+                  )}
+                </label>
+                {inp.description && (
+                  <p className="mt-0.5 text-[10px] text-ink-tertiary">
+                    {inp.description}
+                  </p>
+                )}
+                {inp.type === "multiline" ? (
+                  <textarea
+                    value={inputValues[inp.key] ?? ""}
+                    onChange={(e) =>
+                      setInputValues({
+                        ...inputValues,
+                        [inp.key]: e.target.value,
+                      })
+                    }
+                    rows={3}
+                    className="mt-1 block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink placeholder:text-ink-tertiary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                ) : inp.type === "select" ? (
+                  <select
+                    value={inputValues[inp.key] ?? ""}
+                    onChange={(e) =>
+                      setInputValues({
+                        ...inputValues,
+                        [inp.key]: e.target.value,
+                      })
+                    }
+                    className="mt-1 block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink focus:border-primary focus:outline-none"
+                  >
+                    <option value="">Select...</option>
+                    {(inp.options as string[] | null)?.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={inputValues[inp.key] ?? ""}
+                    onChange={(e) =>
+                      setInputValues({
+                        ...inputValues,
+                        [inp.key]: e.target.value,
+                      })
+                    }
+                    className="mt-1 block w-full rounded-md border border-hairline bg-canvas px-3 py-2 text-sm text-ink placeholder:text-ink-tertiary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                )}
               </div>
+            ))}
+
+            {skill.inputs.length === 0 && (
+              <p className="py-2 text-sm text-ink-tertiary">
+                This skill has no inputs.
+              </p>
             )}
 
-            {/* Model + Run row */}
-            <div className="flex items-end gap-3">
-              <div className="flex-1">
-                <label className="block text-xs font-medium uppercase tracking-wider text-ink-subtle">
-                  Model
-                </label>
-                <div className="mt-1.5">
-                  <ModelSelector
-                    value={modelOverride}
-                    onChange={setModelOverride}
-                  />
-                </div>
+            <div className="border-t border-hairline pt-4">
+              <label className="block text-[11px] font-medium uppercase tracking-wider text-ink-subtle">
+                Model
+              </label>
+              <div className="mt-1">
+                <ModelSelector
+                  value={modelOverride}
+                  onChange={setModelOverride}
+                />
               </div>
-              <button
-                type="button"
-                onClick={handleExecute}
-                disabled={executing}
-                className="flex h-[42px] shrink-0 items-center gap-2 rounded-md bg-primary px-6 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
-              >
-                {executing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Running...
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-4 w-4" />
-                    Run
-                  </>
-                )}
-              </button>
             </div>
+
+            <button
+              type="button"
+              onClick={handleExecute}
+              disabled={executing}
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+            >
+              {executing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Running...
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4" />
+                  Run Skill
+                </>
+              )}
+            </button>
 
             {error && (
               <p className="text-sm text-semantic-error">{error}</p>
             )}
           </div>
         </div>
-      </div>
 
-      {/* ── Output panel ── */}
-      {result && (
+        {/* Right column: output */}
         <div className="rounded-lg border border-hairline bg-surface-1">
-          <div className="flex items-center justify-between border-b border-hairline px-6 py-3">
-            <p className="text-xs font-medium uppercase tracking-wider text-ink-subtle">
+          <div className="flex items-center justify-between border-b border-hairline px-5 py-3">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-ink-subtle">
               Output
             </p>
-            <div className="flex items-center gap-3">
-              {resultUsage && (
-                <span className="text-[11px] text-ink-tertiary">
-                  {resultUsage.inputTokens + resultUsage.outputTokens} tokens
-                  {resultModel && (
-                    <>
-                      {" "}
-                      &middot;{" "}
-                      {OPENROUTER_MODELS.find((m) => m.id === resultModel)
-                        ?.name ?? resultModel}
-                    </>
-                  )}
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={handleCopyResult}
-                className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
-              >
-                {copied ? (
-                  <Check className="h-3.5 w-3.5 text-semantic-success" />
-                ) : (
-                  <Copy className="h-3.5 w-3.5" />
+            {result && (
+              <div className="flex items-center gap-3">
+                {resultUsage && (
+                  <span className="text-[10px] text-ink-tertiary">
+                    {resultUsage.inputTokens + resultUsage.outputTokens} tokens
+                    {resultModel && (
+                      <>
+                        {" "}
+                        &middot;{" "}
+                        {OPENROUTER_MODELS.find((m) => m.id === resultModel)
+                          ?.name ?? resultModel}
+                      </>
+                    )}
+                  </span>
                 )}
-                {copied ? "Copied" : "Copy"}
-              </button>
-            </div>
-          </div>
-          <div className="p-6">
-            {outputType === "markdown" ? (
-              <div className="prose prose-sm prose-invert max-w-none">
-                <ReactMarkdown>{result}</ReactMarkdown>
+                <button
+                  type="button"
+                  onClick={handleCopyResult}
+                  className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink"
+                >
+                  {copied ? (
+                    <Check className="h-3 w-3 text-semantic-success" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                  {copied ? "Copied" : "Copy"}
+                </button>
               </div>
-            ) : outputType === "json" ? (
-              <pre className="overflow-auto whitespace-pre-wrap rounded-md bg-canvas p-4 font-mono text-xs text-ink">
-                {result}
-              </pre>
+            )}
+          </div>
+          <div className="max-h-[calc(100vh-280px)] overflow-auto p-5">
+            {result ? (
+              outputType === "markdown" ? (
+                <div className="prose prose-sm prose-invert max-w-none">
+                  <ReactMarkdown>{result}</ReactMarkdown>
+                </div>
+              ) : outputType === "json" ? (
+                <pre className="overflow-auto whitespace-pre-wrap rounded-md bg-canvas p-4 font-mono text-xs text-ink">
+                  {result}
+                </pre>
+              ) : (
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink">
+                  {result}
+                </p>
+              )
             ) : (
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink">
-                {result}
-              </p>
+              <div className="flex h-48 flex-col items-center justify-center text-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-2">
+                  <Play className="h-4 w-4 text-ink-tertiary" />
+                </div>
+                <p className="mt-3 text-sm text-ink-tertiary">
+                  Fill in the inputs and click Run
+                </p>
+                <p className="mt-1 text-[11px] text-ink-tertiary">
+                  Output will appear here
+                </p>
+              </div>
             )}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
