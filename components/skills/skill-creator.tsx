@@ -169,7 +169,7 @@ export function SkillCreator({
   }
 
   return (
-    <div className="mx-auto w-full max-w-[640px]">
+    <div className="w-full">
       {/* Step indicator */}
       <div className="mb-8 flex items-center gap-2">
         {STEP_LABELS.map((label, i) => (
