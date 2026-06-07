@@ -214,39 +214,36 @@ export function SkillDetail({ skill }: { skill: SkillData }) {
 
   return (
     <div className="space-y-4">
-      {/* ── Compact header bar ── */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => router.push("/account/skills")}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink-subtle"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </button>
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <CatIcon className="h-5 w-5" />
-          </div>
-          <div>
+      {/* ── Header ── */}
+      <div>
+        {/* Top row: back + name + actions */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => router.push("/account/skills")}
+              className="flex h-8 w-8 items-center justify-center rounded-md text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink-subtle"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <CatIcon className="h-5 w-5" />
+            </div>
             <div>
               <h2 className="text-lg font-semibold tracking-tight text-ink">
                 {skill.name}
               </h2>
-              <p className="mt-0.5 line-clamp-2 text-sm text-ink-subtle">
-                {skill.description}
-              </p>
-            </div>
-            <div className="mt-1 flex items-center gap-2">
-              <span className="text-[11px] font-medium text-ink-tertiary">
-                {catMeta.label}
-              </span>
-              <span className="text-ink-tertiary">&middot;</span>
-              <span className="text-[11px] text-ink-tertiary">
-                v{skill.currentVersion}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-medium text-ink-tertiary">
+                  {catMeta.label}
+                </span>
+                <span className="text-ink-tertiary">&middot;</span>
+                <span className="text-[11px] text-ink-tertiary">
+                  v{skill.currentVersion}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
 
         <div className="flex items-center gap-2">
           <Link
@@ -309,6 +306,11 @@ export function SkillDetail({ skill }: { skill: SkillData }) {
             )}
           </div>
         </div>
+        </div>
+        {/* Description below the top row, full width */}
+        <p className="mt-2 pl-[4.75rem] text-sm leading-relaxed text-ink-subtle">
+          {skill.description}
+        </p>
       </div>
 
       {/* ── Two-column: inputs | output ── */}
