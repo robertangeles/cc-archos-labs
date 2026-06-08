@@ -16,6 +16,7 @@ export function AccountShell({
 }: AccountShellProps) {
   const pathname = usePathname();
   const isProfile = pathname === "/account";
+  const isWorkspaceHome = pathname === "/account/workspace";
 
   if (isProfile) {
     return (
@@ -36,9 +37,23 @@ export function AccountShell({
     );
   }
 
+  if (isWorkspaceHome) {
+    return (
+      <>
+        <div className="mb-6 flex items-center justify-end">
+          {signOutButton}
+        </div>
+        <div className="min-w-0 pb-20 md:pb-0">{children}</div>
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-hairline bg-canvas/95 backdrop-blur-sm md:hidden">
+          <WorkspaceNav mobile />
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
-      <div className="mb-12 flex items-center justify-between gap-x-4">
+      <div className="mb-8 flex items-center justify-between gap-x-4 md:mb-12">
         <div>
           <p className="uppercase text-eyebrow text-ink-subtle">
             My Workspace
@@ -50,10 +65,13 @@ export function AccountShell({
         {signOutButton}
       </div>
       <div className="grid gap-x-12 gap-y-8 md:grid-cols-[200px_1fr]">
-        <aside>
+        <aside className="hidden md:block">
           <WorkspaceNav />
         </aside>
-        <div className="min-w-0">{children}</div>
+        <div className="min-w-0 pb-20 md:pb-0">{children}</div>
+      </div>
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-hairline bg-canvas/95 backdrop-blur-sm md:hidden">
+        <WorkspaceNav mobile />
       </div>
     </>
   );

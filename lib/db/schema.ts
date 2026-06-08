@@ -2105,6 +2105,8 @@ export const skill = pgTable(
     temperature: numeric("temperature", { precision: 3, scale: 2 }),
     // 1-32000, validated by Zod. Clamped to model max if exceeded.
     maxTokens: integer("max_tokens"),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    useCount: integer("use_count").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -2645,6 +2647,54 @@ export const workflowExecTokenRelations = relations(
     user: one(users, {
       fields: [workflowExecToken.userId],
       references: [users.id],
+    }),
+  }),
+);
+
+// ============================================================================
+// skill_execution — Execution tracking for dashboard + journey timeline
+// ============================================================================
+// Normal form: 2NF. Each row records one skill execution event.
+// Does NOT store result content (privacy). For shareable results, see
+// execution_share (Phase B).
+
+export const skillExecution = pgTable(
+  "skill_execution",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    skillId: uuid("skill_id")
+      .notNull()
+      .references(() => skill.id, { onDelete: "cascade" }),
+    model: varchar("model", { length: 100 }).notNull(),
+    tokenCount: integer("token_count"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // Dashboard: recent executions by user (ORDER BY created_at DESC).
+    index("skill_execution_user_id_idx").on(table.userId),
+    // Journey view: executions per skill.
+    index("skill_execution_skill_id_idx").on(table.skillId),
+  ],
+);
+
+export type SkillExecution = typeof skillExecution.$inferSelect;
+export type NewSkillExecution = typeof skillExecution.$inferInsert;
+
+export const skillExecutionRelations = relations(
+  skillExecution,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [skillExecution.userId],
+      references: [users.id],
+    }),
+    skill: one(skill, {
+      fields: [skillExecution.skillId],
+      references: [skill.id],
     }),
   }),
 );

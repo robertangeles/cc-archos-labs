@@ -55,6 +55,14 @@
   --color-semantic-high: #fb923c;
   --color-semantic-overlay: #000000;
 
+  /* Skill category accents — muted pastels for card borders/badges at 10% opacity */
+  --color-category-repurpose: #4da67a;
+  --color-category-generate: #d4a652;
+  --color-category-research: #5e9ed6;
+  --color-category-transform: #c97ba0;
+  --color-category-extract: #8b7dd6;
+  --color-category-plan: #5ebcab;
+
   /* Typography scale — DESIGN.md §31-109.
      Each token bundles size + line-height + letter-spacing + font-weight,
      so `text-display-xl` applies all four at once. Family is the global

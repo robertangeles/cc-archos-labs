@@ -484,7 +484,11 @@ export function SkillDetail({ skill }: { skill: SkillData }) {
               {executing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Running...
+                  {(() => {
+                    const m = modelOverride || skill.defaultModel || "";
+                    const short = m.split("/").pop()?.replace(/-\d.*$/, "") || "AI";
+                    return `Thinking with ${short}...`;
+                  })()}
                 </>
               ) : (
                 <>
