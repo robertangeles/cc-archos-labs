@@ -20,7 +20,7 @@ import {
 // On parse failure throws with a sample of the raw text — never silently
 // degrade. Callers can render a fallback report or retry.
 
-export interface GenerateStructuredArgs {
+interface GenerateStructuredArgs {
   systemPrompt: string;
   userMessage: string;
   /** OpenRouter model id. Defaults to anthropic/claude-sonnet-4-6. */
@@ -29,7 +29,7 @@ export interface GenerateStructuredArgs {
   maxTokens: number;
 }
 
-export interface GenerateStructuredResult<T> {
+interface GenerateStructuredResult<T> {
   data: T;
   inputTokens: number;
   outputTokens: number;

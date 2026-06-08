@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-08T10:17:49.591Z
+generated: 2026-06-08T10:45:33.831Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -173,12 +173,12 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/duplicate` | [app/api/workflows/[id]/duplicate/route.ts](../app/api/workflows/[id]/duplicate/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]/execute` | [app/api/workflows/[id]/execute/route.ts](../app/api/workflows/[id]/execute/route.ts) | 2026-06-07 |
 
-## Components (88)
+## Components (80)
 
 | File | Last shipped |
 |------|--------------|
 | [components/admin/integrations/integrations-grid.tsx](../components/admin/integrations/integrations-grid.tsx) | 2026-05-17 |
-| [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-06-07 |
+| [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-06-08 |
 | [components/analytics/analytics-client.tsx](../components/analytics/analytics-client.tsx) | 2026-05-18 |
 | [components/blog/author-bio.tsx](../components/blog/author-bio.tsx) | 2026-05-24 |
 | [components/blog/category-chips.tsx](../components/blog/category-chips.tsx) | 2026-05-20 |
@@ -218,7 +218,6 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/pages/blocks/process-steps-block.tsx](../components/pages/blocks/process-steps-block.tsx) | 2026-05-19 |
 | [components/pages/blocks/proof-grid-block.tsx](../components/pages/blocks/proof-grid-block.tsx) | 2026-05-18 |
 | [components/pages/blocks/quick-diagnosis-block.tsx](../components/pages/blocks/quick-diagnosis-block.tsx) | 2026-05-19 |
-| [components/pages/blocks/section-counter.tsx](../components/pages/blocks/section-counter.tsx) | 2026-05-19 |
 | [components/pages/blocks/service-grid-block.tsx](../components/pages/blocks/service-grid-block.tsx) | 2026-05-18 |
 | [components/pages/blocks/stat-band-block.tsx](../components/pages/blocks/stat-band-block.tsx) | 2026-05-19 |
 | [components/pages/blocks/timeline-block.tsx](../components/pages/blocks/timeline-block.tsx) | 2026-05-19 |
@@ -243,21 +242,14 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/sections/home/sticky-mobile-cta.tsx](../components/sections/home/sticky-mobile-cta.tsx) | 2026-05-18 |
 | [components/sections/home/timeline.tsx](../components/sections/home/timeline.tsx) | 2026-05-27 |
 | [components/skills/model-selector.tsx](../components/skills/model-selector.tsx) | 2026-06-07 |
-| [components/skills/skill-creator.tsx](../components/skills/skill-creator.tsx) | 2026-06-07 |
+| [components/skills/skill-creator.tsx](../components/skills/skill-creator.tsx) | 2026-06-08 |
 | [components/skills/skill-detail.tsx](../components/skills/skill-detail.tsx) | 2026-06-08 |
 | [components/skills/skills-list.tsx](../components/skills/skills-list.tsx) | 2026-06-08 |
 | [components/skills/use-enabled-models.ts](../components/skills/use-enabled-models.ts) | 2026-06-08 |
-| [components/ui/add-to-calendar-buttons.tsx](../components/ui/add-to-calendar-buttons.tsx) | 2026-05-15 |
 | [components/ui/button.tsx](../components/ui/button.tsx) | 2026-05-15 |
-| [components/ui/day-cell.tsx](../components/ui/day-cell.tsx) | 2026-05-15 |
 | [components/ui/dialog.tsx](../components/ui/dialog.tsx) | 2026-05-15 |
 | [components/ui/field.tsx](../components/ui/field.tsx) | 2026-05-15 |
 | [components/ui/pill.tsx](../components/ui/pill.tsx) | 2026-05-15 |
-| [components/ui/skeleton.tsx](../components/ui/skeleton.tsx) | 2026-05-15 |
-| [components/ui/slot-pill.tsx](../components/ui/slot-pill.tsx) | 2026-05-15 |
-| [components/ui/step-heading.tsx](../components/ui/step-heading.tsx) | 2026-05-15 |
-| [components/ui/trust-micro.tsx](../components/ui/trust-micro.tsx) | 2026-05-15 |
-| [components/workflows/edit-tab.tsx](../components/workflows/edit-tab.tsx) | 2026-06-07 |
 | [components/workflows/field-builder.tsx](../components/workflows/field-builder.tsx) | 2026-06-07 |
 | [components/workflows/run-tab.tsx](../components/workflows/run-tab.tsx) | 2026-06-07 |
 | [components/workflows/step-designer.tsx](../components/workflows/step-designer.tsx) | 2026-06-07 |

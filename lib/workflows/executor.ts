@@ -11,6 +11,7 @@ import {
 } from "../db/schema";
 import { executeSkill } from "../skills/execute";
 import { getEnabledRules, formatRulesForInjection } from "../rules/service";
+import { resolveLlmConfig } from "../llm/config";
 import type { StepResult } from "./types";
 
 export async function executeWorkflow(
@@ -70,7 +71,8 @@ export async function executeWorkflow(
       const maxTokens = (step.overrides as Record<string, unknown>)?.maxTokens as number | undefined
         ?? skillConfig?.maxTokens
         ?? undefined;
-      const model = step.model || skillConfig?.defaultModel || "anthropic/claude-sonnet-4.6";
+      const configuredDefault = (await resolveLlmConfig()).modelId;
+      const model = step.model || skillConfig?.defaultModel || configuredDefault;
 
       const response = await executeSkill({
         promptTemplate,
