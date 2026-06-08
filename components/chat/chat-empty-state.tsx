@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { motion } from "framer-motion";
 import { Shield, FileText, AlertTriangle, PenLine, MessageSquare, type LucideIcon } from "lucide-react";
 
@@ -64,6 +64,11 @@ export function ChatEmptyState({
 }: ChatEmptyStateProps) {
   const name = displayName?.split(" ")[0] ?? "";
   const [greetingIdx, setGreetingIdx] = useState(0);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -76,8 +81,8 @@ export function ChatEmptyState({
 
   return (
     <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-4 pb-0 pt-[5vh]">
-      {/* Animated particles */}
-      <div className="pointer-events-none absolute inset-0">
+      {/* Animated particles — client only to avoid SSR hydration mismatch */}
+      {mounted && <div className="pointer-events-none absolute inset-0">
         {PARTICLES.map((p, i) => (
           <motion.div
             key={i}
@@ -96,7 +101,7 @@ export function ChatEmptyState({
             }}
           />
         ))}
-      </div>
+      </div>}
 
       {/* Hero icon */}
       <motion.div

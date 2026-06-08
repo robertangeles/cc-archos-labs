@@ -20,15 +20,19 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
   stream: ReadableStream<Uint8Array>;
   cleanup: () => Promise<void>;
 }> {
+  console.log("[stream] resolving LLM config, override:", args.modelOverride);
   const { apiKey, modelId } = await resolveLlmConfig(args.modelOverride);
+  console.log("[stream] model:", modelId, "key length:", apiKey.length);
 
   await chatService.saveMessage(
     args.conversationId,
     "user",
     args.userContent,
   );
+  console.log("[stream] user message saved");
 
   const rules = await getEnabledRules(args.userId);
+  console.log("[stream] rules loaded:", rules.length);
   const rulesBlock = rules.length > 0
     ? rules.map((r) => r.content).join("\n\n")
     : "";
@@ -39,6 +43,8 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     : [];
 
   const priorMessages = await loadConversationHistory(args.conversationId);
+  console.log("[stream] history loaded:", priorMessages.length, "messages");
+  console.log("[stream] calling OpenRouter:", OPENROUTER_URL, "model:", modelId);
 
   const openRouterResponse = await fetch(OPENROUTER_URL, {
     method: "POST",
@@ -54,8 +60,11 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     signal: args.signal,
   });
 
+  console.log("[stream] OpenRouter response:", openRouterResponse.status, openRouterResponse.statusText);
+
   if (!openRouterResponse.ok) {
     const body = await openRouterResponse.text().catch(() => "");
+    console.error("[stream] OpenRouter error:", openRouterResponse.status, body.slice(0, 500));
     const status = openRouterResponse.status;
     if (status === 429) throw new StreamError("Model is busy. Try again in a moment.", 429);
     if (status >= 500) throw new StreamError("AI service temporarily unavailable.", 502);
@@ -79,22 +88,27 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
   const decoder = new TextDecoder();
   const reader = openRouterResponse.body.getReader();
 
+  console.log("[stream] creating ReadableStream, starting to read chunks");
+
   const stream = new ReadableStream<Uint8Array>({
     async pull(controller) {
       try {
         const { done, value } = await reader.read();
         if (done || aborted) {
+          console.log("[stream] reader done, closing. aborted:", aborted);
           controller.close();
           return;
         }
 
         const chunk = decoder.decode(value, { stream: true });
+        console.log("[stream] chunk received, length:", chunk.length, "preview:", chunk.slice(0, 80));
         const lines = chunk.split("\n");
 
         for (const line of lines) {
           if (!line.startsWith("data: ")) continue;
           const data = line.slice(6).trim();
           if (data === "[DONE]") {
+            console.log("[stream] received [DONE]");
             controller.close();
             return;
           }
