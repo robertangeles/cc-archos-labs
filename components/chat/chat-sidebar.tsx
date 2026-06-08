@@ -57,20 +57,6 @@ export function ChatSidebar({
         mobile ? "w-full" : "w-[260px]"
       }`}
     >
-      {/* Brand header */}
-      <div className="flex items-center gap-2 border-b border-neutral-800/40 px-3.5 py-3">
-        <img
-          src="/images/logo.png"
-          alt=""
-          width={24}
-          height={24}
-          className="h-6 w-6"
-        />
-        <span className="text-[14px] font-semibold tracking-tight text-neutral-200">
-          Archos Labs
-        </span>
-      </div>
-
       <div className="flex items-center justify-between px-3 pt-3 pb-3">
         <button
           onClick={onNewChat}

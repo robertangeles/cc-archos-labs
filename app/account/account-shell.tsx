@@ -42,9 +42,12 @@ export function AccountShell({
 
   if (isWorkspaceHome) {
     return (
-      <div className="-mx-6 -mt-16 -mb-32 md:-mx-12">
-        {children}
-      </div>
+      <>
+        <style>{`footer { display: none !important; }`}</style>
+        <div className="-mx-6 -mt-16 -mb-32 md:-mx-12" style={{ marginLeft: "calc(-50vw + 50%)", marginRight: "calc(-50vw + 50%)", width: "100vw" }}>
+          {children}
+        </div>
+      </>
     );
   }
 
