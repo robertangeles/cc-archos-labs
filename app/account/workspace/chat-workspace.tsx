@@ -282,7 +282,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
             {isSending && (
               <div className="mb-2 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-                <p className="text-[12px] text-ink-subtle">
+                <p className="text-[14px] text-ink-subtle">
                   {thinkingVerb}...
                 </p>
               </div>
