@@ -26,7 +26,31 @@ export function RuleForm({
 }: RuleFormProps) {
   const isEdit = !!rule;
   const [name, setName] = useState(rule?.name ?? "");
-  const [category, setCategory] = useState(rule?.category ?? "");
+  const defaultCategories = ["Writing", "Formatting", "Brand", "Other"];
+  const allCategories = [
+    ...new Set([
+      ...defaultCategories.slice(0, -1),
+      ...existingCategories.map(
+        (c) => c.charAt(0).toUpperCase() + c.slice(1)
+      ),
+      "Other",
+    ]),
+  ];
+
+  const initialCategory = rule?.category
+    ? rule.category.charAt(0).toUpperCase() + rule.category.slice(1)
+    : "";
+  const isKnown = initialCategory && allCategories.includes(initialCategory);
+
+  const [selectedCategory, setSelectedCategory] = useState(
+    isKnown ? initialCategory : initialCategory ? "Other" : ""
+  );
+  const [customCategory, setCustomCategory] = useState(
+    isKnown ? "" : initialCategory
+  );
+
+  const category =
+    selectedCategory === "Other" ? customCategory : selectedCategory;
   const [content, setContent] = useState(rule?.content ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -108,28 +132,36 @@ export function RuleForm({
             <label className="mb-1 block text-xs font-medium text-ink-subtle">
               Category
             </label>
-            <input
-              type="text"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="e.g. writing"
+            <select
+              value={selectedCategory}
+              onChange={(e) => {
+                setSelectedCategory(e.target.value);
+                if (e.target.value !== "Other") setCustomCategory("");
+              }}
               required
-              maxLength={100}
-              list="rule-categories"
-              className="w-full rounded-md border border-hairline bg-surface-1 px-3 py-2 text-sm text-ink placeholder:text-ink-tertiary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-            <datalist id="rule-categories">
-              {[
-                ...new Set([
-                  "writing",
-                  "formatting",
-                  "brand",
-                  ...existingCategories,
-                ]),
-              ].map((c) => (
-                <option key={c} value={c} />
+              className="w-full rounded-md border border-hairline bg-surface-1 px-3 py-2 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              <option value="" disabled>
+                Select a category
+              </option>
+              {allCategories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
               ))}
-            </datalist>
+            </select>
+            {selectedCategory === "Other" && (
+              <input
+                type="text"
+                value={customCategory}
+                onChange={(e) => setCustomCategory(e.target.value)}
+                placeholder="Enter custom category"
+                required
+                maxLength={100}
+                autoFocus
+                className="mt-2 w-full rounded-md border border-hairline bg-surface-1 px-3 py-2 text-sm text-ink placeholder:text-ink-tertiary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            )}
           </div>
         </div>
 
