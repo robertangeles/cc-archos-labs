@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-08T00:28:51.043Z
+generated: 2026-06-08T01:22:24.687Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -9,7 +9,7 @@ Auto-generated snapshot of what is currently shipped. **Source of truth for ship
 
 Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `app/` or `components/` to fire the pre-commit hook.
 
-## Routes (56)
+## Routes (57)
 
 | Route | File | Last shipped |
 |-------|------|--------------|
@@ -22,6 +22,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-27 |
 | `/account` | [app/account/page.tsx](../app/account/page.tsx) | 2026-06-07 |
 | `/account/history` | [app/account/history/page.tsx](../app/account/history/page.tsx) | 2026-06-07 |
+| `/account/personalisation` | [app/account/personalisation/page.tsx](../app/account/personalisation/page.tsx) | unknown |
 | `/account/skills` | [app/account/skills/page.tsx](../app/account/skills/page.tsx) | 2026-06-07 |
 | `/account/skills/[id]` | [app/account/skills/[id]/page.tsx](../app/account/skills/[id]/page.tsx) | 2026-06-07 |
 | `/account/skills/[id]/edit` | [app/account/skills/[id]/edit/page.tsx](../app/account/skills/[id]/edit/page.tsx) | 2026-06-07 |
@@ -70,7 +71,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-06-03 |
 | `/tools/cdmp-practice/history/[sessionId]` | [app/tools/cdmp-practice/history/[sessionId]/page.tsx](../app/tools/cdmp-practice/history/[sessionId]/page.tsx) | 2026-06-03 |
 
-## API endpoints (87)
+## API endpoints (90)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -152,9 +153,12 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/diagnostic/share/[id]/revoke` | [app/api/diagnostic/share/[id]/revoke/route.ts](../app/api/diagnostic/share/[id]/revoke/route.ts) | 2026-06-03 |
 | `/api/events` | [app/api/events/route.ts](../app/api/events/route.ts) | 2026-05-18 |
 | `/api/health/cron` | [app/api/health/cron/route.ts](../app/api/health/cron/route.ts) | 2026-05-17 |
+| `/api/rules` | [app/api/rules/route.ts](../app/api/rules/route.ts) | unknown |
+| `/api/rules/[id]` | [app/api/rules/[id]/route.ts](../app/api/rules/[id]/route.ts) | unknown |
+| `/api/rules/[id]/toggle` | [app/api/rules/[id]/toggle/route.ts](../app/api/rules/[id]/toggle/route.ts) | unknown |
 | `/api/skills` | [app/api/skills/route.ts](../app/api/skills/route.ts) | 2026-06-07 |
 | `/api/skills/[id]` | [app/api/skills/[id]/route.ts](../app/api/skills/[id]/route.ts) | 2026-06-07 |
-| `/api/skills/[id]/execute` | [app/api/skills/[id]/execute/route.ts](../app/api/skills/[id]/execute/route.ts) | 2026-06-07 |
+| `/api/skills/[id]/execute` | [app/api/skills/[id]/execute/route.ts](../app/api/skills/[id]/execute/route.ts) | 2026-06-08 |
 | `/api/skills/[id]/versions` | [app/api/skills/[id]/versions/route.ts](../app/api/skills/[id]/versions/route.ts) | 2026-06-07 |
 | `/api/skills/models` | [app/api/skills/models/route.ts](../app/api/skills/models/route.ts) | 2026-06-07 |
 | `/api/workflows` | [app/api/workflows/route.ts](../app/api/workflows/route.ts) | 2026-06-07 |
@@ -162,7 +166,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/duplicate` | [app/api/workflows/[id]/duplicate/route.ts](../app/api/workflows/[id]/duplicate/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]/execute` | [app/api/workflows/[id]/execute/route.ts](../app/api/workflows/[id]/execute/route.ts) | 2026-06-07 |
 
-## Components (80)
+## Components (82)
 
 | File | Last shipped |
 |------|--------------|
@@ -207,6 +211,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/pages/blocks/timeline-block.tsx](../components/pages/blocks/timeline-block.tsx) | 2026-05-19 |
 | [components/pages/markdown-article.test.tsx](../components/pages/markdown-article.test.tsx) | 2026-05-18 |
 | [components/pages/markdown-article.tsx](../components/pages/markdown-article.tsx) | 2026-05-18 |
+| [components/rules/rule-form.tsx](../components/rules/rule-form.tsx) | unknown |
+| [components/rules/rules-list.tsx](../components/rules/rules-list.tsx) | unknown |
 | [components/sections/about/index.ts](../components/sections/about/index.ts) | 2026-05-18 |
 | [components/sections/about/person-card.tsx](../components/sections/about/person-card.tsx) | 2026-05-27 |
 | [components/sections/about/philosophy-block.tsx](../components/sections/about/philosophy-block.tsx) | 2026-05-27 |
@@ -225,8 +231,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/sections/home/timeline.tsx](../components/sections/home/timeline.tsx) | 2026-05-27 |
 | [components/skills/model-selector.tsx](../components/skills/model-selector.tsx) | 2026-06-07 |
 | [components/skills/skill-creator.tsx](../components/skills/skill-creator.tsx) | 2026-06-07 |
-| [components/skills/skill-detail.tsx](../components/skills/skill-detail.tsx) | 2026-06-07 |
-| [components/skills/skills-list.tsx](../components/skills/skills-list.tsx) | 2026-06-07 |
+| [components/skills/skill-detail.tsx](../components/skills/skill-detail.tsx) | 2026-06-08 |
+| [components/skills/skills-list.tsx](../components/skills/skills-list.tsx) | 2026-06-08 |
 | [components/skills/use-enabled-models.ts](../components/skills/use-enabled-models.ts) | 2026-06-07 |
 | [components/ui/add-to-calendar-buttons.tsx](../components/ui/add-to-calendar-buttons.tsx) | 2026-05-15 |
 | [components/ui/button.tsx](../components/ui/button.tsx) | 2026-05-15 |
@@ -245,5 +251,5 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/workflows/workflow-builder.tsx](../components/workflows/workflow-builder.tsx) | 2026-06-07 |
 | [components/workflows/workflow-creator.tsx](../components/workflows/workflow-creator.tsx) | 2026-06-07 |
 | [components/workflows/workflow-settings.tsx](../components/workflows/workflow-settings.tsx) | 2026-06-07 |
-| [components/workflows/workflows-list.tsx](../components/workflows/workflows-list.tsx) | 2026-06-07 |
+| [components/workflows/workflows-list.tsx](../components/workflows/workflows-list.tsx) | 2026-06-08 |
 

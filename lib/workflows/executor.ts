@@ -10,6 +10,7 @@ import {
   skillOutput,
 } from "../db/schema";
 import { executeSkill } from "../skills/execute";
+import { getEnabledRules, formatRulesForInjection } from "../rules/service";
 import type { StepResult } from "./types";
 
 export async function executeWorkflow(
@@ -29,6 +30,9 @@ export async function executeWorkflow(
   if (steps.length === 0) {
     throw new Error("Workflow has no steps to execute");
   }
+
+  const enabledRules = await getEnabledRules(userId);
+  const rulesBlock = formatRulesForInjection(enabledRules);
 
   const context: Record<string, string> = { ...inputs };
   const stepResults: StepResult[] = [];
@@ -54,9 +58,12 @@ export async function executeWorkflow(
         : null;
 
       const promptTemplate = skillConfig?.promptTemplate ?? step.prompt;
-      const systemPrompt = (step.overrides as Record<string, unknown>)?.systemPrompt as string | undefined
+      const baseSystemPrompt = (step.overrides as Record<string, unknown>)?.systemPrompt as string | undefined
         ?? skillConfig?.systemPrompt
         ?? undefined;
+      const systemPrompt = rulesBlock
+        ? [baseSystemPrompt, rulesBlock].filter(Boolean).join("\n\n")
+        : baseSystemPrompt;
       const temperature = (step.overrides as Record<string, unknown>)?.temperature as number | undefined
         ?? skillConfig?.temperature
         ?? undefined;

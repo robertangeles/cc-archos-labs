@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { WorkspaceNav } from "./workspace-nav";
+import { ProfileTabNav } from "./profile-tab-nav";
 
 interface AccountShellProps {
   displayName: string;
@@ -15,13 +16,14 @@ export function AccountShell({
   children,
 }: AccountShellProps) {
   const pathname = usePathname();
-  const isProfile = pathname === "/account";
+  const isProfile =
+    pathname === "/account" || pathname.startsWith("/account/personalisation");
   const isWorkspaceHome = pathname === "/account/workspace";
 
   if (isProfile) {
     return (
       <>
-        <div className="mb-12 flex items-center justify-between gap-x-4">
+        <div className="mb-6 flex items-center justify-between gap-x-4">
           <div>
             <p className="uppercase text-eyebrow text-ink-subtle">
               Your Account
@@ -32,6 +34,7 @@ export function AccountShell({
           </div>
           {signOutButton}
         </div>
+        <ProfileTabNav />
         <div className="min-w-0">{children}</div>
       </>
     );
