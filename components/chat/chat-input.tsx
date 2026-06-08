@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, KeyboardEvent } from "react";
-import { SendHorizontal } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 
 interface ChatInputProps {
   value: string;
@@ -24,7 +24,7 @@ export function ChatInput({
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }, [value]);
 
   useEffect(() => {
@@ -38,8 +38,10 @@ export function ChatInput({
     }
   }
 
+  const canSend = !disabled && value.trim().length > 0;
+
   return (
-    <div className="flex items-end gap-2 rounded-xl border border-neutral-700 bg-neutral-800/50 px-3 py-2 focus-within:border-neutral-500">
+    <div className="relative rounded-2xl border border-neutral-700/50 bg-neutral-900 shadow-lg shadow-black/20 transition-colors focus-within:border-neutral-600">
       <textarea
         ref={textareaRef}
         value={value}
@@ -48,14 +50,18 @@ export function ChatInput({
         placeholder={placeholder}
         disabled={disabled}
         rows={1}
-        className="max-h-[200px] min-h-[24px] flex-1 resize-none bg-transparent text-sm text-neutral-200 placeholder-neutral-500 outline-none"
+        className="block max-h-[160px] min-h-[48px] w-full resize-none bg-transparent py-3.5 pr-14 pl-4 text-[15px] leading-relaxed text-neutral-100 placeholder-neutral-500 outline-none"
       />
       <button
         onClick={onSend}
-        disabled={disabled || !value.trim()}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white transition-colors hover:bg-blue-500 disabled:opacity-30 disabled:hover:bg-blue-600"
+        disabled={!canSend}
+        className={`absolute right-2.5 bottom-2.5 flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-150 ${
+          canSend
+            ? "bg-white text-neutral-900 hover:bg-neutral-200"
+            : "bg-neutral-800 text-neutral-600"
+        }`}
       >
-        <SendHorizontal className="h-4 w-4" />
+        <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
       </button>
     </div>
   );

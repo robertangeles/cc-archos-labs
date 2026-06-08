@@ -53,51 +53,45 @@ export function ChatSidebar({
 
   return (
     <div
-      className={`flex h-full flex-col bg-neutral-900 ${
-        mobile ? "w-full" : "w-72 border-r border-neutral-800"
+      className={`flex h-full flex-col border-r border-neutral-800/60 bg-neutral-950 ${
+        mobile ? "w-full" : "w-[260px]"
       }`}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-neutral-800 p-3">
+      <div className="flex items-center justify-between px-3 pt-4 pb-2">
         <button
           onClick={onNewChat}
-          className="flex items-center gap-2 rounded-lg bg-neutral-800 px-3 py-2 text-sm text-neutral-200 transition-colors hover:bg-neutral-700"
+          className="flex items-center gap-1.5 rounded-lg border border-neutral-700/50 px-3 py-1.5 text-[13px] font-medium text-neutral-300 transition-colors hover:border-neutral-600 hover:bg-neutral-800/50 hover:text-white"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-3.5 w-3.5" />
           New Chat
         </button>
         {mobile && onClose && (
-          <button onClick={onClose} className="p-1 text-neutral-400 hover:text-white">
-            <X className="h-5 w-5" />
+          <button onClick={onClose} className="p-1 text-neutral-500 hover:text-white">
+            <X className="h-4 w-4" />
           </button>
         )}
       </div>
 
-      {/* Search */}
-      <div className="border-b border-neutral-800 p-3">
-        <div className="flex items-center gap-2 rounded-lg bg-neutral-800 px-3 py-1.5">
-          <Search className="h-3.5 w-3.5 text-neutral-500" />
+      <div className="px-3 py-2">
+        <div className="flex items-center gap-2 rounded-lg border border-neutral-800/40 bg-neutral-900/50 px-2.5 py-1.5">
+          <Search className="h-3 w-3 text-neutral-600" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Search conversations..."
-            className="flex-1 bg-transparent text-sm text-neutral-200 placeholder-neutral-500 outline-none"
+            placeholder="Search..."
+            className="w-full bg-transparent text-[13px] text-neutral-300 placeholder-neutral-600 outline-none"
           />
         </div>
       </div>
 
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto">
-        {/* Search results */}
+      <div className="flex-1 overflow-y-auto px-2">
         {displayList && (
-          <div className="p-2">
-            <p className="px-2 pb-1 text-xs font-medium text-neutral-500">
-              Search results
-            </p>
+          <div className="py-1">
+            <SectionLabel>Search results</SectionLabel>
             {displayList.length === 0 && (
-              <p className="px-2 py-4 text-center text-xs text-neutral-600">
-                No conversations matching &ldquo;{searchQuery}&rdquo;
+              <p className="px-2 py-6 text-center text-[12px] text-neutral-600">
+                No matches for &ldquo;{searchQuery}&rdquo;
               </p>
             )}
             {displayList.map((r) => (
@@ -107,137 +101,123 @@ export function ChatSidebar({
                   onSelectConversation(r.id);
                   setSearchQuery("");
                 }}
-                className="w-full rounded-lg px-2 py-2 text-left text-sm text-neutral-300 hover:bg-neutral-800"
+                className="w-full rounded-lg px-2 py-1.5 text-left text-[13px] text-neutral-400 hover:bg-neutral-800/60 hover:text-neutral-200"
               >
                 <span className="block truncate">{r.title}</span>
-                {r.snippet && (
-                  <span className="mt-0.5 block truncate text-xs text-neutral-500">
-                    {r.snippet}
-                  </span>
-                )}
               </button>
             ))}
           </div>
         )}
 
-        {/* Recent conversations */}
         {!displayList && (
-          <div className="p-2">
-            <p className="px-2 pb-1 text-xs font-medium text-neutral-500">
-              Recent
-            </p>
+          <>
+            <SectionLabel>Recent</SectionLabel>
             {conversations.length === 0 && (
-              <p className="px-2 py-4 text-center text-xs text-neutral-600">
+              <p className="px-2 py-6 text-center text-[12px] text-neutral-600">
                 No chats yet. Start one.
               </p>
             )}
             {conversations.map((c) => (
               <div
                 key={c.id}
-                className={`group flex items-center rounded-lg px-2 py-2 ${
+                className={`group flex items-center rounded-lg px-2 py-1.5 ${
                   c.id === activeId
-                    ? "bg-neutral-800 text-white"
-                    : "text-neutral-300 hover:bg-neutral-800/50"
+                    ? "bg-neutral-800/70 text-white"
+                    : "text-neutral-400 hover:bg-neutral-800/40 hover:text-neutral-200"
                 }`}
               >
                 <button
                   onClick={() => onSelectConversation(c.id)}
                   className="flex min-w-0 flex-1 items-center gap-2"
                 >
-                  <MessageSquare className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
-                  <span className="truncate text-sm">{c.title}</span>
+                  <MessageSquare className="h-3 w-3 shrink-0 text-neutral-600" />
+                  <span className="truncate text-[13px]">{c.title}</span>
                 </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     onDeleteConversation(c.id);
                   }}
-                  className="shrink-0 p-1 text-neutral-600 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
+                  className="shrink-0 p-0.5 text-neutral-700 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-3 w-3" />
                 </button>
               </div>
             ))}
-          </div>
+          </>
         )}
 
-        {/* Navigation sections */}
-        <div className="border-t border-neutral-800 p-2">
-          <CollapsibleSection
+        <div className="mt-4 border-t border-neutral-800/40 pt-2">
+          <NavSection
             label="Skills"
             icon={Sparkles}
             open={skillsOpen}
             onToggle={() => setSkillsOpen(!skillsOpen)}
-          >
-            <Link
-              href="/account/skills"
-              className="block rounded-lg px-8 py-1.5 text-sm text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
-            >
-              View all skills
-            </Link>
-          </CollapsibleSection>
-
-          <CollapsibleSection
+            href="/account/skills"
+          />
+          <NavSection
             label="Workflows"
             icon={GitBranch}
             open={workflowsOpen}
             onToggle={() => setWorkflowsOpen(!workflowsOpen)}
-          >
-            <Link
-              href="/account/workflows"
-              className="block rounded-lg px-8 py-1.5 text-sm text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
-            >
-              View all workflows
-            </Link>
-          </CollapsibleSection>
-
-          <CollapsibleSection
+            href="/account/workflows"
+          />
+          <NavSection
             label="History"
             icon={Clock}
             open={historyOpen}
             onToggle={() => setHistoryOpen(!historyOpen)}
-          >
-            <Link
-              href="/account/history"
-              className="block rounded-lg px-8 py-1.5 text-sm text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
-            >
-              View activity history
-            </Link>
-          </CollapsibleSection>
+            href="/account/history"
+          />
         </div>
       </div>
     </div>
   );
 }
 
-function CollapsibleSection({
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="px-2 py-1.5 text-[11px] font-medium uppercase tracking-wider text-neutral-600">
+      {children}
+    </p>
+  );
+}
+
+function NavSection({
   label,
   icon: Icon,
   open,
   onToggle,
-  children,
+  href,
 }: {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   open: boolean;
   onToggle: () => void;
-  children: React.ReactNode;
+  href: string;
 }) {
   return (
     <div>
       <button
         onClick={onToggle}
-        className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
+        className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-neutral-500 transition-colors hover:bg-neutral-800/40 hover:text-neutral-300"
       >
         {open ? (
-          <ChevronDown className="h-3.5 w-3.5" />
+          <ChevronDown className="h-3 w-3" />
         ) : (
-          <ChevronRight className="h-3.5 w-3.5" />
+          <ChevronRight className="h-3 w-3" />
         )}
         <Icon className="h-3.5 w-3.5" />
         {label}
       </button>
-      {open && children}
+      {open && (
+        <Link
+          href={href}
+          className="block rounded-lg py-1 pl-9 pr-2 text-[12px] text-neutral-500 hover:bg-neutral-800/40 hover:text-neutral-300"
+        >
+          View all {label.toLowerCase()}
+        </Link>
+      )}
     </div>
   );
 }

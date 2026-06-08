@@ -145,7 +145,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
   const showEmpty = !activeConversation && messages.length === 0;
 
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden">
+    <div className="flex h-dvh overflow-hidden bg-neutral-950">
       {/* Desktop sidebar */}
       <div className="hidden md:block">
         <ChatSidebar
@@ -183,33 +183,33 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
       )}
 
       {/* Main chat area */}
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col bg-neutral-950">
         {/* Mobile header */}
-        <div className="flex items-center gap-3 border-b border-neutral-800 px-4 py-2 md:hidden">
+        <div className="flex items-center gap-3 border-b border-neutral-800/50 bg-neutral-950 px-4 py-2.5 md:hidden">
           <button
             onClick={() => setDrawerOpen(true)}
-            className="p-1 text-neutral-400 hover:text-white"
+            className="p-1 text-neutral-500 hover:text-white"
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="truncate text-sm text-neutral-300">
+          <span className="truncate text-[13px] font-medium text-neutral-300">
             {activeConversation?.title ?? "New Chat"}
           </span>
         </div>
 
         {/* Messages or empty state */}
-        <div className="flex-1 overflow-y-auto px-4">
+        <div className="flex flex-1 flex-col overflow-y-auto">
           {showEmpty ? (
             <ChatEmptyState
               displayName={displayName}
               onSuggestion={handleSuggestion}
             />
           ) : (
-            <div className="mx-auto max-w-3xl py-4">
+            <div className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">
               {hasMore && (
                 <button
                   onClick={loadMore}
-                  className="mx-auto mb-4 block rounded-lg border border-neutral-700 px-4 py-2 text-xs text-neutral-400 hover:bg-neutral-800"
+                  className="mx-auto mb-6 block rounded-full border border-neutral-800 px-4 py-1.5 text-[12px] text-neutral-500 transition-colors hover:border-neutral-700 hover:bg-neutral-900 hover:text-neutral-300"
                 >
                   Load earlier messages
                 </button>
@@ -238,7 +238,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
 
         {/* Pending skill form */}
         {pendingSkill && (
-          <div className="border-t border-neutral-800 px-4">
+          <div className="border-t border-neutral-800/40 px-4">
             <div className="mx-auto max-w-3xl">
               <ChatSkillForm
                 skillName={pendingSkill.skillName}
@@ -253,12 +253,15 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
         )}
 
         {/* Input area */}
-        <div className="border-t border-neutral-800 px-4 py-3">
+        <div className="shrink-0 px-4 pb-4 pt-2">
           <div className="mx-auto max-w-3xl">
             {isSending && (
-              <p className="mb-2 text-xs text-amber-500">
-                Thinking with {activeConversation?.model ?? DEFAULT_MODEL}...
-              </p>
+              <div className="mb-2 flex items-center gap-2">
+                <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
+                <p className="text-[12px] text-neutral-500">
+                  {activeConversation?.model?.split("/").pop() ?? "Claude"} is thinking...
+                </p>
+              </div>
             )}
             <ChatInput
               value={input}
@@ -267,10 +270,13 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
               disabled={isSending || isExecutingSkill}
               placeholder={
                 showEmpty
-                  ? "Start a conversation... (type /run to use a skill)"
-                  : "Type a message... (/run to use a skill)"
+                  ? "Ask anything... or type /run to use a skill"
+                  : "Message..."
               }
             />
+            <p className="mt-2 text-center text-[11px] text-neutral-700">
+              AI responses may be inaccurate. Verify before acting.
+            </p>
           </div>
         </div>
       </div>

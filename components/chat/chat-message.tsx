@@ -3,7 +3,7 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Bot, User, Copy, Check } from "lucide-react";
+import { Copy, Check } from "lucide-react";
 
 interface ChatMessageProps {
   role: "user" | "assistant" | "system";
@@ -30,58 +30,56 @@ export function ChatMessage({
   }
 
   return (
-    <div className={`group flex gap-3 py-4 ${isUser ? "" : "bg-neutral-900/30"}`}>
-      <div
-        className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-          isUser
-            ? "bg-blue-600 text-white"
-            : "bg-neutral-700 text-neutral-300"
-        }`}
-      >
-        {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-      </div>
+    <div className={`group py-5 ${isUser ? "" : ""}`}>
+      <div className="flex gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="mb-1.5 flex items-center gap-2">
+            <span
+              className={`text-[12px] font-semibold uppercase tracking-wide ${
+                isUser ? "text-neutral-500" : "text-blue-400/70"
+              }`}
+            >
+              {isUser ? "You" : "Archos"}
+            </span>
+            {isInterrupted && (
+              <span className="rounded-full bg-amber-900/30 px-2 py-0.5 text-[10px] font-medium text-amber-400">
+                Interrupted
+              </span>
+            )}
+            {isStreaming && (
+              <span className="flex items-center gap-1.5 text-[11px] text-neutral-600">
+                <span className="inline-block h-1 w-1 animate-pulse rounded-full bg-blue-500" />
+                typing
+              </span>
+            )}
+          </div>
 
-      <div className="min-w-0 flex-1">
-        <div className="mb-1 flex items-center gap-2">
-          <span className="text-xs font-medium text-neutral-500">
-            {isUser ? "You" : "Assistant"}
-          </span>
-          {model && !isUser && (
-            <span className="text-xs text-neutral-600">{model}</span>
+          {isUser ? (
+            <div className="whitespace-pre-wrap text-[15px] leading-[1.7] text-neutral-200">
+              {content}
+            </div>
+          ) : (
+            <div className="prose prose-invert prose-sm max-w-none text-neutral-300 prose-headings:text-neutral-200 prose-p:leading-[1.7] prose-a:text-blue-400 prose-code:text-neutral-200 prose-pre:bg-neutral-900 prose-pre:border prose-pre:border-neutral-800">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {content}
+              </ReactMarkdown>
+            </div>
           )}
-          {isStreaming && (
-            <span className="text-xs text-amber-500">Generating...</span>
-          )}
-          {isInterrupted && (
-            <span className="text-xs text-red-400">Interrupted</span>
+
+          {!isUser && content && !isStreaming && (
+            <button
+              onClick={handleCopy}
+              className="mt-3 flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-neutral-600 opacity-0 transition-all hover:bg-neutral-800 hover:text-neutral-400 group-hover:opacity-100"
+            >
+              {copied ? (
+                <Check className="h-3 w-3" />
+              ) : (
+                <Copy className="h-3 w-3" />
+              )}
+              {copied ? "Copied" : "Copy"}
+            </button>
           )}
         </div>
-
-        {isUser ? (
-          <div className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-200">
-            {content}
-          </div>
-        ) : (
-          <div className="prose prose-invert prose-sm max-w-none text-neutral-200">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {content}
-            </ReactMarkdown>
-          </div>
-        )}
-
-        {!isUser && content && !isStreaming && (
-          <button
-            onClick={handleCopy}
-            className="mt-2 flex items-center gap-1 text-xs text-neutral-500 opacity-0 transition-opacity hover:text-neutral-300 group-hover:opacity-100"
-          >
-            {copied ? (
-              <Check className="h-3 w-3" />
-            ) : (
-              <Copy className="h-3 w-3" />
-            )}
-            {copied ? "Copied" : "Copy"}
-          </button>
-        )}
       </div>
     </div>
   );
