@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { executeSkillSchema } from "@/lib/skills/validation";
 import * as skillService from "@/lib/skills/service";
 import { executeSkill, ExecuteError } from "@/lib/skills/execute";
+import { recordSkillExecution } from "@/lib/skills/execution-tracking";
 
 export const runtime = "nodejs";
 
@@ -61,6 +62,19 @@ export async function POST(
       temperature: skill.temperature ? Number(skill.temperature) : undefined,
       maxTokens: skill.maxTokens ?? undefined,
     });
+
+    try {
+      await recordSkillExecution({
+        userId: auth.user.id,
+        skillId: skill.id,
+        model,
+        tokenCount: result.usage
+          ? result.usage.inputTokens + result.usage.outputTokens
+          : null,
+      });
+    } catch (trackingErr) {
+      console.error("[skills/execute] Failed to record execution:", trackingErr);
+    }
 
     return NextResponse.json(result);
   } catch (err) {

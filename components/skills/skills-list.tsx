@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import {
   RefreshCw,
   Sparkles,
@@ -33,6 +34,15 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   plan: ClipboardList,
 };
 
+const CATEGORY_COLORS: Record<string, string> = {
+  repurpose: "var(--color-category-repurpose)",
+  generate: "var(--color-category-generate)",
+  research: "var(--color-category-research)",
+  transform: "var(--color-category-transform)",
+  extract: "var(--color-category-extract)",
+  plan: "var(--color-category-plan)",
+};
+
 function CategoryIcon({ category }: { category: string }) {
   const Icon = CATEGORY_ICONS[category] ?? Sparkles;
   return <Icon className="h-4 w-4" />;
@@ -45,6 +55,15 @@ function formatDate(date: string): string {
     year: "numeric",
   });
 }
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 8 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.05, type: "spring" as const, stiffness: 100, damping: 10 },
+  }),
+};
 
 export function SkillsList() {
   const [skills, setSkills] = useState<SkillSummary[]>([]);
@@ -64,7 +83,7 @@ export function SkillsList() {
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-20 animate-pulse rounded-lg border border-hairline bg-surface-1"
+            className="h-[72px] animate-pulse rounded-lg border border-hairline bg-surface-1"
           />
         ))}
       </div>
@@ -75,13 +94,16 @@ export function SkillsList() {
     return (
       <div className="rounded-lg border border-dashed border-hairline bg-surface-1 px-6 py-12 text-center">
         <Sparkles className="mx-auto h-8 w-8 text-ink-tertiary" />
-        <p className="mt-3 text-sm font-medium text-ink">No skills yet</p>
-        <p className="mt-1 text-xs text-ink-subtle">
-          Create your first AI skill to get started.
+        <h3 className="mt-4 text-sm font-medium text-ink">
+          Create your first AI skill
+        </h3>
+        <p className="mx-auto mt-2 max-w-xs text-xs text-ink-subtle">
+          Skills are reusable AI prompts you can run with different inputs.
+          Build one to get started.
         </p>
         <Link
           href="/account/skills/new"
-          className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
+          className="mt-5 inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover"
         >
           <Plus className="h-4 w-4" />
           New Skill
@@ -98,7 +120,7 @@ export function SkillsList() {
         </p>
         <Link
           href="/account/skills/new"
-          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
+          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover"
         >
           <Plus className="h-3.5 w-3.5" />
           New Skill
@@ -106,18 +128,34 @@ export function SkillsList() {
       </div>
 
       <ul className="space-y-2">
-        {skills.map((s) => (
-          <li key={s.id}>
+        {skills.map((s, i) => (
+          <motion.li
+            key={s.id}
+            custom={i}
+            variants={cardVariants}
+            initial="hidden"
+            animate="visible"
+          >
             <Link
               href={`/account/skills/${s.id}`}
-              className="flex items-center justify-between rounded-lg border border-hairline bg-surface-1 px-5 py-3 transition-colors duration-150 hover:border-hairline-strong hover:bg-surface-2"
+              className="group flex items-center justify-between rounded-lg border border-hairline bg-surface-1 px-5 py-3 transition-colors duration-150 hover:border-hairline-strong hover:bg-surface-2"
+              style={{
+                borderLeftWidth: "3px",
+                borderLeftColor: CATEGORY_COLORS[s.category] ?? "var(--color-hairline)",
+              }}
             >
               <div className="flex items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <span
+                  className="flex h-8 w-8 items-center justify-center rounded-md"
+                  style={{
+                    backgroundColor: `color-mix(in srgb, ${CATEGORY_COLORS[s.category] ?? "var(--color-primary)"} 10%, transparent)`,
+                    color: CATEGORY_COLORS[s.category] ?? "var(--color-primary)",
+                  }}
+                >
                   <CategoryIcon category={s.category} />
                 </span>
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-medium text-ink">
+                  <span className="text-sm font-medium text-ink group-hover:text-primary-hover transition-colors">
                     {s.name}
                   </span>
                   <span className="line-clamp-1 text-xs text-ink-subtle">
@@ -126,7 +164,13 @@ export function SkillsList() {
                 </div>
               </div>
               <div className="flex flex-col items-end gap-0.5">
-                <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-medium text-ink-subtle">
+                <span
+                  className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                  style={{
+                    backgroundColor: `color-mix(in srgb, ${CATEGORY_COLORS[s.category] ?? "var(--color-primary)"} 10%, transparent)`,
+                    color: CATEGORY_COLORS[s.category] ?? "var(--color-ink-subtle)",
+                  }}
+                >
                   {s.category}
                 </span>
                 <span className="text-[11px] text-ink-tertiary">
@@ -134,7 +178,7 @@ export function SkillsList() {
                 </span>
               </div>
             </Link>
-          </li>
+          </motion.li>
         ))}
       </ul>
     </div>

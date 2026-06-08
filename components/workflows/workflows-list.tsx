@@ -80,9 +80,12 @@ export function WorkflowsList() {
     return (
       <div className="rounded-lg border border-dashed border-hairline bg-surface-1 px-6 py-12 text-center">
         <GitBranch className="mx-auto h-8 w-8 text-ink-tertiary" />
-        <p className="mt-3 text-sm font-medium text-ink">No workflows yet</p>
-        <p className="mt-1 text-xs text-ink-subtle">
-          Create your first AI orchestration pipeline.
+        <h3 className="mt-4 text-sm font-medium text-ink">
+          Build your first workflow
+        </h3>
+        <p className="mx-auto mt-2 max-w-xs text-xs text-ink-subtle">
+          Workflows chain multiple AI skills into automated pipelines. Define
+          steps, connect inputs to outputs, and run them in sequence.
         </p>
         <Link
           href="/account/workflows/new"
