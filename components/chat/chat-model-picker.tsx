@@ -46,7 +46,7 @@ export function ChatModelPicker({ value, onChange }: ChatModelPickerProps) {
       </button>
 
       {open && (
-        <div className="absolute bottom-full right-0 z-50 mb-1 w-80 rounded-lg border border-hairline bg-surface-1 py-1 shadow-xl">
+        <div className="absolute bottom-full right-0 z-50 mb-1 max-h-[60vh] w-80 overflow-y-auto rounded-lg border border-hairline bg-surface-1 py-1 shadow-xl">
           <p className="px-3 py-1.5 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
             Select model
           </p>
