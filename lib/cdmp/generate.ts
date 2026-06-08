@@ -1,9 +1,21 @@
 import "server-only";
+import { randomInt } from "node:crypto";
 import { generateStructured } from "@/lib/claude";
 import { searchKnowledge, type SearchResult } from "@/lib/knowledge/search";
 import { getCdmpConfig } from "./config";
 import type { ChapterDistribution } from "./weights";
 import type { CdmpConfig } from "./config-shared";
+
+const CODES = ["A", "B", "C", "D", "E"] as const;
+
+function shuffleArray<T>(arr: T[]): T[] {
+  const shuffled = [...arr];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1);
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
 
 export interface GeneratedQuestion {
   questionText: string;
@@ -74,16 +86,25 @@ STATED CORRECT ANSWER: ${q.correct_answer}`,
         continue;
       }
 
+      const originalLabels = [
+        q.options.A,
+        q.options.B,
+        q.options.C,
+        q.options.D,
+        q.options.E,
+      ];
+      const correctLabel = q.options[q.correct_answer];
+      const shuffled = shuffleArray(originalLabels);
+      const options = shuffled.map((label, idx) => ({
+        code: CODES[idx],
+        label,
+      }));
+      const correctAnswer = options.find((o) => o.label === correctLabel)!.code;
+
       return {
         questionText: q.question,
-        options: [
-          { code: "A", label: q.options.A },
-          { code: "B", label: q.options.B },
-          { code: "C", label: q.options.C },
-          { code: "D", label: q.options.D },
-          { code: "E", label: q.options.E },
-        ],
-        correctAnswer: q.correct_answer,
+        options,
+        correctAnswer,
         explanation: q.explanation,
         knowledgeArea,
         dmbokChapterRef: q.dmbok_chapter || chapterRef,
