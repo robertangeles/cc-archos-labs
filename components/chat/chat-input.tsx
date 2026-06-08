@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, KeyboardEvent, type ReactNode } from "react";
-import { ArrowUp, Plus, Search, Globe, Sparkles, X } from "lucide-react";
+import { ArrowUp, Plus, Search, Globe, Sparkles, X, Paperclip } from "lucide-react";
 
 interface ChatInputProps {
   value: string;
@@ -75,7 +75,16 @@ export function ChatInput({
         className="block max-h-[160px] min-h-[56px] w-full resize-none bg-transparent px-4 pt-3 pb-1 text-[15px] leading-relaxed text-ink placeholder-ink-tertiary outline-none"
       />
       <div className="flex items-center justify-between px-3 pb-2.5">
-        {/* Left: tools button */}
+        {/* Left: attach + tools */}
+        <div className="flex items-center gap-1">
+        <button
+          type="button"
+          title="Attach files (coming soon)"
+          className="flex h-7 w-7 items-center justify-center rounded-md text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink-subtle"
+          onClick={() => {}}
+        >
+          <Paperclip className="h-4 w-4" />
+        </button>
         <div ref={toolsRef} className="relative">
           <button
             type="button"
@@ -109,6 +118,7 @@ export function ChatInput({
               ))}
             </div>
           )}
+        </div>
         </div>
 
         {/* Right: model picker + send */}
