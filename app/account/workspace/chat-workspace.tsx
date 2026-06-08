@@ -10,7 +10,7 @@ import { ChatSidebar } from "@/components/chat/chat-sidebar";
 import { ChatSkillForm } from "@/components/chat/chat-skill-form";
 import { ChatModelPicker } from "@/components/chat/chat-model-picker";
 
-const DEFAULT_MODEL = "anthropic/claude-sonnet-4-6";
+const DEFAULT_MODEL = "anthropic/claude-sonnet-4.6";
 
 const THINKING_VERBS = [
   "Reasoning",
