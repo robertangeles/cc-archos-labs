@@ -50,7 +50,7 @@ export function ChatInput({
         placeholder={placeholder}
         disabled={disabled}
         rows={1}
-        className="block max-h-[160px] min-h-[48px] w-full resize-none bg-transparent py-3.5 pr-14 pl-4 text-[15px] leading-relaxed text-neutral-100 placeholder-neutral-500 outline-none"
+        className="block max-h-[200px] min-h-[96px] w-full resize-none bg-transparent py-4 pr-14 pl-4 text-[15px] leading-relaxed text-neutral-100 placeholder-neutral-500 outline-none"
       />
       <button
         onClick={onSend}
