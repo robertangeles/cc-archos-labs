@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-08T01:22:24.687Z
+generated: 2026-06-08T07:46:30.028Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -9,7 +9,7 @@ Auto-generated snapshot of what is currently shipped. **Source of truth for ship
 
 Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `app/` or `components/` to fire the pre-commit hook.
 
-## Routes (57)
+## Routes (58)
 
 | Route | File | Last shipped |
 |-------|------|--------------|
@@ -22,7 +22,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-27 |
 | `/account` | [app/account/page.tsx](../app/account/page.tsx) | 2026-06-07 |
 | `/account/history` | [app/account/history/page.tsx](../app/account/history/page.tsx) | 2026-06-07 |
-| `/account/personalisation` | [app/account/personalisation/page.tsx](../app/account/personalisation/page.tsx) | unknown |
+| `/account/personalisation` | [app/account/personalisation/page.tsx](../app/account/personalisation/page.tsx) | 2026-06-08 |
 | `/account/skills` | [app/account/skills/page.tsx](../app/account/skills/page.tsx) | 2026-06-07 |
 | `/account/skills/[id]` | [app/account/skills/[id]/page.tsx](../app/account/skills/[id]/page.tsx) | 2026-06-07 |
 | `/account/skills/[id]/edit` | [app/account/skills/[id]/edit/page.tsx](../app/account/skills/[id]/edit/page.tsx) | 2026-06-07 |
@@ -63,6 +63,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/book/manage/[token]/reschedule` | [app/book/manage/[token]/reschedule/page.tsx](../app/book/manage/[token]/reschedule/page.tsx) | 2026-05-17 |
 | `/consulting` | [app/consulting/page.tsx](../app/consulting/page.tsx) | 2026-05-27 |
 | `/contact` | [app/contact/page.tsx](../app/contact/page.tsx) | 2026-05-22 |
+| `/share/chat/[token]` | [app/share/chat/[token]/page.tsx](../app/share/chat/[token]/page.tsx) | 2026-06-08 |
 | `/sign-in` | [app/sign-in/page.tsx](../app/sign-in/page.tsx) | 2026-05-12 |
 | `/sign-in/check-email` | [app/sign-in/check-email/page.tsx](../app/sign-in/check-email/page.tsx) | 2026-05-15 |
 | `/tools/ai-readiness` | [app/tools/ai-readiness/page.tsx](../app/tools/ai-readiness/page.tsx) | 2026-06-03 |
@@ -71,7 +72,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-06-03 |
 | `/tools/cdmp-practice/history/[sessionId]` | [app/tools/cdmp-practice/history/[sessionId]/page.tsx](../app/tools/cdmp-practice/history/[sessionId]/page.tsx) | 2026-06-03 |
 
-## API endpoints (90)
+## API endpoints (96)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -142,6 +143,12 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/cdmp/history` | [app/api/cdmp/history/route.ts](../app/api/cdmp/history/route.ts) | 2026-06-03 |
 | `/api/cdmp/results/[sessionId]` | [app/api/cdmp/results/[sessionId]/route.ts](../app/api/cdmp/results/[sessionId]/route.ts) | 2026-06-03 |
 | `/api/cdmp/start` | [app/api/cdmp/start/route.ts](../app/api/cdmp/start/route.ts) | 2026-06-03 |
+| `/api/chat/conversations` | [app/api/chat/conversations/route.ts](../app/api/chat/conversations/route.ts) | 2026-06-08 |
+| `/api/chat/conversations/[id]` | [app/api/chat/conversations/[id]/route.ts](../app/api/chat/conversations/[id]/route.ts) | 2026-06-08 |
+| `/api/chat/conversations/[id]/messages` | [app/api/chat/conversations/[id]/messages/route.ts](../app/api/chat/conversations/[id]/messages/route.ts) | 2026-06-08 |
+| `/api/chat/conversations/[id]/share` | [app/api/chat/conversations/[id]/share/route.ts](../app/api/chat/conversations/[id]/share/route.ts) | 2026-06-08 |
+| `/api/chat/conversations/search` | [app/api/chat/conversations/search/route.ts](../app/api/chat/conversations/search/route.ts) | 2026-06-08 |
+| `/api/chat/slash-command` | [app/api/chat/slash-command/route.ts](../app/api/chat/slash-command/route.ts) | 2026-06-08 |
 | `/api/contact` | [app/api/contact/route.ts](../app/api/contact/route.ts) | 2026-05-15 |
 | `/api/cron/process-scheduled` | [app/api/cron/process-scheduled/route.ts](../app/api/cron/process-scheduled/route.ts) | 2026-05-17 |
 | `/api/cron/process-scheduled-posts` | [app/api/cron/process-scheduled-posts/route.ts](../app/api/cron/process-scheduled-posts/route.ts) | 2026-05-20 |
@@ -153,20 +160,20 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/diagnostic/share/[id]/revoke` | [app/api/diagnostic/share/[id]/revoke/route.ts](../app/api/diagnostic/share/[id]/revoke/route.ts) | 2026-06-03 |
 | `/api/events` | [app/api/events/route.ts](../app/api/events/route.ts) | 2026-05-18 |
 | `/api/health/cron` | [app/api/health/cron/route.ts](../app/api/health/cron/route.ts) | 2026-05-17 |
-| `/api/rules` | [app/api/rules/route.ts](../app/api/rules/route.ts) | unknown |
-| `/api/rules/[id]` | [app/api/rules/[id]/route.ts](../app/api/rules/[id]/route.ts) | unknown |
-| `/api/rules/[id]/toggle` | [app/api/rules/[id]/toggle/route.ts](../app/api/rules/[id]/toggle/route.ts) | unknown |
+| `/api/rules` | [app/api/rules/route.ts](../app/api/rules/route.ts) | 2026-06-08 |
+| `/api/rules/[id]` | [app/api/rules/[id]/route.ts](../app/api/rules/[id]/route.ts) | 2026-06-08 |
+| `/api/rules/[id]/toggle` | [app/api/rules/[id]/toggle/route.ts](../app/api/rules/[id]/toggle/route.ts) | 2026-06-08 |
 | `/api/skills` | [app/api/skills/route.ts](../app/api/skills/route.ts) | 2026-06-07 |
 | `/api/skills/[id]` | [app/api/skills/[id]/route.ts](../app/api/skills/[id]/route.ts) | 2026-06-07 |
 | `/api/skills/[id]/execute` | [app/api/skills/[id]/execute/route.ts](../app/api/skills/[id]/execute/route.ts) | 2026-06-08 |
 | `/api/skills/[id]/versions` | [app/api/skills/[id]/versions/route.ts](../app/api/skills/[id]/versions/route.ts) | 2026-06-07 |
-| `/api/skills/models` | [app/api/skills/models/route.ts](../app/api/skills/models/route.ts) | 2026-06-07 |
+| `/api/skills/models` | [app/api/skills/models/route.ts](../app/api/skills/models/route.ts) | 2026-06-08 |
 | `/api/workflows` | [app/api/workflows/route.ts](../app/api/workflows/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]` | [app/api/workflows/[id]/route.ts](../app/api/workflows/[id]/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]/duplicate` | [app/api/workflows/[id]/duplicate/route.ts](../app/api/workflows/[id]/duplicate/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]/execute` | [app/api/workflows/[id]/execute/route.ts](../app/api/workflows/[id]/execute/route.ts) | 2026-06-07 |
 
-## Components (82)
+## Components (88)
 
 | File | Last shipped |
 |------|--------------|
@@ -185,6 +192,12 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/blog/social-share.tsx](../components/blog/social-share.tsx) | 2026-05-22 |
 | [components/blog/toc.tsx](../components/blog/toc.tsx) | 2026-05-20 |
 | [components/booking/calendar-picker.tsx](../components/booking/calendar-picker.tsx) | 2026-05-17 |
+| [components/chat/chat-empty-state.tsx](../components/chat/chat-empty-state.tsx) | 2026-06-08 |
+| [components/chat/chat-input.tsx](../components/chat/chat-input.tsx) | 2026-06-08 |
+| [components/chat/chat-message.tsx](../components/chat/chat-message.tsx) | 2026-06-08 |
+| [components/chat/chat-model-picker.tsx](../components/chat/chat-model-picker.tsx) | 2026-06-08 |
+| [components/chat/chat-sidebar.tsx](../components/chat/chat-sidebar.tsx) | 2026-06-08 |
+| [components/chat/chat-skill-form.tsx](../components/chat/chat-skill-form.tsx) | 2026-06-08 |
 | [components/contact/contact-form.tsx](../components/contact/contact-form.tsx) | 2026-05-15 |
 | [components/diagnostic/recommended-readings.tsx](../components/diagnostic/recommended-readings.tsx) | 2026-05-24 |
 | [components/icons/social.tsx](../components/icons/social.tsx) | 2026-05-22 |
@@ -211,8 +224,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/pages/blocks/timeline-block.tsx](../components/pages/blocks/timeline-block.tsx) | 2026-05-19 |
 | [components/pages/markdown-article.test.tsx](../components/pages/markdown-article.test.tsx) | 2026-05-18 |
 | [components/pages/markdown-article.tsx](../components/pages/markdown-article.tsx) | 2026-05-18 |
-| [components/rules/rule-form.tsx](../components/rules/rule-form.tsx) | unknown |
-| [components/rules/rules-list.tsx](../components/rules/rules-list.tsx) | unknown |
+| [components/rules/rule-form.tsx](../components/rules/rule-form.tsx) | 2026-06-08 |
+| [components/rules/rules-list.tsx](../components/rules/rules-list.tsx) | 2026-06-08 |
 | [components/sections/about/index.ts](../components/sections/about/index.ts) | 2026-05-18 |
 | [components/sections/about/person-card.tsx](../components/sections/about/person-card.tsx) | 2026-05-27 |
 | [components/sections/about/philosophy-block.tsx](../components/sections/about/philosophy-block.tsx) | 2026-05-27 |
@@ -233,7 +246,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/skills/skill-creator.tsx](../components/skills/skill-creator.tsx) | 2026-06-07 |
 | [components/skills/skill-detail.tsx](../components/skills/skill-detail.tsx) | 2026-06-08 |
 | [components/skills/skills-list.tsx](../components/skills/skills-list.tsx) | 2026-06-08 |
-| [components/skills/use-enabled-models.ts](../components/skills/use-enabled-models.ts) | 2026-06-07 |
+| [components/skills/use-enabled-models.ts](../components/skills/use-enabled-models.ts) | 2026-06-08 |
 | [components/ui/add-to-calendar-buttons.tsx](../components/ui/add-to-calendar-buttons.tsx) | 2026-05-15 |
 | [components/ui/button.tsx](../components/ui/button.tsx) | 2026-05-15 |
 | [components/ui/day-cell.tsx](../components/ui/day-cell.tsx) | 2026-05-15 |

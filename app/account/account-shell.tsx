@@ -43,12 +43,12 @@ export function AccountShell({
   if (isWorkspaceHome) {
     return (
       <>
-        <div className="mb-6 flex items-center justify-end">
-          {signOutButton}
-        </div>
-        <div className="min-w-0 pb-20 md:pb-0">{children}</div>
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-hairline bg-canvas/95 backdrop-blur-sm md:hidden">
-          <WorkspaceNav mobile />
+        <style>{`
+          footer { display: none !important; }
+          .account-wrapper { padding: 0 !important; max-width: 100% !important; }
+        `}</style>
+        <div className="mx-auto max-w-[1080px] px-6 md:px-12">
+          {children}
         </div>
       </>
     );

@@ -1389,6 +1389,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   workflows: many(workflow),
   workflowExecutionRuns: many(workflowExecutionRun),
   rules: many(userRule),
+  conversations: many(conversation),
+  conversationShares: many(conversationShare),
 }));
 
 export const oauthAccountRelations = relations(oauthAccount, ({ one }) => ({
@@ -2735,3 +2737,153 @@ export const userRuleRelations = relations(userRule, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+// ============================================================================
+// conversation — Chat (workspace feature)
+// ============================================================================
+// A persistent AI conversation. Each conversation belongs to one user,
+// has an optional system prompt for context, and tracks which OpenRouter
+// model is selected. Messages are in a separate normalized table.
+//
+// Normal form: 2NF. system_prompt is a scalar column (user-authored
+// context), not embedded in JSONB.
+
+export const conversation = pgTable(
+  "conversation",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 255 }).notNull().default("New Chat"),
+    model: varchar("model", { length: 100 }).notNull(),
+    systemPrompt: text("system_prompt"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // List conversations by owner, newest first.
+    index("conversation_user_id_idx").on(table.userId),
+  ],
+);
+
+export type Conversation = typeof conversation.$inferSelect;
+export type NewConversation = typeof conversation.$inferInsert;
+
+// ============================================================================
+// message — Chat messages
+// ============================================================================
+// Each row is one message in a conversation. role is 'user', 'assistant',
+// or 'system'. Assistant messages track which model produced them and
+// token usage. is_interrupted marks partial streaming saves.
+//
+// Normal form: 2NF. content is the raw text. No JSONB.
+
+export const message = pgTable(
+  "message",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => conversation.id, { onDelete: "cascade" }),
+    role: varchar("role", { length: 20 }).notNull(),
+    content: text("content").notNull(),
+    model: varchar("model", { length: 100 }),
+    tokens: integer("tokens").default(0),
+    isInterrupted: boolean("is_interrupted").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // Load messages for a conversation.
+    index("message_conversation_id_idx").on(table.conversationId),
+  ],
+);
+
+export type Message = typeof message.$inferSelect;
+export type NewMessage = typeof message.$inferInsert;
+
+// ============================================================================
+// conversation_share — Shareable conversation snapshots
+// ============================================================================
+// Snapshot model: content is captured as JSONB at share time. The share
+// link is self-contained — deleting the source conversation sets the FK
+// to null but the snapshot remains viewable until expiry.
+//
+// Normal form: 2NF. content is JSONB (permitted under CLAUDE.md exception
+// for snapshot/audit payloads). Shape: [{role, content, model, createdAt}].
+
+export const conversationShare = pgTable(
+  "conversation_share",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    token: uuid("token").notNull().unique().defaultRandom(),
+    conversationId: uuid("conversation_id").references(
+      () => conversation.id,
+      { onDelete: "set null" },
+    ),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 255 }),
+    content: jsonb("content").notNull(),
+    modelUsed: varchar("model_used", { length: 100 }),
+    expiresAt: timestamp("expires_at", { withTimezone: true })
+      .notNull()
+      .default(sql`NOW() + INTERVAL '30 days'`),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // Public page lookup by token.
+    index("conversation_share_token_idx").on(table.token),
+    // List shares by owner.
+    index("conversation_share_user_id_idx").on(table.userId),
+    // Check if conversation already has a share link.
+    index("conversation_share_conversation_id_idx").on(table.conversationId),
+  ],
+);
+
+export type ConversationShare = typeof conversationShare.$inferSelect;
+export type NewConversationShare = typeof conversationShare.$inferInsert;
+
+// Relations for chat tables
+
+export const conversationRelations = relations(
+  conversation,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [conversation.userId],
+      references: [users.id],
+    }),
+    messages: many(message),
+    shares: many(conversationShare),
+  }),
+);
+
+export const messageRelations = relations(message, ({ one }) => ({
+  conversation: one(conversation, {
+    fields: [message.conversationId],
+    references: [conversation.id],
+  }),
+}));
+
+export const conversationShareRelations = relations(
+  conversationShare,
+  ({ one }) => ({
+    conversation: one(conversation, {
+      fields: [conversationShare.conversationId],
+      references: [conversation.id],
+    }),
+    user: one(users, {
+      fields: [conversationShare.userId],
+      references: [users.id],
+    }),
+  }),
+);

@@ -2,10 +2,13 @@
 
 import { useState, useEffect } from "react";
 
-interface ModelEntry {
+export interface ModelEntry {
   id: string;
   name: string;
   provider: string;
+  description?: string;
+  inputCost?: number;
+  outputCost?: number;
 }
 
 export function useEnabledModels() {

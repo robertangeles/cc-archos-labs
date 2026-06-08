@@ -1,42 +1,9 @@
 import "server-only";
-import { getIntegrationConfig } from "./integration-config";
-
-// Server-only LLM client. Talks to OpenRouter's OpenAI-compatible
-// chat-completions endpoint. The provider-agnostic field names
-// (llmApiKey, llmModelId) in integration-config let us swap providers
-// later without changing this file's contract.
-//
-// Naming kept as `lib/claude.ts` for clarity: every call today still
-// goes to a Claude model. The transport is OpenRouter, not the
-// Anthropic SDK.
-
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-
-// Model id resolution: per-call override > admin-configured llmModelId.
-// No code-level default — the source of truth is /admin/integrations
-// (AI Model section → Model ID). Missing model id surfaces as a clear
-// configuration error rather than silently using whatever default the
-// source happened to ship with. Anthropic OpenRouter ids look like
-// "anthropic/claude-sonnet-4-6" or "anthropic/claude-opus-4-6".
-
-async function resolveLlmConfig(override?: string): Promise<{
-  apiKey: string;
-  modelId: string;
-}> {
-  const config = await getIntegrationConfig();
-  if (!config.llmApiKey) {
-    throw new Error(
-      "LLM API key missing from integration config — run pnpm migrate-integration-secrets or set OPENROUTER_API_KEY in env during the grace window.",
-    );
-  }
-  const modelId = override ?? config.llmModelId;
-  if (!modelId) {
-    throw new Error(
-      "LLM model ID not configured. Set it in /admin/integrations → AI Model → Model ID (e.g. anthropic/claude-sonnet-4-6).",
-    );
-  }
-  return { apiKey: config.llmApiKey, modelId };
-}
+import {
+  OPENROUTER_URL,
+  resolveLlmConfig,
+  buildAuthHeaders,
+} from "./llm/config";
 
 // ----------------------------------------------------------------------------
 // generateStructured — single Claude call returning typed JSON
@@ -91,13 +58,7 @@ export async function generateStructured<T>(
 
   const response = await fetch(OPENROUTER_URL, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      // OpenRouter analytics — optional but recommended.
-      "HTTP-Referer": "https://archoslabs.xyz",
-      "X-Title": "Archos Labs",
-    },
+    headers: buildAuthHeaders(apiKey),
     body: JSON.stringify({
       model: modelId,
       max_tokens: args.maxTokens,

@@ -187,7 +187,7 @@ export function RulesList() {
                           {rule.name}
                         </span>
                         <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                          {rule.category}
+                          {rule.category.charAt(0).toUpperCase() + rule.category.slice(1)}
                         </span>
                       </div>
                       <p className="mt-1.5 line-clamp-2 text-xs text-ink-subtle">
