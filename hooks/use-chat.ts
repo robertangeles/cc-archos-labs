@@ -94,7 +94,7 @@ export function useChat({ defaultModel }: UseChatOptions) {
   );
 
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, model?: string) => {
       if (isSending) return;
       let convoId = activeConversation?.id;
 
@@ -123,7 +123,7 @@ export function useChat({ defaultModel }: UseChatOptions) {
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content }),
+            body: JSON.stringify({ content, model }),
             signal: abortController.signal,
           },
         );

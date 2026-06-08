@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Menu } from "lucide-react";
 import { useChat } from "@/hooks/use-chat";
 import { ChatMessage } from "@/components/chat/chat-message";
@@ -11,6 +11,19 @@ import { ChatSkillForm } from "@/components/chat/chat-skill-form";
 import { ChatModelPicker } from "@/components/chat/chat-model-picker";
 
 const DEFAULT_MODEL = "anthropic/claude-sonnet-4.6";
+
+const THINKING_VERBS = [
+  "Reasoning",
+  "Analyzing",
+  "Composing",
+  "Reflecting",
+  "Thinking",
+  "Processing",
+  "Drafting",
+  "Considering",
+  "Synthesizing",
+  "Formulating",
+];
 
 interface ChatWorkspaceProps {
   displayName: string | null;
@@ -45,6 +58,15 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
   } | null>(null);
   const [isExecutingSkill, setIsExecutingSkill] = useState(false);
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
+  const [thinkingVerb, setThinkingVerb] = useState(THINKING_VERBS[0]);
+
+  useEffect(() => {
+    if (!isSending) return;
+    const interval = setInterval(() => {
+      setThinkingVerb(THINKING_VERBS[Math.floor(Math.random() * THINKING_VERBS.length)]);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [isSending]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -85,7 +107,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
     }
 
     setInput("");
-    sendMessage(text);
+    sendMessage(text, selectedModel);
   }
 
   async function handleExecuteSkill(skillId: string, inputValues: Record<string, string>) {
@@ -114,7 +136,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
 
   function handleSuggestion(text: string) {
     setInput("");
-    sendMessage(text);
+    sendMessage(text, selectedModel);
   }
 
   function handleSelectConversation(id: string) {
@@ -259,9 +281,9 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
           <div className="mx-auto max-w-3xl">
             {isSending && (
               <div className="mb-2 flex items-center gap-2">
-                <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
-                <p className="text-[12px] text-neutral-500">
-                  {activeConversation?.model?.split("/").pop() ?? "Claude"} is thinking...
+                <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+                <p className="text-[12px] text-ink-subtle">
+                  {thinkingVerb}...
                 </p>
               </div>
             )}
