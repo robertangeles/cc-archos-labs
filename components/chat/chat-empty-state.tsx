@@ -81,7 +81,7 @@ export function ChatEmptyState({
         {PARTICLES.map((p, i) => (
           <motion.div
             key={i}
-            className="absolute rounded-full bg-amber-500"
+            className="absolute rounded-full bg-primary"
             style={{ width: p.size, height: p.size }}
             initial={{ x: `${p.x}vw`, y: `${p.y}%`, opacity: 0 }}
             animate={{
@@ -103,9 +103,9 @@ export function ChatEmptyState({
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 ring-1 ring-amber-500/20"
+        className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/20"
       >
-        <MessageSquare className="h-8 w-8 text-amber-500" />
+        <MessageSquare className="h-8 w-8 text-primary" />
       </motion.div>
 
       {/* Greeting with language rotation */}
@@ -120,7 +120,7 @@ export function ChatEmptyState({
         <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
           {greeting.text}
           {name ? `, ${name}` : ""}
-          <span className="text-amber-500">.</span>
+          <span className="text-primary">.</span>
         </h1>
         <p className="mt-1.5 text-[13px] text-neutral-500">
           {greeting.language} — {greeting.region}
@@ -144,7 +144,7 @@ export function ChatEmptyState({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.2 + i * 0.06 }}
             onClick={() => onSuggestion(text)}
-            className="group flex items-start gap-3 rounded-xl border border-amber-500/10 bg-neutral-900/60 px-4 py-3.5 text-left transition-all duration-200 hover:border-amber-500/30 hover:bg-neutral-800/60"
+            className="group flex items-start gap-3 rounded-lg border border-hairline bg-surface-1 px-4 py-3.5 text-left transition-all duration-200 hover:border-hairline-strong hover:bg-surface-2"
           >
             <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${color}`} />
             <span className="text-sm leading-relaxed text-neutral-400 transition-colors group-hover:text-neutral-200">

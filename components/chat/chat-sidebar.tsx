@@ -55,7 +55,7 @@ export function ChatSidebar({
       <div className="flex items-center justify-between px-3 pt-3 pb-3">
         <button
           onClick={onNewChat}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-sky-600 py-2 text-[13px] font-medium text-white transition-colors hover:bg-sky-500"
+          className="flex w-full items-center justify-center gap-2 rounded-md bg-primary py-2 text-[14px] font-medium text-white transition-colors hover:bg-primary-hover"
         >
           <Plus className="h-4 w-4" />
           New Chat
@@ -117,7 +117,7 @@ export function ChatSidebar({
                 key={c.id}
                 className={`group flex items-center rounded-lg px-2 py-1.5 ${
                   c.id === activeId
-                    ? "bg-sky-600/10 text-sky-300"
+                    ? "bg-primary/10 text-primary"
                     : "text-neutral-400 hover:bg-neutral-800/40 hover:text-neutral-200"
                 }`}
               >

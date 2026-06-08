@@ -41,7 +41,7 @@ export function ChatInput({
   const canSend = !disabled && value.trim().length > 0;
 
   return (
-    <div className="relative rounded-2xl border border-amber-500/15 bg-neutral-900 shadow-lg shadow-amber-500/5 transition-colors focus-within:border-amber-500/30">
+    <div className="relative rounded-xl border border-hairline bg-surface-1 transition-colors focus-within:border-primary/50">
       <textarea
         ref={textareaRef}
         value={value}
@@ -57,7 +57,7 @@ export function ChatInput({
         disabled={!canSend}
         className={`absolute right-2.5 bottom-2.5 flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-150 ${
           canSend
-            ? "bg-amber-500 text-neutral-900 hover:bg-amber-400"
+            ? "bg-primary text-white hover:bg-primary-hover"
             : "bg-neutral-800 text-neutral-600"
         }`}
       >
