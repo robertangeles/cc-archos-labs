@@ -86,59 +86,53 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
 
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
-  const reader = openRouterResponse.body.getReader();
 
-  console.log("[stream] creating ReadableStream, starting to read chunks");
+  console.log("[stream] starting async read loop");
 
   const stream = new ReadableStream<Uint8Array>({
-    async pull(controller) {
+    async start(controller) {
+      const reader = openRouterResponse.body!.getReader();
       try {
-        const { done, value } = await reader.read();
-        if (done || aborted) {
-          console.log("[stream] reader done, closing. aborted:", aborted);
-          controller.close();
-          return;
-        }
-
-        const chunk = decoder.decode(value, { stream: true });
-        console.log("[stream] chunk received, length:", chunk.length, "preview:", chunk.slice(0, 80));
-        const lines = chunk.split("\n");
-
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const data = line.slice(6).trim();
-          if (data === "[DONE]") {
-            console.log("[stream] received [DONE]");
-            controller.close();
-            return;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done || aborted) {
+            console.log("[stream] done. aborted:", aborted, "buffer:", buffer.length, "chars");
+            break;
           }
 
-          try {
-            const parsed = JSON.parse(data);
-            const delta = parsed.choices?.[0]?.delta?.content;
-            if (delta) {
-              buffer += delta;
-              controller.enqueue(encoder.encode(delta));
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const data = line.slice(6).trim();
+            if (data === "[DONE]") {
+              console.log("[stream] [DONE] received, buffer:", buffer.length, "chars");
+              controller.close();
+              return;
             }
-            if (parsed.usage) {
-              _inputTokens = parsed.usage.prompt_tokens ?? 0;
-              outputTokens = parsed.usage.completion_tokens ?? 0;
+
+            try {
+              const parsed = JSON.parse(data);
+              const delta = parsed.choices?.[0]?.delta?.content;
+              if (delta) {
+                buffer += delta;
+                controller.enqueue(encoder.encode(delta));
+              }
+              if (parsed.usage) {
+                _inputTokens = parsed.usage.prompt_tokens ?? 0;
+                outputTokens = parsed.usage.completion_tokens ?? 0;
+              }
+            } catch {
+              // Skip malformed SSE chunks
             }
-          } catch {
-            // Skip malformed SSE chunks
           }
         }
       } catch (err) {
-        if (aborted) {
-          controller.close();
-        } else {
-          controller.error(err);
-        }
+        console.error("[stream] error:", err);
+        if (!aborted) controller.error(err);
       }
-    },
-    cancel() {
-      aborted = true;
-      reader.cancel().catch(() => {});
+      controller.close();
     },
   });
 
