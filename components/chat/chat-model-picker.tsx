@@ -79,11 +79,11 @@ export function ChatModelPicker({ value, onChange }: ChatModelPickerProps) {
                   {m.description}
                 </p>
               )}
-              {m.inputCost != null && (
-                <p className={`text-[11px] text-ink-tertiary ${m.id === value ? "pl-5" : ""}`}>
-                  ${m.inputCost}/M input · ${m.outputCost}/M output
-                </p>
-              )}
+              <p className={`text-[11px] text-ink-tertiary ${m.id === value ? "pl-5" : ""}`}>
+                {m.inputCost != null
+                  ? `$${m.inputCost}/M input · $${m.outputCost}/M output`
+                  : "Custom model · pricing varies"}
+              </p>
             </button>
           ))}
           {!models && (
