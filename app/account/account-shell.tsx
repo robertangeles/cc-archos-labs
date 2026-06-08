@@ -43,11 +43,12 @@ export function AccountShell({
   if (isWorkspaceHome) {
     return (
       <>
-        <style>{`footer { display: none !important; }`}</style>
-        <div className="-mx-6 -mt-16 -mb-32 md:-mx-12">
-          <div className="mx-auto max-w-[1080px] px-6 md:px-12">
-            {children}
-          </div>
+        <style>{`
+          footer { display: none !important; }
+          .account-wrapper { padding: 0 !important; max-width: 100% !important; }
+        `}</style>
+        <div className="mx-auto max-w-[1080px] px-6 md:px-12">
+          {children}
         </div>
       </>
     );
