@@ -58,7 +58,7 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     ? [{ role: "system" as const, content: systemParts.join("\n\n") }]
     : [];
 
-  const priorMessages = await loadConversationHistory(args.conversationId);
+  const priorMessages = await loadConversationHistory(args.conversationId, args.userId);
 
   const openRouterResponse = await fetch(OPENROUTER_URL, {
     method: "POST",
@@ -156,9 +156,15 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
   return { stream, cleanup };
 }
 
-async function loadConversationHistory(conversationId: string) {
+async function loadConversationHistory(conversationId: string, userId: string) {
   const db = (await import("../db")).getDb();
-  const { message: messageTable } = await import("../db/schema");
+  const { message: messageTable, conversation: convTable } = await import("../db/schema");
+  const [owner] = await db
+    .select({ id: convTable.id })
+    .from(convTable)
+    .where(and(eq(convTable.id, conversationId), eq(convTable.userId, userId)))
+    .limit(1);
+  if (!owner) return [];
   const msgs = await db
     .select({ role: messageTable.role, content: messageTable.content })
     .from(messageTable)
@@ -167,7 +173,7 @@ async function loadConversationHistory(conversationId: string) {
   return msgs.map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 }
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 export class StreamError extends Error {
   constructor(
@@ -181,15 +187,16 @@ export class StreamError extends Error {
 
 export async function generateTitle(
   conversationId: string,
+  userId: string,
   firstUserMessage: string,
 ): Promise<void> {
   try {
-    const { apiKey } = await resolveLlmConfig();
+    const { apiKey, modelId } = await resolveLlmConfig();
     const response = await fetch(OPENROUTER_URL, {
       method: "POST",
       headers: buildAuthHeaders(apiKey),
       body: JSON.stringify({
-        model: "anthropic/claude-haiku-4.5",
+        model: modelId,
         max_tokens: 20,
         messages: [
           {
@@ -215,7 +222,7 @@ export async function generateTitle(
     await db
       .update(conversation)
       .set({ title, updatedAt: new Date() })
-      .where(eq(conversation.id, conversationId));
+      .where(and(eq(conversation.id, conversationId), eq(conversation.userId, userId)));
   } catch {
     // Fire-and-forget: failure keeps "New Chat" title
   }

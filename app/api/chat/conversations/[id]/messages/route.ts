@@ -67,7 +67,7 @@ export async function POST(
         } finally {
           await cleanup();
           if (isFirstExchange) {
-            generateTitle(id, parsed.data.content).catch(() => {});
+            generateTitle(id, auth.user.id, parsed.data.content).catch(() => {});
           }
           controller.close();
         }

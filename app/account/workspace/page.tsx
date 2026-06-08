@@ -23,7 +23,6 @@ export default async function WorkspacePage() {
   return (
     <ChatWorkspace
       displayName={auth.user.displayName}
-      userId={auth.user.id}
     />
   );
 }

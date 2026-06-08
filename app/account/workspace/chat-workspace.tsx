@@ -26,7 +26,6 @@ const THINKING_VERBS = [
 
 interface ChatWorkspaceProps {
   displayName: string | null;
-  userId: string;
 }
 
 export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
