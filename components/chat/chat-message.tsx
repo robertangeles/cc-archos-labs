@@ -59,7 +59,7 @@ export function ChatMessage({
               {content}
             </div>
           ) : (
-            <div className="prose prose-invert prose-sm max-w-none text-neutral-300 prose-headings:text-neutral-200 prose-p:leading-[1.7] prose-a:text-blue-400 prose-code:text-neutral-200 prose-pre:bg-neutral-900 prose-pre:border prose-pre:border-neutral-800">
+            <div className="prose prose-invert max-w-none text-neutral-300 prose-headings:text-neutral-200 prose-p:mb-4 prose-p:leading-[1.7] prose-a:text-blue-400 prose-code:text-neutral-200 prose-pre:bg-neutral-900 prose-pre:border prose-pre:border-neutral-800 prose-li:mb-1">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {content}
               </ReactMarkdown>
