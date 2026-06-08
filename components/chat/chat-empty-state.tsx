@@ -131,7 +131,7 @@ export function ChatEmptyState({
           {greeting.language} — {greeting.region}
         </p>
         <p className="mt-2 text-base text-neutral-400">
-          Drop an idea. Walk away with insight.
+          Ask Metis. Bring the problem. Take the answer.
         </p>
       </motion.div>
 
