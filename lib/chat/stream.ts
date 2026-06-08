@@ -6,6 +6,7 @@ import {
 } from "../llm/config";
 import * as chatService from "./service";
 import { getEnabledRules } from "../rules/service";
+import { vectorSearch } from "../knowledge/search";
 
 interface StreamMessageArgs {
   conversationId: string;
@@ -33,7 +34,26 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     ? rules.map((r) => r.content).join("\n\n")
     : "";
 
-  const systemParts = [rulesBlock, args.systemPrompt ?? ""].filter(Boolean);
+  let ragContext = "";
+  try {
+    const results = await vectorSearch(args.userContent, undefined, 5);
+    if (results.length > 0) {
+      const chunks = results
+        .filter((r) => r.similarity > 0.3)
+        .map((r) => `[${r.title}]\n${r.content}`)
+        .join("\n\n---\n\n");
+      if (chunks) {
+        ragContext =
+          "Use the following knowledge base context to inform your response. " +
+          "Cite the source title when relevant. If the context doesn't help, ignore it.\n\n" +
+          chunks;
+      }
+    }
+  } catch {
+    // Knowledge search unavailable — continue without RAG
+  }
+
+  const systemParts = [rulesBlock, ragContext, args.systemPrompt ?? ""].filter(Boolean);
   const systemMessage = systemParts.length > 0
     ? [{ role: "system" as const, content: systemParts.join("\n\n") }]
     : [];
