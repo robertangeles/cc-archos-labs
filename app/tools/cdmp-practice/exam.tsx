@@ -11,12 +11,12 @@ import type { ExamResult } from "@/lib/cdmp/scoring";
 
 const LOADING_MESSAGES = [
   "Generating your practice exam...",
-  "Pulling from DMBOK knowledge base...",
+  "Pulling from knowledge base...",
   "Crafting questions across 14 chapters...",
   "Verifying answer accuracy...",
   "Balancing chapter weightings...",
   "Building your exam session...",
-  "Cross-referencing DMBOK sources...",
+  "Cross-referencing sources...",
   "Almost there...",
 ];
 

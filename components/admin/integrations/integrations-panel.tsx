@@ -981,10 +981,11 @@ function groupModels(models: ModelEntry[]) {
   const groups: { provider: string; models: ModelEntry[] }[] = [];
   const seen = new Map<string, ModelEntry[]>();
   for (const m of models) {
-    let arr = seen.get(m.provider);
+    const key = m.provider.toUpperCase();
+    let arr = seen.get(key);
     if (!arr) {
       arr = [];
-      seen.set(m.provider, arr);
+      seen.set(key, arr);
       groups.push({ provider: m.provider, models: arr });
     }
     arr.push(m);

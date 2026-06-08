@@ -13,13 +13,16 @@ export interface ModelEntry {
 
 export function useEnabledModels() {
   const [models, setModels] = useState<ModelEntry[] | null>(null);
+  const [defaultModel, setDefaultModel] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     fetch("/api/skills/models")
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (!cancelled && data?.models) setModels(data.models);
+        if (cancelled) return;
+        if (data?.models) setModels(data.models);
+        if (data?.defaultModel) setDefaultModel(data.defaultModel);
       })
       .catch(() => {});
     return () => {
@@ -27,5 +30,5 @@ export function useEnabledModels() {
     };
   }, []);
 
-  return models;
+  return { models, defaultModel };
 }

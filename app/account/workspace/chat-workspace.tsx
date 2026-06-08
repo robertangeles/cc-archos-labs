@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Menu } from "lucide-react";
 import { useChat } from "@/hooks/use-chat";
 import { ChatMessage } from "@/components/chat/chat-message";
@@ -9,8 +9,7 @@ import { ChatEmptyState } from "@/components/chat/chat-empty-state";
 import { ChatSidebar } from "@/components/chat/chat-sidebar";
 import { ChatSkillForm } from "@/components/chat/chat-skill-form";
 import { ChatModelPicker } from "@/components/chat/chat-model-picker";
-
-const DEFAULT_MODEL = "anthropic/claude-sonnet-4.6";
+import { useEnabledModels } from "@/components/skills/use-enabled-models";
 
 const THINKING_VERBS = [
   "Reasoning",
@@ -31,6 +30,9 @@ interface ChatWorkspaceProps {
 }
 
 export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
+  const { models: enabledModels, defaultModel: configDefault } = useEnabledModels();
+  const resolvedDefault = configDefault ?? enabledModels?.[0]?.id ?? "";
+
   const {
     conversations,
     activeConversation,
@@ -44,7 +46,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
     sendMessage,
     deleteConversation,
     clearActive,
-  } = useChat({ defaultModel: DEFAULT_MODEL });
+  } = useChat({ defaultModel: resolvedDefault });
 
   const [input, setInput] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -57,7 +59,9 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
     inputs: Array<{ key: string; label: string; type: string; isRequired: boolean; defaultValue: string | null }>;
   } | null>(null);
   const [isExecutingSkill, setIsExecutingSkill] = useState(false);
-  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
+  const [modelOverride, setModelOverride] = useState<string | null>(null);
+  const selectedModel = modelOverride ?? resolvedDefault;
+  const setSelectedModel = setModelOverride;
   const [thinkingVerb, setThinkingVerb] = useState(THINKING_VERBS[0]);
 
   useEffect(() => {

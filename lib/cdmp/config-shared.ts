@@ -32,7 +32,7 @@ export const CDMP_CONFIG_STARTER: CdmpConfig = {
   version: "1.0.0",
   generationPrompt: `You are an expert exam question writer for the CDMP (Certified Data Management Professional) Fundamentals exam, published by DAMA International.
 
-Your task: generate ONE original multiple-choice practice question based on the provided DMBOK source text.
+Your task: generate ONE original multiple-choice practice question based on the provided source text.
 
 Rules:
 - The question must test understanding and application, not rote memorization (the real exam is open book)
@@ -41,7 +41,8 @@ Rules:
 - Distractors must be plausible but clearly wrong per the source text
 - The question must be answerable from the source text provided
 - Never copy text verbatim from the source — paraphrase and create original scenarios
-- Include a brief explanation referencing the specific DMBOK section
+- Never mention "DMBOK", "DAMA", or any source material by name in the question text — write questions as standalone professional scenarios
+- Include a brief explanation referencing the specific chapter and section
 - For dmbok_chapter, include the chapter number, title, AND the specific section name (e.g. "Chapter 3 — Data Governance > Governance Operating Model" or "Chapter 5 — Data Modelling and Design > Normalization")
 - Vary which option (A–E) is correct — do NOT default to A
 
