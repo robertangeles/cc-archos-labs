@@ -8,8 +8,9 @@ import { ChatInput } from "@/components/chat/chat-input";
 import { ChatEmptyState } from "@/components/chat/chat-empty-state";
 import { ChatSidebar } from "@/components/chat/chat-sidebar";
 import { ChatSkillForm } from "@/components/chat/chat-skill-form";
+import { ChatModelPicker } from "@/components/chat/chat-model-picker";
 
-const DEFAULT_MODEL = "anthropic/claude-sonnet-4-6";
+const DEFAULT_MODEL = "anthropic/claude-sonnet-4.6";
 
 interface ChatWorkspaceProps {
   displayName: string | null;
@@ -43,6 +44,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
     inputs: Array<{ key: string; label: string; type: string; isRequired: boolean; defaultValue: string | null }>;
   } | null>(null);
   const [isExecutingSkill, setIsExecutingSkill] = useState(false);
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -272,6 +274,12 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
                 showEmpty
                   ? "Ask anything... or type /run to use a skill"
                   : "Message..."
+              }
+              toolbarLeft={
+                <ChatModelPicker
+                  value={selectedModel}
+                  onChange={setSelectedModel}
+                />
               }
             />
             <p className="mt-2 text-center text-[11px] text-neutral-600">

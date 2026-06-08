@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-08T05:55:01.901Z
+generated: 2026-06-08T06:01:18.711Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -173,7 +173,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/duplicate` | [app/api/workflows/[id]/duplicate/route.ts](../app/api/workflows/[id]/duplicate/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]/execute` | [app/api/workflows/[id]/execute/route.ts](../app/api/workflows/[id]/execute/route.ts) | 2026-06-07 |
 
-## Components (87)
+## Components (88)
 
 | File | Last shipped |
 |------|--------------|
@@ -195,6 +195,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/chat/chat-empty-state.tsx](../components/chat/chat-empty-state.tsx) | 2026-06-08 |
 | [components/chat/chat-input.tsx](../components/chat/chat-input.tsx) | 2026-06-08 |
 | [components/chat/chat-message.tsx](../components/chat/chat-message.tsx) | 2026-06-08 |
+| [components/chat/chat-model-picker.tsx](../components/chat/chat-model-picker.tsx) | unknown |
 | [components/chat/chat-sidebar.tsx](../components/chat/chat-sidebar.tsx) | 2026-06-08 |
 | [components/chat/chat-skill-form.tsx](../components/chat/chat-skill-form.tsx) | 2026-06-08 |
 | [components/contact/contact-form.tsx](../components/contact/contact-form.tsx) | 2026-05-15 |
