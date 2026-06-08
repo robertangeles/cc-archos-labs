@@ -55,21 +55,26 @@ export async function POST(
       signal: request.signal,
     });
 
-    const transformedStream = stream.pipeThrough(
-      new TransformStream({
-        transform(chunk, controller) {
-          controller.enqueue(chunk);
-        },
-        flush: async () => {
+    const wrappedStream = new ReadableStream({
+      async start(controller) {
+        const reader = stream.getReader();
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            controller.enqueue(value);
+          }
+        } finally {
           await cleanup();
           if (isFirstExchange) {
-            generateTitle(id, parsed.data.content, "").catch(() => {});
+            generateTitle(id, parsed.data.content).catch(() => {});
           }
-        },
-      }),
-    );
+          controller.close();
+        }
+      },
+    });
 
-    return new Response(transformedStream, {
+    return new Response(wrappedStream, {
       headers: {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache, no-transform",

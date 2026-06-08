@@ -20,19 +20,15 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
   stream: ReadableStream<Uint8Array>;
   cleanup: () => Promise<void>;
 }> {
-  console.log("[stream] resolving LLM config, override:", args.modelOverride);
   const { apiKey, modelId } = await resolveLlmConfig(args.modelOverride);
-  console.log("[stream] model:", modelId, "key length:", apiKey.length);
 
   await chatService.saveMessage(
     args.conversationId,
     "user",
     args.userContent,
   );
-  console.log("[stream] user message saved");
 
   const rules = await getEnabledRules(args.userId);
-  console.log("[stream] rules loaded:", rules.length);
   const rulesBlock = rules.length > 0
     ? rules.map((r) => r.content).join("\n\n")
     : "";
@@ -43,8 +39,6 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     : [];
 
   const priorMessages = await loadConversationHistory(args.conversationId);
-  console.log("[stream] history loaded:", priorMessages.length, "messages");
-  console.log("[stream] calling OpenRouter:", OPENROUTER_URL, "model:", modelId);
 
   const openRouterResponse = await fetch(OPENROUTER_URL, {
     method: "POST",
@@ -60,11 +54,8 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     signal: args.signal,
   });
 
-  console.log("[stream] OpenRouter response:", openRouterResponse.status, openRouterResponse.statusText);
-
   if (!openRouterResponse.ok) {
     const body = await openRouterResponse.text().catch(() => "");
-    console.error("[stream] OpenRouter error:", openRouterResponse.status, body.slice(0, 500));
     const status = openRouterResponse.status;
     if (status === 429) throw new StreamError("Model is busy. Try again in a moment.", 429);
     if (status >= 500) throw new StreamError("AI service temporarily unavailable.", 502);
@@ -87,18 +78,13 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
 
-  console.log("[stream] starting async read loop");
-
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const reader = openRouterResponse.body!.getReader();
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done || aborted) {
-            console.log("[stream] done. aborted:", aborted, "buffer:", buffer.length, "chars");
-            break;
-          }
+          if (done || aborted) break;
 
           const chunk = decoder.decode(value, { stream: true });
           const lines = chunk.split("\n");
@@ -107,7 +93,6 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
             if (!line.startsWith("data: ")) continue;
             const data = line.slice(6).trim();
             if (data === "[DONE]") {
-              console.log("[stream] [DONE] received, buffer:", buffer.length, "chars");
               controller.close();
               return;
             }
@@ -129,7 +114,6 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
           }
         }
       } catch (err) {
-        console.error("[stream] error:", err);
         if (!aborted) controller.error(err);
       }
       controller.close();
@@ -178,24 +162,22 @@ export class StreamError extends Error {
 export async function generateTitle(
   conversationId: string,
   firstUserMessage: string,
-  firstAssistantMessage: string,
 ): Promise<void> {
   try {
-    const { apiKey, modelId } = await resolveLlmConfig();
+    const { apiKey } = await resolveLlmConfig();
     const response = await fetch(OPENROUTER_URL, {
       method: "POST",
       headers: buildAuthHeaders(apiKey),
       body: JSON.stringify({
-        model: modelId,
-        max_tokens: 30,
+        model: "anthropic/claude-haiku-4.5",
+        max_tokens: 20,
         messages: [
           {
             role: "system",
             content:
-              "Generate a concise 5-word title for this conversation. Return ONLY the title, no quotes or punctuation.",
+              "Generate a short title (3-6 words) for a conversation that starts with the user message below. Return ONLY the title text. No quotes, no punctuation, no explanation.",
           },
-          { role: "user", content: firstUserMessage },
-          { role: "assistant", content: firstAssistantMessage.slice(0, 200) },
+          { role: "user", content: firstUserMessage.slice(0, 500) },
         ],
       }),
     });
@@ -203,8 +185,9 @@ export async function generateTitle(
     if (!response.ok) return;
 
     const json = await response.json();
-    const title = json.choices?.[0]?.message?.content?.trim();
-    if (!title || title.length > 100) return;
+    const raw = json.choices?.[0]?.message?.content?.trim() ?? "";
+    const title = raw.replace(/^["']|["']$/g, "").trim();
+    if (!title || title.length > 80) return;
 
     const { getDb } = await import("../db");
     const { conversation } = await import("../db/schema");

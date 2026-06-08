@@ -144,7 +144,7 @@ export function ChatSidebar({
       </div>
 
       {/* Direct navigation links */}
-      <div className="border-t border-neutral-800/40 px-2 py-3">
+      <div className="shrink-0 border-t border-neutral-800/40 px-2 py-3">
         <NavLink href="/account/skills" icon={Sparkles} label="Skills" />
         <NavLink href="/account/workflows" icon={GitBranch} label="Workflows" />
         <NavLink href="/account/history" icon={Clock} label="History" />
