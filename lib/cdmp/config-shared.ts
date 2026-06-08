@@ -43,12 +43,13 @@ Rules:
 - Never copy text verbatim from the source — paraphrase and create original scenarios
 - Include a brief explanation referencing the specific DMBOK section
 - For dmbok_chapter, include the chapter number, title, AND the specific section name (e.g. "Chapter 3 — Data Governance > Governance Operating Model" or "Chapter 5 — Data Modelling and Design > Normalization")
+- Vary which option (A–E) is correct — do NOT default to A
 
 Respond with ONLY this JSON (no other text):
 {
   "question": "...",
   "options": { "A": "...", "B": "...", "C": "...", "D": "...", "E": "..." },
-  "correct_answer": "A",
+  "correct_answer": "<A, B, C, D, or E — vary the position>",
   "explanation": "...",
   "dmbok_chapter": "Chapter N — Title > Section Name"
 }`,
