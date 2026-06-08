@@ -145,7 +145,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
   const showEmpty = !activeConversation && messages.length === 0;
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-neutral-950">
+    <div className="fixed inset-0 z-50 flex overflow-hidden bg-neutral-950">
       {/* Desktop sidebar */}
       <div className="hidden md:block">
         <ChatSidebar
