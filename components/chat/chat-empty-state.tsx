@@ -1,25 +1,19 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { Shield, FileText, AlertTriangle, PenLine, type LucideIcon } from "lucide-react";
 
 interface ChatEmptyStateProps {
   displayName: string | null;
   onSuggestion: (text: string) => void;
 }
 
-const SUGGESTIONS = [
-  { text: "Review my data governance framework", icon: "shield" },
-  { text: "Help me write an AI strategy brief", icon: "doc" },
-  { text: "Explain the risks of ungoverned data pipelines", icon: "alert" },
-  { text: "Draft an executive summary for my board", icon: "pen" },
-] as const;
-
-const ICONS: Record<string, string> = {
-  shield: "⚔",
-  doc: "✍",
-  alert: "⚠",
-  pen: "✒",
-};
+const SUGGESTIONS: Array<{ text: string; Icon: LucideIcon }> = [
+  { text: "Review my data governance framework", Icon: Shield },
+  { text: "Help me write an AI strategy brief", Icon: FileText },
+  { text: "Explain the risks of ungoverned data pipelines", Icon: AlertTriangle },
+  { text: "Draft an executive summary for my board", Icon: PenLine },
+];
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -59,7 +53,7 @@ export function ChatEmptyState({
         transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
         className="mt-10 grid w-full max-w-2xl grid-cols-1 gap-2.5 sm:grid-cols-2"
       >
-        {SUGGESTIONS.map(({ text, icon }, i) => (
+        {SUGGESTIONS.map(({ text, Icon }, i) => (
           <motion.button
             key={text}
             initial={{ opacity: 0, y: 8 }}
@@ -68,9 +62,7 @@ export function ChatEmptyState({
             onClick={() => onSuggestion(text)}
             className="group flex items-start gap-3 rounded-xl border border-neutral-800 bg-neutral-900/60 px-4 py-3.5 text-left transition-all duration-200 hover:border-neutral-600 hover:bg-neutral-800/80"
           >
-            <span className="mt-0.5 text-sm text-neutral-600 transition-colors group-hover:text-neutral-400">
-              {ICONS[icon]}
-            </span>
+            <Icon className="mt-0.5 h-4 w-4 shrink-0 text-neutral-600 transition-colors group-hover:text-neutral-400" />
             <span className="text-sm leading-relaxed text-neutral-400 transition-colors group-hover:text-neutral-200">
               {text}
             </span>
