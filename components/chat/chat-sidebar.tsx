@@ -75,7 +75,7 @@ export function ChatSidebar({
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder="Search..."
-            className="w-full bg-transparent text-[13px] text-neutral-300 placeholder-neutral-600 outline-none"
+            className="w-full bg-transparent text-[15px] text-neutral-300 placeholder-neutral-600 outline-none"
           />
         </div>
       </div>
@@ -96,7 +96,7 @@ export function ChatSidebar({
                   onSelectConversation(r.id);
                   setSearchQuery("");
                 }}
-                className="w-full rounded-lg px-2 py-1.5 text-left text-[13px] text-neutral-400 hover:bg-neutral-800/60 hover:text-neutral-200"
+                className="w-full rounded-lg px-2 py-1.5 text-left text-[15px] text-neutral-400 hover:bg-neutral-800/60 hover:text-neutral-200"
               >
                 <span className="block truncate">{r.title}</span>
               </button>
@@ -108,7 +108,7 @@ export function ChatSidebar({
           <>
             <SectionLabel>Recent</SectionLabel>
             {conversations.length === 0 && (
-              <p className="px-2 py-6 text-center text-[12px] text-neutral-600">
+              <p className="px-2 py-6 text-center text-[14px] text-neutral-600">
                 No chats yet. Start one.
               </p>
             )}
@@ -126,7 +126,7 @@ export function ChatSidebar({
                   className="flex min-w-0 flex-1 items-center gap-2"
                 >
                   <MessageSquare className="h-3 w-3 shrink-0 text-neutral-600" />
-                  <span className="truncate text-[13px]">{c.title}</span>
+                  <span className="truncate text-[15px]">{c.title}</span>
                 </button>
                 <button
                   onClick={(e) => {
@@ -155,7 +155,7 @@ export function ChatSidebar({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-2 py-1.5 text-[11px] font-medium uppercase tracking-wider text-neutral-600">
+    <p className="px-2 py-1.5 text-[13px] font-medium uppercase tracking-wider text-neutral-600">
       {children}
     </p>
   );
@@ -173,7 +173,7 @@ function NavLink({
   return (
     <Link
       href={href}
-      className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-[13px] text-neutral-400 transition-colors hover:bg-neutral-800/40 hover:text-neutral-200"
+      className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-[15px] text-neutral-400 transition-colors hover:bg-neutral-800/40 hover:text-neutral-200"
     >
       <Icon className="h-4 w-4 text-neutral-500" />
       {label}
