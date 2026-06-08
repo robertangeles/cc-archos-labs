@@ -44,8 +44,10 @@ export function AccountShell({
     return (
       <>
         <style>{`footer { display: none !important; }`}</style>
-        <div className="-mt-16 -mb-32">
-          {children}
+        <div className="-mx-6 -mt-16 -mb-32 md:-mx-12">
+          <div className="mx-auto max-w-[1080px] px-6 md:px-12">
+            {children}
+          </div>
         </div>
       </>
     );
