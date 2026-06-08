@@ -10,10 +10,10 @@ interface ChatModelPickerProps {
 }
 
 function shortName(modelId: string): string {
-  const name = modelId.split("/").pop() ?? modelId;
-  return name
+  const raw = modelId.split("/").pop() ?? modelId;
+  return raw
     .replace(/-\d{8}$/, "")
-    .replace(/\./g, " ")
+    .replace(/^claude-/, "")
     .split("-")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");

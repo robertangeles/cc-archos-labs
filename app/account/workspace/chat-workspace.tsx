@@ -272,15 +272,24 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
               disabled={isSending || isExecutingSkill}
               placeholder={
                 showEmpty
-                  ? "Ask anything... or type /run to use a skill"
+                  ? "How can I help you today?"
                   : "Message..."
               }
-              toolbarLeft={
+              modelPicker={
                 <ChatModelPicker
                   value={selectedModel}
                   onChange={setSelectedModel}
                 />
               }
+              onToolSelect={(tool) => {
+                if (tool === "run-skill") {
+                  setInput("/run ");
+                } else if (tool === "research") {
+                  setInput("Research: ");
+                } else if (tool === "web-search") {
+                  setInput("Search the web for: ");
+                }
+              }}
             />
             <p className="mt-2 text-center text-[11px] text-neutral-600">
               AI responses may be inaccurate. Verify important information.
