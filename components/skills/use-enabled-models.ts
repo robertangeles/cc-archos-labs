@@ -7,6 +7,8 @@ export interface ModelEntry {
   name: string;
   provider: string;
   description?: string;
+  inputCost?: number;
+  outputCost?: number;
 }
 
 export function useEnabledModels() {

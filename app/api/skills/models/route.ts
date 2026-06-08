@@ -22,6 +22,8 @@ export async function GET() {
       name: m.name,
       provider: m.provider,
       description: m.description,
+      inputCost: m.inputCost,
+      outputCost: m.outputCost,
     }));
     const custom = (config.llmCustomModels ?? []).map((m) => ({
       id: m.id,
