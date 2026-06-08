@@ -394,7 +394,7 @@ export function ExamResults({ result, answers, onRetry, onPracticeWeak }: ExamRe
       transition={{ duration: d(0.3) }}
       className="flex flex-1 flex-col bg-canvas px-4 py-8 md:px-8 md:py-12 lg:px-12"
     >
-      <div className="mx-auto w-full max-w-[1200px]">
+      <div className="mx-auto w-full max-w-[1080px]">
 
         {/* ═══ Score Header Bar ═══ */}
         <div className="flex flex-col items-center gap-6 md:flex-row md:items-start md:gap-10">
@@ -451,7 +451,7 @@ export function ExamResults({ result, answers, onRetry, onPracticeWeak }: ExamRe
               </span>
             </div>
 
-            {/* T5: Tier milestone track with spacing fix + bounce */}
+            {/* T5: Tier milestone track — normalized to 50-100% range for visual spread */}
             <div className="mt-5 w-full max-w-[480px]" role="img" aria-label={`Score progress: ${result.percentCorrect}%. ${nextTier ? `${nextTier.gap} points to ${nextTier.label}.` : "Master level reached."}`}>
               <div className="relative h-16">
                 <div className="absolute left-0 right-0 top-4 h-px bg-hairline" />
@@ -459,14 +459,15 @@ export function ExamResults({ result, answers, onRetry, onPracticeWeak }: ExamRe
                   className="absolute left-0 top-4 h-px origin-left"
                   style={{ backgroundColor: color }}
                   initial={{ width: "0%" }}
-                  animate={{ width: `${Math.min(result.percentCorrect, 100)}%` }}
+                  animate={{ width: `${Math.max(0, Math.min((result.percentCorrect - 50) * 2, 100))}%` }}
                   transition={{ duration: d(0.8), delay: d(1.0), ease: EASE_OUT_CUSTOM }}
                 />
                 {MILESTONES.map((m, idx) => {
                   const passed = m.score === 60 ? result.thresholds.associate.passed : m.score === 70 ? result.thresholds.practitioner.passed : result.thresholds.master.passed;
                   const stagger = idx === 1 ? "-top-6" : "top-6";
+                  const pos = (m.score - 50) * 2;
                   return (
-                    <div key={m.score} className="absolute top-4 -translate-x-1/2 -translate-y-1/2" style={{ left: `${m.score}%` }}>
+                    <div key={m.score} className="absolute top-4 -translate-x-1/2 -translate-y-1/2" style={{ left: `${pos}%` }}>
                       <div className={`h-2.5 w-2.5 rounded-full border-2 ${passed ? "border-semantic-success bg-semantic-success" : "border-hairline-strong bg-surface-1"}`} />
                       <span className={`absolute left-1/2 ${stagger} -translate-x-1/2 whitespace-nowrap text-[10px] font-medium ${m.color}`}>{m.label} {m.score}%</span>
                     </div>
@@ -475,7 +476,7 @@ export function ExamResults({ result, answers, onRetry, onPracticeWeak }: ExamRe
                 <motion.div
                   className="absolute top-4 -translate-x-1/2 -translate-y-1/2"
                   initial={{ left: "0%" }}
-                  animate={{ left: `${Math.min(result.percentCorrect, 100)}%` }}
+                  animate={{ left: `${Math.max(0, Math.min((result.percentCorrect - 50) * 2, 100))}%` }}
                   transition={{ type: "spring", stiffness: 300, damping: 20, delay: d(1.0) }}
                 >
                   <div className="h-3.5 w-3.5 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 8px 3px color-mix(in srgb, ${color} 40%, transparent)` }} />
@@ -486,6 +487,38 @@ export function ExamResults({ result, answers, onRetry, onPracticeWeak }: ExamRe
               </p>
             </div>
           </div>
+
+          {/* Quick stats */}
+          <div className="hidden shrink-0 flex-col gap-3 border-l border-hairline pl-8 pt-2 lg:flex">
+            {(() => {
+              const tested = sortedChapters.filter((c) => c.totalQuestions > 0);
+              const strongest = tested.length > 0 ? tested[tested.length - 1] : null;
+              const weakest = tested.length > 0 ? tested[0] : null;
+              const perfectCount = tested.filter((c) => c.percentCorrect === 100).length;
+              return (
+                <>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-ink-subtle">Strongest</p>
+                    <p className="text-[13px] font-medium text-semantic-success">{strongest ? shortenLabel(strongest.label) : "—"}</p>
+                  </div>
+                  {weakest && weakest.slug !== strongest?.slug && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-ink-subtle">Weakest</p>
+                      <p className={`text-[13px] font-medium ${weakest.percentCorrect < 60 ? "text-semantic-error" : "text-semantic-warning"}`}>{shortenLabel(weakest.label)}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-ink-subtle">Chapters at 100%</p>
+                    <p className="text-[13px] font-medium text-ink">{perfectCount}/{tested.length}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-ink-subtle">Below pass</p>
+                    <p className={`text-[13px] font-medium ${weakChapters.length > 0 ? "text-semantic-error" : "text-ink"}`}>{weakChapters.length} chapter{weakChapters.length !== 1 ? "s" : ""}</p>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
         </div>
 
         {/* ═══ Dashboard: Radar + Chapters | Question Review ═══ */}
@@ -493,7 +526,7 @@ export function ExamResults({ result, answers, onRetry, onPracticeWeak }: ExamRe
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: d(0.25), delay: d(0.8) }}
-          className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(360px,2fr)_3fr]"
+          className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(320px,2fr)_3fr]"
         >
           {/* ── Left Column: Radar + Chapter List ── */}
           <div>
@@ -540,7 +573,6 @@ export function ExamResults({ result, answers, onRetry, onPracticeWeak }: ExamRe
                   {nextTier.gap} more point{nextTier.gap !== 1 ? "s" : ""} to {nextTier.label}
                 </p>
               )}
-              {/* T4: Practice weak areas CTA */}
               {weakChapters.length > 0 && onPracticeWeak && (
                 <button
                   type="button"

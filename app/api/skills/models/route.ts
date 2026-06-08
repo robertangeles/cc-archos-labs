@@ -33,7 +33,7 @@ export async function GET() {
     }));
     const all = [...builtIn, ...custom];
     const models = all.filter((m) => enabled.has(m.id));
-    return NextResponse.json({ models });
+    return NextResponse.json({ models, defaultModel: config.llmModelId ?? null });
   } catch {
     return NextResponse.json(
       { error: "Failed to load model configuration." },

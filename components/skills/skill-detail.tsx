@@ -75,7 +75,7 @@ const CATEGORY_META: Record<string, { icon: LucideIcon; label: string }> = {
 
 export function SkillDetail({ skill }: { skill: SkillData }) {
   const router = useRouter();
-  const enabledModels = useEnabledModels();
+  const { models: enabledModels } = useEnabledModels();
   const [inputValues, setInputValues] = useState<Record<string, string>>(() => {
     const defaults: Record<string, string> = {};
     for (const inp of skill.inputs) {

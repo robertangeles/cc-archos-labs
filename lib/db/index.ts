@@ -1,5 +1,6 @@
 import "server-only";
 import { drizzle } from "drizzle-orm/postgres-js";
+import type { Logger } from "drizzle-orm/logger";
 import postgres from "postgres";
 import * as schema from "./schema";
 
@@ -8,6 +9,25 @@ import * as schema from "./schema";
 // because Next.js spins up ephemeral request handlers — pooling at the
 // DB layer would just create connection storms. Render Postgres handles
 // connection re-use at the platform level via PgBouncer-style pooling.
+
+const REDACTED_KEYS = ["llmApiKey", "resendApiKey", "adminPassword", "turnstileSecretKey", "googleOauthClientSecret"];
+const PARAM_TRUNCATE_LEN = 120;
+
+class SafeLogger implements Logger {
+  logQuery(query: string, params: unknown[]) {
+    const safe = params.map((p) => {
+      if (typeof p !== "string") return p;
+      for (const key of REDACTED_KEYS) {
+        if (p.includes(`"${key}"`)) return "[REDACTED integration_secrets]";
+      }
+      if (p.length > PARAM_TRUNCATE_LEN) {
+        return p.slice(0, PARAM_TRUNCATE_LEN) + `…[${p.length} chars]`;
+      }
+      return p;
+    });
+    console.log("Query:", query, "-- params:", JSON.stringify(safe));
+  }
+}
 
 let cachedDb: ReturnType<typeof drizzle> | null = null;
 
@@ -28,7 +48,7 @@ export function getDb() {
   const client = postgres(databaseUrl, { max: 1, ssl: "require" });
   cachedDb = drizzle(client, {
     schema,
-    logger: process.env.NODE_ENV === "development",
+    logger: process.env.NODE_ENV === "development" ? new SafeLogger() : false,
   });
   return cachedDb;
 }

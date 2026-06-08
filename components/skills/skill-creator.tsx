@@ -67,7 +67,7 @@ export function SkillCreator({
   initialData?: SkillCreatorInitialData;
 } = {}) {
   const router = useRouter();
-  const enabledModels = useEnabledModels();
+  const { models: enabledModels } = useEnabledModels();
   const isEdit = !!initialData;
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);

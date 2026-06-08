@@ -20,7 +20,7 @@ function shortName(modelId: string): string {
 }
 
 export function ChatModelPicker({ value, onChange }: ChatModelPickerProps) {
-  const models = useEnabledModels();
+  const { models } = useEnabledModels();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 

@@ -56,7 +56,7 @@ async function generateSingleQuestion(
         systemPrompt: config.generationPrompt,
         userMessage: `Generate a CDMP practice question about "${chapterLabel}" (${chapterRef}).
 
-SOURCE TEXT (from DMBOK):
+SOURCE TEXT:
 ${sourceText}`,
         maxTokens: config.generationMaxTokens,
       });
@@ -65,7 +65,7 @@ ${sourceText}`,
 
       const verResult = await generateStructured<VerificationOutput>({
         systemPrompt: config.verificationPrompt,
-        userMessage: `SOURCE TEXT (from DMBOK):
+        userMessage: `SOURCE TEXT:
 ${sourceText}
 
 GENERATED QUESTION:
@@ -157,14 +157,52 @@ async function runPool<T, R>(
   return results;
 }
 
+const MAX_RETRY_WAVES = 2;
+
+async function generateOneTask(
+  chapter: ChapterDistribution,
+  label: string,
+  config: CdmpConfig,
+): Promise<GeneratedQuestion | null> {
+  try {
+    const chunks = await searchKnowledge(
+      chapter.label,
+      "dmbok",
+      config.chunksPerQuestion,
+    );
+
+    if (chunks.length === 0) {
+      console.log(`[cdmp] SKIP: no chunks found for "${chapter.label}" (${label})`);
+      return null;
+    }
+
+    const question = await generateSingleQuestion(
+      chapter.slug,
+      chapter.label,
+      chapter.chapter,
+      chunks,
+      config,
+    );
+
+    console.log(
+      `[cdmp] ${question ? "OK" : "FAIL"}: "${chapter.label}" (${label})`,
+    );
+    return question;
+  } catch (err) {
+    console.error(
+      `[cdmp] ERROR "${chapter.label}" (${label}):`,
+      err instanceof Error ? err.message : err,
+    );
+    return null;
+  }
+}
+
 export async function generateQuestionBatch(
   chapters: ChapterDistribution[],
 ): Promise<GeneratedQuestion[]> {
   const config = await getCdmpConfig();
+  const targetCount = chapters.reduce((sum, c) => sum + c.questionCount, 0);
 
-  // Flatten the per-chapter distribution into one task per question so
-  // every question can run concurrently regardless of which chapter it
-  // belongs to.
   const tasks = chapters
     .filter((chapter) => chapter.questionCount > 0)
     .flatMap((chapter) =>
@@ -179,49 +217,43 @@ export async function generateQuestionBatch(
   const settled = await runPool(
     tasks,
     GENERATION_CONCURRENCY,
-    async ({ chapter, i }) => {
-      try {
-        const chunks = await searchKnowledge(
-          chapter.label,
-          "dmbok",
-          config.chunksPerQuestion,
-        );
-
-        if (chunks.length === 0) {
-          console.log(
-            `[cdmp] SKIP: no chunks found for "${chapter.label}" (q${i + 1})`,
-          );
-          return null;
-        }
-
-        const question = await generateSingleQuestion(
-          chapter.slug,
-          chapter.label,
-          chapter.chapter,
-          chunks,
-          config,
-        );
-
-        console.log(
-          `[cdmp] ${question ? "OK" : "FAIL"}: "${chapter.label}" q${i + 1}/${chapter.questionCount}`,
-        );
-        return question;
-      } catch (err) {
-        console.error(
-          `[cdmp] ERROR "${chapter.label}" q${i + 1}:`,
-          err instanceof Error ? err.message : err,
-        );
-        return null;
-      }
-    },
+    ({ chapter, i }) => generateOneTask(chapter, `q${i + 1}`, config),
   );
 
   const questions = settled.filter(
     (q): q is GeneratedQuestion => q !== null,
   );
 
+  // Retry waves: redistribute failed slots to chapters that succeeded
+  const succeededSlugs = new Set(questions.map((q) => q.knowledgeArea));
+  const retryPool = chapters.filter(
+    (c) => c.questionCount > 0 && succeededSlugs.has(c.slug),
+  );
+
+  for (let wave = 1; wave <= MAX_RETRY_WAVES && questions.length < targetCount && retryPool.length > 0; wave++) {
+    const deficit = targetCount - questions.length;
+    console.log(`[cdmp] Retry wave ${wave}: ${deficit} question(s) still needed`);
+
+    const retryTasks: { chapter: ChapterDistribution; i: number }[] = [];
+    for (let j = 0; j < deficit; j++) {
+      retryTasks.push({ chapter: retryPool[j % retryPool.length], i: j });
+    }
+
+    const retrySettled = await runPool(
+      retryTasks,
+      GENERATION_CONCURRENCY,
+      ({ chapter, i }) => generateOneTask(chapter, `retry-w${wave}-q${i + 1}`, config),
+    );
+
+    for (const q of retrySettled) {
+      if (q !== null && questions.length < targetCount) {
+        questions.push(q);
+      }
+    }
+  }
+
   console.log(
-    `[cdmp] Total generated: ${questions.length}/${tasks.length}`,
+    `[cdmp] Total generated: ${questions.length}/${targetCount}`,
   );
   return questions;
 }
