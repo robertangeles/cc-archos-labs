@@ -274,8 +274,8 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
                   : "Message..."
               }
             />
-            <p className="mt-2 text-center text-[11px] text-neutral-700">
-              AI responses may be inaccurate. Verify before acting.
+            <p className="mt-2 text-center text-[11px] text-neutral-600">
+              AI responses may be inaccurate. Verify important information.
             </p>
           </div>
         </div>

@@ -30,7 +30,7 @@ export function ChatEmptyState({
   const name = displayName?.split(" ")[0] ?? "";
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-4 pb-8">
+    <div className="flex flex-1 flex-col items-center justify-center px-4 pb-0 pt-[8vh]">
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
