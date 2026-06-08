@@ -4,6 +4,7 @@ import { executeSkillSchema } from "@/lib/skills/validation";
 import * as skillService from "@/lib/skills/service";
 import { executeSkill, ExecuteError } from "@/lib/skills/execute";
 import { recordSkillExecution } from "@/lib/skills/execution-tracking";
+import { getEnabledRules, formatRulesForInjection } from "@/lib/rules/service";
 
 export const runtime = "nodejs";
 
@@ -53,10 +54,16 @@ export async function POST(
   const model =
     parsed.data.model ?? skill.defaultModel ?? "anthropic/claude-sonnet-4.6";
 
+  const enabledRules = await getEnabledRules(auth.user.id);
+  const rulesBlock = formatRulesForInjection(enabledRules);
+  const finalSystemPrompt = rulesBlock
+    ? [skill.systemPrompt, rulesBlock].filter(Boolean).join("\n\n")
+    : skill.systemPrompt;
+
   try {
     const result = await executeSkill({
       promptTemplate: skill.promptTemplate,
-      systemPrompt: skill.systemPrompt,
+      systemPrompt: finalSystemPrompt,
       inputs: parsed.data.inputs,
       model,
       temperature: skill.temperature ? Number(skill.temperature) : undefined,

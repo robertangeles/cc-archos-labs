@@ -1388,6 +1388,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   skills: many(skill),
   workflows: many(workflow),
   workflowExecutionRuns: many(workflowExecutionRun),
+  rules: many(userRule),
 }));
 
 export const oauthAccountRelations = relations(oauthAccount, ({ one }) => ({
@@ -2698,3 +2699,39 @@ export const skillExecutionRelations = relations(
     }),
   }),
 );
+
+// ============================================================================
+// user_rule — Personalisation rules engine
+// ============================================================================
+
+export const userRule = pgTable(
+  "user_rule",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    category: varchar("category", { length: 100 }).notNull(),
+    content: text("content").notNull(),
+    isEnabled: boolean("is_enabled").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("user_rule_user_id_idx").on(table.userId)],
+);
+
+export type UserRule = typeof userRule.$inferSelect;
+export type NewUserRule = typeof userRule.$inferInsert;
+
+export const userRuleRelations = relations(userRule, ({ one }) => ({
+  user: one(users, {
+    fields: [userRule.userId],
+    references: [users.id],
+  }),
+}));
