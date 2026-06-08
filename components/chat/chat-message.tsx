@@ -36,7 +36,7 @@ export function ChatMessage({
           <div className="mb-1.5 flex items-center gap-2">
             <span
               className={`text-[12px] font-semibold uppercase tracking-wide ${
-                isUser ? "text-neutral-500" : "text-blue-400/70"
+                isUser ? "text-neutral-500" : "text-sky-400"
               }`}
             >
               {isUser ? "You" : "Archos"}

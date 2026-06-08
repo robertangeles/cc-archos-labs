@@ -57,7 +57,7 @@ export function ChatInput({
         disabled={!canSend}
         className={`absolute right-2.5 bottom-2.5 flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-150 ${
           canSend
-            ? "bg-white text-neutral-900 hover:bg-neutral-200"
+            ? "bg-sky-600 text-white hover:bg-sky-500"
             : "bg-neutral-800 text-neutral-600"
         }`}
       >

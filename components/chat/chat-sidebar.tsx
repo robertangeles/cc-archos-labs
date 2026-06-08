@@ -9,8 +9,6 @@ import {
   GitBranch,
   Clock,
   Trash2,
-  ChevronDown,
-  ChevronRight,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -40,9 +38,6 @@ export function ChatSidebar({
   onClose,
 }: ChatSidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [skillsOpen, setSkillsOpen] = useState(false);
-  const [workflowsOpen, setWorkflowsOpen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
 
   function handleSearch(q: string) {
     setSearchQuery(q);
@@ -60,19 +55,19 @@ export function ChatSidebar({
       <div className="flex items-center justify-between px-3 pt-3 pb-3">
         <button
           onClick={onNewChat}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-neutral-800 py-2 text-[13px] font-medium text-neutral-200 transition-colors hover:bg-neutral-700 hover:text-white"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-sky-600 py-2 text-[13px] font-medium text-white transition-colors hover:bg-sky-500"
         >
           <Plus className="h-4 w-4" />
           New Chat
         </button>
         {mobile && onClose && (
-          <button onClick={onClose} className="p-1 text-neutral-500 hover:text-white">
+          <button onClick={onClose} className="ml-2 p-1 text-neutral-500 hover:text-white">
             <X className="h-4 w-4" />
           </button>
         )}
       </div>
 
-      <div className="px-3 py-2">
+      <div className="px-3 pb-2">
         <div className="flex items-center gap-2 rounded-lg border border-neutral-800/40 bg-neutral-900/50 px-2.5 py-1.5">
           <Search className="h-3 w-3 text-neutral-600" />
           <input
@@ -122,7 +117,7 @@ export function ChatSidebar({
                 key={c.id}
                 className={`group flex items-center rounded-lg px-2 py-1.5 ${
                   c.id === activeId
-                    ? "bg-neutral-800/70 text-white"
+                    ? "bg-sky-600/10 text-sky-300"
                     : "text-neutral-400 hover:bg-neutral-800/40 hover:text-neutral-200"
                 }`}
               >
@@ -146,30 +141,13 @@ export function ChatSidebar({
             ))}
           </>
         )}
+      </div>
 
-        <div className="mt-4 border-t border-neutral-800/40 pt-2">
-          <NavSection
-            label="Skills"
-            icon={Sparkles}
-            open={skillsOpen}
-            onToggle={() => setSkillsOpen(!skillsOpen)}
-            href="/account/skills"
-          />
-          <NavSection
-            label="Workflows"
-            icon={GitBranch}
-            open={workflowsOpen}
-            onToggle={() => setWorkflowsOpen(!workflowsOpen)}
-            href="/account/workflows"
-          />
-          <NavSection
-            label="History"
-            icon={Clock}
-            open={historyOpen}
-            onToggle={() => setHistoryOpen(!historyOpen)}
-            href="/account/history"
-          />
-        </div>
+      {/* Direct navigation links */}
+      <div className="border-t border-neutral-800/40 px-2 py-3">
+        <NavLink href="/account/skills" icon={Sparkles} label="Skills" />
+        <NavLink href="/account/workflows" icon={GitBranch} label="Workflows" />
+        <NavLink href="/account/history" icon={Clock} label="History" />
       </div>
     </div>
   );
@@ -183,41 +161,22 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function NavSection({
-  label,
-  icon: Icon,
-  open,
-  onToggle,
+function NavLink({
   href,
+  icon: Icon,
+  label,
 }: {
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  open: boolean;
-  onToggle: () => void;
   href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
 }) {
   return (
-    <div>
-      <button
-        onClick={onToggle}
-        className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-neutral-500 transition-colors hover:bg-neutral-800/40 hover:text-neutral-300"
-      >
-        {open ? (
-          <ChevronDown className="h-3 w-3" />
-        ) : (
-          <ChevronRight className="h-3 w-3" />
-        )}
-        <Icon className="h-3.5 w-3.5" />
-        {label}
-      </button>
-      {open && (
-        <Link
-          href={href}
-          className="block rounded-lg py-1 pl-9 pr-2 text-[12px] text-neutral-500 hover:bg-neutral-800/40 hover:text-neutral-300"
-        >
-          View all {label.toLowerCase()}
-        </Link>
-      )}
-    </div>
+    <Link
+      href={href}
+      className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-[13px] text-neutral-400 transition-colors hover:bg-neutral-800/40 hover:text-neutral-200"
+    >
+      <Icon className="h-4 w-4 text-neutral-500" />
+      {label}
+    </Link>
   );
 }
