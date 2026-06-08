@@ -71,9 +71,10 @@ export async function POST(
 
     return new Response(transformedStream, {
       headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Cache-Control": "no-cache",
-        "Transfer-Encoding": "chunked",
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+        "X-Accel-Buffering": "no",
       },
     });
   } catch (err) {
