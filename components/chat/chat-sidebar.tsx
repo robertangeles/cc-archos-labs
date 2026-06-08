@@ -71,12 +71,12 @@ export function ChatSidebar({
         </span>
       </div>
 
-      <div className="flex items-center justify-between px-3 pt-3 pb-2">
+      <div className="flex items-center justify-between px-3 pt-3 pb-3">
         <button
           onClick={onNewChat}
-          className="flex items-center gap-1.5 rounded-lg border border-neutral-700/50 px-3 py-1.5 text-[13px] font-medium text-neutral-300 transition-colors hover:border-neutral-600 hover:bg-neutral-800/50 hover:text-white"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-neutral-800 py-2 text-[13px] font-medium text-neutral-200 transition-colors hover:bg-neutral-700 hover:text-white"
         >
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="h-4 w-4" />
           New Chat
         </button>
         {mobile && onClose && (
