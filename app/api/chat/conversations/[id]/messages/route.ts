@@ -57,6 +57,9 @@ export async function POST(
 
     const transformedStream = stream.pipeThrough(
       new TransformStream({
+        transform(chunk, controller) {
+          controller.enqueue(chunk);
+        },
         flush: async () => {
           await cleanup();
           if (isFirstExchange) {
