@@ -5,6 +5,7 @@ import {
   buildAuthHeaders,
 } from "../llm/config";
 import * as chatService from "./service";
+import { getChatPrompt } from "./prompt-config";
 import { getEnabledRules } from "../rules/service";
 import { vectorSearch } from "../knowledge/search";
 
@@ -29,10 +30,8 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     args.userContent,
   );
 
-  const rules = await getEnabledRules(args.userId);
-  const rulesBlock = rules.length > 0
-    ? rules.map((r) => r.content).join("\n\n")
-    : "";
+  const corePromptConfig = await getChatPrompt();
+  const corePrompt = corePromptConfig.systemPrompt;
 
   let ragContext = "";
   try {
@@ -53,7 +52,12 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     // Knowledge search unavailable — continue without RAG
   }
 
-  const systemParts = [rulesBlock, ragContext, args.systemPrompt ?? ""].filter(Boolean);
+  const rules = await getEnabledRules(args.userId);
+  const rulesBlock = rules.length > 0
+    ? rules.map((r) => r.content).join("\n\n")
+    : "";
+
+  const systemParts = [corePrompt, ragContext, args.systemPrompt ?? "", rulesBlock].filter(Boolean);
   const systemMessage = systemParts.length > 0
     ? [{ role: "system" as const, content: systemParts.join("\n\n") }]
     : [];

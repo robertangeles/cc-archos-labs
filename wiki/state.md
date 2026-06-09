@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-08T10:45:33.831Z
+generated: 2026-06-09T00:46:31.004Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -72,7 +72,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-06-03 |
 | `/tools/cdmp-practice/history/[sessionId]` | [app/tools/cdmp-practice/history/[sessionId]/page.tsx](../app/tools/cdmp-practice/history/[sessionId]/page.tsx) | 2026-06-03 |
 
-## API endpoints (96)
+## API endpoints (97)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -108,6 +108,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/settings/blog-enabled` | [app/api/admin/settings/blog-enabled/route.ts](../app/api/admin/settings/blog-enabled/route.ts) | 2026-05-20 |
 | `/api/admin/settings/booking-prompts` | [app/api/admin/settings/booking-prompts/route.ts](../app/api/admin/settings/booking-prompts/route.ts) | 2026-05-17 |
 | `/api/admin/settings/cdmp-config` | [app/api/admin/settings/cdmp-config/route.ts](../app/api/admin/settings/cdmp-config/route.ts) | 2026-06-03 |
+| `/api/admin/settings/chat-prompt` | [app/api/admin/settings/chat-prompt/route.ts](../app/api/admin/settings/chat-prompt/route.ts) | unknown |
 | `/api/admin/settings/diagnostic-content` | [app/api/admin/settings/diagnostic-content/route.ts](../app/api/admin/settings/diagnostic-content/route.ts) | 2026-05-15 |
 | `/api/admin/settings/diagnostic-prompt` | [app/api/admin/settings/diagnostic-prompt/route.ts](../app/api/admin/settings/diagnostic-prompt/route.ts) | 2026-05-15 |
 | `/api/admin/settings/site` | [app/api/admin/settings/site/route.ts](../app/api/admin/settings/site/route.ts) | 2026-05-08 |
