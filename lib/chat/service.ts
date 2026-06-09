@@ -135,6 +135,7 @@ export async function saveMessage(
   model?: string,
   tokens?: number,
   isInterrupted?: boolean,
+  contentType?: "text" | "image_url" | "image_base64",
 ) {
   const db = getDb();
   const [msg] = await db
@@ -143,6 +144,7 @@ export async function saveMessage(
       conversationId,
       role,
       content,
+      contentType: contentType ?? "text",
       model: model ?? null,
       tokens: tokens ?? 0,
       isInterrupted: isInterrupted ?? false,
@@ -203,6 +205,7 @@ export async function createShareSnapshot(
     .select({
       role: message.role,
       content: message.content,
+      contentType: message.contentType,
       model: message.model,
       createdAt: message.createdAt,
     })

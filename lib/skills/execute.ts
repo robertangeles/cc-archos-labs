@@ -1,8 +1,7 @@
 import "server-only";
 import { getIntegrationConfig } from "../integration-config";
+import { OPENROUTER_URL, buildAuthHeaders } from "../llm/config";
 import type { ExecuteSkillResponse } from "./types";
-
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const EXECUTE_TIMEOUT_MS = 30_000;
 
 function assemblePrompt(
@@ -58,12 +57,7 @@ export async function executeSkill(opts: {
   try {
     response = await fetch(OPENROUTER_URL, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://archoslabs.xyz",
-        "X-Title": "Archos Labs Skills Builder",
-      },
+      headers: buildAuthHeaders(apiKey),
       body: JSON.stringify({
         model: opts.model,
         messages,

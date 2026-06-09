@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, KeyboardEvent, type ReactNode } from "react";
-import { ArrowUp, Plus, Search, Globe, Sparkles, X, Paperclip, Check } from "lucide-react";
+import { ArrowUp, Plus, Search, Globe, Image, X, Paperclip, Check } from "lucide-react";
 import { CHAT_MODE_CONFIG, type ChatMode } from "@/lib/chat/modes";
 
 interface ChatInputProps {
@@ -19,7 +19,7 @@ interface ChatInputProps {
 const TOOLS = [
   { id: "research", label: "Research", icon: Search },
   { id: "web-search", label: "Web search", icon: Globe },
-  { id: "run-skill", label: "Run a skill", icon: Sparkles },
+  { id: "generate-image", label: "Generate image", icon: Image },
 ];
 
 export function ChatInput({
@@ -86,6 +86,8 @@ export function ChatInput({
           >
             {activeMode === "research" ? (
               <Search className={`h-3 w-3 ${CHAT_MODE_CONFIG[activeMode].color}`} />
+            ) : activeMode === "generate-image" ? (
+              <Image className={`h-3 w-3 ${CHAT_MODE_CONFIG[activeMode].color}`} />
             ) : (
               <Globe className={`h-3 w-3 ${CHAT_MODE_CONFIG[activeMode].color}`} />
             )}

@@ -3,11 +3,12 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Download, X } from "lucide-react";
 
 interface ChatMessageProps {
   role: "user" | "assistant" | "system";
   content: string;
+  contentType?: string;
   model?: string | null;
   isStreaming?: boolean;
   isInterrupted?: boolean;
@@ -16,12 +17,15 @@ interface ChatMessageProps {
 export function ChatMessage({
   role,
   content,
+  contentType,
   model,
   isStreaming,
   isInterrupted,
 }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
+  const [lightbox, setLightbox] = useState(false);
   const isUser = role === "user";
+  const isImage = contentType === "image_url" || contentType === "image_base64";
 
   async function handleCopy() {
     await navigator.clipboard.writeText(content);
@@ -57,6 +61,46 @@ export function ChatMessage({
           {isUser ? (
             <div className="whitespace-pre-wrap text-[15px] leading-[1.7] text-neutral-200">
               {content}
+            </div>
+          ) : isImage ? (
+            <div>
+              <button
+                type="button"
+                onClick={() => setLightbox(true)}
+                className="overflow-hidden rounded-lg border border-neutral-800 transition-opacity hover:opacity-90 cursor-zoom-in"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={content} alt="Generated image" className="max-w-full" />
+              </button>
+              <a
+                href={content}
+                download="generated-image.png"
+                className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-neutral-700 px-2.5 py-1 text-[12px] text-neutral-400 transition-colors hover:border-neutral-600 hover:text-neutral-200"
+              >
+                <Download className="h-3 w-3" />
+                Download
+              </a>
+              {lightbox && (
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+                  onClick={() => setLightbox(false)}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setLightbox(false)}
+                    className="absolute right-4 top-4 rounded-full bg-neutral-800 p-2 text-neutral-400 transition-colors hover:bg-neutral-700 hover:text-white"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={content}
+                    alt="Generated image (full resolution)"
+                    className="max-h-[90vh] max-w-[90vw] object-contain"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+              )}
             </div>
           ) : (
             <div className="max-w-none text-[15px] leading-[1.8] text-neutral-300 [&>p+p]:mt-5 [&>h1]:mt-6 [&>h1]:mb-3 [&>h1]:text-xl [&>h1]:font-semibold [&>h1]:text-neutral-200 [&>h2]:mt-5 [&>h2]:mb-2 [&>h2]:text-lg [&>h2]:font-semibold [&>h2]:text-neutral-200 [&>h3]:mt-4 [&>h3]:mb-2 [&>h3]:font-semibold [&>h3]:text-neutral-200 [&>ul]:my-3 [&>ul]:pl-5 [&>ul]:list-disc [&>ol]:my-3 [&>ol]:pl-5 [&>ol]:list-decimal [&_li]:mb-1.5 [&>blockquote]:my-4 [&>blockquote]:border-l-2 [&>blockquote]:border-neutral-700 [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-neutral-400 [&_a]:text-primary [&_a]:underline [&_code]:rounded [&_code]:bg-neutral-800 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[13px] [&_code]:text-neutral-200 [&>pre]:my-4 [&>pre]:rounded-lg [&>pre]:border [&>pre]:border-neutral-800 [&>pre]:bg-neutral-900 [&>pre]:p-4 [&_strong]:text-neutral-100">
