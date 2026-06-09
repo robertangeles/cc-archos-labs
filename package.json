@@ -14,7 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "eval": "node --env-file-if-exists=.env.local ./node_modules/vitest/vitest.mjs run --config vitest.eval.config.ts",
-    "prepare": "husky",
+    "prepare": "husky && git config merge.regenerate-state.name 'Auto-regenerate wiki/state.md' && git config merge.regenerate-state.driver 'node scripts/wiki-state.mjs && git add wiki/state.md && true'",
     "wip": "node scripts/wip.mjs",
     "new-branch": "node scripts/new-branch.mjs",
     "sync-branch": "node scripts/sync-branch.mjs",
