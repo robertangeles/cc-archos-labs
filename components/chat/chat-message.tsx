@@ -60,7 +60,16 @@ export function ChatMessage({
             </div>
           ) : (
             <div className="max-w-none text-[15px] leading-[1.8] text-neutral-300 [&>p+p]:mt-5 [&>h1]:mt-6 [&>h1]:mb-3 [&>h1]:text-xl [&>h1]:font-semibold [&>h1]:text-neutral-200 [&>h2]:mt-5 [&>h2]:mb-2 [&>h2]:text-lg [&>h2]:font-semibold [&>h2]:text-neutral-200 [&>h3]:mt-4 [&>h3]:mb-2 [&>h3]:font-semibold [&>h3]:text-neutral-200 [&>ul]:my-3 [&>ul]:pl-5 [&>ul]:list-disc [&>ol]:my-3 [&>ol]:pl-5 [&>ol]:list-decimal [&_li]:mb-1.5 [&>blockquote]:my-4 [&>blockquote]:border-l-2 [&>blockquote]:border-neutral-700 [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-neutral-400 [&_a]:text-primary [&_a]:underline [&_code]:rounded [&_code]:bg-neutral-800 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[13px] [&_code]:text-neutral-200 [&>pre]:my-4 [&>pre]:rounded-lg [&>pre]:border [&>pre]:border-neutral-800 [&>pre]:bg-neutral-900 [&>pre]:p-4 [&_strong]:text-neutral-100">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  a: ({ href, children }) => (
+                    <a href={href} target="_blank" rel="noopener noreferrer">
+                      {children}
+                    </a>
+                  ),
+                }}
+              >
                 {content}
               </ReactMarkdown>
             </div>
