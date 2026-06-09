@@ -53,6 +53,7 @@ export async function POST(
       modelOverride: parsed.data.model,
       systemPrompt: convo.conversation.systemPrompt,
       signal: request.signal,
+      webSearch: parsed.data.webSearch,
     });
 
     const wrappedStream = new ReadableStream({

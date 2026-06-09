@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-09T00:47:57.622Z
+generated: 2026-06-09T06:22:38.121Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -146,7 +146,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/cdmp/start` | [app/api/cdmp/start/route.ts](../app/api/cdmp/start/route.ts) | 2026-06-03 |
 | `/api/chat/conversations` | [app/api/chat/conversations/route.ts](../app/api/chat/conversations/route.ts) | 2026-06-08 |
 | `/api/chat/conversations/[id]` | [app/api/chat/conversations/[id]/route.ts](../app/api/chat/conversations/[id]/route.ts) | 2026-06-08 |
-| `/api/chat/conversations/[id]/messages` | [app/api/chat/conversations/[id]/messages/route.ts](../app/api/chat/conversations/[id]/messages/route.ts) | 2026-06-08 |
+| `/api/chat/conversations/[id]/messages` | [app/api/chat/conversations/[id]/messages/route.ts](../app/api/chat/conversations/[id]/messages/route.ts) | 2026-06-09 |
 | `/api/chat/conversations/[id]/share` | [app/api/chat/conversations/[id]/share/route.ts](../app/api/chat/conversations/[id]/share/route.ts) | 2026-06-08 |
 | `/api/chat/conversations/search` | [app/api/chat/conversations/search/route.ts](../app/api/chat/conversations/search/route.ts) | 2026-06-08 |
 | `/api/chat/slash-command` | [app/api/chat/slash-command/route.ts](../app/api/chat/slash-command/route.ts) | 2026-06-08 |
@@ -194,9 +194,9 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/blog/toc.tsx](../components/blog/toc.tsx) | 2026-05-20 |
 | [components/booking/calendar-picker.tsx](../components/booking/calendar-picker.tsx) | 2026-05-17 |
 | [components/chat/chat-empty-state.tsx](../components/chat/chat-empty-state.tsx) | 2026-06-08 |
-| [components/chat/chat-input.tsx](../components/chat/chat-input.tsx) | 2026-06-08 |
-| [components/chat/chat-message.tsx](../components/chat/chat-message.tsx) | 2026-06-08 |
-| [components/chat/chat-model-picker.tsx](../components/chat/chat-model-picker.tsx) | 2026-06-08 |
+| [components/chat/chat-input.tsx](../components/chat/chat-input.tsx) | 2026-06-09 |
+| [components/chat/chat-message.tsx](../components/chat/chat-message.tsx) | 2026-06-09 |
+| [components/chat/chat-model-picker.tsx](../components/chat/chat-model-picker.tsx) | 2026-06-09 |
 | [components/chat/chat-sidebar.tsx](../components/chat/chat-sidebar.tsx) | 2026-06-08 |
 | [components/chat/chat-skill-form.tsx](../components/chat/chat-skill-form.tsx) | 2026-06-08 |
 | [components/contact/contact-form.tsx](../components/contact/contact-form.tsx) | 2026-05-15 |

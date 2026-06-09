@@ -7,6 +7,7 @@ import { useEnabledModels } from "@/components/skills/use-enabled-models";
 interface ChatModelPickerProps {
   value: string;
   onChange: (modelId: string) => void;
+  disabled?: boolean;
 }
 
 function shortName(modelId: string): string {
@@ -19,7 +20,7 @@ function shortName(modelId: string): string {
     .join(" ");
 }
 
-export function ChatModelPicker({ value, onChange }: ChatModelPickerProps) {
+export function ChatModelPicker({ value, onChange, disabled }: ChatModelPickerProps) {
   const { models } = useEnabledModels();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -38,14 +39,18 @@ export function ChatModelPicker({ value, onChange }: ChatModelPickerProps) {
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-1 rounded-md border border-hairline px-2 py-1 text-[12px] text-ink-subtle transition-colors hover:border-hairline-strong hover:text-ink-muted"
+        onClick={() => !disabled && setOpen(!open)}
+        className={`flex items-center gap-1 rounded-md border border-hairline px-2 py-1 text-[12px] transition-colors ${
+          disabled
+            ? "cursor-not-allowed text-ink-tertiary opacity-50"
+            : "text-ink-subtle hover:border-hairline-strong hover:text-ink-muted"
+        }`}
       >
         {shortName(value)}
-        <ChevronDown className="h-3 w-3" />
+        {!disabled && <ChevronDown className="h-3 w-3" />}
       </button>
 
-      {open && (
+      {open && !disabled && (
         <div className="absolute bottom-full right-0 z-50 mb-1 max-h-[60vh] w-80 overflow-y-auto rounded-lg border border-hairline bg-surface-1 py-1 shadow-xl">
           <p className="px-3 py-1.5 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
             Select model

@@ -15,4 +15,5 @@ export const updateConversationSchema = z.object({
 export const sendMessageSchema = z.object({
   content: z.string().min(1).max(32000),
   model: z.string().min(1).max(100).optional(),
+  webSearch: z.boolean().optional(),
 });

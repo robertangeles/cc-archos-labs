@@ -10,6 +10,7 @@ import { ChatSidebar } from "@/components/chat/chat-sidebar";
 import { ChatSkillForm } from "@/components/chat/chat-skill-form";
 import { ChatModelPicker } from "@/components/chat/chat-model-picker";
 import { useEnabledModels } from "@/components/skills/use-enabled-models";
+import { CHAT_MODE_CONFIG, type ChatMode } from "@/lib/chat/modes";
 
 const THINKING_VERBS = [
   "Reasoning",
@@ -59,7 +60,10 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
   } | null>(null);
   const [isExecutingSkill, setIsExecutingSkill] = useState(false);
   const [modelOverride, setModelOverride] = useState<string | null>(null);
-  const selectedModel = modelOverride ?? resolvedDefault;
+  const [chatMode, setChatMode] = useState<ChatMode>(null);
+  const modeConfig = chatMode ? CHAT_MODE_CONFIG[chatMode] : null;
+  const modeModelId = modeConfig?.modelId ?? null;
+  const selectedModel = modeModelId ?? modelOverride ?? resolvedDefault;
   const setSelectedModel = setModelOverride;
   const [thinkingVerb, setThinkingVerb] = useState(THINKING_VERBS[0]);
 
@@ -110,7 +114,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
     }
 
     setInput("");
-    sendMessage(text, selectedModel);
+    sendMessage(text, selectedModel, modeConfig?.webSearchTool || undefined);
   }
 
   async function handleExecuteSkill(skillId: string, inputValues: Record<string, string>) {
@@ -139,7 +143,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
 
   function handleSuggestion(text: string) {
     setInput("");
-    sendMessage(text, selectedModel);
+    sendMessage(text, selectedModel, modeConfig?.webSearchTool || undefined);
   }
 
   function handleSelectConversation(id: string) {
@@ -304,15 +308,18 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
                 <ChatModelPicker
                   value={selectedModel}
                   onChange={setSelectedModel}
+                  disabled={modeModelId !== null}
                 />
               }
+              activeMode={chatMode}
+              onClearMode={() => setChatMode(null)}
               onToolSelect={(tool) => {
                 if (tool === "run-skill") {
+                  setChatMode(null);
                   setInput("/run ");
-                } else if (tool === "research") {
-                  setInput("Research: ");
-                } else if (tool === "web-search") {
-                  setInput("Search the web for: ");
+                } else if (tool === "research" || tool === "web-search") {
+                  setChatMode(tool);
+                  setInput(CHAT_MODE_CONFIG[tool].prefix);
                 }
               }}
             />

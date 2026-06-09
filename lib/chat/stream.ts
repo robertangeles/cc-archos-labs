@@ -16,6 +16,7 @@ interface StreamMessageArgs {
   modelOverride?: string;
   systemPrompt?: string | null;
   signal?: AbortSignal;
+  webSearch?: boolean;
 }
 
 export async function streamMessage(args: StreamMessageArgs): Promise<{
@@ -64,16 +65,149 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
 
   const priorMessages = await loadConversationHistory(args.conversationId, args.userId);
 
+  // Web search mode: use Responses API for url_citation annotations
+  if (args.webSearch) {
+    const responsesUrl = OPENROUTER_URL.replace("/chat/completions", "/responses");
+    const inputMessages: Array<Record<string, unknown>> = [];
+
+    if (systemMessage.length > 0) {
+      inputMessages.push({
+        type: "message",
+        role: "developer",
+        content: [{ type: "input_text", text: systemMessage[0].content }],
+      });
+    }
+    for (const msg of priorMessages) {
+      inputMessages.push({
+        type: "message",
+        role: msg.role,
+        content: [{
+          type: msg.role === "assistant" ? "output_text" : "input_text",
+          text: msg.content,
+        }],
+      });
+    }
+
+    const responsesRes = await fetch(responsesUrl, {
+      method: "POST",
+      headers: buildAuthHeaders(apiKey),
+      body: JSON.stringify({
+        model: modelId,
+        input: inputMessages,
+        tools: [{ type: "web_search_preview" }],
+      }),
+      signal: args.signal,
+    });
+
+    if (!responsesRes.ok) {
+      const body = await responsesRes.text().catch(() => "");
+      const status = responsesRes.status;
+      if (status === 429) throw new StreamError("Model is busy. Try again in a moment.", 429);
+      if (status >= 500) throw new StreamError("AI service temporarily unavailable.", 502);
+      throw new StreamError(`OpenRouter error: ${body.slice(0, 200)}`, status);
+    }
+
+    const json = await responsesRes.json();
+    const outputs: Array<{ type: string; content?: Array<{ type: string; text?: string; annotations?: Array<{ type: string; url?: string; title?: string }> }> }> =
+      json.output ?? [];
+    const messageOutput = outputs.find((o) => o.type === "message");
+    const textContent = messageOutput?.content?.find((c) => c.type === "output_text");
+    let content = textContent?.text ?? "";
+    const tokens = json.usage?.output_tokens ?? 0;
+
+    const citationUrls = extractCitationUrls(textContent?.annotations ?? []);
+    if (citationUrls.length > 0) {
+      content += formatCitationBlock(citationUrls);
+    }
+
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode(content));
+        controller.close();
+      },
+    });
+
+    const cleanup = async () => {
+      if (content.length > 0) {
+        await chatService.saveMessage(
+          args.conversationId,
+          "assistant",
+          content,
+          modelId,
+          tokens,
+          false,
+        );
+      }
+    };
+
+    return { stream, cleanup };
+  }
+
+  // Perplexity: non-streaming to get citation annotations
+  if (modelId.startsWith("perplexity/")) {
+    const perplexityRes = await fetch(OPENROUTER_URL, {
+      method: "POST",
+      headers: buildAuthHeaders(apiKey),
+      body: JSON.stringify({
+        model: modelId,
+        stream: false,
+        messages: [...systemMessage, ...priorMessages],
+      }),
+      signal: args.signal,
+    });
+
+    if (!perplexityRes.ok) {
+      const body = await perplexityRes.text().catch(() => "");
+      const status = perplexityRes.status;
+      if (status === 429) throw new StreamError("Model is busy. Try again in a moment.", 429);
+      if (status >= 500) throw new StreamError("AI service temporarily unavailable.", 502);
+      throw new StreamError(`OpenRouter error: ${body.slice(0, 200)}`, status);
+    }
+
+    const json = await perplexityRes.json();
+    const message = json.choices?.[0]?.message;
+    let content: string = message?.content ?? "";
+    const tokens = json.usage?.completion_tokens ?? 0;
+
+    const annotations: Array<Record<string, unknown>> = message?.annotations ?? [];
+    const citationUrls = extractCitationUrls(annotations);
+    if (citationUrls.length > 0) {
+      content = inlineCitationLinks(content, citationUrls);
+    }
+
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode(content));
+        controller.close();
+      },
+    });
+
+    const cleanup = async () => {
+      if (content.length > 0) {
+        await chatService.saveMessage(
+          args.conversationId,
+          "assistant",
+          content,
+          modelId,
+          tokens,
+          false,
+        );
+      }
+    };
+
+    return { stream, cleanup };
+  }
+
+  // Standard models: streaming via chat completions
   const openRouterResponse = await fetch(OPENROUTER_URL, {
     method: "POST",
     headers: buildAuthHeaders(apiKey),
     body: JSON.stringify({
       model: modelId,
       stream: true,
-      messages: [
-        ...systemMessage,
-        ...priorMessages,
-      ],
+      messages: [...systemMessage, ...priorMessages],
     }),
     signal: args.signal,
   });
@@ -178,6 +312,37 @@ async function loadConversationHistory(conversationId: string, userId: string) {
 }
 
 import { and, eq } from "drizzle-orm";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractCitationUrls(annotations: Array<Record<string, any>>): string[] {
+  return [...new Set(
+    annotations
+      .filter((a) => a.type === "url_citation")
+      .map((a) => a.url_citation?.url ?? a.url)
+      .filter(Boolean),
+  )];
+}
+
+function inlineCitationLinks(content: string, urls: string[]): string {
+  return content.replace(/\[(\d+)\]/g, (match, num) => {
+    const index = parseInt(num, 10) - 1;
+    if (index >= 0 && index < urls.length) {
+      return `[[${num}]](${urls[index]})`;
+    }
+    return match;
+  });
+}
+
+function formatCitationBlock(urls: string[]): string {
+  const lines = urls.map((url, i) => {
+    let domain = url;
+    try {
+      domain = new URL(url).hostname.replace(/^www\./, "");
+    } catch { /* use raw url as label */ }
+    return `${i + 1}. [${domain}](${url})`;
+  });
+  return `\n\n---\n**Sources**\n${lines.join("\n")}`;
+}
 
 export class StreamError extends Error {
   constructor(

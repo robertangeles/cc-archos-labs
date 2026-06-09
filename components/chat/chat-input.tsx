@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useEffect, useState, KeyboardEvent, type ReactNode } from "react";
-import { ArrowUp, Plus, Search, Globe, Sparkles, X, Paperclip } from "lucide-react";
+import { ArrowUp, Plus, Search, Globe, Sparkles, X, Paperclip, Check } from "lucide-react";
+import { CHAT_MODE_CONFIG, type ChatMode } from "@/lib/chat/modes";
 
 interface ChatInputProps {
   value: string;
@@ -11,6 +12,8 @@ interface ChatInputProps {
   placeholder?: string;
   modelPicker?: ReactNode;
   onToolSelect?: (tool: string) => void;
+  activeMode?: ChatMode;
+  onClearMode?: () => void;
 }
 
 const TOOLS = [
@@ -27,6 +30,8 @@ export function ChatInput({
   placeholder = "Type a message...",
   modelPicker,
   onToolSelect,
+  activeMode,
+  onClearMode,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -74,6 +79,31 @@ export function ChatInput({
         rows={1}
         className="block max-h-[160px] min-h-[56px] w-full resize-none bg-transparent px-4 pt-3 pb-1 text-[15px] leading-relaxed text-ink placeholder-ink-tertiary outline-none"
       />
+      {activeMode && (
+        <div className="flex items-center px-3 pb-1">
+          <div
+            className={`flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 ${CHAT_MODE_CONFIG[activeMode].bgColor} ${CHAT_MODE_CONFIG[activeMode].borderColor}`}
+          >
+            {activeMode === "research" ? (
+              <Search className={`h-3 w-3 ${CHAT_MODE_CONFIG[activeMode].color}`} />
+            ) : (
+              <Globe className={`h-3 w-3 ${CHAT_MODE_CONFIG[activeMode].color}`} />
+            )}
+            <span
+              className={`text-[11px] font-medium ${CHAT_MODE_CONFIG[activeMode].color}`}
+            >
+              {CHAT_MODE_CONFIG[activeMode].label}
+            </span>
+            <button
+              type="button"
+              onClick={onClearMode}
+              className={`ml-0.5 rounded-full p-0.5 transition-colors hover:bg-white/10 ${CHAT_MODE_CONFIG[activeMode].color}`}
+            >
+              <X className="h-2.5 w-2.5" />
+            </button>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between px-3 pb-2.5">
         {/* Left: attach + tools */}
         <div className="flex items-center gap-1">
@@ -103,19 +133,29 @@ export function ChatInput({
               <p className="px-3 py-1.5 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
                 Tools
               </p>
-              {TOOLS.map((tool) => (
-                <button
-                  key={tool.id}
-                  onClick={() => {
-                    setToolsOpen(false);
-                    onToolSelect?.(tool.id);
-                  }}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-[14px] text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
-                >
-                  <tool.icon className="h-4 w-4 text-ink-subtle" />
-                  {tool.label}
-                </button>
-              ))}
+              {TOOLS.map((tool) => {
+                const isActive = activeMode === tool.id;
+                return (
+                  <button
+                    key={tool.id}
+                    onClick={() => {
+                      setToolsOpen(false);
+                      onToolSelect?.(tool.id);
+                    }}
+                    className={`flex w-full items-center gap-2.5 px-3 py-2 text-[14px] transition-colors ${
+                      isActive
+                        ? "bg-primary/10 text-primary"
+                        : "text-ink-muted hover:bg-surface-2 hover:text-ink"
+                    }`}
+                  >
+                    <tool.icon
+                      className={`h-4 w-4 ${isActive ? "text-primary" : "text-ink-subtle"}`}
+                    />
+                    {tool.label}
+                    {isActive && <Check className="ml-auto h-3.5 w-3.5 text-primary" />}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
