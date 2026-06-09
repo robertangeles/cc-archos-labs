@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { BookingPromptKind } from "../../../../../lib/booking-prompts-shared";
 import { BookingPromptEditor } from "./booking-prompt-editor";
+import { ChatPromptEditor } from "./chat-prompt-editor";
 import { DiagnosticPromptEditor } from "./diagnostic-prompt-editor";
 
 // /admin/prompts/[slug] — drill-down editor for one prompt.
@@ -16,6 +17,7 @@ interface PageProps {
 
 type Slug =
   | "diagnostic"
+  | "workspace-chat"
   | "intake-followup"
   | "precall-brief"
   | "blog-matching";
@@ -28,6 +30,12 @@ const SLUG_TO_BOOKING_KEY: Partial<Record<Slug, BookingPromptKind>> = {
 
 const META: Record<Slug, { title: string; description: string; fires: string }> =
   {
+    "workspace-chat": {
+      title: "Workspace chat",
+      description:
+        "The core identity prompt for the workspace chat assistant. Defines persona, tone, guardrails, and domain context. Applied to every chat message for every user. The version label here tracks which prompt version is live.",
+      fires: "Fires on every chat message sent in the workspace.",
+    },
     diagnostic: {
       title: "Diagnostic narrative",
       description:
@@ -57,6 +65,7 @@ const META: Record<Slug, { title: string; description: string; fires: string }> 
 
 const VALID_SLUGS: Slug[] = [
   "diagnostic",
+  "workspace-chat",
   "intake-followup",
   "precall-brief",
   "blog-matching",
@@ -88,6 +97,8 @@ export default async function PromptDetailPage({ params }: PageProps) {
 
       {slug === "diagnostic" ? (
         <DiagnosticPromptEditor />
+      ) : slug === "workspace-chat" ? (
+        <ChatPromptEditor />
       ) : (
         <BookingPromptEditor promptKey={SLUG_TO_BOOKING_KEY[slug]!} />
       )}

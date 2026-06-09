@@ -8,6 +8,10 @@ import {
 import { getDb } from "../../../../lib/db";
 import { siteSetting } from "../../../../lib/db/schema";
 import {
+  ChatPromptSchema,
+  SITE_SETTING_KEY as CHAT_PROMPT_KEY,
+} from "../../../../lib/chat/prompt-config-shared";
+import {
   DiagnosticPromptSchema,
 } from "../../../../lib/diagnostic/prompt-config-shared";
 import { SITE_SETTING_KEY as DIAGNOSTIC_PROMPT_KEY } from "../../../../lib/diagnostic/prompt-config";
@@ -41,9 +45,17 @@ interface PromptCard {
 }
 
 export default async function PromptsIndexPage() {
-  const { diagnosticStatus, bookingPrompts } = await loadCardData();
+  const { diagnosticStatus, chatPromptStatus, bookingPrompts } = await loadCardData();
 
   const cards: PromptCard[] = [
+    {
+      slug: "workspace-chat",
+      title: "Workspace chat",
+      description:
+        "The core identity prompt for the workspace chat assistant. Persona, tone, guardrails, domain context. Applied to every chat message for every user.",
+      fires: "Fires on every chat message sent in the workspace.",
+      status: chatPromptStatus,
+    },
     {
       slug: "diagnostic",
       title: "Diagnostic narrative",
@@ -128,6 +140,7 @@ export default async function PromptsIndexPage() {
 
 async function loadCardData(): Promise<{
   diagnosticStatus: CardStatus;
+  chatPromptStatus: CardStatus;
   bookingPrompts: BookingPrompts | null;
 }> {
   const db = getDb();
@@ -151,6 +164,31 @@ async function loadCardData(): Promise<{
     diagnosticStatus = { tone: "warning", label: "Unknown" };
   }
 
+  let chatPromptStatus: CardStatus;
+  try {
+    const rows = await db
+      .select({ value: siteSetting.value })
+      .from(siteSetting)
+      .where(eq(siteSetting.key, CHAT_PROMPT_KEY))
+      .limit(1);
+    if (rows.length === 0) {
+      chatPromptStatus = { tone: "neutral", label: "Starter" };
+    } else {
+      const parsed = ChatPromptSchema.safeParse(rows[0].value);
+      if (!parsed.success) {
+        chatPromptStatus = { tone: "error", label: "Malformed" };
+      } else {
+        chatPromptStatus =
+          parsed.data.version === "starter-v0"
+            ? { tone: "neutral", label: "Starter" }
+            : { tone: "success", label: "Configured" };
+      }
+    }
+  } catch (err) {
+    console.error("[admin/prompts] chat prompt status load failed:", err);
+    chatPromptStatus = { tone: "warning", label: "Unknown" };
+  }
+
   let bookingPrompts: BookingPrompts | null = null;
   try {
     const rows = await db
@@ -166,7 +204,7 @@ async function loadCardData(): Promise<{
     console.error("[admin/prompts] booking status load failed:", err);
   }
 
-  return { diagnosticStatus, bookingPrompts };
+  return { diagnosticStatus, chatPromptStatus, bookingPrompts };
 }
 
 // A booking sub-prompt is "Configured" if its version label is anything
