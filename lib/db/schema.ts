@@ -2781,7 +2781,8 @@ export type NewConversation = typeof conversation.$inferInsert;
 // or 'system'. Assistant messages track which model produced them and
 // token usage. is_interrupted marks partial streaming saves.
 //
-// Normal form: 2NF. content is the raw text. No JSONB.
+// Normal form: 2NF. content is the raw text (or image URL/base64 for
+// image messages). contentType discriminates: 'text' | 'image_url' | 'image_base64'.
 
 export const message = pgTable(
   "message",
@@ -2792,6 +2793,7 @@ export const message = pgTable(
       .references(() => conversation.id, { onDelete: "cascade" }),
     role: varchar("role", { length: 20 }).notNull(),
     content: text("content").notNull(),
+    contentType: varchar("content_type", { length: 20 }).notNull().default("text"),
     model: varchar("model", { length: 100 }),
     tokens: integer("tokens").default(0),
     isInterrupted: boolean("is_interrupted").notNull().default(false),

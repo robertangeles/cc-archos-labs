@@ -11,6 +11,8 @@ import { ChatSkillForm } from "@/components/chat/chat-skill-form";
 import { ChatModelPicker } from "@/components/chat/chat-model-picker";
 import { useEnabledModels } from "@/components/skills/use-enabled-models";
 import { CHAT_MODE_CONFIG, type ChatMode } from "@/lib/chat/modes";
+import { ImageGenConfig } from "@/components/chat/image-gen-config";
+import type { AspectRatio, ImageSize } from "@/lib/image-gen/service";
 
 const THINKING_VERBS = [
   "Reasoning",
@@ -66,6 +68,8 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
   const selectedModel = modeModelId ?? modelOverride ?? resolvedDefault;
   const setSelectedModel = setModelOverride;
   const [thinkingVerb, setThinkingVerb] = useState(THINKING_VERBS[0]);
+  const [imgAspectRatio, setImgAspectRatio] = useState<AspectRatio>("2:3");
+  const [imgSize, setImgSize] = useState<ImageSize>("2K");
 
   useEffect(() => {
     if (!isSending) return;
@@ -87,6 +91,17 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
   async function handleSend() {
     if (!input.trim() || isSending) return;
     const text = input;
+
+    if (chatMode === "generate-image") {
+      setInput("");
+      sendMessage(
+        text,
+        CHAT_MODE_CONFIG["generate-image"].modelId,
+        undefined,
+        { aspectRatio: imgAspectRatio, imageSize: imgSize },
+      );
+      return;
+    }
 
     if (text.startsWith("/run")) {
       setInput("");
@@ -173,7 +188,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
     setDrawerOpen(false);
   }
 
-  const showEmpty = !activeConversation && messages.length === 0;
+  const showEmpty = !activeConversation && messages.length === 0 && !isSending;
 
   return (
     <div className="flex h-[calc(100dvh-72px)] overflow-hidden bg-neutral-950">
@@ -250,6 +265,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
                   key={msg.id}
                   role={msg.role}
                   content={msg.content}
+                  contentType={msg.contentType}
                   model={msg.model}
                   isInterrupted={msg.isInterrupted}
                 />
@@ -286,7 +302,22 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
         {/* Input area */}
         <div className="shrink-0 px-4 pb-4 pt-2">
           <div className="mx-auto max-w-3xl">
-            {isSending && (
+            {isSending && chatMode === "generate-image" && (
+              <div
+                className="mb-2 flex items-center gap-3 rounded-lg border border-violet-500/20 bg-violet-500/5 px-4 py-2.5"
+                aria-live="polite"
+              >
+                <div className="flex gap-1">
+                  <div className="h-2 w-2 animate-bounce rounded-full bg-violet-400 [animation-delay:0ms]" />
+                  <div className="h-2 w-2 animate-bounce rounded-full bg-violet-400 [animation-delay:150ms]" />
+                  <div className="h-2 w-2 animate-bounce rounded-full bg-violet-400 [animation-delay:300ms]" />
+                </div>
+                <span className="text-[13px] text-violet-300">
+                  Generating your image...
+                </span>
+              </div>
+            )}
+            {isSending && chatMode !== "generate-image" && (
               <div className="mb-2 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
                 <p className="text-[14px] text-ink-subtle">
@@ -294,29 +325,41 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
                 </p>
               </div>
             )}
+            {chatMode === "generate-image" && (
+              <ImageGenConfig
+                aspectRatio={imgAspectRatio}
+                imageSize={imgSize}
+                onAspectRatioChange={setImgAspectRatio}
+                onImageSizeChange={setImgSize}
+              />
+            )}
             <ChatInput
               value={input}
               onChange={setInput}
               onSend={handleSend}
               disabled={isSending || isExecutingSkill}
               placeholder={
-                showEmpty
-                  ? "How can I help you today?"
-                  : "Message..."
+                chatMode === "generate-image"
+                  ? "Describe an image... e.g. a watercolor painting of Sydney Harbour at sunset"
+                  : showEmpty
+                    ? "How can I help you today?"
+                    : "Message..."
               }
               modelPicker={
-                <ChatModelPicker
-                  value={selectedModel}
-                  onChange={setSelectedModel}
-                  disabled={modeModelId !== null}
-                />
+                chatMode === "generate-image" ? undefined : (
+                  <ChatModelPicker
+                    value={selectedModel}
+                    onChange={setSelectedModel}
+                    disabled={modeModelId !== null}
+                  />
+                )
               }
               activeMode={chatMode}
               onClearMode={() => setChatMode(null)}
               onToolSelect={(tool) => {
-                if (tool === "run-skill") {
-                  setChatMode(null);
-                  setInput("/run ");
+                if (tool === "generate-image") {
+                  setChatMode("generate-image");
+                  setInput("");
                 } else if (tool === "research" || tool === "web-search") {
                   setChatMode(tool);
                   setInput(CHAT_MODE_CONFIG[tool].prefix);

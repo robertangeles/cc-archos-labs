@@ -54,6 +54,7 @@ export async function POST(
       systemPrompt: convo.conversation.systemPrompt,
       signal: request.signal,
       webSearch: parsed.data.webSearch,
+      imageGen: parsed.data.imageGen,
     });
 
     const wrappedStream = new ReadableStream({

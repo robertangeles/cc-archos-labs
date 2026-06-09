@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-09T06:22:38.121Z
+generated: 2026-06-09T11:08:53.839Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -72,7 +72,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-06-03 |
 | `/tools/cdmp-practice/history/[sessionId]` | [app/tools/cdmp-practice/history/[sessionId]/page.tsx](../app/tools/cdmp-practice/history/[sessionId]/page.tsx) | 2026-06-03 |
 
-## API endpoints (97)
+## API endpoints (98)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -149,6 +149,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/chat/conversations/[id]/messages` | [app/api/chat/conversations/[id]/messages/route.ts](../app/api/chat/conversations/[id]/messages/route.ts) | 2026-06-09 |
 | `/api/chat/conversations/[id]/share` | [app/api/chat/conversations/[id]/share/route.ts](../app/api/chat/conversations/[id]/share/route.ts) | 2026-06-08 |
 | `/api/chat/conversations/search` | [app/api/chat/conversations/search/route.ts](../app/api/chat/conversations/search/route.ts) | 2026-06-08 |
+| `/api/chat/image` | [app/api/chat/image/route.ts](../app/api/chat/image/route.ts) | unknown |
 | `/api/chat/slash-command` | [app/api/chat/slash-command/route.ts](../app/api/chat/slash-command/route.ts) | 2026-06-08 |
 | `/api/contact` | [app/api/contact/route.ts](../app/api/contact/route.ts) | 2026-05-15 |
 | `/api/cron/process-scheduled` | [app/api/cron/process-scheduled/route.ts](../app/api/cron/process-scheduled/route.ts) | 2026-05-17 |
@@ -174,7 +175,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/duplicate` | [app/api/workflows/[id]/duplicate/route.ts](../app/api/workflows/[id]/duplicate/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]/execute` | [app/api/workflows/[id]/execute/route.ts](../app/api/workflows/[id]/execute/route.ts) | 2026-06-07 |
 
-## Components (80)
+## Components (81)
 
 | File | Last shipped |
 |------|--------------|
@@ -199,6 +200,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/chat/chat-model-picker.tsx](../components/chat/chat-model-picker.tsx) | 2026-06-09 |
 | [components/chat/chat-sidebar.tsx](../components/chat/chat-sidebar.tsx) | 2026-06-08 |
 | [components/chat/chat-skill-form.tsx](../components/chat/chat-skill-form.tsx) | 2026-06-08 |
+| [components/chat/image-gen-config.tsx](../components/chat/image-gen-config.tsx) | unknown |
 | [components/contact/contact-form.tsx](../components/contact/contact-form.tsx) | 2026-05-15 |
 | [components/diagnostic/recommended-readings.tsx](../components/diagnostic/recommended-readings.tsx) | 2026-05-24 |
 | [components/icons/social.tsx](../components/icons/social.tsx) | 2026-05-22 |

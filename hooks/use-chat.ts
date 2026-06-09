@@ -15,6 +15,7 @@ export interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
+  contentType?: string;
   model?: string | null;
   isInterrupted?: boolean;
   createdAt: string;
@@ -94,7 +95,7 @@ export function useChat({ defaultModel }: UseChatOptions) {
   );
 
   const sendMessage = useCallback(
-    async (content: string, model?: string, webSearch?: boolean) => {
+    async (content: string, model?: string, webSearch?: boolean, imageGen?: { aspectRatio?: string; imageSize?: string }) => {
       if (isSending) return;
       let convoId = activeConversation?.id;
 
@@ -123,7 +124,7 @@ export function useChat({ defaultModel }: UseChatOptions) {
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content, model, webSearch }),
+            body: JSON.stringify({ content, model, webSearch, imageGen }),
             signal: abortController.signal,
           },
         );
@@ -151,13 +152,27 @@ export function useChat({ defaultModel }: UseChatOptions) {
           if (done) break;
           const chunk = decoder.decode(value, { stream: true });
           accumulated += chunk;
-          setStreamingContent(accumulated);
+          if (!imageGen) setStreamingContent(accumulated);
+        }
+
+        let msgContent = accumulated;
+        let msgContentType: string | undefined;
+
+        if (imageGen && accumulated) {
+          try {
+            const parsed = JSON.parse(accumulated);
+            msgContent = parsed.imageUrl ?? parsed.text ?? accumulated;
+            msgContentType = parsed.contentType;
+          } catch {
+            // not JSON, use raw
+          }
         }
 
         const assistantMsg: ChatMessage = {
           id: `assistant-${Date.now()}`,
           role: "assistant",
-          content: accumulated,
+          content: msgContent,
+          contentType: msgContentType,
           model: activeConversation?.model ?? defaultModel,
           createdAt: new Date().toISOString(),
         };

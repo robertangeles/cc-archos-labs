@@ -17,6 +17,10 @@ interface StreamMessageArgs {
   systemPrompt?: string | null;
   signal?: AbortSignal;
   webSearch?: boolean;
+  imageGen?: {
+    aspectRatio?: string;
+    imageSize?: string;
+  };
 }
 
 export async function streamMessage(args: StreamMessageArgs): Promise<{
@@ -200,6 +204,70 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     return { stream, cleanup };
   }
 
+  // Image generation: non-streaming, send ONLY the user's prompt
+  // (system prompts and chat history degrade image model output)
+  if (args.imageGen) {
+    const imageRes = await fetch(OPENROUTER_URL, {
+      method: "POST",
+      headers: buildAuthHeaders(apiKey),
+      body: JSON.stringify({
+        model: modelId,
+        stream: false,
+        messages: [{
+          role: "user",
+          content: /^(create|generate|draw|make|design|paint|sketch|illustrate)\b/i.test(args.userContent.trim())
+            ? args.userContent
+            : `Generate an image: ${args.userContent}`,
+        }],
+        modalities: ["image", "text"],
+        image_config: {
+          aspect_ratio: args.imageGen.aspectRatio ?? "2:3",
+          image_size: args.imageGen.imageSize ?? "2K",
+        },
+      }),
+      signal: args.signal,
+    });
+
+    if (!imageRes.ok) {
+      const body = await imageRes.text().catch(() => "");
+      const status = imageRes.status;
+      if (status === 429) throw new StreamError("Model is busy. Try again in a moment.", 429);
+      if (status >= 500) throw new StreamError("AI service temporarily unavailable.", 502);
+      throw new StreamError(`Image generation failed: ${body.slice(0, 200)}`, status);
+    }
+
+    const json = await imageRes.json();
+    const msg = json.choices?.[0]?.message;
+    const tokens = json.usage?.completion_tokens ?? 0;
+
+    const { imageUrl, textContent, contentType } = extractImageFromResponse(msg);
+
+    const responsePayload = JSON.stringify({ imageUrl, text: textContent, contentType });
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode(responsePayload));
+        controller.close();
+      },
+    });
+
+    const cleanup = async () => {
+      if (imageUrl) {
+        await chatService.saveMessage(
+          args.conversationId, "assistant", imageUrl,
+          modelId, tokens, false, contentType as "image_url" | "image_base64",
+        );
+      } else if (textContent) {
+        await chatService.saveMessage(
+          args.conversationId, "assistant", textContent,
+          modelId, tokens, false, "text",
+        );
+      }
+    };
+
+    return { stream, cleanup };
+  }
+
   // Standard models: streaming via chat completions
   const openRouterResponse = await fetch(OPENROUTER_URL, {
     method: "POST",
@@ -292,6 +360,55 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
   };
 
   return { stream, cleanup };
+}
+
+function extractImageFromResponse(msg: Record<string, unknown> | undefined): {
+  imageUrl: string | null;
+  textContent: string | null;
+  contentType: string;
+} {
+  if (!msg) return { imageUrl: null, textContent: null, contentType: "text" };
+
+  const images = msg.images as Array<{ image_url?: { url?: string } }> | undefined;
+  if (images && images.length > 0) {
+    const url = images[0]?.image_url?.url;
+    if (url) {
+      const ct = url.startsWith("data:") ? "image_base64" : "image_url";
+      const text = typeof msg.content === "string" ? msg.content : null;
+      return { imageUrl: url, textContent: text, contentType: ct };
+    }
+  }
+
+  const content = msg.content;
+  if (Array.isArray(content)) {
+    let imageUrl: string | null = null;
+    let contentType = "text";
+    const textParts: string[] = [];
+    for (const part of content as Array<Record<string, unknown>>) {
+      if (part.type === "text" && typeof part.text === "string") {
+        textParts.push(part.text);
+      } else if (part.type === "image_url") {
+        const u = (part.image_url as Record<string, string>)?.url;
+        if (u) {
+          imageUrl = u;
+          contentType = u.startsWith("data:") ? "image_base64" : "image_url";
+        }
+      } else if ((part as Record<string, unknown>).inline_data) {
+        const inline = (part as Record<string, Record<string, string>>).inline_data;
+        imageUrl = `data:${inline.mime_type || "image/png"};base64,${inline.data}`;
+        contentType = "image_base64";
+      }
+    }
+    return { imageUrl, textContent: textParts.join("\n") || null, contentType };
+  }
+
+  if (typeof content === "string") {
+    const match = content.match(/data:image\/[a-zA-Z+]+;base64,[A-Za-z0-9+/=]+/);
+    if (match) return { imageUrl: match[0], textContent: null, contentType: "image_base64" };
+    return { imageUrl: null, textContent: content || null, contentType: "text" };
+  }
+
+  return { imageUrl: null, textContent: null, contentType: "text" };
 }
 
 async function loadConversationHistory(conversationId: string, userId: string) {

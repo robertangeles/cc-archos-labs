@@ -16,4 +16,10 @@ export const sendMessageSchema = z.object({
   content: z.string().min(1).max(32000),
   model: z.string().min(1).max(100).optional(),
   webSearch: z.boolean().optional(),
+  imageGen: z
+    .object({
+      aspectRatio: z.string().max(10).optional(),
+      imageSize: z.string().max(5).optional(),
+    })
+    .optional(),
 });
