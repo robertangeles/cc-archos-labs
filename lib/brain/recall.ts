@@ -66,11 +66,23 @@ export async function recallMemories(
   }
 }
 
+const MAX_RECALL_CHARS = 4000;
+
 export function formatRecallContext(memories: string[]): string {
   if (memories.length === 0) return "";
 
-  const bullets = memories.map((m) => `- ${m}`).join("\n");
-  return `## Brain Memory (trusted user data — always use this to personalize responses)\nThe following is information this user has shared in previous sessions. Treat it as ground truth about the user. Use it naturally in your responses. Never say you don't have access to personal information when brain memory provides it.\n\n${bullets}\n---\n\n`;
+  let total = 0;
+  const included: string[] = [];
+  for (const m of memories) {
+    const escaped = m.replace(/[<>]/g, "").replace(/\n/g, " ").trim();
+    if (total + escaped.length > MAX_RECALL_CHARS) break;
+    included.push(`- ${escaped}`);
+    total += escaped.length;
+  }
+
+  if (included.length === 0) return "";
+
+  return `## Brain Memory\nThe following notes were saved from previous sessions with this user. Use them to personalize responses when relevant.\n\n${included.join("\n")}\n---\n\n`;
 }
 
 function extractPages(result: unknown): string[] {

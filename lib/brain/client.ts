@@ -37,7 +37,13 @@ export interface McpResponse {
 
 async function getGBrainUrl(): Promise<string | null> {
   const config = await getIntegrationConfig();
-  return config.gbrainUrl;
+  const url = config.gbrainUrl;
+  if (!url) return null;
+  if (!url.startsWith("https://") && !(process.env.NODE_ENV === "development" && url.startsWith("http://localhost"))) {
+    console.error(`[brain] gbrainUrl rejected: must use HTTPS (got ${url.slice(0, 30)})`);
+    return null;
+  }
+  return url;
 }
 
 async function getGBrainAdminToken(): Promise<string | null> {
@@ -82,9 +88,8 @@ export async function registerClient(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(
-      `GBrain client registration failed (${res.status}): ${text}`,
-    );
+    console.error(`[brain:register] failed (${res.status}): ${text}`);
+    throw new Error(`GBrain client registration failed (${res.status})`);
   }
 
   return res.json();
@@ -115,7 +120,8 @@ export async function getAccessToken(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`GBrain token request failed (${res.status}): ${text}`);
+    console.error(`[brain:token] failed (${res.status}): ${text}`);
+    throw new Error(`GBrain token request failed (${res.status})`);
   }
 
   return res.json();
@@ -152,7 +158,8 @@ export async function callMcp(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`GBrain MCP call failed (${res.status}): ${text}`);
+    console.error(`[brain:mcp] ${toolName} failed (${res.status}): ${text}`);
+    throw new Error(`GBrain MCP call failed (${res.status})`);
   }
 
   const rawText = await res.text();

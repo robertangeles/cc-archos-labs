@@ -5,6 +5,7 @@ import { encrypt, decrypt } from "@/lib/booking-crypto";
 import {
   registerClient,
   getAccessToken,
+  callMcp,
   type GBrainTokenResponse,
 } from "./client";
 
@@ -94,11 +95,87 @@ export async function getBrainToken(
   return tokenResponse.access_token;
 }
 
-export async function deleteBrain(userId: string): Promise<void> {
+export interface DeleteBrainResult {
+  localDeleted: boolean;
+  pagesDeleted: number;
+  pagesDeleteFailed: number;
+  clientId: string | null;
+}
+
+export async function deleteBrain(userId: string): Promise<DeleteBrainResult> {
+  const result: DeleteBrainResult = {
+    localDeleted: false,
+    pagesDeleted: 0,
+    pagesDeleteFailed: 0,
+    clientId: null,
+  };
+
   tokenCache.delete(userId);
+
+  const brain = await getUserBrain(userId);
+  if (brain) {
+    result.clientId = brain.brainClientId;
+
+    try {
+      const token = await getBrainToken(userId);
+      if (token) {
+        const listResp = await callMcp(token, "list_pages", { limit: 200 }, 10000);
+        if (!listResp.error && listResp.result) {
+          const pages = parsePageSlugs(listResp.result);
+          for (const slug of pages) {
+            try {
+              const delResp = await callMcp(token, "delete_page", { slug }, 5000);
+              if (delResp.error) {
+                result.pagesDeleteFailed++;
+              } else {
+                result.pagesDeleted++;
+              }
+            } catch {
+              result.pagesDeleteFailed++;
+            }
+          }
+        }
+      }
+    } catch {
+      console.error(
+        `[brain:delete] GBrain content cleanup failed for user=${userId} clientId=${brain.brainClientId}`,
+      );
+    }
+  }
 
   const db = getDb();
   await db.delete(userBrain).where(eq(userBrain.userId, userId));
+  result.localDeleted = true;
+
+  if (result.pagesDeleteFailed > 0 || result.clientId) {
+    console.error(
+      `[brain:delete] user=${userId} clientId=${result.clientId} pagesDeleted=${result.pagesDeleted} pagesDeleteFailed=${result.pagesDeleteFailed} orphanedClient=true`,
+    );
+  }
+
+  return result;
+}
+
+function parsePageSlugs(result: unknown): string[] {
+  if (!result || typeof result !== "object") return [];
+  const r = result as Record<string, unknown>;
+  if (!Array.isArray(r.content)) return [];
+  for (const item of r.content) {
+    if (typeof item === "object" && item !== null && "text" in item) {
+      const text = (item as { text: string }).text;
+      try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) {
+          return parsed
+            .filter((p: unknown) => typeof p === "object" && p !== null && "slug" in p)
+            .map((p: unknown) => (p as { slug: string }).slug);
+        }
+      } catch {
+        continue;
+      }
+    }
+  }
+  return [];
 }
 
 export function clearTokenCache(userId: string): void {

@@ -75,9 +75,10 @@ export async function DELETE(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const slug = searchParams.get("slug");
-  if (!slug) {
+  const SLUG_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9/_-]{0,199}$/;
+  if (!slug || slug.includes("..") || slug.includes("//") || !SLUG_PATTERN.test(slug)) {
     return NextResponse.json(
-      { error: "slug parameter required" },
+      { error: "Invalid slug" },
       { status: 400 },
     );
   }

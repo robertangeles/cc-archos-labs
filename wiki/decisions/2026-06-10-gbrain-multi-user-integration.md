@@ -3,7 +3,7 @@ title: GBrain Multi-User Integration
 category: decision
 created: 2026-06-10
 updated: 2026-06-10
-related: [[deployment-architecture]], [[gbrain-service]]
+related: [[deployment-architecture]]
 ---
 
 How we gave every Archos Labs user a persistent AI brain — the architecture decisions, the failures, and what we learned.
@@ -119,7 +119,7 @@ The middleware pattern (recall before LLM, extract after response) is extensible
 | `app/api/brain/status/route.ts` | Brain health check |
 | `app/api/brain/memories/route.ts` | My Brain CRUD (list + delete) |
 | `app/api/brain/route.ts` | Brain deletion (account cleanup) |
-| `app/api/brain/debug/route.ts` | Pipeline debug endpoint |
+| `app/api/brain/debug/route.ts` | Pipeline debug endpoint (**removed** in security hardening — exposed infra URLs and PII) |
 | `app/account/brain/` | My Brain page (expandable cards, pagination, search) |
 | `components/workspace/BrainStatus.tsx` | Status indicator |
 | `components/workspace/SourceCitations.tsx` | Citation display |
