@@ -166,6 +166,9 @@ function decryptAndValidate(rawValue: unknown): IntegrationConfig {
   if (decrypted.llmCustomModels === undefined || decrypted.llmCustomModels === null) {
     decrypted.llmCustomModels = [];
   }
+  if (decrypted.gbrainUrl === undefined) {
+    decrypted.gbrainUrl = null;
+  }
 
   const parsed = IntegrationConfigSchema.safeParse(decrypted);
   if (!parsed.success) {
@@ -211,6 +214,8 @@ function readFromEnv(): IntegrationConfig {
     turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY || null,
     llmEnabledModels: [],
     llmCustomModels: [],
+    gbrainUrl: process.env.GBRAIN_URL || null,
+    gbrainAdminToken: process.env.GBRAIN_ADMIN_TOKEN || null,
   };
 
   const parsed = IntegrationConfigSchema.safeParse(config);
@@ -359,6 +364,8 @@ export async function migrateEnvToDB(): Promise<{
     turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY ?? null,
     llmEnabledModels: null,
     llmCustomModels: null,
+    gbrainUrl: process.env.GBRAIN_URL ?? null,
+    gbrainAdminToken: process.env.GBRAIN_ADMIN_TOKEN ?? null,
   };
 
   const written: Array<keyof IntegrationConfig> = [];
@@ -545,6 +552,8 @@ export async function getIntegrationConfigRedacted(): Promise<{
   googleOauthClientSecret: string;
   turnstileSiteKey: string | null;
   turnstileSecretKey: string;
+  gbrainUrl: string | null;
+  gbrainAdminToken: string;
 }> {
   const config = await getIntegrationConfig();
   return {
@@ -556,15 +565,12 @@ export async function getIntegrationConfigRedacted(): Promise<{
     llmModelId: config.llmModelId,
     llmEnabledModels: config.llmEnabledModels,
     llmCustomModels: config.llmCustomModels,
-    // Client ID is identifier-grade — surface the full value so the
-    // admin can confirm it matches the Google Cloud Console panel.
     googleOauthClientId: config.googleOauthClientId,
-    // Client Secret is the real credential — always redact (empty when null).
     googleOauthClientSecret: redactSecret(config.googleOauthClientSecret ?? ""),
-    // Site key is rendered into HTML — surface plaintext so the admin
-    // can confirm what's deployed. Secret key always redacted.
     turnstileSiteKey: config.turnstileSiteKey,
     turnstileSecretKey: redactSecret(config.turnstileSecretKey ?? ""),
+    gbrainUrl: config.gbrainUrl,
+    gbrainAdminToken: redactSecret(config.gbrainAdminToken ?? ""),
   };
 }
 

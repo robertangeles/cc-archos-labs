@@ -12,6 +12,8 @@ import { ChatModelPicker } from "@/components/chat/chat-model-picker";
 import { useEnabledModels } from "@/components/skills/use-enabled-models";
 import { CHAT_MODE_CONFIG, type ChatMode } from "@/lib/chat/modes";
 import { ImageGenConfig } from "@/components/chat/image-gen-config";
+import { BrainStatus } from "@/components/workspace/BrainStatus";
+import { BrainOnboardingBanner } from "@/components/workspace/BrainOnboardingBanner";
 import type { AspectRatio, ImageSize } from "@/lib/image-gen/service";
 
 const THINKING_VERBS = [
@@ -70,6 +72,14 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
   const [thinkingVerb, setThinkingVerb] = useState(THINKING_VERBS[0]);
   const [imgAspectRatio, setImgAspectRatio] = useState<AspectRatio>("2:3");
   const [imgSize, setImgSize] = useState<ImageSize>("2K");
+  const [brainProvisioned, setBrainProvisioned] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/brain/status")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data?.provisioned) setBrainProvisioned(true); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!isSending) return;
@@ -243,8 +253,15 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
           </span>
         </div>
 
-        {/* Messages or empty state */}
+        {/* Brain status + Messages or empty state */}
         <div className="flex flex-1 flex-col overflow-y-auto">
+          <div className="mx-auto w-full max-w-3xl px-4 pt-2 hidden md:block">
+            <BrainStatus />
+          </div>
+          <BrainOnboardingBanner
+            messageCount={messages.length}
+            brainProvisioned={brainProvisioned}
+          />
           {showEmpty ? (
             <ChatEmptyState
               displayName={displayName}

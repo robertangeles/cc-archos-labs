@@ -8,6 +8,7 @@ import {
   Sparkles,
   GitBranch,
   Clock,
+  Brain,
   Trash2,
   X,
 } from "lucide-react";
@@ -145,6 +146,7 @@ export function ChatSidebar({
 
       {/* Direct navigation links */}
       <div className="shrink-0 border-t border-neutral-800/40 px-2 py-3">
+        <NavLink href="/account/brain" icon={Brain} label="Brain" />
         <NavLink href="/account/skills" icon={Sparkles} label="Skills" />
         <NavLink href="/account/workflows" icon={GitBranch} label="Workflows" />
         <NavLink href="/account/history" icon={Clock} label="History" />

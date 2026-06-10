@@ -82,6 +82,7 @@ describe("integration-config-shared", () => {
         "llmApiKey",
         "googleOauthClientSecret",
         "turnstileSecretKey",
+        "gbrainAdminToken",
       ]);
     });
 
@@ -112,6 +113,8 @@ describe("integration-config-shared", () => {
         googleOauthClientSecret: null,
         turnstileSiteKey: null,
         turnstileSecretKey: null,
+        gbrainUrl: null,
+        gbrainAdminToken: null,
       };
       expect(IntegrationConfigSchema.safeParse(valid).success).toBe(true);
     });
@@ -155,6 +158,8 @@ describe("integration-config-shared", () => {
         googleOauthClientSecret: null,
         turnstileSiteKey: null,
         turnstileSecretKey: null,
+        gbrainUrl: null,
+        gbrainAdminToken: null,
       };
       const parsed = IntegrationConfigSchema.safeParse(valid);
       expect(parsed.success).toBe(true);
@@ -175,6 +180,8 @@ describe("integration-config-shared", () => {
         googleOauthClientSecret: null,
         turnstileSiteKey: null,
         turnstileSecretKey: null,
+        gbrainUrl: null,
+        gbrainAdminToken: null,
       };
       const parsed = IntegrationConfigSchema.safeParse(valid);
       expect(parsed.success).toBe(true);

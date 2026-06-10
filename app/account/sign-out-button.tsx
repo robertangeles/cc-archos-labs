@@ -1,12 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 export function SignOutButton() {
-  const router = useRouter();
 
   async function onLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // Network error — clear cookie client-side as fallback
+      document.cookie = "archos_session=; Max-Age=0; path=/";
+    }
     window.location.href = "/";
   }
 

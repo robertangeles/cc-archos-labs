@@ -8,6 +8,8 @@ import * as chatService from "./service";
 import { getChatPrompt } from "./prompt-config";
 import { getEnabledRules } from "../rules/service";
 import { vectorSearch } from "../knowledge/search";
+import { recallMemories, formatRecallContext } from "../brain/recall";
+import { extractMemories } from "../brain/extract";
 
 interface StreamMessageArgs {
   conversationId: string;
@@ -57,12 +59,22 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     // Knowledge search unavailable — continue without RAG
   }
 
+  let brainContext = "";
+  try {
+    const recall = await recallMemories(args.userId, args.userContent);
+    if (recall.source === "brain" && recall.memories.length > 0) {
+      brainContext = formatRecallContext(recall.memories);
+    }
+  } catch {
+    // Brain recall failed — continue without memory enrichment
+  }
+
   const rules = await getEnabledRules(args.userId);
   const rulesBlock = rules.length > 0
     ? rules.map((r) => r.content).join("\n\n")
     : "";
 
-  const systemParts = [corePrompt, ragContext, args.systemPrompt ?? "", rulesBlock].filter(Boolean);
+  const systemParts = [corePrompt, brainContext, ragContext, args.systemPrompt ?? "", rulesBlock].filter(Boolean);
   const systemMessage = systemParts.length > 0
     ? [{ role: "system" as const, content: systemParts.join("\n\n") }]
     : [];
@@ -142,6 +154,7 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
           tokens,
           false,
         );
+        extractMemories(args.userId, args.userContent, content).catch(() => {});
       }
     };
 
@@ -198,6 +211,7 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
           tokens,
           false,
         );
+        extractMemories(args.userId, args.userContent, content).catch(() => {});
       }
     };
 
@@ -356,6 +370,9 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
         outputTokens,
         aborted,
       );
+      if (!aborted) {
+        extractMemories(args.userId, args.userContent, buffer).catch(() => {});
+      }
     }
   };
 
