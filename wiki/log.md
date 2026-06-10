@@ -8,6 +8,24 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-06-10 — GBrain security hardening
+
+Security audit of the GBrain integration surfaced 37 findings across 7 critical areas. Implemented all 7 fixes:
+
+1. **Deleted debug endpoint** (`/api/brain/debug`) — exposed infrastructure URLs, hardcoded PII, and let any authenticated user trigger arbitrary MCP calls.
+2. **Sanitized error messages** in `lib/brain/client.ts` — GBrain response bodies no longer leak to callers. Logged server-side only.
+3. **Slug validation** in `/api/brain/memories` DELETE — blocks path traversal (`../../etc/passwd`), double slash, XSS, SQL injection, oversized slugs.
+4. **HTTPS enforcement** at `getGBrainUrl()` in `lib/brain/client.ts` — rejects `http://` URLs at runtime (graceful degradation, not crash). `http://localhost` allowed in dev.
+5. **PII filtering** via new `lib/brain/sanitize.ts` — redacts credit cards (Luhn-validated), emails, AU phone/TFN/Medicare/passport, API keys before storing in GBrain. 20 unit tests.
+6. **Verified deletion** in `deleteBrain()` — lists and deletes all user pages on GBrain before removing local credentials. Logs orphaned OAuth clients for manual cleanup.
+7. **Memory injection hardening** in `formatRecallContext()` — removed "trusted user data"/"ground truth"/"never say" override language, strips `<>` tags, normalises newlines, caps at 4000 chars.
+
+Also fixed CI wiki lint failure (broken `[[gbrain-service]]` ref, missing index entry).
+
+Pen tested: 12/12 slug attacks blocked, all PII types redacted, all unauthenticated requests return 401, debug endpoint returns 404, HTTPS enforcement rejects HTTP in prod and allows localhost in dev.
+
+Pages touched: `wiki/decisions/2026-06-10-gbrain-multi-user-integration.md` (updated Files Created table), `wiki/index.md` (added decision page entry).
+
 ## 2026-06-05 — SEO crawl budget fix
 
 **Problem:** GSC showed 320 pages discovered, only 28 indexed. All 290 non-indexed had "Discovered – currently not indexed" with Last crawled = 1970-01-01 (never crawled).

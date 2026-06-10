@@ -1,6 +1,7 @@
 import { callMcp } from "./client";
 import { getBrainToken } from "./provision";
 import { getIntegrationConfig } from "@/lib/integration-config";
+import { sanitizeForBrain } from "./sanitize";
 
 export async function extractMemories(
   userId: string,
@@ -13,21 +14,25 @@ export async function extractMemories(
   const token = await getBrainToken(userId);
   if (!token) return;
 
+  const userSanitized = sanitizeForBrain(userMessage);
+  const assistantSanitized = sanitizeForBrain(assistantResponse);
+  const totalRedacted = userSanitized.redactedCount + assistantSanitized.redactedCount;
+
   const slug = `sessions/${new Date().toISOString().slice(0, 10)}/${Date.now()}`;
-  const content = `---\ntitle: Chat session note\ncreated: ${new Date().toISOString()}\n---\n\n## User\n${userMessage}\n\n## Assistant\n${assistantResponse}`;
+  const content = `---\ntitle: Chat session note\ncreated: ${new Date().toISOString()}\n---\n\n## User\n${userSanitized.sanitized}\n\n## Assistant\n${assistantSanitized.sanitized}`;
 
   try {
     await callMcp(token, "put_page", { slug, content }, 10000);
-    logExtractionOutcome("success");
+    logExtractionOutcome("success", totalRedacted);
   } catch {
-    logExtractionOutcome("ingest_error");
+    logExtractionOutcome("ingest_error", totalRedacted);
   }
 }
 
 type ExtractionOutcome = "success" | "ingest_error";
 
-function logExtractionOutcome(outcome: ExtractionOutcome): void {
+function logExtractionOutcome(outcome: ExtractionOutcome, redacted = 0): void {
   if (process.env.NODE_ENV === "development") {
-    console.log(`[brain:extract] outcome=${outcome}`);
+    console.log(`[brain:extract] outcome=${outcome} redacted=${redacted}`);
   }
 }

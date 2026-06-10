@@ -14,11 +14,15 @@ export async function DELETE() {
   }
 
   try {
-    await deleteBrain(auth.user.id);
-    return NextResponse.json({ deleted: true });
-  } catch (e) {
+    const result = await deleteBrain(auth.user.id);
+    return NextResponse.json({
+      deleted: result.localDeleted,
+      pagesDeleted: result.pagesDeleted,
+      pagesDeleteFailed: result.pagesDeleteFailed,
+    });
+  } catch {
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Deletion failed" },
+      { error: "Deletion failed" },
       { status: 500 },
     );
   }
