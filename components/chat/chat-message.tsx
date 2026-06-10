@@ -18,7 +18,7 @@ export function ChatMessage({
   role,
   content,
   contentType,
-  model,
+  model: _model,
   isStreaming,
   isInterrupted,
 }: ChatMessageProps) {

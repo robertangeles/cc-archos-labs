@@ -1,15 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
-// "Sign out" menu item rendered inside the header Profile dropdown.
-// Lives as its own component because it's the only client-side
-// mutation in the header tree. Mirrors app/admin/(authed)/
-// sign-out-button.tsx for the admin session.
-
 export function LeadSignOutButton() {
-  const router = useRouter();
-
   async function onLogout() {
     await fetch("/api/auth/lead/logout", { method: "POST" });
     // Navigate to home then refresh. Sign out from an owner-only page

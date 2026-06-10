@@ -5,8 +5,6 @@ import {
   conversation,
   message,
   conversationShare,
-  type Conversation,
-  type Message,
 } from "../db/schema";
 
 const MESSAGE_PAGE_SIZE = 100;

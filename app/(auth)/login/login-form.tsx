@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { TurnstileWidget } from "../turnstile-widget";
 import { GoogleButton } from "../google-button";
 import { PasswordInput } from "../password-input";
@@ -16,7 +16,6 @@ export function LoginForm({
   turnstileSiteKey,
   googleOauthEnabled,
 }: LoginFormProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/account";
 

@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-10T11:12:56.682Z
+generated: 2026-06-10T12:38:58.964Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -21,7 +21,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/[...slug]` | [app/[...slug]/page.tsx](../app/[...slug]/page.tsx) | 2026-05-18 |
 | `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-27 |
 | `/account` | [app/account/page.tsx](../app/account/page.tsx) | 2026-06-07 |
-| `/account/brain` | [app/account/brain/page.tsx](../app/account/brain/page.tsx) | unknown |
+| `/account/brain` | [app/account/brain/page.tsx](../app/account/brain/page.tsx) | 2026-06-10 |
 | `/account/history` | [app/account/history/page.tsx](../app/account/history/page.tsx) | 2026-06-07 |
 | `/account/personalisation` | [app/account/personalisation/page.tsx](../app/account/personalisation/page.tsx) | 2026-06-08 |
 | `/account/skills` | [app/account/skills/page.tsx](../app/account/skills/page.tsx) | 2026-06-07 |
@@ -81,7 +81,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/google-oauth/cb` | [app/api/admin/google-oauth/cb/route.ts](../app/api/admin/google-oauth/cb/route.ts) | 2026-05-31 |
 | `/api/admin/google-oauth/disconnect` | [app/api/admin/google-oauth/disconnect/route.ts](../app/api/admin/google-oauth/disconnect/route.ts) | 2026-05-22 |
 | `/api/admin/google-oauth/start` | [app/api/admin/google-oauth/start/route.ts](../app/api/admin/google-oauth/start/route.ts) | 2026-05-15 |
-| `/api/admin/integrations` | [app/api/admin/integrations/route.ts](../app/api/admin/integrations/route.ts) | 2026-06-07 |
+| `/api/admin/integrations` | [app/api/admin/integrations/route.ts](../app/api/admin/integrations/route.ts) | 2026-06-10 |
 | `/api/admin/integrations/models` | [app/api/admin/integrations/models/route.ts](../app/api/admin/integrations/models/route.ts) | 2026-06-07 |
 | `/api/admin/integrations/reveal` | [app/api/admin/integrations/reveal/route.ts](../app/api/admin/integrations/reveal/route.ts) | 2026-05-15 |
 | `/api/admin/integrations/reveal-auth` | [app/api/admin/integrations/reveal-auth/route.ts](../app/api/admin/integrations/reveal-auth/route.ts) | 2026-05-15 |
@@ -139,11 +139,11 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/booking/cancel` | [app/api/booking/cancel/route.ts](../app/api/booking/cancel/route.ts) | 2026-05-17 |
 | `/api/booking/intake-followup` | [app/api/booking/intake-followup/route.ts](../app/api/booking/intake-followup/route.ts) | 2026-05-17 |
 | `/api/booking/reschedule` | [app/api/booking/reschedule/route.ts](../app/api/booking/reschedule/route.ts) | 2026-05-17 |
-| `/api/brain` | [app/api/brain/route.ts](../app/api/brain/route.ts) | unknown |
-| `/api/brain/debug` | [app/api/brain/debug/route.ts](../app/api/brain/debug/route.ts) | unknown |
-| `/api/brain/memories` | [app/api/brain/memories/route.ts](../app/api/brain/memories/route.ts) | unknown |
-| `/api/brain/provision` | [app/api/brain/provision/route.ts](../app/api/brain/provision/route.ts) | unknown |
-| `/api/brain/status` | [app/api/brain/status/route.ts](../app/api/brain/status/route.ts) | unknown |
+| `/api/brain` | [app/api/brain/route.ts](../app/api/brain/route.ts) | 2026-06-10 |
+| `/api/brain/debug` | [app/api/brain/debug/route.ts](../app/api/brain/debug/route.ts) | 2026-06-10 |
+| `/api/brain/memories` | [app/api/brain/memories/route.ts](../app/api/brain/memories/route.ts) | 2026-06-10 |
+| `/api/brain/provision` | [app/api/brain/provision/route.ts](../app/api/brain/provision/route.ts) | 2026-06-10 |
+| `/api/brain/status` | [app/api/brain/status/route.ts](../app/api/brain/status/route.ts) | 2026-06-10 |
 | `/api/cdmp/answer` | [app/api/cdmp/answer/route.ts](../app/api/cdmp/answer/route.ts) | 2026-06-03 |
 | `/api/cdmp/complete` | [app/api/cdmp/complete/route.ts](../app/api/cdmp/complete/route.ts) | 2026-06-03 |
 | `/api/cdmp/flag` | [app/api/cdmp/flag/route.ts](../app/api/cdmp/flag/route.ts) | 2026-06-03 |
@@ -204,7 +204,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/chat/chat-input.tsx](../components/chat/chat-input.tsx) | 2026-06-09 |
 | [components/chat/chat-message.tsx](../components/chat/chat-message.tsx) | 2026-06-09 |
 | [components/chat/chat-model-picker.tsx](../components/chat/chat-model-picker.tsx) | 2026-06-09 |
-| [components/chat/chat-sidebar.tsx](../components/chat/chat-sidebar.tsx) | 2026-06-08 |
+| [components/chat/chat-sidebar.tsx](../components/chat/chat-sidebar.tsx) | 2026-06-10 |
 | [components/chat/chat-skill-form.tsx](../components/chat/chat-skill-form.tsx) | 2026-06-08 |
 | [components/chat/image-gen-config.tsx](../components/chat/image-gen-config.tsx) | 2026-06-09 |
 | [components/contact/contact-form.tsx](../components/contact/contact-form.tsx) | 2026-05-15 |
@@ -266,7 +266,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/workflows/workflow-creator.tsx](../components/workflows/workflow-creator.tsx) | 2026-06-07 |
 | [components/workflows/workflow-settings.tsx](../components/workflows/workflow-settings.tsx) | 2026-06-07 |
 | [components/workflows/workflows-list.tsx](../components/workflows/workflows-list.tsx) | 2026-06-08 |
-| [components/workspace/BrainOnboardingBanner.tsx](../components/workspace/BrainOnboardingBanner.tsx) | unknown |
-| [components/workspace/BrainStatus.tsx](../components/workspace/BrainStatus.tsx) | unknown |
-| [components/workspace/SourceCitations.tsx](../components/workspace/SourceCitations.tsx) | unknown |
+| [components/workspace/BrainOnboardingBanner.tsx](../components/workspace/BrainOnboardingBanner.tsx) | 2026-06-10 |
+| [components/workspace/BrainStatus.tsx](../components/workspace/BrainStatus.tsx) | 2026-06-10 |
+| [components/workspace/SourceCitations.tsx](../components/workspace/SourceCitations.tsx) | 2026-06-10 |
 
