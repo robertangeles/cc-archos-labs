@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
-    title: "My Workspace",
+    title: "Metis Workspace",
     description: "Your AI workspace — chat, skills, workflows.",
     path: "/account/workspace",
   });

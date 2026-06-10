@@ -106,7 +106,7 @@ function ProfileMenu({ firstName }: { firstName: string }) {
             role="menuitem"
             className="block rounded px-3 py-2 text-sm text-ink-subtle transition-colors duration-150 hover:bg-canvas hover:text-ink"
           >
-            My Workspace
+            Metis Workspace
           </Link>
           <div className="my-1 border-t border-hairline" />
           <LeadSignOutButton />

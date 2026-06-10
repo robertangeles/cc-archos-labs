@@ -70,7 +70,7 @@ export function AccountShell({
           <div className="mb-8 flex items-center justify-between gap-x-4 md:mb-12">
             <div>
               <p className="uppercase text-eyebrow text-ink-subtle">
-                My Workspace
+                Metis Workspace
               </p>
               <h1 className="mt-2 text-2xl font-semibold text-ink md:text-3xl">
                 {displayName}
@@ -97,7 +97,7 @@ export function AccountShell({
       <div className="mb-8 flex items-center justify-between gap-x-4 md:mb-12">
         <div>
           <p className="uppercase text-eyebrow text-ink-subtle">
-            My Workspace
+            Metis Workspace
           </p>
           <h1 className="mt-2 text-2xl font-semibold text-ink md:text-3xl">
             {displayName}
