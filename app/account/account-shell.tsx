@@ -19,6 +19,11 @@ export function AccountShell({
   const isProfile =
     pathname === "/account" || pathname.startsWith("/account/personalisation");
   const isWorkspaceHome = pathname === "/account/workspace";
+  const isWorkspaceSubpage =
+    pathname === "/account/brain" ||
+    pathname.startsWith("/account/skills") ||
+    pathname.startsWith("/account/workflows") ||
+    pathname.startsWith("/account/history");
 
   if (isProfile) {
     return (
@@ -49,6 +54,39 @@ export function AccountShell({
         `}</style>
         <div className="mx-auto max-w-[1080px] px-6 md:px-12">
           {children}
+        </div>
+      </>
+    );
+  }
+
+  if (isWorkspaceSubpage) {
+    return (
+      <>
+        <style>{`
+          footer { display: none !important; }
+          .account-wrapper { padding: 0 !important; max-width: 100% !important; }
+        `}</style>
+        <div className="mx-auto max-w-[1080px] px-6 md:px-12">
+          <div className="mb-8 flex items-center justify-between gap-x-4 md:mb-12">
+            <div>
+              <p className="uppercase text-eyebrow text-ink-subtle">
+                My Workspace
+              </p>
+              <h1 className="mt-2 text-2xl font-semibold text-ink md:text-3xl">
+                {displayName}
+              </h1>
+            </div>
+            {signOutButton}
+          </div>
+          <div className="grid gap-x-12 gap-y-8 md:grid-cols-[200px_1fr]">
+            <aside className="hidden md:block">
+              <WorkspaceNav />
+            </aside>
+            <div className="min-w-0 pb-20 md:pb-0">{children}</div>
+          </div>
+          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-hairline bg-canvas/95 backdrop-blur-sm md:hidden">
+            <WorkspaceNav mobile />
+          </div>
         </div>
       </>
     );

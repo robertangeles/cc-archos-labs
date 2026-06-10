@@ -40,6 +40,8 @@ const PATCH_FIELDS = [
   "googleOauthClientSecret",
   "turnstileSiteKey",
   "turnstileSecretKey",
+  "gbrainUrl",
+  "gbrainAdminToken",
 ] as const;
 
 const PatchSchema = z.object({

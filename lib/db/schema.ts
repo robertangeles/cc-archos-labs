@@ -1414,6 +1414,42 @@ export const authEventRelations = relations(authEvent, ({ one }) => ({
   }),
 }));
 
+// ── GBrain per-user OAuth credentials ──────────────────────────────
+// 2NF: every non-key column depends only on userId. OLTP table.
+// FK index: userId gets an index (userBrainUserIdIdx below).
+export const userBrain = pgTable(
+  "user_brain",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" })
+      .unique(),
+    brainClientId: text("brain_client_id").notNull(),
+    brainClientSecretEncrypted: text("brain_client_secret_encrypted").notNull(),
+    provisionedAt: timestamp("provisioned_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastActiveAt: timestamp("last_active_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("user_brain_user_id_idx").on(table.userId),
+  ],
+);
+
+export const userBrainRelations = relations(userBrain, ({ one }) => ({
+  user: one(users, {
+    fields: [userBrain.userId],
+    references: [users.id],
+  }),
+}));
+
 export const post = pgTable(
   "post",
   {

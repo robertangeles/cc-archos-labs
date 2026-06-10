@@ -75,6 +75,13 @@ export const IntegrationConfigSchema = z.object({
   // route can no-op gracefully when Turnstile isn't yet configured.
   turnstileSiteKey: z.string().min(1).nullable(),
   turnstileSecretKey: z.string().min(1).nullable(),
+
+  // GBrain persistent memory service. URL is plaintext (identifier-grade,
+  // appears in fetch calls). Admin token is the credential used to
+  // register per-user OAuth clients on GBrain — lives in ENCRYPTED_FIELDS.
+  // Both nullable so the workspace chat works without brain configured.
+  gbrainUrl: z.string().url().nullable(),
+  gbrainAdminToken: z.string().min(1).nullable(),
 });
 
 export type IntegrationConfig = z.infer<typeof IntegrationConfigSchema>;
@@ -88,6 +95,7 @@ export const ENCRYPTED_FIELDS = [
   "llmApiKey",
   "googleOauthClientSecret",
   "turnstileSecretKey",
+  "gbrainAdminToken",
 ] as const satisfies ReadonlyArray<keyof IntegrationConfig>;
 
 export type EncryptedField = (typeof ENCRYPTED_FIELDS)[number];
@@ -118,9 +126,11 @@ export const CONFIG_DEFAULTS = {
   llmModelId: null,
   llmEnabledModels: [] as string[],
   llmCustomModels: [] as Array<{ id: string; name: string; provider: string; description: string }>,
+  gbrainUrl: null,
+  gbrainAdminToken: null,
 } as const satisfies Pick<
   IntegrationConfig,
-  "contactRecipientEmail" | "resendFromEmail" | "llmModelId" | "llmEnabledModels" | "llmCustomModels"
+  "contactRecipientEmail" | "resendFromEmail" | "llmModelId" | "llmEnabledModels" | "llmCustomModels" | "gbrainUrl" | "gbrainAdminToken"
 >;
 
 // Storage shape inside site_setting.value for key='integration_secrets'.
@@ -153,6 +163,9 @@ export const StoredIntegrationConfigSchema = z.object({
   googleOauthClientSecret: z.string().min(1).nullish(),
   turnstileSiteKey: z.string().min(1).nullish(),
   turnstileSecretKey: z.string().min(1).nullish(),
+
+  gbrainUrl: z.string().min(1).nullish(),
+  gbrainAdminToken: z.string().min(1).nullish(),
 });
 
 export type StoredIntegrationConfig = z.infer<

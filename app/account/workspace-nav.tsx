@@ -6,7 +6,8 @@ import {
   Sparkles,
   GitBranch,
   Clock,
-  LayoutDashboard,
+  MessageSquare,
+  Brain,
   type LucideIcon,
 } from "lucide-react";
 
@@ -17,7 +18,8 @@ interface NavItem {
 }
 
 const items: NavItem[] = [
-  { href: "/account/workspace", label: "Home", icon: LayoutDashboard },
+  { href: "/account/workspace", label: "Chat", icon: MessageSquare },
+  { href: "/account/brain", label: "Brain", icon: Brain },
   { href: "/account/skills", label: "Skills", icon: Sparkles },
   { href: "/account/workflows", label: "Workflows", icon: GitBranch },
   { href: "/account/history", label: "History", icon: Clock },
@@ -58,9 +60,7 @@ export function WorkspaceNav({ mobile }: WorkspaceNavProps) {
 
   return (
     <nav className="flex flex-col gap-y-1">
-      {items
-        .filter((item) => item.href !== "/account/workspace")
-        .map((item) => {
+      {items.map((item) => {
           const Icon = item.icon;
           const active = pathname.startsWith(item.href);
           return (
