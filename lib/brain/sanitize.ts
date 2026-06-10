@@ -40,7 +40,7 @@ function tfnCheck(digits: string): boolean {
 const PATTERNS: Pattern[] = [
   {
     label: "CARD",
-    regex: /\b(?:\d[ -]*?){13,19}\b/g,
+    regex: /\b\d(?:[ -]?\d){12,18}\b/g,
     validate: (m) => luhnCheck(m),
   },
   {
