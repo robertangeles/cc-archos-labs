@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-11T05:59:21.098Z
+generated: 2026-06-11T06:02:24.889Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -28,7 +28,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/account/skills/[id]` | [app/account/skills/[id]/page.tsx](../app/account/skills/[id]/page.tsx) | 2026-06-07 |
 | `/account/skills/[id]/edit` | [app/account/skills/[id]/edit/page.tsx](../app/account/skills/[id]/edit/page.tsx) | 2026-06-07 |
 | `/account/skills/new` | [app/account/skills/new/page.tsx](../app/account/skills/new/page.tsx) | 2026-06-07 |
-| `/account/social-accounts` | [app/account/social-accounts/page.tsx](../app/account/social-accounts/page.tsx) | unknown |
+| `/account/social-accounts` | [app/account/social-accounts/page.tsx](../app/account/social-accounts/page.tsx) | 2026-06-11 |
 | `/account/workflows` | [app/account/workflows/page.tsx](../app/account/workflows/page.tsx) | 2026-06-07 |
 | `/account/workflows/[id]` | [app/account/workflows/[id]/page.tsx](../app/account/workflows/[id]/page.tsx) | 2026-06-07 |
 | `/account/workflows/new` | [app/account/workflows/new/page.tsx](../app/account/workflows/new/page.tsx) | 2026-06-07 |
@@ -183,7 +183,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/social/linkedin/connect` | [app/api/social/linkedin/connect/route.ts](../app/api/social/linkedin/connect/route.ts) | 2026-06-11 |
 | `/api/social/linkedin/disconnect` | [app/api/social/linkedin/disconnect/route.ts](../app/api/social/linkedin/disconnect/route.ts) | 2026-06-11 |
 | `/api/social/linkedin/status` | [app/api/social/linkedin/status/route.ts](../app/api/social/linkedin/status/route.ts) | 2026-06-11 |
-| `/api/social/publish` | [app/api/social/publish/route.ts](../app/api/social/publish/route.ts) | unknown |
+| `/api/social/publish` | [app/api/social/publish/route.ts](../app/api/social/publish/route.ts) | 2026-06-11 |
 | `/api/social/twitter/callback` | [app/api/social/twitter/callback/route.ts](../app/api/social/twitter/callback/route.ts) | 2026-06-11 |
 | `/api/social/twitter/connect` | [app/api/social/twitter/connect/route.ts](../app/api/social/twitter/connect/route.ts) | 2026-06-11 |
 | `/api/social/twitter/disconnect` | [app/api/social/twitter/disconnect/route.ts](../app/api/social/twitter/disconnect/route.ts) | 2026-06-11 |
@@ -193,7 +193,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/duplicate` | [app/api/workflows/[id]/duplicate/route.ts](../app/api/workflows/[id]/duplicate/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]/execute` | [app/api/workflows/[id]/execute/route.ts](../app/api/workflows/[id]/execute/route.ts) | 2026-06-07 |
 
-## Components (85)
+## Components (86)
 
 | File | Last shipped |
 |------|--------------|
@@ -267,7 +267,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/skills/skill-detail.tsx](../components/skills/skill-detail.tsx) | 2026-06-08 |
 | [components/skills/skills-list.tsx](../components/skills/skills-list.tsx) | 2026-06-08 |
 | [components/skills/use-enabled-models.ts](../components/skills/use-enabled-models.ts) | 2026-06-08 |
-| [components/social/social-accounts-page.tsx](../components/social/social-accounts-page.tsx) | unknown |
+| [components/social/publish-modal.tsx](../components/social/publish-modal.tsx) | unknown |
+| [components/social/social-accounts-page.tsx](../components/social/social-accounts-page.tsx) | 2026-06-11 |
 | [components/ui/button.tsx](../components/ui/button.tsx) | 2026-05-15 |
 | [components/ui/dialog.tsx](../components/ui/dialog.tsx) | 2026-05-15 |
 | [components/ui/field.tsx](../components/ui/field.tsx) | 2026-05-15 |
