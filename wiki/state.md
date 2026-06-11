@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-11T05:42:53.645Z
+generated: 2026-06-11T05:59:21.098Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -9,7 +9,7 @@ Auto-generated snapshot of what is currently shipped. **Source of truth for ship
 
 Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `app/` or `components/` to fire the pre-commit hook.
 
-## Routes (59)
+## Routes (60)
 
 | Route | File | Last shipped |
 |-------|------|--------------|
@@ -28,6 +28,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/account/skills/[id]` | [app/account/skills/[id]/page.tsx](../app/account/skills/[id]/page.tsx) | 2026-06-07 |
 | `/account/skills/[id]/edit` | [app/account/skills/[id]/edit/page.tsx](../app/account/skills/[id]/edit/page.tsx) | 2026-06-07 |
 | `/account/skills/new` | [app/account/skills/new/page.tsx](../app/account/skills/new/page.tsx) | 2026-06-07 |
+| `/account/social-accounts` | [app/account/social-accounts/page.tsx](../app/account/social-accounts/page.tsx) | unknown |
 | `/account/workflows` | [app/account/workflows/page.tsx](../app/account/workflows/page.tsx) | 2026-06-07 |
 | `/account/workflows/[id]` | [app/account/workflows/[id]/page.tsx](../app/account/workflows/[id]/page.tsx) | 2026-06-07 |
 | `/account/workflows/new` | [app/account/workflows/new/page.tsx](../app/account/workflows/new/page.tsx) | 2026-06-07 |
@@ -73,7 +74,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-06-03 |
 | `/tools/cdmp-practice/history/[sessionId]` | [app/tools/cdmp-practice/history/[sessionId]/page.tsx](../app/tools/cdmp-practice/history/[sessionId]/page.tsx) | 2026-06-03 |
 
-## API endpoints (113)
+## API endpoints (114)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -175,28 +176,29 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/skills/[id]/execute` | [app/api/skills/[id]/execute/route.ts](../app/api/skills/[id]/execute/route.ts) | 2026-06-08 |
 | `/api/skills/[id]/versions` | [app/api/skills/[id]/versions/route.ts](../app/api/skills/[id]/versions/route.ts) | 2026-06-07 |
 | `/api/skills/models` | [app/api/skills/models/route.ts](../app/api/skills/models/route.ts) | 2026-06-08 |
-| `/api/social/bluesky/connect` | [app/api/social/bluesky/connect/route.ts](../app/api/social/bluesky/connect/route.ts) | unknown |
-| `/api/social/bluesky/disconnect` | [app/api/social/bluesky/disconnect/route.ts](../app/api/social/bluesky/disconnect/route.ts) | unknown |
-| `/api/social/bluesky/status` | [app/api/social/bluesky/status/route.ts](../app/api/social/bluesky/status/route.ts) | unknown |
-| `/api/social/linkedin/callback` | [app/api/social/linkedin/callback/route.ts](../app/api/social/linkedin/callback/route.ts) | unknown |
-| `/api/social/linkedin/connect` | [app/api/social/linkedin/connect/route.ts](../app/api/social/linkedin/connect/route.ts) | unknown |
-| `/api/social/linkedin/disconnect` | [app/api/social/linkedin/disconnect/route.ts](../app/api/social/linkedin/disconnect/route.ts) | unknown |
-| `/api/social/linkedin/status` | [app/api/social/linkedin/status/route.ts](../app/api/social/linkedin/status/route.ts) | unknown |
-| `/api/social/twitter/callback` | [app/api/social/twitter/callback/route.ts](../app/api/social/twitter/callback/route.ts) | unknown |
-| `/api/social/twitter/connect` | [app/api/social/twitter/connect/route.ts](../app/api/social/twitter/connect/route.ts) | unknown |
-| `/api/social/twitter/disconnect` | [app/api/social/twitter/disconnect/route.ts](../app/api/social/twitter/disconnect/route.ts) | unknown |
-| `/api/social/twitter/status` | [app/api/social/twitter/status/route.ts](../app/api/social/twitter/status/route.ts) | unknown |
+| `/api/social/bluesky/connect` | [app/api/social/bluesky/connect/route.ts](../app/api/social/bluesky/connect/route.ts) | 2026-06-11 |
+| `/api/social/bluesky/disconnect` | [app/api/social/bluesky/disconnect/route.ts](../app/api/social/bluesky/disconnect/route.ts) | 2026-06-11 |
+| `/api/social/bluesky/status` | [app/api/social/bluesky/status/route.ts](../app/api/social/bluesky/status/route.ts) | 2026-06-11 |
+| `/api/social/linkedin/callback` | [app/api/social/linkedin/callback/route.ts](../app/api/social/linkedin/callback/route.ts) | 2026-06-11 |
+| `/api/social/linkedin/connect` | [app/api/social/linkedin/connect/route.ts](../app/api/social/linkedin/connect/route.ts) | 2026-06-11 |
+| `/api/social/linkedin/disconnect` | [app/api/social/linkedin/disconnect/route.ts](../app/api/social/linkedin/disconnect/route.ts) | 2026-06-11 |
+| `/api/social/linkedin/status` | [app/api/social/linkedin/status/route.ts](../app/api/social/linkedin/status/route.ts) | 2026-06-11 |
+| `/api/social/publish` | [app/api/social/publish/route.ts](../app/api/social/publish/route.ts) | unknown |
+| `/api/social/twitter/callback` | [app/api/social/twitter/callback/route.ts](../app/api/social/twitter/callback/route.ts) | 2026-06-11 |
+| `/api/social/twitter/connect` | [app/api/social/twitter/connect/route.ts](../app/api/social/twitter/connect/route.ts) | 2026-06-11 |
+| `/api/social/twitter/disconnect` | [app/api/social/twitter/disconnect/route.ts](../app/api/social/twitter/disconnect/route.ts) | 2026-06-11 |
+| `/api/social/twitter/status` | [app/api/social/twitter/status/route.ts](../app/api/social/twitter/status/route.ts) | 2026-06-11 |
 | `/api/workflows` | [app/api/workflows/route.ts](../app/api/workflows/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]` | [app/api/workflows/[id]/route.ts](../app/api/workflows/[id]/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]/duplicate` | [app/api/workflows/[id]/duplicate/route.ts](../app/api/workflows/[id]/duplicate/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]/execute` | [app/api/workflows/[id]/execute/route.ts](../app/api/workflows/[id]/execute/route.ts) | 2026-06-07 |
 
-## Components (84)
+## Components (85)
 
 | File | Last shipped |
 |------|--------------|
 | [components/admin/integrations/integrations-grid.tsx](../components/admin/integrations/integrations-grid.tsx) | 2026-05-17 |
-| [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-06-08 |
+| [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-06-11 |
 | [components/analytics/analytics-client.tsx](../components/analytics/analytics-client.tsx) | 2026-05-18 |
 | [components/blog/author-bio.tsx](../components/blog/author-bio.tsx) | 2026-05-24 |
 | [components/blog/category-chips.tsx](../components/blog/category-chips.tsx) | 2026-05-20 |
@@ -265,6 +267,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/skills/skill-detail.tsx](../components/skills/skill-detail.tsx) | 2026-06-08 |
 | [components/skills/skills-list.tsx](../components/skills/skills-list.tsx) | 2026-06-08 |
 | [components/skills/use-enabled-models.ts](../components/skills/use-enabled-models.ts) | 2026-06-08 |
+| [components/social/social-accounts-page.tsx](../components/social/social-accounts-page.tsx) | unknown |
 | [components/ui/button.tsx](../components/ui/button.tsx) | 2026-05-15 |
 | [components/ui/dialog.tsx](../components/ui/dialog.tsx) | 2026-05-15 |
 | [components/ui/field.tsx](../components/ui/field.tsx) | 2026-05-15 |
