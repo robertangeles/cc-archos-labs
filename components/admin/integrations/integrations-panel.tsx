@@ -23,6 +23,17 @@ export interface RedactedConfig {
   turnstileSiteKey: string | null;
   // Secret key is the server-side verification credential — always redacted.
   turnstileSecretKey: string;
+  // GBrain persistent memory service.
+  gbrainUrl: string | null;
+  gbrainAdminToken: string;
+  // Social platform OAuth credentials.
+  twitterClientId: string | null;
+  twitterClientSecret: string;
+  twitterEnabled: boolean;
+  linkedinClientId: string | null;
+  linkedinClientSecret: string;
+  linkedinEnabled: boolean;
+  blueskyEnabled: boolean;
 }
 
 export interface AuditRow {
@@ -41,6 +52,9 @@ const ENCRYPTED_FIELDS: ReadonlyArray<FieldKey> = [
   "llmApiKey",
   "googleOauthClientSecret",
   "turnstileSecretKey",
+  "gbrainAdminToken",
+  "twitterClientSecret",
+  "linkedinClientSecret",
 ];
 
 // Fields that accept null (empty string in the form clears them).
@@ -51,6 +65,12 @@ const NULLABLE_FIELDS: ReadonlyArray<FieldKey> = [
   "googleOauthClientSecret",
   "turnstileSiteKey",
   "turnstileSecretKey",
+  "gbrainUrl",
+  "gbrainAdminToken",
+  "twitterClientId",
+  "twitterClientSecret",
+  "linkedinClientId",
+  "linkedinClientSecret",
 ];
 
 function isEncrypted(field: FieldKey): boolean {
@@ -527,6 +547,107 @@ export function IntegrationsPanel({
         </Section>
       )}
 
+      <Section title="Social Accounts">
+        <p className="text-xs text-ink-subtle">
+          OAuth credentials for social publishing. Users connect their own
+          accounts; these keys authenticate Archos Labs as the OAuth app.
+        </p>
+        <ConfigField
+          field="twitterClientId"
+          label="Twitter Client ID"
+          hint="From developer.x.com → App → Keys & Tokens"
+          config={config}
+          editing={editing}
+          revealed={revealed}
+          saveStatus={saveStatus["twitterClientId"]}
+          onEdit={(v) => setEditing((e) => ({ ...e, twitterClientId: v }))}
+          onSave={() => handleSave("twitterClientId")}
+        />
+        <ConfigField
+          field="twitterClientSecret"
+          label="Twitter Client Secret"
+          hint="Encrypted at rest. From the same Keys & Tokens page."
+          config={config}
+          editing={editing}
+          revealed={revealed}
+          saveStatus={saveStatus["twitterClientSecret"]}
+          onEdit={(v) =>
+            setEditing((e) => ({ ...e, twitterClientSecret: v }))
+          }
+          onSave={() => handleSave("twitterClientSecret")}
+          onReveal={() => handleReveal("twitterClientSecret")}
+          onHide={() => handleHide("twitterClientSecret")}
+        />
+        <ToggleField
+          label="Twitter Enabled"
+          checked={config.twitterEnabled}
+          onToggle={async (val) => {
+            setConfig((c) => ({ ...c, twitterEnabled: val }));
+            await fetch("/api/admin/integrations", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ field: "twitterEnabled", value: val }),
+            });
+          }}
+        />
+        <div className="border-t border-hairline pt-4" />
+        <ConfigField
+          field="linkedinClientId"
+          label="LinkedIn Client ID"
+          hint="From linkedin.com/developers → App → Auth tab"
+          config={config}
+          editing={editing}
+          revealed={revealed}
+          saveStatus={saveStatus["linkedinClientId"]}
+          onEdit={(v) => setEditing((e) => ({ ...e, linkedinClientId: v }))}
+          onSave={() => handleSave("linkedinClientId")}
+        />
+        <ConfigField
+          field="linkedinClientSecret"
+          label="LinkedIn Client Secret"
+          hint="Encrypted at rest. From the same Auth tab."
+          config={config}
+          editing={editing}
+          revealed={revealed}
+          saveStatus={saveStatus["linkedinClientSecret"]}
+          onEdit={(v) =>
+            setEditing((e) => ({ ...e, linkedinClientSecret: v }))
+          }
+          onSave={() => handleSave("linkedinClientSecret")}
+          onReveal={() => handleReveal("linkedinClientSecret")}
+          onHide={() => handleHide("linkedinClientSecret")}
+        />
+        <ToggleField
+          label="LinkedIn Enabled"
+          checked={config.linkedinEnabled}
+          onToggle={async (val) => {
+            setConfig((c) => ({ ...c, linkedinEnabled: val }));
+            await fetch("/api/admin/integrations", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ field: "linkedinEnabled", value: val }),
+            });
+          }}
+        />
+        <div className="border-t border-hairline pt-4" />
+        <ToggleField
+          label="Bluesky Enabled"
+          checked={config.blueskyEnabled}
+          onToggle={async (val) => {
+            setConfig((c) => ({ ...c, blueskyEnabled: val }));
+            await fetch("/api/admin/integrations", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ field: "blueskyEnabled", value: val }),
+            });
+          }}
+        />
+        <p className="text-xs text-ink-subtle">
+          Bluesky uses app passwords — no admin API keys needed. Users
+          provide their own credentials when connecting.
+        </p>
+      </Section>
+
       {revealError && (
         <div className="rounded-md border border-hairline bg-surface-1/40 p-3 text-sm text-ink-subtle">
           {revealError}
@@ -572,6 +693,37 @@ function Section({
         {children}
       </div>
     </section>
+  );
+}
+
+function ToggleField({
+  label,
+  checked,
+  onToggle,
+}: {
+  label: string;
+  checked: boolean;
+  onToggle: (value: boolean) => void;
+}) {
+  return (
+    <label className="flex items-center gap-3 text-sm text-ink">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onToggle(!checked)}
+        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+          checked ? "bg-primary" : "bg-surface-2"
+        }`}
+      >
+        <span
+          className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${
+            checked ? "translate-x-4" : "translate-x-0"
+          }`}
+        />
+      </button>
+      {label}
+    </label>
   );
 }
 
@@ -784,6 +936,15 @@ function RevealAuthModal({
     googleOauthClientSecret: "Google OAuth Client Secret",
     turnstileSiteKey: "",
     turnstileSecretKey: "Turnstile Secret Key",
+    gbrainUrl: "",
+    gbrainAdminToken: "GBrain Admin Token",
+    twitterClientId: "",
+    twitterClientSecret: "Twitter Client Secret",
+    twitterEnabled: "",
+    linkedinClientId: "",
+    linkedinClientSecret: "LinkedIn Client Secret",
+    linkedinEnabled: "",
+    blueskyEnabled: "",
   };
 
   return (
