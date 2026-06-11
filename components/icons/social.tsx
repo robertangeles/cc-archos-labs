@@ -67,6 +67,20 @@ export function GithubIcon(props: IconProps) {
   );
 }
 
+export function BlueskyIcon(props: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      {...props}
+    >
+      <path d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566.944 1.561 1.266.902 1.565.139 1.908 0 3.08 0 3.768c0 .69.378 5.65.624 6.479.785 2.627 3.59 3.501 6.158 3.186-4.515.757-8.11 2.593-3.107 9.066C8.283 27.381 11.168 22.2 12 19.705c.832 2.495 3.717 7.676 8.325 2.794 5.003-6.473 1.408-8.309-3.107-9.066 2.568.315 5.373-.559 6.158-3.186.246-.828.624-5.788.624-6.479 0-.688-.139-1.86-.902-2.203-.659-.3-1.664-.62-4.3 1.24C16.046 4.748 13.087 8.687 12 10.8Z" />
+    </svg>
+  );
+}
+
 // Hugging Face's official brand mark — the 🤗 emoji-style face in
 // yellow + hands — lives at /public/images/huggingface_logo-noborder.svg.
 // Rendered as an <img> rather than inline currentColor SVG because the

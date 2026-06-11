@@ -83,6 +83,8 @@ describe("integration-config-shared", () => {
         "googleOauthClientSecret",
         "turnstileSecretKey",
         "gbrainAdminToken",
+        "twitterClientSecret",
+        "linkedinClientSecret",
       ]);
     });
 
@@ -115,6 +117,13 @@ describe("integration-config-shared", () => {
         turnstileSecretKey: null,
         gbrainUrl: null,
         gbrainAdminToken: null,
+        twitterClientId: null,
+        twitterClientSecret: null,
+        twitterEnabled: false,
+        linkedinClientId: null,
+        linkedinClientSecret: null,
+        linkedinEnabled: false,
+        blueskyEnabled: false,
       };
       expect(IntegrationConfigSchema.safeParse(valid).success).toBe(true);
     });
@@ -160,6 +169,13 @@ describe("integration-config-shared", () => {
         turnstileSecretKey: null,
         gbrainUrl: null,
         gbrainAdminToken: null,
+        twitterClientId: null,
+        twitterClientSecret: null,
+        twitterEnabled: false,
+        linkedinClientId: null,
+        linkedinClientSecret: null,
+        linkedinEnabled: false,
+        blueskyEnabled: false,
       };
       const parsed = IntegrationConfigSchema.safeParse(valid);
       expect(parsed.success).toBe(true);
@@ -182,6 +198,13 @@ describe("integration-config-shared", () => {
         turnstileSecretKey: null,
         gbrainUrl: null,
         gbrainAdminToken: null,
+        twitterClientId: null,
+        twitterClientSecret: null,
+        twitterEnabled: false,
+        linkedinClientId: null,
+        linkedinClientSecret: null,
+        linkedinEnabled: false,
+        blueskyEnabled: false,
       };
       const parsed = IntegrationConfigSchema.safeParse(valid);
       expect(parsed.success).toBe(true);

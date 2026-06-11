@@ -1391,6 +1391,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   rules: many(userRule),
   conversations: many(conversation),
   conversationShares: many(conversationShare),
+  socialAccounts: many(socialAccount),
 }));
 
 export const oauthAccountRelations = relations(oauthAccount, ({ one }) => ({
@@ -2925,3 +2926,125 @@ export const conversationShareRelations = relations(
     }),
   }),
 );
+
+// ============================================================================
+// social_account — Per-user social platform connections
+// ============================================================================
+// Stores OAuth tokens (Twitter, LinkedIn) and AT Protocol app passwords
+// (Bluesky) for social publishing. Tokens are encrypted at the application
+// layer via lib/booking-crypto.ts (AES-256-GCM), not at the DB level.
+//
+// Normal form: 2NF. Every non-key column depends only on the PK.
+// OLTP table. One account per user per platform for v1.
+
+export const socialAccount = pgTable(
+  "social_account",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    platform: text("platform").notNull(),
+    providerSubject: text("provider_subject").notNull(),
+    accountIdentifier: text("account_identifier").notNull(),
+    accessTokenEncrypted: text("access_token_encrypted"),
+    refreshTokenEncrypted: text("refresh_token_encrypted"),
+    tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
+    isConnected: boolean("is_connected").notNull().default(true),
+    linkedAt: timestamp("linked_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // FK index: list social accounts by user
+    index("social_account_user_id_idx").on(table.userId),
+    // One account per user per platform for v1
+    unique("social_account_user_platform_uniq").on(
+      table.userId,
+      table.platform,
+    ),
+  ],
+);
+
+export type SocialAccount = typeof socialAccount.$inferSelect;
+export type NewSocialAccount = typeof socialAccount.$inferInsert;
+
+// ============================================================================
+// publish_log — Social media publish history
+// ============================================================================
+// Records every publish attempt for audit, dedup, and "recent publishes" UI.
+//
+// Normal form: 2NF. publishedContent is JSONB (permitted under CLAUDE.md
+// exception for audit payloads). Shape: {text: string, url?: string}.
+
+export const publishLog = pgTable(
+  "publish_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    socialAccountId: uuid("social_account_id")
+      .notNull()
+      .references(() => socialAccount.id, { onDelete: "cascade" }),
+    platform: text("platform").notNull(),
+    contentPreview: varchar("content_preview", { length: 500 }).notNull(),
+    contentHash: text("content_hash").notNull(),
+    status: text("status").notNull(),
+    errorMessage: text("error_message"),
+    publishedUrl: text("published_url"),
+    durationMs: integer("duration_ms"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // FK index: list publishes by user
+    index("publish_log_user_id_idx").on(table.userId),
+    // FK index: list publishes by social account
+    index("publish_log_social_account_id_idx").on(table.socialAccountId),
+    // Timeline view: recent publishes sorted by date
+    index("publish_log_created_at_idx").on(table.createdAt),
+    // Dedup check: same content to same platform within 60s
+    index("publish_log_content_hash_platform_idx").on(
+      table.contentHash,
+      table.platform,
+    ),
+  ],
+);
+
+export type PublishLog = typeof publishLog.$inferSelect;
+export type NewPublishLog = typeof publishLog.$inferInsert;
+
+// Relations for social tables
+
+export const socialAccountRelations = relations(
+  socialAccount,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [socialAccount.userId],
+      references: [users.id],
+    }),
+    publishLogs: many(publishLog),
+  }),
+);
+
+export const publishLogRelations = relations(publishLog, ({ one }) => ({
+  user: one(users, {
+    fields: [publishLog.userId],
+    references: [users.id],
+  }),
+  socialAccount: one(socialAccount, {
+    fields: [publishLog.socialAccountId],
+    references: [socialAccount.id],
+  }),
+}));

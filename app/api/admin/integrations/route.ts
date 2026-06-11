@@ -42,6 +42,13 @@ const PATCH_FIELDS = [
   "turnstileSecretKey",
   "gbrainUrl",
   "gbrainAdminToken",
+  "twitterClientId",
+  "twitterClientSecret",
+  "twitterEnabled",
+  "linkedinClientId",
+  "linkedinClientSecret",
+  "linkedinEnabled",
+  "blueskyEnabled",
 ] as const;
 
 const PatchSchema = z.object({

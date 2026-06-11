@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-10T23:23:38.350Z
+generated: 2026-06-11T05:33:18.611Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -31,7 +31,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/account/workflows` | [app/account/workflows/page.tsx](../app/account/workflows/page.tsx) | 2026-06-07 |
 | `/account/workflows/[id]` | [app/account/workflows/[id]/page.tsx](../app/account/workflows/[id]/page.tsx) | 2026-06-07 |
 | `/account/workflows/new` | [app/account/workflows/new/page.tsx](../app/account/workflows/new/page.tsx) | 2026-06-07 |
-| `/account/workspace` | [app/account/workspace/page.tsx](../app/account/workspace/page.tsx) | 2026-06-08 |
+| `/account/workspace` | [app/account/workspace/page.tsx](../app/account/workspace/page.tsx) | 2026-06-11 |
 | `/admin/(authed)/auth` | [app/admin/(authed)/auth/page.tsx](../app/admin/(authed)/auth/page.tsx) | 2026-05-26 |
 | `/admin/(authed)/blog` | [app/admin/(authed)/blog/page.tsx](../app/admin/(authed)/blog/page.tsx) | 2026-05-20 |
 | `/admin/(authed)/blog/posts` | [app/admin/(authed)/blog/posts/page.tsx](../app/admin/(authed)/blog/posts/page.tsx) | 2026-05-21 |
@@ -212,7 +212,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/layout/footer.tsx](../components/layout/footer.tsx) | 2026-05-18 |
 | [components/layout/header.tsx](../components/layout/header.tsx) | 2026-05-22 |
 | [components/layout/lead-sign-out-button.tsx](../components/layout/lead-sign-out-button.tsx) | 2026-06-10 |
-| [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-06-08 |
+| [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-06-11 |
 | [components/pages/block-error-boundary.tsx](../components/pages/block-error-boundary.tsx) | 2026-05-18 |
 | [components/pages/blocks-renderer.test.tsx](../components/pages/blocks-renderer.test.tsx) | 2026-05-18 |
 | [components/pages/blocks-renderer.tsx](../components/pages/blocks-renderer.tsx) | 2026-05-19 |

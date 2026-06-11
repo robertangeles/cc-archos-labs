@@ -169,6 +169,21 @@ function decryptAndValidate(rawValue: unknown): IntegrationConfig {
   if (decrypted.gbrainUrl === undefined) {
     decrypted.gbrainUrl = null;
   }
+  if (decrypted.twitterClientId === undefined) {
+    decrypted.twitterClientId = null;
+  }
+  if (decrypted.linkedinClientId === undefined) {
+    decrypted.linkedinClientId = null;
+  }
+  if (decrypted.twitterEnabled === undefined || decrypted.twitterEnabled === null) {
+    decrypted.twitterEnabled = false;
+  }
+  if (decrypted.linkedinEnabled === undefined || decrypted.linkedinEnabled === null) {
+    decrypted.linkedinEnabled = false;
+  }
+  if (decrypted.blueskyEnabled === undefined || decrypted.blueskyEnabled === null) {
+    decrypted.blueskyEnabled = false;
+  }
 
   const parsed = IntegrationConfigSchema.safeParse(decrypted);
   if (!parsed.success) {
@@ -216,6 +231,13 @@ function readFromEnv(): IntegrationConfig {
     llmCustomModels: [],
     gbrainUrl: process.env.GBRAIN_URL || null,
     gbrainAdminToken: process.env.GBRAIN_ADMIN_TOKEN || null,
+    twitterClientId: process.env.TWITTER_CLIENT_ID || null,
+    twitterClientSecret: process.env.TWITTER_CLIENT_SECRET || null,
+    twitterEnabled: process.env.TWITTER_ENABLED === "true",
+    linkedinClientId: process.env.LINKEDIN_CLIENT_ID || null,
+    linkedinClientSecret: process.env.LINKEDIN_CLIENT_SECRET || null,
+    linkedinEnabled: process.env.LINKEDIN_ENABLED === "true",
+    blueskyEnabled: process.env.BLUESKY_ENABLED === "true",
   };
 
   const parsed = IntegrationConfigSchema.safeParse(config);
@@ -351,7 +373,7 @@ export async function migrateEnvToDB(): Promise<{
 
   // Same env-var-name → field-name mapping as readFromEnv().
   // llmApiKey ← OPENROUTER_API_KEY, llmModelId ← CLAUDE_MODEL_ID.
-  const envValues: Record<keyof IntegrationConfig, string | null> = {
+  const envValues: Record<keyof IntegrationConfig, string | boolean | null> = {
     adminPassword: process.env.ADMIN_PASSWORD ?? null,
     resendApiKey: process.env.RESEND_API_KEY ?? null,
     llmApiKey: process.env.OPENROUTER_API_KEY ?? null,
@@ -366,6 +388,13 @@ export async function migrateEnvToDB(): Promise<{
     llmCustomModels: null,
     gbrainUrl: process.env.GBRAIN_URL ?? null,
     gbrainAdminToken: process.env.GBRAIN_ADMIN_TOKEN ?? null,
+    twitterClientId: process.env.TWITTER_CLIENT_ID ?? null,
+    twitterClientSecret: process.env.TWITTER_CLIENT_SECRET ?? null,
+    twitterEnabled: false,
+    linkedinClientId: process.env.LINKEDIN_CLIENT_ID ?? null,
+    linkedinClientSecret: process.env.LINKEDIN_CLIENT_SECRET ?? null,
+    linkedinEnabled: false,
+    blueskyEnabled: false,
   };
 
   const written: Array<keyof IntegrationConfig> = [];
@@ -554,6 +583,13 @@ export async function getIntegrationConfigRedacted(): Promise<{
   turnstileSecretKey: string;
   gbrainUrl: string | null;
   gbrainAdminToken: string;
+  twitterClientId: string | null;
+  twitterClientSecret: string;
+  twitterEnabled: boolean;
+  linkedinClientId: string | null;
+  linkedinClientSecret: string;
+  linkedinEnabled: boolean;
+  blueskyEnabled: boolean;
 }> {
   const config = await getIntegrationConfig();
   return {
@@ -571,6 +607,13 @@ export async function getIntegrationConfigRedacted(): Promise<{
     turnstileSecretKey: redactSecret(config.turnstileSecretKey ?? ""),
     gbrainUrl: config.gbrainUrl,
     gbrainAdminToken: redactSecret(config.gbrainAdminToken ?? ""),
+    twitterClientId: config.twitterClientId,
+    twitterClientSecret: redactSecret(config.twitterClientSecret ?? ""),
+    twitterEnabled: config.twitterEnabled,
+    linkedinClientId: config.linkedinClientId,
+    linkedinClientSecret: redactSecret(config.linkedinClientSecret ?? ""),
+    linkedinEnabled: config.linkedinEnabled,
+    blueskyEnabled: config.blueskyEnabled,
   };
 }
 
