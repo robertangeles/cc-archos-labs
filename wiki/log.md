@@ -1280,3 +1280,20 @@ End-to-end verification (local): login → GET /api/admin/settings/site → PUT 
 - Set local dev port to 3007 (CLAUDE.md mandate).
 - Initialized git, first commit on `main` (author: Rob Angeles <trebor.selegna@outlook.com>).
 - **Decision:** kept Next.js 16.2.5 (scaffold default). Updated CLAUDE.md tech stack from "Next.js 15" to "Next.js 16".
+
+## 2026-06-11 / 2026-06-12 — Social Accounts: Connect + Publish
+
+- Ran /office-hours → design doc (APPROVED, 9/10)
+- Ran /plan-ceo-review (SELECTIVE EXPANSION, 4 cherry-picks accepted: publish history, char counters, per-platform editing, blog publish)
+- Ran /plan-eng-review (4 findings folded: per-platform API shape, random+cookie OAuth state, last-step workflow output, blog title+URL+excerpt)
+- Built and shipped PR #151: Social Accounts — connect + publish to Twitter, LinkedIn, Bluesky
+  - 37 files changed, 9,553 lines added
+  - social_account + publish_log tables
+  - 7 integration config fields + admin panel section
+  - Twitter OAuth 2.0 + PKCE, LinkedIn auth code flow, Bluesky AT Protocol app passwords
+  - Publish dispatcher with rate limiting (20/user/hr) + content hash dedup (60s)
+  - Social Accounts tab in user profile
+  - Publish modal with per-platform content editing + char counters
+  - All 3 platforms tested with real credentials
+- Added lesson learned: never use drizzle-kit push, use pnpm db:migrate
+- Added Phase 4 follow-ups to backlog (items 49-51: scheduling, analytics, cache fix)
