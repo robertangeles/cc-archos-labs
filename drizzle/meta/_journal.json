@@ -162,6 +162,13 @@
       "when": 1781053506159,
       "tag": "0022_nice_the_hunter",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1781154635836,
+      "tag": "0023_unknown_korvac",
+      "breakpoints": true
     }
   ]
 }

@@ -17,7 +17,9 @@ export function AccountShell({
 }: AccountShellProps) {
   const pathname = usePathname();
   const isProfile =
-    pathname === "/account" || pathname.startsWith("/account/personalisation");
+    pathname === "/account" ||
+    pathname.startsWith("/account/personalisation") ||
+    pathname.startsWith("/account/social-accounts");
   const isWorkspaceHome = pathname === "/account/workspace";
   const isWorkspaceSubpage =
     pathname === "/account/brain" ||

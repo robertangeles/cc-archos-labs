@@ -82,6 +82,17 @@ export const IntegrationConfigSchema = z.object({
   // Both nullable so the workspace chat works without brain configured.
   gbrainUrl: z.string().url().nullable(),
   gbrainAdminToken: z.string().min(1).nullable(),
+
+  // Social platform OAuth credentials. Client IDs are identifier-grade
+  // (plaintext). Client Secrets live in ENCRYPTED_FIELDS. Enabled toggles
+  // let the admin disable a platform without removing credentials.
+  twitterClientId: z.string().min(1).nullable(),
+  twitterClientSecret: z.string().min(1).nullable(),
+  twitterEnabled: z.boolean().default(false),
+  linkedinClientId: z.string().min(1).nullable(),
+  linkedinClientSecret: z.string().min(1).nullable(),
+  linkedinEnabled: z.boolean().default(false),
+  blueskyEnabled: z.boolean().default(false),
 });
 
 export type IntegrationConfig = z.infer<typeof IntegrationConfigSchema>;
@@ -96,6 +107,8 @@ export const ENCRYPTED_FIELDS = [
   "googleOauthClientSecret",
   "turnstileSecretKey",
   "gbrainAdminToken",
+  "twitterClientSecret",
+  "linkedinClientSecret",
 ] as const satisfies ReadonlyArray<keyof IntegrationConfig>;
 
 export type EncryptedField = (typeof ENCRYPTED_FIELDS)[number];
@@ -128,9 +141,16 @@ export const CONFIG_DEFAULTS = {
   llmCustomModels: [] as Array<{ id: string; name: string; provider: string; description: string }>,
   gbrainUrl: null,
   gbrainAdminToken: null,
+  twitterClientId: null,
+  twitterClientSecret: null,
+  twitterEnabled: false,
+  linkedinClientId: null,
+  linkedinClientSecret: null,
+  linkedinEnabled: false,
+  blueskyEnabled: false,
 } as const satisfies Pick<
   IntegrationConfig,
-  "contactRecipientEmail" | "resendFromEmail" | "llmModelId" | "llmEnabledModels" | "llmCustomModels" | "gbrainUrl" | "gbrainAdminToken"
+  "contactRecipientEmail" | "resendFromEmail" | "llmModelId" | "llmEnabledModels" | "llmCustomModels" | "gbrainUrl" | "gbrainAdminToken" | "twitterClientId" | "twitterClientSecret" | "twitterEnabled" | "linkedinClientId" | "linkedinClientSecret" | "linkedinEnabled" | "blueskyEnabled"
 >;
 
 // Storage shape inside site_setting.value for key='integration_secrets'.
@@ -166,6 +186,14 @@ export const StoredIntegrationConfigSchema = z.object({
 
   gbrainUrl: z.string().min(1).nullish(),
   gbrainAdminToken: z.string().min(1).nullish(),
+
+  twitterClientId: z.string().min(1).nullish(),
+  twitterClientSecret: z.string().min(1).nullish(),
+  twitterEnabled: z.boolean().nullish(),
+  linkedinClientId: z.string().min(1).nullish(),
+  linkedinClientSecret: z.string().min(1).nullish(),
+  linkedinEnabled: z.boolean().nullish(),
+  blueskyEnabled: z.boolean().nullish(),
 });
 
 export type StoredIntegrationConfig = z.infer<
