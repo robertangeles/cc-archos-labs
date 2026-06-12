@@ -19,6 +19,7 @@ const tabs: Tab[] = [
   { href: "/admin/blog", label: "Blog" },
   { href: "/admin/diagnostic", label: "Diagnostic Content" },
   { href: "/admin/prompts", label: "Diagnostic Prompt" },
+  { href: "/admin/bookings", label: "Bookings" },
   { href: "/admin/integrations", label: "Integrations" },
   { href: "/admin/users", label: "Users & Roles" },
   { href: "/admin/auth", label: "Authentication" },

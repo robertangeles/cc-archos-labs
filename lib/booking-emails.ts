@@ -569,3 +569,44 @@ export function buildBookingCancellationEmail(
 
   return { subject, text, html: wrapHtml(cardHtml) };
 }
+
+// ----------------------------------------------------------------------------
+// 8. Cron failure alert — internal email to the consultant when a
+//    scheduled_job exhausts MAX_ATTEMPTS and goes terminal. Fires from
+//    the cron processor so the operator knows something needs manual
+//    attention.
+// ----------------------------------------------------------------------------
+
+export interface CronFailureAlertInput {
+  jobKind: string;
+  bookingId: string;
+  prospectName: string;
+  prospectEmail: string;
+  slotStart: string;
+  lastError: string;
+  attempts: number;
+}
+
+export function buildCronFailureAlertEmail(
+  input: CronFailureAlertInput,
+): RenderedEmail {
+  const subject = `[ALERT] Scheduled job failed: ${input.jobKind} for ${sanitiseForPlainText(input.prospectName)}`;
+
+  const text = [
+    `A scheduled job has permanently failed after ${input.attempts} attempts.`,
+    ``,
+    `Job kind:  ${input.jobKind}`,
+    `Booking:   ${input.bookingId}`,
+    `Prospect:  ${sanitiseForPlainText(input.prospectName)} <${input.prospectEmail}>`,
+    `Slot:      ${input.slotStart}`,
+    ``,
+    `Last error:`,
+    input.lastError,
+    ``,
+    `This job will not retry. Check the booking and take manual action if needed.`,
+  ].join("\n");
+
+  const html = `<!doctype html><html><body style="font-family:${FONT_STACK};font-size:14px;color:${FG};"><pre style="font-family:inherit;white-space:pre-wrap;margin:0;">${escapeHtml(text)}</pre></body></html>`;
+
+  return { subject, text, html };
+}

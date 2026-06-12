@@ -1,11 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
+import { buildCronFailureAlertEmail } from "../../../../lib/booking-emails";
 import { dispatchJob } from "../../../../lib/cron-dispatch";
 import { getDb } from "../../../../lib/db";
-import { cronHeartbeat } from "../../../../lib/db/schema";
+import { bookingRequest, consultant, cronHeartbeat } from "../../../../lib/db/schema";
 import { getPublicOrigin } from "../../../../lib/public-origin";
 import { getResend } from "../../../../lib/resend";
 import {
+  decideRetryStatus,
   dequeueBatch,
   markFailed,
   markSent,
@@ -185,6 +187,42 @@ export async function POST(request: NextRequest) {
           outcome: "failed",
           detail: outcome.error,
         });
+
+        if (decideRetryStatus(job.attempts) === "failed") {
+          try {
+            const db = getDb();
+            const rows = await db
+              .select({
+                name: bookingRequest.name,
+                email: bookingRequest.email,
+                slotStart: bookingRequest.slotStart,
+                consultantEmail: consultant.email,
+              })
+              .from(bookingRequest)
+              .innerJoin(consultant, eq(bookingRequest.consultantId, consultant.id))
+              .where(eq(bookingRequest.id, job.bookingId))
+              .limit(1);
+
+            if (rows[0]) {
+              const alert = buildCronFailureAlertEmail({
+                jobKind: job.kind,
+                bookingId: job.bookingId,
+                prospectName: rows[0].name,
+                prospectEmail: rows[0].email,
+                slotStart: rows[0].slotStart?.toISOString() ?? "unknown",
+                lastError: outcome.error.slice(0, 500),
+                attempts: job.attempts,
+              });
+              await sendEmail(rows[0].consultantEmail, alert);
+            }
+          } catch (alertErr) {
+            console.error(
+              "[cron/process-scheduled] failure alert email failed for",
+              job.id,
+              alertErr,
+            );
+          }
+        }
       }
     } catch (settleErr) {
       // Settling the row itself failed (DB error). Log + carry on —

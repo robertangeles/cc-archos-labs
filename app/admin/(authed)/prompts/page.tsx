@@ -86,7 +86,7 @@ export default async function PromptsIndexPage() {
       description:
         "Picks 0–3 blog posts from a library that match the prospect's stated problem. Renders in the confirmation email as 'while you wait'.",
       fires:
-        "Not yet wired — confirmation email currently sends an empty list.",
+        "Fires on booking-create when the blog library has entries.",
       status: bookingStatus(bookingPrompts, "blogMatch"),
     },
   ];
