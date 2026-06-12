@@ -243,6 +243,18 @@ These came up in the Slice A planning but were deliberately excluded from the ca
 
 ---
 
+## Phase 4 — Social Accounts follow-ups (added 2026-06-12)
+
+**Status:** Social Accounts v1 (connect + publish) shipped in PR #151. Twitter/X, LinkedIn, and Bluesky OAuth/auth flows live. Publish dispatcher with rate limiting + dedup live. Social Accounts tab, publish modal with per-platform editing + char counters, admin integrations panel all shipped. Items below are deferred from the CEO review cherry-pick ceremony and eng review.
+
+49. **Content calendar with scheduled publishing** — Users can publish immediately but cannot schedule posts for future times (e.g. "post this Tuesday at 9am"). Requires: `scheduled_post` table (or extend `publish_log` with `scheduled_at` + `status=pending`), background cron job to fire scheduled posts, calendar UI in the workspace. Depends on: social accounts v1 (shipped). Effort: L (human ~1 week / CC ~4 hours). Verify: user schedules a post for 5 minutes from now; cron fires it; publish_log shows success.
+
+50. **Social analytics / engagement tracking** — Track post performance after publishing (impressions, likes, reposts). Requires: platform read API access (Twitter Analytics API, LinkedIn Statistics API), `publish_analytics` table, dashboard UI. Depends on: social accounts v1 (shipped) + Plausible (item 41). Effort: L (human ~1 week / CC ~4 hours). Verify: dashboard shows engagement metrics for a published post within 24 hours.
+
+51. **Per-platform feature flags (cache fix)** — The admin toggle for twitterEnabled/linkedinEnabled/blueskyEnabled writes to DB but the in-memory config cache doesn't invalidate until server restart. Fix: call `clearIntegrationConfigCache()` after the PATCH response, or add a cache-bust header the client sends after toggling. Effort: S (human ~30min / CC ~5min). Verify: toggle platform off in admin panel, immediately try to connect — should return 404 without server restart.
+
+---
+
 ## What's deliberately not on this list
 
 - Admin panel — deferred per [[2026-05-08-admin-deferred]] until Phase 2 ships and there's content to manage.
