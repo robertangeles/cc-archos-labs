@@ -149,7 +149,7 @@ These are small, standalone, can be picked up in spare minutes:
 
 ## Phase 1.E — Book a Call (replaces mailto: CTAs) — ✅ SHIPPED 2026-05-17 (items 29–30)
 
-**Status:** Lane A foundations (PR #8, #10), Lane B Calendar + Claude (PRs #41, #42, #44, #45, #46, #48), Lane C slot math + scheduler (PRs #39, #40, #44) all shipped. Live at `/book/[slug]`. See [[shipped]] for the index entry, [[state]] for live routes, and [[book-a-call-architecture]] for the architecture overview. Follow-up items 31–34 (admin status flip, consultant profile UI, blog library wiring, cron alert) remain in this backlog.
+**Status:** Lane A foundations (PR #8, #10), Lane B Calendar + Claude (PRs #41, #42, #44, #45, #46, #48), Lane C slot math + scheduler (PRs #39, #40, #44) all shipped. Live at `/book/[slug]`. See [[shipped]] for the index entry, [[state]] for live routes, and [[book-a-call-architecture]] for the architecture overview. Follow-up items 31–34 all shipped 2026-06-12.
 
 Per the CEO + design + eng plan review locked 2026-05-12, the home page's `mailto:` CTAs are being replaced with a self-serve calendar booking flow that creates Google Meet invites and feeds an AI-augmented pre-call pipeline (AI follow-up question on the intake, AI pre-call brief to Rob 1h before, AI-matched blog posts in the confirmation email, scheduled reminders + no-show recovery). Lane A foundations (schema for 5 new tables, AES-GCM crypto, JWT magic links, error hierarchy, redaction, 10 UI primitives, 6 email templates) shipped in PR #8 + PR #10. Full plan + design spec + eng review at `~/.claude/plans/before-we-start-can-indexed-riddle.md` (external; not in repo).
 
@@ -157,15 +157,15 @@ Per the CEO + design + eng plan review locked 2026-05-12, the home page's `mailt
 
 30. **Lane C — Calendar slot math + scheduler** — ✅ shipped 2026-05-17 across PRs #39 (`lib/calendar.ts` with DST + 23 unit tests) + #40 (`lib/scheduler.ts` with FOR UPDATE SKIP LOCKED + 15 unit tests) + #44 (cron processor that drains the queue). See [[book-a-call-architecture]].
 
-## Phase 1.E follow-ups — added 2026-05-17
+## Phase 1.E follow-ups — ✅ SHIPPED 2026-06-12 (items 31–34)
 
-31. **Admin: mark booking as `no_show` / `completed`** — small admin UI (button on a booking detail view) to flip status. Currently has to be done via psql/Drizzle Studio. `noshow_recovery` email only fires when status is `no_show`; the cron processor correctly skips otherwise. Lightweight admin page that lists upcoming + recent bookings with a status dropdown. Verify: cron `noshow_recovery` email fires within the next run after status flip; analytics queries can distinguish `completed` from `no_show`.
+31. **Admin: mark booking as `no_show` / `completed`** — ✅ shipped 2026-06-12. New `/admin/bookings` page with table, status filter, search, pagination. `PATCH /api/admin/bookings/[id]/status` flips status. "Bookings" tab in admin sidebar.
 
-32. **Consultant profile UI** — `/admin/integrations/google-calendar` currently shows status but doesn't expose editable fields. Add: displayName, timezone, slug, slotMinutes, slotBufferMinutes, advanceDays, minNoticeHours, workingHoursJson, public_email. Validates the slug is URL-safe + unique. Updates take effect on next booking-page render. Verify: editing slug from "archos-labs" to anything else, the home page CTA + every booking URL re-renders against the new slug; updating timezone re-projects slot times correctly.
+32. **Consultant profile UI** — ✅ shipped 2026-06-12. `GET/PATCH /api/admin/consultant/profile`. Form added below OAuth controls on `/admin/integrations/google-calendar` — edits displayName, slug, timezone, slotMinutes, slotBufferMinutes, advanceDays, minNoticeHours, workingHoursJson, publicEmail.
 
-33. **Blog library + matching wiring** — `lib/claude-booking.ts`'s `matchBlogPosts` exists, the prompt is in DB, the eval suite covers it — but the confirmation email passes `recommendedReading: []`. Land: a CMS-like list of `{title, url, summary}` triples in `site_setting` (key `'blog_library'`), an admin UI to manage entries at `/admin/blog-library`, wire `matchBlogPosts` into the booking-create route so the confirmation email's "while you wait" section actually populates. Verify: matching against the library returns sensible posts on the existing eval fixtures; confirmation email renders the reading-list HTML cleanly in Outlook + Gmail; the eval suite still passes 15/15.
+33. **Blog library + matching wiring** — ✅ shipped 2026-06-12. `lib/blog-library.ts` + `lib/blog-library-shared.ts` getter from `site_setting` key `'blog_library'`. `matchBlogPosts()` wired into booking create route. Admin editor on `/admin/prompts/blog-matching`. `GET/PUT /api/admin/settings/blog-library`.
 
-34. **Cron alert on terminal failure** — when a `scheduled_job` exhausts MAX_ATTEMPTS and lands in `status='failed'`, fire an [ALERT] email to the consultant so they can investigate. Currently only logged in the cron route. Verify: artificially break a job (e.g. Resend key wrong), confirm the consultant receives the alert email after 3 attempts.
+34. **Cron alert on terminal failure** — ✅ shipped 2026-06-12. `buildCronFailureAlertEmail()` in `lib/booking-emails.ts`. Wired into cron processor — fires `[ALERT]` email to consultant when `decideRetryStatus` returns `'failed'`.
 
 ---
 

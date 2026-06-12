@@ -2,11 +2,25 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-06-02
+updated: 2026-06-12
 related:
 ---
 
 Append-only log of sessions. Newest entry at the top.
+
+## 2026-06-12 — Phase 1.E follow-ups (backlog items 31–34)
+
+Shipped all four Book-a-Call follow-up items in one branch (`feature/phase-1e-followups`):
+
+- **Item 33 — Blog library wiring.** Killed the hardcoded `recommendedReading: []` in the booking create route. Created `lib/blog-library.ts` + `lib/blog-library-shared.ts` (Zod schema, soft-fallback getter from `site_setting` key `'blog_library'`). Wired `matchBlogPosts()` into the booking create route — Claude now picks 0–3 posts from the library for the confirmation email. Admin API at `GET/PUT /api/admin/settings/blog-library`. Blog library editor added to `/admin/prompts/blog-matching` below the prompt editor.
+
+- **Item 34 — Cron failure alert.** Added `buildCronFailureAlertEmail()` to `lib/booking-emails.ts`. Wired into cron processor: when `decideRetryStatus` returns `'failed'` (terminal, 3 attempts exhausted), loads the booking + consultant and sends an `[ALERT]` email to the consultant.
+
+- **Item 31 — Admin bookings page.** New `/admin/bookings` page with table, status filter, search, pagination. `PATCH /api/admin/bookings/[id]/status` for flipping confirmed → completed / no_show / cancelled. "Bookings" tab added to admin sidebar nav.
+
+- **Item 32 — Consultant profile UI.** `GET/PATCH /api/admin/consultant/profile` with Zod validation + slug uniqueness. `ConsultantProfileForm` component added below the OAuth controls on `/admin/integrations/google-calendar` — edits display name, slug, timezone, slot length, buffer, advance days, min notice, and per-day working hours.
+
+Also cleaned up 6 test booking rows from the database.
 
 ## 2026-06-12 — Fix social platform toggle persistence (backlog #51)
 

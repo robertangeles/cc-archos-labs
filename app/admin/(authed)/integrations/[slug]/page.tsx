@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "../../../../../lib/db";
 import { consultant } from "../../../../../lib/db/schema";
 import { getIntegrationConfigRedacted } from "../../../../../lib/integration-config";
+import { ConsultantProfileForm } from "../../../../../components/admin/integrations/consultant-profile-form";
 import {
   IntegrationsPanel,
   type GoogleConnectInfo,
@@ -114,6 +115,23 @@ export default async function IntegrationDetailPage({
           googleConnect={googleConnect}
         />
       ) : null}
+
+      {slug === "google-calendar" && (
+        <>
+          <hr className="border-hairline" />
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-card-title text-ink">Consultant settings</h2>
+              <p className="mt-1 text-body-sm text-ink-subtle">
+                Booking page configuration — slug, timezone, slot length,
+                working hours. Changes take effect on the next booking page
+                render.
+              </p>
+            </div>
+            <ConsultantProfileForm />
+          </div>
+        </>
+      )}
     </div>
   );
 }

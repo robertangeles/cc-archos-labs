@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { getBlogLibrary } from "../../../../../lib/blog-library";
 import { buildBookingConfirmationEmail } from "../../../../../lib/booking-emails";
 import {
   attachGoogleEvent,
@@ -9,6 +10,7 @@ import {
   getConsultantBySlug,
   loadAvailableSlots,
 } from "../../../../../lib/booking";
+import { matchBlogPosts } from "../../../../../lib/claude-booking";
 import { getDb } from "../../../../../lib/db";
 import { bookingRequest } from "../../../../../lib/db/schema";
 import {
@@ -248,7 +250,26 @@ export async function POST(request: NextRequest, { params }: Params) {
     // via the confirmation page; cron in PR #44 retries the JTI write.
   }
 
-  // 7. Send confirmation email synchronously --------------------------------
+  // 7. Match blog posts for the confirmation email's reading list -----------
+  let recommendedReading: { title: string; url: string }[] = [];
+  try {
+    const library = await getBlogLibrary();
+    if (library.length > 0) {
+      const matchResult = await matchBlogPosts({
+        reasonInitial: body.reasonInitial,
+        posts: library,
+      });
+      recommendedReading =
+        matchResult.matches?.matches.map((m) => ({
+          title: m.title,
+          url: m.url,
+        })) ?? [];
+    }
+  } catch (err) {
+    console.warn("[booking/create] blog matching failed, sending without:", err);
+  }
+
+  // 8. Send confirmation email synchronously --------------------------------
   const origin = getPublicOrigin(request);
   const manageToken = await signMagicLink(inserted.bookingId, "cancel", cancelJti);
   const manageUrl = `${origin}/book/manage/${encodeURIComponent(manageToken)}`;
@@ -260,7 +281,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       durationMinutes: consultant.slotMinutes,
       meetUrl: meetUrl ?? "(Meet link will arrive in a follow-up email)",
       manageUrl,
-      recommendedReading: [],
+      recommendedReading,
     });
     const { resend, from } = await getResend();
     await resend.emails.send({
@@ -277,7 +298,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     console.error("[booking/create] confirmation email failed:", err);
   }
 
-  // 8. Enqueue follow-up scheduled jobs (skip confirmation — already sent) -
+  // 9. Enqueue follow-up scheduled jobs (skip confirmation — already sent) -
   try {
     await enqueueBookingJobs({
       bookingId: inserted.bookingId,

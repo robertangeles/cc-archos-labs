@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { BookingPromptKind } from "../../../../../lib/booking-prompts-shared";
+import { BlogLibraryEditor } from "./blog-library-editor";
 import { BookingPromptEditor } from "./booking-prompt-editor";
 import { ChatPromptEditor } from "./chat-prompt-editor";
 import { DiagnosticPromptEditor } from "./diagnostic-prompt-editor";
@@ -57,9 +58,9 @@ const META: Record<Slug, { title: string; description: string; fires: string }> 
     "blog-matching": {
       title: "Blog matching",
       description:
-        "Picks 0–3 blog posts from a library that are GENUINELY relevant to the prospect's stated problem. Will render in the confirmation email under 'while you wait'. Library + wiring not yet shipped — prompt is staged for that work.",
+        "Picks 0–3 blog posts from a library that are GENUINELY relevant to the prospect's stated problem. Renders in the confirmation email under 'while you wait'.",
       fires:
-        "Not currently fired. Will fire on booking-create once the blog library lands.",
+        "Fires on booking-create when the blog library has entries.",
     },
   };
 
@@ -101,6 +102,13 @@ export default async function PromptDetailPage({ params }: PageProps) {
         <ChatPromptEditor />
       ) : (
         <BookingPromptEditor promptKey={SLUG_TO_BOOKING_KEY[slug]!} />
+      )}
+
+      {slug === "blog-matching" && (
+        <>
+          <hr className="border-hairline" />
+          <BlogLibraryEditor />
+        </>
       )}
     </div>
   );
