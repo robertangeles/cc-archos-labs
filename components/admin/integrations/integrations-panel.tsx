@@ -552,35 +552,10 @@ export function IntegrationsPanel({
           OAuth credentials for social publishing. Users connect their own
           accounts; these keys authenticate Archos Labs as the OAuth app.
         </p>
-        <ConfigField
-          field="twitterClientId"
-          label="Twitter Client ID"
-          hint="From developer.x.com → App → Keys & Tokens"
-          config={config}
-          editing={editing}
-          revealed={revealed}
-          saveStatus={saveStatus["twitterClientId"]}
-          onEdit={(v) => setEditing((e) => ({ ...e, twitterClientId: v }))}
-          onSave={() => handleSave("twitterClientId")}
-        />
-        <ConfigField
-          field="twitterClientSecret"
-          label="Twitter Client Secret"
-          hint="Encrypted at rest. From the same Keys & Tokens page."
-          config={config}
-          editing={editing}
-          revealed={revealed}
-          saveStatus={saveStatus["twitterClientSecret"]}
-          onEdit={(v) =>
-            setEditing((e) => ({ ...e, twitterClientSecret: v }))
-          }
-          onSave={() => handleSave("twitterClientSecret")}
-          onReveal={() => handleReveal("twitterClientSecret")}
-          onHide={() => handleHide("twitterClientSecret")}
-        />
-        <ToggleField
-          label="Twitter Enabled"
-          checked={config.twitterEnabled}
+
+        <SocialPlatformGroup
+          name="Twitter / X"
+          enabled={config.twitterEnabled}
           onToggle={async (val) => {
             setConfig((c) => ({ ...c, twitterEnabled: val }));
             await fetch("/api/admin/integrations", {
@@ -589,37 +564,38 @@ export function IntegrationsPanel({
               body: JSON.stringify({ field: "twitterEnabled", value: val }),
             });
           }}
-        />
-        <div className="border-t border-hairline pt-4" />
-        <ConfigField
-          field="linkedinClientId"
-          label="LinkedIn Client ID"
-          hint="From linkedin.com/developers → App → Auth tab"
-          config={config}
-          editing={editing}
-          revealed={revealed}
-          saveStatus={saveStatus["linkedinClientId"]}
-          onEdit={(v) => setEditing((e) => ({ ...e, linkedinClientId: v }))}
-          onSave={() => handleSave("linkedinClientId")}
-        />
-        <ConfigField
-          field="linkedinClientSecret"
-          label="LinkedIn Client Secret"
-          hint="Encrypted at rest. From the same Auth tab."
-          config={config}
-          editing={editing}
-          revealed={revealed}
-          saveStatus={saveStatus["linkedinClientSecret"]}
-          onEdit={(v) =>
-            setEditing((e) => ({ ...e, linkedinClientSecret: v }))
-          }
-          onSave={() => handleSave("linkedinClientSecret")}
-          onReveal={() => handleReveal("linkedinClientSecret")}
-          onHide={() => handleHide("linkedinClientSecret")}
-        />
-        <ToggleField
-          label="LinkedIn Enabled"
-          checked={config.linkedinEnabled}
+        >
+          <ConfigField
+            field="twitterClientId"
+            label="Client ID"
+            hint="developer.x.com → App → Keys & Tokens"
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus["twitterClientId"]}
+            onEdit={(v) => setEditing((e) => ({ ...e, twitterClientId: v }))}
+            onSave={() => handleSave("twitterClientId")}
+          />
+          <ConfigField
+            field="twitterClientSecret"
+            label="Client Secret"
+            hint="Encrypted at rest"
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus["twitterClientSecret"]}
+            onEdit={(v) =>
+              setEditing((e) => ({ ...e, twitterClientSecret: v }))
+            }
+            onSave={() => handleSave("twitterClientSecret")}
+            onReveal={() => handleReveal("twitterClientSecret")}
+            onHide={() => handleHide("twitterClientSecret")}
+          />
+        </SocialPlatformGroup>
+
+        <SocialPlatformGroup
+          name="LinkedIn"
+          enabled={config.linkedinEnabled}
           onToggle={async (val) => {
             setConfig((c) => ({ ...c, linkedinEnabled: val }));
             await fetch("/api/admin/integrations", {
@@ -628,11 +604,39 @@ export function IntegrationsPanel({
               body: JSON.stringify({ field: "linkedinEnabled", value: val }),
             });
           }}
-        />
-        <div className="border-t border-hairline pt-4" />
-        <ToggleField
-          label="Bluesky Enabled"
-          checked={config.blueskyEnabled}
+        >
+          <ConfigField
+            field="linkedinClientId"
+            label="Client ID"
+            hint="linkedin.com/developers → App → Auth tab"
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus["linkedinClientId"]}
+            onEdit={(v) => setEditing((e) => ({ ...e, linkedinClientId: v }))}
+            onSave={() => handleSave("linkedinClientId")}
+          />
+          <ConfigField
+            field="linkedinClientSecret"
+            label="Client Secret"
+            hint="Encrypted at rest"
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus["linkedinClientSecret"]}
+            onEdit={(v) =>
+              setEditing((e) => ({ ...e, linkedinClientSecret: v }))
+            }
+            onSave={() => handleSave("linkedinClientSecret")}
+            onReveal={() => handleReveal("linkedinClientSecret")}
+            onHide={() => handleHide("linkedinClientSecret")}
+          />
+        </SocialPlatformGroup>
+
+        <SocialPlatformGroup
+          name="Bluesky"
+          hint="App passwords — no admin keys needed"
+          enabled={config.blueskyEnabled}
           onToggle={async (val) => {
             setConfig((c) => ({ ...c, blueskyEnabled: val }));
             await fetch("/api/admin/integrations", {
@@ -642,10 +646,6 @@ export function IntegrationsPanel({
             });
           }}
         />
-        <p className="text-xs text-ink-subtle">
-          Bluesky uses app passwords — no admin API keys needed. Users
-          provide their own credentials when connecting.
-        </p>
       </Section>
 
       {revealError && (
@@ -724,6 +724,47 @@ function ToggleField({
       </button>
       {label}
     </label>
+  );
+}
+
+function SocialPlatformGroup({
+  name,
+  hint,
+  enabled,
+  onToggle,
+  children,
+}: {
+  name: string;
+  hint?: string;
+  enabled: boolean;
+  onToggle: (value: boolean) => void;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-md border border-hairline bg-surface-1/20 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-ink">{name}</p>
+          {hint && <p className="text-xs text-ink-subtle">{hint}</p>}
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={enabled}
+          onClick={() => onToggle(!enabled)}
+          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+            enabled ? "bg-primary" : "bg-surface-2"
+          }`}
+        >
+          <span
+            className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${
+              enabled ? "translate-x-4" : "translate-x-0"
+            }`}
+          />
+        </button>
+      </div>
+      {children}
+    </div>
   );
 }
 
