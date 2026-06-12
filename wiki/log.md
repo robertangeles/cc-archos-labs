@@ -8,6 +8,10 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-06-12 — Fix social platform toggle persistence (backlog #51)
+
+Admin integrations PATCH endpoint rejected boolean values — the Zod `PatchSchema.value` union only accepted `string | null | string[] | object[]`, so toggling twitterEnabled/linkedinEnabled/blueskyEnabled silently 400'd. The DB was never updated; the UI just optimistically flipped the switch. Added `z.boolean()` to the union. Cache invalidation was already correct via `updateIntegrationSecret` → `clearIntegrationConfigCache()`. Commit `351e958`.
+
 ## 2026-06-10 — GBrain security hardening
 
 Security audit of the GBrain integration surfaced 37 findings across 7 critical areas. Implemented all 7 fixes:

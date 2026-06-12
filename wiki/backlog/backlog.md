@@ -251,7 +251,7 @@ These came up in the Slice A planning but were deliberately excluded from the ca
 
 50. **Social analytics / engagement tracking** — Track post performance after publishing (impressions, likes, reposts). Requires: platform read API access (Twitter Analytics API, LinkedIn Statistics API), `publish_analytics` table, dashboard UI. Depends on: social accounts v1 (shipped) + Plausible (item 41). Effort: L (human ~1 week / CC ~4 hours). Verify: dashboard shows engagement metrics for a published post within 24 hours.
 
-51. **Per-platform feature flags (cache fix)** — The admin toggle for twitterEnabled/linkedinEnabled/blueskyEnabled writes to DB but the in-memory config cache doesn't invalidate until server restart. Fix: call `clearIntegrationConfigCache()` after the PATCH response, or add a cache-bust header the client sends after toggling. Effort: S (human ~30min / CC ~5min). Verify: toggle platform off in admin panel, immediately try to connect — should return 404 without server restart.
+51. **Per-platform feature flags (cache fix)** — ✅ **SHIPPED 2026-06-12.** Root cause was not stale cache but the PATCH schema's Zod union missing `z.boolean()` — toggle values silently 400'd, so the DB was never written. Cache invalidation was already wired via `updateIntegrationSecret` → `clearIntegrationConfigCache()`. Fix: added `z.boolean()` to PatchSchema value union. Commit `351e958`.
 
 ---
 
