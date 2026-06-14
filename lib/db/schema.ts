@@ -3,6 +3,7 @@ import {
   text,
   jsonb,
   timestamp,
+  date,
   uuid,
   boolean,
   integer,
@@ -3104,3 +3105,364 @@ export const scheduledSocialPostRelations = relations(
     }),
   }),
 );
+
+// ============================================================================
+// ORG / PROJECTS / CLIENTS / KANBAN — consulting delivery (ported from Spresso)
+// ============================================================================
+// Multi-tenant org layer + consulting CRM + project Kanban. Reduced port:
+// drops Spresso flows/content-items/voting. All FKs indexed (CLAUDE.md).
+// Org read-visibility model lives in lib/auth/org-context.ts, not here.
+// ============================================================================
+
+// organisation — the tenant. join_key is a bearer invite secret (20-byte hex).
+export const organisation = pgTable(
+  "organisation",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: varchar("name", { length: 255 }).notNull(),
+    slug: varchar("slug", { length: 100 }).notNull().unique(),
+    description: text("description"),
+    logoUrl: text("logo_url"),
+    // Bearer invite key (crypto.randomBytes(20).toString('hex') = 40 chars).
+    joinKey: varchar("join_key", { length: 64 }).notNull().unique(),
+    // Owner is a user; set null on user delete so the org row survives for audit.
+    ownerId: uuid("owner_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // Look up an org by its owner (default-org guard + "my orgs").
+    index("organisation_owner_id_idx").on(table.ownerId),
+  ],
+);
+export type Organisation = typeof organisation.$inferSelect;
+export type NewOrganisation = typeof organisation.$inferInsert;
+
+// organisation_member — junction: which users belong to an org and their role.
+// role is resolved per (user, org) — NEVER a global users.role for org context.
+export const organisationMember = pgTable(
+  "organisation_member",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id")
+      .notNull()
+      .references(() => organisation.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // 'owner' | 'admin' | 'member' — enforced in lib/auth/org-context.ts.
+    role: varchar("role", { length: 20 }).notNull().default("member"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // One membership row per (user, org). Also the conflict target for the
+    // idempotent default-org backfill (ON CONFLICT DO NOTHING).
+    uniqueIndex("organisation_member_org_user_idx").on(
+      table.organisationId,
+      table.userId,
+    ),
+    // List members of an org; list a user's orgs.
+    index("organisation_member_org_id_idx").on(table.organisationId),
+    index("organisation_member_user_id_idx").on(table.userId),
+  ],
+);
+export type OrganisationMember = typeof organisationMember.$inferSelect;
+export type NewOrganisationMember = typeof organisationMember.$inferInsert;
+
+// client — a consulting client, scoped to an org.
+export const client = pgTable(
+  "client",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id")
+      .notNull()
+      .references(() => organisation.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    industry: varchar("industry", { length: 100 }),
+    website: varchar("website", { length: 500 }),
+    companySize: varchar("company_size", { length: 50 }),
+    abnTaxId: varchar("abn_tax_id", { length: 50 }),
+    addressLine1: varchar("address_line1", { length: 255 }),
+    addressLine2: varchar("address_line2", { length: 255 }),
+    city: varchar("city", { length: 100 }),
+    state: varchar("state", { length: 100 }),
+    postalCode: varchar("postal_code", { length: 20 }),
+    country: varchar("country", { length: 100 }),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("client_organisation_id_idx").on(table.organisationId)],
+);
+export type Client = typeof client.$inferSelect;
+export type NewClient = typeof client.$inferInsert;
+
+// client_contact — a person at a client.
+export const clientContact = pgTable(
+  "client_contact",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    clientId: uuid("client_id")
+      .notNull()
+      .references(() => client.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    email: varchar("email", { length: 255 }),
+    phone: varchar("phone", { length: 50 }),
+    role: varchar("role", { length: 100 }),
+    isPrimary: boolean("is_primary").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("client_contact_client_id_idx").on(table.clientId)],
+);
+export type ClientContact = typeof clientContact.$inferSelect;
+export type NewClientContact = typeof clientContact.$inferInsert;
+
+// client_contract — an engagement/contract for a client.
+export const clientContract = pgTable(
+  "client_contract",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    clientId: uuid("client_id")
+      .notNull()
+      .references(() => client.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    contractType: varchar("contract_type", { length: 50 }),
+    status: varchar("status", { length: 30 }).notNull().default("active"),
+    startDate: date("start_date", { mode: "string" }),
+    endDate: date("end_date", { mode: "string" }),
+    billingRate: numeric("billing_rate", { precision: 12, scale: 2 }),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("client_contract_client_id_idx").on(table.clientId)],
+);
+export type ClientContract = typeof clientContract.$inferSelect;
+export type NewClientContract = typeof clientContract.$inferInsert;
+
+// project — a unit of work, scoped to an org, optionally tied to a client.
+export const project = pgTable(
+  "project",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id")
+      .notNull()
+      .references(() => organisation.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").references(() => client.id, {
+      onDelete: "set null",
+    }),
+    // Creator. set null on user delete so the project survives.
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description"),
+    status: varchar("status", { length: 30 }).notNull().default("active"),
+    startDate: date("start_date", { mode: "string" }),
+    endDate: date("end_date", { mode: "string" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("project_organisation_id_idx").on(table.organisationId),
+    index("project_client_id_idx").on(table.clientId),
+    index("project_user_id_idx").on(table.userId),
+  ],
+);
+export type Project = typeof project.$inferSelect;
+export type NewProject = typeof project.$inferInsert;
+
+// project_member — junction: which users are on a project.
+export const projectMember = pgTable(
+  "project_member",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: varchar("role", { length: 20 }).notNull().default("member"),
+    addedAt: timestamp("added_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("project_member_project_user_idx").on(
+      table.projectId,
+      table.userId,
+    ),
+    index("project_member_project_id_idx").on(table.projectId),
+    index("project_member_user_id_idx").on(table.userId),
+  ],
+);
+export type ProjectMember = typeof projectMember.$inferSelect;
+export type NewProjectMember = typeof projectMember.$inferInsert;
+
+// project_activity — append-only timeline + audit trail (expansion D3.1).
+export const projectActivity = pgTable(
+  "project_activity",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    action: varchar("action", { length: 50 }).notNull(),
+    entityType: varchar("entity_type", { length: 50 }),
+    entityId: uuid("entity_id"),
+    entityName: varchar("entity_name", { length: 255 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // Paginated feed: activity for a project, newest first.
+    index("project_activity_project_created_idx").on(
+      table.projectId,
+      table.createdAt,
+    ),
+  ],
+);
+export type ProjectActivity = typeof projectActivity.$inferSelect;
+export type NewProjectActivity = typeof projectActivity.$inferInsert;
+
+// kanban_column — a board column within a project.
+export const kanbanColumn = pgTable(
+  "kanban_column",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 100 }).notNull(),
+    color: varchar("color", { length: 20 }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("kanban_column_project_id_idx").on(table.projectId)],
+);
+export type KanbanColumn = typeof kanbanColumn.$inferSelect;
+export type NewKanbanColumn = typeof kanbanColumn.$inferInsert;
+
+// kanban_card — a card within a column. artifact_* links to a workspace
+// artifact (expansion D3.3); cover_image_url + attachments use lib/r2.ts.
+export const kanbanCard = pgTable(
+  "kanban_card",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    columnId: uuid("column_id")
+      .notNull()
+      .references(() => kanbanColumn.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 500 }).notNull(),
+    description: text("description"),
+    priority: varchar("priority", { length: 20 }).notNull().default("medium"),
+    dueDate: date("due_date", { mode: "string" }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    assigneeId: uuid("assignee_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    coverImageUrl: text("cover_image_url"),
+    // Workspace-artifact link (D3.3): 'workflow_run' | 'image' | 'conversation'.
+    artifactType: varchar("artifact_type", { length: 30 }),
+    artifactId: uuid("artifact_id"),
+    artifactUrl: text("artifact_url"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // Board fetch: cards for a project ordered within columns (N+1-safe).
+    index("kanban_card_project_column_sort_idx").on(
+      table.projectId,
+      table.columnId,
+      table.sortOrder,
+    ),
+    index("kanban_card_column_id_idx").on(table.columnId),
+    index("kanban_card_assignee_id_idx").on(table.assigneeId),
+  ],
+);
+export type KanbanCard = typeof kanbanCard.$inferSelect;
+export type NewKanbanCard = typeof kanbanCard.$inferInsert;
+
+// kanban_card_comment — a comment on a card.
+export const kanbanCardComment = pgTable(
+  "kanban_card_comment",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    cardId: uuid("card_id")
+      .notNull()
+      .references(() => kanbanCard.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("kanban_card_comment_card_id_idx").on(table.cardId)],
+);
+export type KanbanCardComment = typeof kanbanCardComment.$inferSelect;
+export type NewKanbanCardComment = typeof kanbanCardComment.$inferInsert;
+
+// kanban_card_attachment — a file on a card (stored in R2 via lib/r2.ts).
+export const kanbanCardAttachment = pgTable(
+  "kanban_card_attachment",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    cardId: uuid("card_id")
+      .notNull()
+      .references(() => kanbanCard.id, { onDelete: "cascade" }),
+    fileName: varchar("file_name", { length: 255 }).notNull(),
+    fileUrl: text("file_url").notNull(),
+    fileType: varchar("file_type", { length: 100 }),
+    fileSize: integer("file_size"),
+    uploadedBy: uuid("uploaded_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("kanban_card_attachment_card_id_idx").on(table.cardId)],
+);
+export type KanbanCardAttachment = typeof kanbanCardAttachment.$inferSelect;
+export type NewKanbanCardAttachment = typeof kanbanCardAttachment.$inferInsert;
+
+// card_label — a label definition within a project.
+export const cardLabel = pgTable(
+  "card_label",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 100 }).notNull(),
+    color: varchar("color", { length: 20 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("card_label_project_id_idx").on(table.projectId)],
+);
+export type CardLabel = typeof cardLabel.$inferSelect;
+export type NewCardLabel = typeof cardLabel.$inferInsert;
+
+// card_label_assignment — junction: labels applied to cards (composite key).
+export const cardLabelAssignment = pgTable(
+  "card_label_assignment",
+  {
+    cardId: uuid("card_id")
+      .notNull()
+      .references(() => kanbanCard.id, { onDelete: "cascade" }),
+    labelId: uuid("label_id")
+      .notNull()
+      .references(() => cardLabel.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // Composite identity: one assignment per (card, label).
+    uniqueIndex("card_label_assignment_card_label_idx").on(
+      table.cardId,
+      table.labelId,
+    ),
+    // Reverse lookup: which cards have a label.
+    index("card_label_assignment_label_id_idx").on(table.labelId),
+  ],
+);
+export type CardLabelAssignment = typeof cardLabelAssignment.$inferSelect;
+export type NewCardLabelAssignment = typeof cardLabelAssignment.$inferInsert;

@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-14T05:12:36.610Z
+generated: 2026-06-14T22:33:58.730Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -67,7 +67,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/book/manage/[token]/reschedule` | [app/book/manage/[token]/reschedule/page.tsx](../app/book/manage/[token]/reschedule/page.tsx) | 2026-05-17 |
 | `/consulting` | [app/consulting/page.tsx](../app/consulting/page.tsx) | 2026-05-27 |
 | `/contact` | [app/contact/page.tsx](../app/contact/page.tsx) | 2026-05-22 |
-| `/search` | [app/search/page.tsx](../app/search/page.tsx) | unknown |
+| `/search` | [app/search/page.tsx](../app/search/page.tsx) | 2026-06-14 |
 | `/share/chat/[token]` | [app/share/chat/[token]/page.tsx](../app/share/chat/[token]/page.tsx) | 2026-06-08 |
 | `/sign-in` | [app/sign-in/page.tsx](../app/sign-in/page.tsx) | 2026-05-12 |
 | `/sign-in/check-email` | [app/sign-in/check-email/page.tsx](../app/sign-in/check-email/page.tsx) | 2026-05-15 |
@@ -178,7 +178,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/rules` | [app/api/rules/route.ts](../app/api/rules/route.ts) | 2026-06-08 |
 | `/api/rules/[id]` | [app/api/rules/[id]/route.ts](../app/api/rules/[id]/route.ts) | 2026-06-08 |
 | `/api/rules/[id]/toggle` | [app/api/rules/[id]/toggle/route.ts](../app/api/rules/[id]/toggle/route.ts) | 2026-06-08 |
-| `/api/search` | [app/api/search/route.ts](../app/api/search/route.ts) | unknown |
+| `/api/search` | [app/api/search/route.ts](../app/api/search/route.ts) | 2026-06-14 |
 | `/api/skills` | [app/api/skills/route.ts](../app/api/skills/route.ts) | 2026-06-07 |
 | `/api/skills/[id]` | [app/api/skills/[id]/route.ts](../app/api/skills/[id]/route.ts) | 2026-06-07 |
 | `/api/skills/[id]/execute` | [app/api/skills/[id]/execute/route.ts](../app/api/skills/[id]/execute/route.ts) | 2026-06-08 |
@@ -238,7 +238,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/layout/footer.tsx](../components/layout/footer.tsx) | 2026-05-18 |
 | [components/layout/header.tsx](../components/layout/header.tsx) | 2026-05-22 |
 | [components/layout/lead-sign-out-button.tsx](../components/layout/lead-sign-out-button.tsx) | 2026-06-10 |
-| [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-06-11 |
+| [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-06-14 |
 | [components/pages/block-error-boundary.tsx](../components/pages/block-error-boundary.tsx) | 2026-05-18 |
 | [components/pages/blocks-renderer.test.tsx](../components/pages/blocks-renderer.test.tsx) | 2026-05-18 |
 | [components/pages/blocks-renderer.tsx](../components/pages/blocks-renderer.tsx) | 2026-05-19 |
@@ -259,9 +259,9 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/pages/markdown-article.tsx](../components/pages/markdown-article.tsx) | 2026-05-18 |
 | [components/rules/rule-form.tsx](../components/rules/rule-form.tsx) | 2026-06-08 |
 | [components/rules/rules-list.tsx](../components/rules/rules-list.tsx) | 2026-06-08 |
-| [components/search/search-dialog.tsx](../components/search/search-dialog.tsx) | unknown |
-| [components/search/search-provider.tsx](../components/search/search-provider.tsx) | unknown |
-| [components/search/search-result-row.tsx](../components/search/search-result-row.tsx) | unknown |
+| [components/search/search-dialog.tsx](../components/search/search-dialog.tsx) | 2026-06-14 |
+| [components/search/search-provider.tsx](../components/search/search-provider.tsx) | 2026-06-14 |
+| [components/search/search-result-row.tsx](../components/search/search-result-row.tsx) | 2026-06-14 |
 | [components/sections/about/index.ts](../components/sections/about/index.ts) | 2026-05-18 |
 | [components/sections/about/person-card.tsx](../components/sections/about/person-card.tsx) | 2026-05-27 |
 | [components/sections/about/philosophy-block.tsx](../components/sections/about/philosophy-block.tsx) | 2026-05-27 |

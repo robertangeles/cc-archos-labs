@@ -6,6 +6,8 @@ import { hashPassword } from "../../../../lib/auth/password";
 import { issueSession } from "../../../../lib/auth/session";
 import { signVerificationToken } from "../../../../lib/auth/verification-token";
 import { setSessionCookie } from "../../../../lib/auth/cookies";
+import { setOrgCookie } from "../../../../lib/auth/org-context";
+import { createDefaultOrgForUser } from "../../../../lib/orgs/service";
 import { logAuthEvent } from "../../../../lib/auth/audit";
 import { assertSameOriginRequest, CsrfOriginError } from "../../../../lib/auth/csrf";
 import { requireTurnstile } from "../../../../lib/auth/turnstile";
@@ -166,6 +168,19 @@ export async function POST(request: Request) {
     userAgent,
   });
   await setSessionCookie(session.cookieValue);
+
+  // Auto-create the user's default organisation + set the active-org cookie.
+  // Best-effort: if the org tables aren't migrated yet (pre-cutover), don't
+  // break registration — the user can be backfilled when the migration runs.
+  try {
+    const orgId = await createDefaultOrgForUser(userId, displayName);
+    await setOrgCookie(orgId);
+  } catch (err) {
+    console.error(
+      "[/api/auth/register] default-org creation failed (non-fatal):",
+      err instanceof Error ? err.message : String(err),
+    );
+  }
 
   // Best-effort audit. logAuthEvent never throws.
   await logAuthEvent({
