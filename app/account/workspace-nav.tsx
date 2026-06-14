@@ -8,6 +8,7 @@ import {
   Clock,
   MessageSquare,
   Brain,
+  CalendarClock,
   type LucideIcon,
 } from "lucide-react";
 
@@ -22,6 +23,7 @@ const items: NavItem[] = [
   { href: "/account/brain", label: "Brain", icon: Brain },
   { href: "/account/skills", label: "Skills", icon: Sparkles },
   { href: "/account/workflows", label: "Workflows", icon: GitBranch },
+  { href: "/account/scheduled-posts", label: "Social Posts", icon: CalendarClock },
   { href: "/account/history", label: "History", icon: Clock },
 ];
 

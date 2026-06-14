@@ -38,6 +38,12 @@ export const PLATFORM_CHAR_LIMITS: Record<SocialPlatform, number> = {
   bluesky: 300,
 };
 
+export const PLATFORM_MAX_CHAR_LIMITS: Record<SocialPlatform, number> = {
+  twitter: 25_000,
+  linkedin: 3000,
+  bluesky: 300,
+};
+
 export const PLATFORM_DISPLAY_NAMES: Record<SocialPlatform, string> = {
   twitter: "Twitter / X",
   linkedin: "LinkedIn",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import { XIcon, LinkedinIcon, BlueskyIcon } from "@/components/icons/social";
 import type { SocialPlatform } from "@/lib/social/types";
 import {
@@ -14,6 +14,7 @@ interface PublishModalProps {
   connectedPlatforms: SocialPlatform[];
   onClose: () => void;
   onPublished?: () => void;
+  onScheduled?: () => void;
 }
 
 const PLATFORM_ICONS: Record<
@@ -25,6 +26,45 @@ const PLATFORM_ICONS: Record<
   bluesky: BlueskyIcon,
 };
 
+const TIME_SUGGESTIONS: Record<
+  SocialPlatform,
+  { label: string; day: string; time: string }[]
+> = {
+  twitter: [
+    { label: "Mon 12pm", day: "Mon", time: "12:00" },
+    { label: "Tue 9am", day: "Tue", time: "09:00" },
+    { label: "Thu 10am", day: "Thu", time: "10:00" },
+  ],
+  linkedin: [
+    { label: "Tue 8am", day: "Tue", time: "08:00" },
+    { label: "Wed 10am", day: "Wed", time: "10:00" },
+    { label: "Thu 2pm", day: "Thu", time: "14:00" },
+  ],
+  bluesky: [
+    { label: "Mon 6pm", day: "Mon", time: "18:00" },
+    { label: "Wed 7pm", day: "Wed", time: "19:00" },
+    { label: "Fri 5pm", day: "Fri", time: "17:00" },
+  ],
+};
+
+function getNextDayTime(
+  dayName: string,
+  time: string,
+): { date: string; time: string } {
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const targetDay = days.indexOf(dayName);
+  const now = new Date();
+  const currentDay = now.getDay();
+  let daysAhead = targetDay - currentDay;
+  if (daysAhead <= 0) daysAhead += 7;
+  const target = new Date(now);
+  target.setDate(now.getDate() + daysAhead);
+  const yyyy = target.getFullYear();
+  const mm = String(target.getMonth() + 1).padStart(2, "0");
+  const dd = String(target.getDate()).padStart(2, "0");
+  return { date: `${yyyy}-${mm}-${dd}`, time };
+}
+
 interface PlatformResult {
   platform: SocialPlatform;
   status: "success" | "error" | "reconnect_required";
@@ -32,12 +72,30 @@ interface PlatformResult {
   error?: string;
 }
 
+const X_PREMIUM_LIMIT = 25_000;
+const X_PREMIUM_KEY = "archos_x_premium";
+
+function getEffectiveLimit(platform: SocialPlatform, xPremium: boolean): number {
+  if (platform === "twitter" && xPremium) return X_PREMIUM_LIMIT;
+  return PLATFORM_CHAR_LIMITS[platform];
+}
+
+function truncateForPlatform(text: string, limit: number): string {
+  if (text.length <= limit) return text;
+  return text.slice(0, limit - 3) + "...";
+}
+
 export function PublishModal({
   defaultContent,
   connectedPlatforms,
   onClose,
   onPublished,
+  onScheduled,
 }: PublishModalProps) {
+  const [xPremium, setXPremium] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(X_PREMIUM_KEY) === "true";
+  });
   const [selectedPlatforms, setSelectedPlatforms] = useState<
     Set<SocialPlatform>
   >(new Set(connectedPlatforms));
@@ -45,8 +103,12 @@ export function PublishModal({
     Record<SocialPlatform, string>
   >(() => {
     const initial: Record<string, string> = {};
+    const savedPremium =
+      typeof window !== "undefined" &&
+      localStorage.getItem(X_PREMIUM_KEY) === "true";
     for (const p of SOCIAL_PLATFORMS) {
-      initial[p] = defaultContent;
+      const limit = getEffectiveLimit(p, savedPremium);
+      initial[p] = truncateForPlatform(defaultContent, limit);
     }
     return initial as Record<SocialPlatform, string>;
   });
@@ -55,6 +117,15 @@ export function PublishModal({
   );
   const [publishing, setPublishing] = useState(false);
   const [results, setResults] = useState<PlatformResult[] | null>(null);
+
+  const [scheduleMode, setScheduleMode] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledTime, setScheduledTime] = useState("");
+  const [scheduleSubmitting, setScheduleSubmitting] = useState(false);
+  const [scheduleResult, setScheduleResult] = useState<{
+    ok: boolean;
+    error?: string;
+  } | null>(null);
 
   const togglePlatform = useCallback((platform: SocialPlatform) => {
     setSelectedPlatforms((prev) => {
@@ -110,15 +181,86 @@ export function PublishModal({
     }
   }, [publishing, selectedPlatforms, perPlatformContent, onPublished]);
 
+  const handleSchedule = useCallback(async () => {
+    if (
+      scheduleSubmitting ||
+      selectedPlatforms.size === 0 ||
+      !scheduledDate ||
+      !scheduledTime
+    )
+      return;
+    setScheduleSubmitting(true);
+    setScheduleResult(null);
+
+    const scheduledFor = new Date(
+      `${scheduledDate}T${scheduledTime}`,
+    ).toISOString();
+    const displayTimezone =
+      Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    try {
+      const promises = [...selectedPlatforms].map(async (platform) => {
+        const res = await fetch("/api/social/scheduled", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            platform,
+            content: perPlatformContent[platform],
+            scheduledFor,
+            displayTimezone,
+          }),
+        });
+        return res.json();
+      });
+      const results = await Promise.all(promises);
+      const anyFailed = results.some((r) => !r.ok);
+      if (anyFailed) {
+        const firstError = results.find((r) => !r.ok);
+        setScheduleResult({
+          ok: false,
+          error: firstError?.error ?? "Schedule failed.",
+        });
+      } else {
+        setScheduleResult({ ok: true });
+        onScheduled?.();
+      }
+    } catch {
+      setScheduleResult({ ok: false, error: "Network error. Try again." });
+    } finally {
+      setScheduleSubmitting(false);
+    }
+  }, [
+    scheduleSubmitting,
+    selectedPlatforms,
+    scheduledDate,
+    scheduledTime,
+    perPlatformContent,
+    onScheduled,
+  ]);
+
   const currentContent = perPlatformContent[activeTab] ?? "";
-  const charLimit = PLATFORM_CHAR_LIMITS[activeTab];
+  const charLimit = getEffectiveLimit(activeTab, xPremium);
   const charCount = currentContent.length;
   const charWarning = charCount > charLimit * 0.9;
   const charOver = charCount > charLimit;
 
+  const handleXPremiumToggle = () => {
+    const next = !xPremium;
+    setXPremium(next);
+    localStorage.setItem(X_PREMIUM_KEY, String(next));
+    const newLimit = next ? X_PREMIUM_LIMIT : PLATFORM_CHAR_LIMITS.twitter;
+    setPerPlatformContent((prev) => ({
+      ...prev,
+      twitter: truncateForPlatform(
+        prev.twitter.length < newLimit ? defaultContent : prev.twitter,
+        newLimit,
+      ),
+    }));
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-canvas/80 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-lg border border-hairline bg-surface-2 shadow-2xl">
+      <div className="w-full max-w-3xl rounded-lg border border-hairline bg-surface-2 shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
           <h3 className="text-base font-semibold text-ink">
             Publish to Social
@@ -163,6 +305,27 @@ export function PublishModal({
               );
             })}
           </div>
+
+          {selectedPlatforms.has("twitter") && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleXPremiumToggle}
+                className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${
+                  xPremium ? "bg-primary" : "bg-surface-1 border border-hairline"
+                }`}
+              >
+                <span
+                  className={`inline-block h-2.5 w-2.5 rounded-full bg-white shadow-sm transition-transform ${
+                    xPremium ? "translate-x-3.5" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+              <span className="text-[11px] text-ink-subtle">
+                X Premium <span className="text-ink-subtle/60">(25,000 chars)</span>
+              </span>
+            </div>
+          )}
 
           {selectedPlatforms.size > 0 && (
             <>
@@ -216,6 +379,95 @@ export function PublishModal({
             </>
           )}
 
+          {/* Schedule toggle */}
+          <div className="flex items-center gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => setScheduleMode(!scheduleMode)}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                scheduleMode
+                  ? "bg-primary"
+                  : "bg-surface-1 border border-hairline"
+              }`}
+            >
+              <span
+                className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
+                  scheduleMode ? "translate-x-4" : "translate-x-0.5"
+                }`}
+              />
+            </button>
+            <span className="text-xs text-ink-subtle">
+              Schedule for later
+            </span>
+          </div>
+
+          {scheduleMode && (
+            <div className="space-y-3 rounded-md border border-hairline bg-surface-1 p-3">
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(e) => {
+                    setScheduledDate(e.target.value);
+                    setScheduleResult(null);
+                  }}
+                  min={new Date().toISOString().split("T")[0]}
+                  className="flex-1 rounded-md border border-hairline bg-surface-2 px-2.5 py-1.5 text-xs text-ink focus:border-primary focus:outline-none"
+                />
+                <input
+                  type="time"
+                  value={scheduledTime}
+                  onChange={(e) => {
+                    setScheduledTime(e.target.value);
+                    setScheduleResult(null);
+                  }}
+                  className="w-28 rounded-md border border-hairline bg-surface-2 px-2.5 py-1.5 text-xs text-ink focus:border-primary focus:outline-none"
+                />
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {(TIME_SUGGESTIONS[activeTab] ?? []).map((s) => (
+                  <button
+                    key={s.label}
+                    type="button"
+                    onClick={() => {
+                      const next = getNextDayTime(s.day, s.time);
+                      setScheduledDate(next.date);
+                      setScheduledTime(next.time);
+                      setScheduleResult(null);
+                    }}
+                    className="rounded-full border border-hairline bg-surface-2 px-2.5 py-1 text-[10px] text-ink-subtle hover:border-primary/50 hover:text-ink transition-colors"
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+              {scheduledDate && scheduledTime && (
+                <p className="text-[10px] text-ink-subtle">
+                  Scheduled for{" "}
+                  {new Date(
+                    `${scheduledDate}T${scheduledTime}`,
+                  ).toLocaleString()}{" "}
+                  ({Intl.DateTimeFormat().resolvedOptions().timeZone})
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Schedule result feedback */}
+          {scheduleResult && (
+            <div
+              className={`rounded-md border px-3 py-2 text-xs ${
+                scheduleResult.ok
+                  ? "border-green-700/40 bg-green-950/20 text-green-400"
+                  : "border-red-700/40 bg-red-950/20 text-red-400"
+              }`}
+            >
+              {scheduleResult.ok
+                ? "Posts scheduled successfully!"
+                : scheduleResult.error}
+            </div>
+          )}
+
           {results && (
             <div className="space-y-2">
               {results.map((r) => (
@@ -253,18 +505,34 @@ export function PublishModal({
             onClick={onClose}
             className="rounded-md border border-hairline px-3 py-1.5 text-xs font-medium text-ink-subtle transition-colors hover:bg-surface-1"
           >
-            {results ? "Close" : "Cancel"}
+            {results || scheduleResult ? "Close" : "Cancel"}
           </button>
-          {!results && (
-            <button
-              type="button"
-              onClick={handlePublish}
-              disabled={publishing || selectedPlatforms.size === 0}
-              className="rounded-md bg-primary px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {publishing ? "Publishing..." : "Publish"}
-            </button>
-          )}
+          {!results &&
+            !scheduleResult &&
+            (scheduleMode ? (
+              <button
+                type="button"
+                onClick={handleSchedule}
+                disabled={
+                  scheduleSubmitting ||
+                  selectedPlatforms.size === 0 ||
+                  !scheduledDate ||
+                  !scheduledTime
+                }
+                className="rounded-md bg-primary px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {scheduleSubmitting ? "Scheduling..." : "Schedule"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handlePublish}
+                disabled={publishing || selectedPlatforms.size === 0}
+                className="rounded-md bg-primary px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {publishing ? "Publishing..." : "Publish"}
+              </button>
+            ))}
         </div>
       </div>
     </div>
