@@ -19,13 +19,16 @@ export function AccountShell({
   const isProfile =
     pathname === "/account" ||
     pathname.startsWith("/account/personalisation") ||
-    pathname.startsWith("/account/social-accounts");
+    pathname.startsWith("/account/social-accounts") ||
+    pathname.startsWith("/account/organisation");
   const isWorkspaceHome = pathname === "/account/workspace";
   const isWorkspaceSubpage =
     pathname === "/account/brain" ||
     pathname.startsWith("/account/skills") ||
     pathname.startsWith("/account/workflows") ||
     pathname.startsWith("/account/scheduled-posts") ||
+    pathname.startsWith("/account/clients") ||
+    pathname.startsWith("/account/projects") ||
     pathname.startsWith("/account/history");
 
   if (isProfile) {

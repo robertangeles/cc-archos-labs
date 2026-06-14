@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Nav, type NavLeadProps } from "./nav";
+import { OrgSwitcher } from "@/components/org/org-switcher";
 
 export function Header({ lead }: { lead: NavLeadProps | null }) {
   const [scrolled, setScrolled] = useState(false);
@@ -38,7 +39,10 @@ export function Header({ lead }: { lead: NavLeadProps | null }) {
           />
           Archos Labs
         </Link>
-        <Nav lead={lead} />
+        <div className="flex items-center gap-x-5 sm:gap-x-7">
+          {lead ? <OrgSwitcher /> : null}
+          <Nav lead={lead} />
+        </div>
       </div>
     </header>
   );
