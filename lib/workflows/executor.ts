@@ -184,6 +184,130 @@ export async function executeWorkflow(
   };
 }
 
+export async function* executeWorkflowStreaming(
+  workflowId: string,
+  userId: string,
+  inputs: Record<string, string>,
+): AsyncGenerator<
+  | { type: "step_start"; index: number; total: number; skillName: string }
+  | { type: "step_result"; result: StepResult }
+  | { type: "done"; status: "completed" | "failed"; totalDurationMs: number }
+> {
+  const db = getDb();
+  const start = Date.now();
+
+  const steps = await db
+    .select()
+    .from(workflowStep)
+    .where(eq(workflowStep.workflowId, workflowId))
+    .orderBy(workflowStep.sortOrder);
+
+  if (steps.length === 0) throw new Error("Workflow has no steps to execute");
+
+  const enabledRules = await getEnabledRules(userId);
+  const rulesBlock = formatRulesForInjection(enabledRules);
+  const context: Record<string, string> = { ...inputs };
+  const stepResults: StepResult[] = [];
+
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    const stepStart = Date.now();
+    const skillName = await getSkillName(step.skillId);
+
+    yield { type: "step_start", index: i, total: steps.length, skillName };
+
+    try {
+      const resolved = await resolveStepInputs(step, context);
+      const skillConfig = step.skillId ? await loadSkillConfig(step.skillId) : null;
+
+      const promptTemplate = skillConfig?.promptTemplate ?? step.prompt;
+      const baseSystemPrompt =
+        (step.overrides as Record<string, unknown>)?.systemPrompt as string | undefined ??
+        skillConfig?.systemPrompt ?? undefined;
+      const systemPrompt = rulesBlock
+        ? [baseSystemPrompt, rulesBlock].filter(Boolean).join("\n\n")
+        : baseSystemPrompt;
+      const temperature =
+        (step.overrides as Record<string, unknown>)?.temperature as number | undefined ??
+        skillConfig?.temperature ?? undefined;
+      const maxTokens =
+        (step.overrides as Record<string, unknown>)?.maxTokens as number | undefined ??
+        skillConfig?.maxTokens ?? undefined;
+      const configuredDefault = (await resolveLlmConfig()).modelId;
+      const model = step.model || skillConfig?.defaultModel || configuredDefault;
+
+      const response = await executeSkill({
+        promptTemplate,
+        systemPrompt,
+        inputs: resolved,
+        model,
+        temperature,
+        maxTokens,
+      });
+
+      const durationMs = Date.now() - stepStart;
+      const outputKey = skillConfig?.outputKey ?? "result";
+      context[`step_${step.stepId}.${outputKey}`] = response.result;
+      context[`step_${step.stepId}.result`] = response.result;
+
+      const result: StepResult = {
+        stepId: step.stepId,
+        skillId: step.skillId ?? "raw",
+        outputs: { [outputKey]: response.result },
+        usage: response.usage,
+        model: response.model,
+        durationMs,
+        status: "success",
+      };
+      stepResults.push(result);
+      yield { type: "step_result", result };
+    } catch (err) {
+      const durationMs = Date.now() - stepStart;
+      const message = err instanceof Error ? err.message : "Unknown error";
+      const result: StepResult = {
+        stepId: step.stepId,
+        skillId: step.skillId ?? "raw",
+        outputs: {},
+        usage: { inputTokens: 0, outputTokens: 0 },
+        model: step.model || "unknown",
+        durationMs,
+        status: "error",
+        error: message,
+      };
+      stepResults.push(result);
+      yield { type: "step_result", result };
+      break;
+    }
+  }
+
+  const totalDurationMs = Date.now() - start;
+  const allSucceeded = stepResults.every((r) => r.status === "success");
+  const status = allSucceeded ? "completed" as const : "failed" as const;
+
+  try {
+    await db.insert(workflowExecutionRun).values({
+      workflowId, userId, inputs, stepResults, status, totalDurationMs,
+    });
+  } catch { /* non-blocking */ }
+
+  try {
+    for (let i = 0; i < stepResults.length; i++) {
+      const r = stepResults[i];
+      const s = steps[i];
+      await db.insert(workflowExecutionLog).values({
+        runId: undefined as unknown as string,
+        workflowId, userId, stepIndex: i,
+        skillName: await getSkillName(s.skillId),
+        skillId: s.skillId, model: r.model,
+        inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens,
+        durationMs: r.durationMs, status: r.status,
+      });
+    }
+  } catch { /* non-blocking */ }
+
+  yield { type: "done", status, totalDurationMs };
+}
+
 async function resolveStepInputs(
   step: typeof workflowStep.$inferSelect,
   context: Record<string, string>,

@@ -14,6 +14,9 @@ import { CHAT_MODE_CONFIG, type ChatMode } from "@/lib/chat/modes";
 import { ImageGenConfig } from "@/components/chat/image-gen-config";
 import { BrainStatus } from "@/components/workspace/BrainStatus";
 import { BrainOnboardingBanner } from "@/components/workspace/BrainOnboardingBanner";
+import { PublishModal } from "@/components/social/publish-modal";
+import type { SocialPlatform } from "@/lib/social/types";
+import { SOCIAL_PLATFORMS } from "@/lib/social/types";
 import type { AspectRatio, ImageSize } from "@/lib/image-gen/service";
 
 const THINKING_VERBS = [
@@ -73,6 +76,21 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
   const [imgAspectRatio, setImgAspectRatio] = useState<AspectRatio>("2:3");
   const [imgSize, setImgSize] = useState<ImageSize>("2K");
   const [brainProvisioned, setBrainProvisioned] = useState(false);
+  const [publishContent, setPublishContent] = useState<string | null>(null);
+  const [connectedPlatforms, setConnectedPlatforms] = useState<SocialPlatform[]>([]);
+
+  useEffect(() => {
+    Promise.all(
+      SOCIAL_PLATFORMS.map((p) =>
+        fetch(`/api/social/${p}/status`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => (d?.connected ? p : null))
+          .catch(() => null),
+      ),
+    ).then((results) => {
+      setConnectedPlatforms(results.filter((p): p is SocialPlatform => p !== null));
+    });
+  }, []);
 
   useEffect(() => {
     fetch("/api/brain/status")
@@ -285,6 +303,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
                   contentType={msg.contentType}
                   model={msg.model}
                   isInterrupted={msg.isInterrupted}
+                  onPublish={connectedPlatforms.length > 0 ? setPublishContent : undefined}
                 />
               ))}
               {streamingContent && (
@@ -389,6 +408,16 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
           </div>
         </div>
       </div>
+
+      {publishContent && connectedPlatforms.length > 0 && (
+        <PublishModal
+          defaultContent={publishContent}
+          connectedPlatforms={connectedPlatforms}
+          onClose={() => setPublishContent(null)}
+          onPublished={() => setPublishContent(null)}
+          onScheduled={() => setPublishContent(null)}
+        />
+      )}
     </div>
   );
 }

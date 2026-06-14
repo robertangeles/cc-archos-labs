@@ -169,6 +169,13 @@
       "when": 1781154635836,
       "tag": "0023_unknown_korvac",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1781353587389,
+      "tag": "0024_nappy_the_hunter",
+      "breakpoints": true
     }
   ]
 }

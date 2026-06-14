@@ -8,6 +8,7 @@ import {
   Sparkles,
   GitBranch,
   Clock,
+  CalendarClock,
   Brain,
   Trash2,
   X,
@@ -149,6 +150,7 @@ export function ChatSidebar({
         <NavLink href="/account/brain" icon={Brain} label="Brain" />
         <NavLink href="/account/skills" icon={Sparkles} label="Skills" />
         <NavLink href="/account/workflows" icon={GitBranch} label="Workflows" />
+        <NavLink href="/account/scheduled-posts" icon={CalendarClock} label="Social Posts" />
         <NavLink href="/account/history" icon={Clock} label="History" />
       </div>
     </div>

@@ -25,6 +25,7 @@ export function AccountShell({
     pathname === "/account/brain" ||
     pathname.startsWith("/account/skills") ||
     pathname.startsWith("/account/workflows") ||
+    pathname.startsWith("/account/scheduled-posts") ||
     pathname.startsWith("/account/history");
 
   if (isProfile) {

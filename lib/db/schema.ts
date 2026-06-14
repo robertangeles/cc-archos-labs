@@ -3048,3 +3048,59 @@ export const publishLogRelations = relations(publishLog, ({ one }) => ({
     references: [socialAccount.id],
   }),
 }));
+
+// ---------------------------------------------------------------------------
+// scheduled_social_post — queue for deferred social publishes
+// ---------------------------------------------------------------------------
+
+export const scheduledSocialPost = pgTable(
+  "scheduled_social_post",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    platform: text("platform").notNull(),
+    content: text("content").notNull(),
+    scheduledFor: timestamp("scheduled_for", { withTimezone: true }).notNull(),
+    displayTimezone: text("display_timezone").notNull(),
+    status: text("status").notNull().default("pending"),
+    publishedUrl: text("published_url"),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    errorMessage: text("error_message"),
+    attempts: integer("attempts").notNull().default(0),
+    lastAttemptedAt: timestamp("last_attempted_at", { withTimezone: true }),
+    lockedBy: text("locked_by"),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("scheduled_social_post_status_scheduled_for_idx").on(
+      table.status,
+      table.scheduledFor,
+    ),
+    index("scheduled_social_post_user_id_idx").on(table.userId),
+    index("scheduled_social_post_user_status_idx").on(
+      table.userId,
+      table.status,
+    ),
+  ],
+);
+
+export type ScheduledSocialPost = typeof scheduledSocialPost.$inferSelect;
+export type NewScheduledSocialPost = typeof scheduledSocialPost.$inferInsert;
+
+export const scheduledSocialPostRelations = relations(
+  scheduledSocialPost,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [scheduledSocialPost.userId],
+      references: [users.id],
+    }),
+  }),
+);

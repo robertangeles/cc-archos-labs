@@ -297,6 +297,40 @@ top of article + end of body.
 
 - [components/blog/social-share.tsx](../components/blog/social-share.tsx) — new server component. Two variants: `top` (no border, `mt-10`) and `post-body` (top hairline + `pt-8`).
 - [components/icons/social.tsx](../components/icons/social.tsx) — added `FacebookIcon` (24×24, currentColor, matches existing `LinkedinIcon` / `XIcon` pattern).
+
+## 2026-06-14 — Scheduled Social Publishing (backlog #49)
+
+Shipped scheduled social publishing. Solo consultants can now schedule content
+from the publish modal to post at a future time. Cron fires every 60s and
+publishes via the existing `publishToSocial()` pipeline.
+
+**New files:**
+- `lib/social/cron-publisher.ts` — batch dequeue with FOR UPDATE SKIP LOCKED, user+platform serialization to prevent OAuth token refresh race, retry up to 3 attempts, stale lock recovery
+- `lib/social/schedule-emails.ts` — publish confirmation email template
+- `lib/social/cron-publisher.test.ts` — 7 unit tests
+- `app/api/cron/process-scheduled-social/route.ts` — cron endpoint (CRON_SECRET auth)
+- `app/api/social/scheduled/route.ts` — GET list + POST create
+- `app/api/social/scheduled/[id]/route.ts` — PATCH reschedule + DELETE cancel
+- `app/api/social/scheduled/[id]/retry/route.ts` — POST retry failed posts
+- `app/account/scheduled-posts/page.tsx` — scheduled posts list page
+- `components/social/scheduled-posts-list.tsx` — list component with inline reschedule, cancel, retry
+- `components/social/upcoming-posts-widget.tsx` — next 5 scheduled card
+
+**Modified files:**
+- `lib/db/schema.ts` — added `scheduledSocialPost` table + relations
+- `drizzle.config.ts` — added table to filter list
+- `vitest.config.ts` — added `@/` path alias for test imports
+- `components/social/publish-modal.tsx` — schedule toggle, datetime picker, per-platform time suggestions
+- `app/account/workspace-nav.tsx` — added "Scheduled" nav tab
+- `app/api/social/{twitter,linkedin,bluesky}/disconnect/route.ts` — warn + auto-cancel pending posts on disconnect
+
+**Key decisions:**
+- One row per platform per scheduled action (2NF, avoids partial-failure ambiguity)
+- Uniform retry for all errors (no rate-limit special casing since PlatformPublishResult has no rate_limited variant)
+- User+platform serialization in cron batch prevents OAuth token refresh race (Twitter rotates both tokens on every refresh)
+- isDuplicate() already filters by status='success' — failed publish_log entries don't block retries
+
+**Operator step:** Configure Render Cron Job: POST /api/cron/process-scheduled-social every 60s with Bearer CRON_SECRET.
 - [app/blog/[slug]/page.tsx](../app/blog/[slug]/page.tsx) — wired `<SocialShare variant="top">` between `<PostHeader>` and the hero image, plus `<SocialShare variant="post-body">` between `<PostBody>` and `<AuthorBio>`.
 
 Share URLs (constructed inline, no helper module):

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Copy, Check, Download, X } from "lucide-react";
+import { Copy, Check, Download, X, Share2 } from "lucide-react";
 
 interface ChatMessageProps {
   role: "user" | "assistant" | "system";
@@ -12,6 +12,7 @@ interface ChatMessageProps {
   model?: string | null;
   isStreaming?: boolean;
   isInterrupted?: boolean;
+  onPublish?: (content: string) => void;
 }
 
 export function ChatMessage({
@@ -21,6 +22,7 @@ export function ChatMessage({
   model: _model,
   isStreaming,
   isInterrupted,
+  onPublish,
 }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
   const [lightbox, setLightbox] = useState(false);
@@ -120,17 +122,28 @@ export function ChatMessage({
           )}
 
           {!isUser && content && !isStreaming && (
-            <button
-              onClick={handleCopy}
-              className="mt-3 flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-neutral-600 opacity-0 transition-all hover:bg-neutral-800 hover:text-neutral-400 group-hover:opacity-100"
-            >
-              {copied ? (
-                <Check className="h-3 w-3" />
-              ) : (
-                <Copy className="h-3 w-3" />
+            <div className="mt-3 flex items-center gap-1 opacity-0 transition-all group-hover:opacity-100">
+              <button
+                onClick={handleCopy}
+                className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-neutral-600 hover:bg-neutral-800 hover:text-neutral-400"
+              >
+                {copied ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <Copy className="h-3 w-3" />
+                )}
+                {copied ? "Copied" : "Copy"}
+              </button>
+              {onPublish && !isImage && (
+                <button
+                  onClick={() => onPublish(content)}
+                  className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-neutral-600 hover:bg-neutral-800 hover:text-neutral-400"
+                >
+                  <Share2 className="h-3 w-3" />
+                  Publish
+                </button>
               )}
-              {copied ? "Copied" : "Copy"}
-            </button>
+            </div>
           )}
         </div>
       </div>

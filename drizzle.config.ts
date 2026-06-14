@@ -66,5 +66,6 @@ export default {
     "conversation_share",
     "social_account",
     "publish_log",
+    "scheduled_social_post",
   ],
 } satisfies Config;
