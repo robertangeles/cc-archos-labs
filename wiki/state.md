@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-14T22:33:58.730Z
+generated: 2026-06-14T23:10:52.923Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -77,7 +77,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-06-03 |
 | `/tools/cdmp-practice/history/[sessionId]` | [app/tools/cdmp-practice/history/[sessionId]/page.tsx](../app/tools/cdmp-practice/history/[sessionId]/page.tsx) | 2026-06-03 |
 
-## API endpoints (123)
+## API endpoints (145)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -139,7 +139,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/auth/password-reset/confirm` | [app/api/auth/password-reset/confirm/route.ts](../app/api/auth/password-reset/confirm/route.ts) | 2026-05-25 |
 | `/api/auth/password-reset/request` | [app/api/auth/password-reset/request/route.ts](../app/api/auth/password-reset/request/route.ts) | 2026-05-26 |
 | `/api/auth/profile` | [app/api/auth/profile/route.ts](../app/api/auth/profile/route.ts) | 2026-06-03 |
-| `/api/auth/register` | [app/api/auth/register/route.ts](../app/api/auth/register/route.ts) | 2026-06-03 |
+| `/api/auth/register` | [app/api/auth/register/route.ts](../app/api/auth/register/route.ts) | 2026-06-15 |
 | `/api/auth/verify-email` | [app/api/auth/verify-email/route.ts](../app/api/auth/verify-email/route.ts) | 2026-06-03 |
 | `/api/booking/[slug]/availability` | [app/api/booking/[slug]/availability/route.ts](../app/api/booking/[slug]/availability/route.ts) | 2026-05-17 |
 | `/api/booking/[slug]/create` | [app/api/booking/[slug]/create/route.ts](../app/api/booking/[slug]/create/route.ts) | 2026-06-12 |
@@ -163,6 +163,12 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/chat/conversations/search` | [app/api/chat/conversations/search/route.ts](../app/api/chat/conversations/search/route.ts) | 2026-06-08 |
 | `/api/chat/image` | [app/api/chat/image/route.ts](../app/api/chat/image/route.ts) | 2026-06-09 |
 | `/api/chat/slash-command` | [app/api/chat/slash-command/route.ts](../app/api/chat/slash-command/route.ts) | 2026-06-08 |
+| `/api/clients` | [app/api/clients/route.ts](../app/api/clients/route.ts) | unknown |
+| `/api/clients/[id]` | [app/api/clients/[id]/route.ts](../app/api/clients/[id]/route.ts) | unknown |
+| `/api/clients/[id]/contacts` | [app/api/clients/[id]/contacts/route.ts](../app/api/clients/[id]/contacts/route.ts) | unknown |
+| `/api/clients/[id]/contacts/[contactId]` | [app/api/clients/[id]/contacts/[contactId]/route.ts](../app/api/clients/[id]/contacts/[contactId]/route.ts) | unknown |
+| `/api/clients/[id]/contracts` | [app/api/clients/[id]/contracts/route.ts](../app/api/clients/[id]/contracts/route.ts) | unknown |
+| `/api/clients/[id]/contracts/[contractId]` | [app/api/clients/[id]/contracts/[contractId]/route.ts](../app/api/clients/[id]/contracts/[contractId]/route.ts) | unknown |
 | `/api/contact` | [app/api/contact/route.ts](../app/api/contact/route.ts) | 2026-05-15 |
 | `/api/cron/process-scheduled` | [app/api/cron/process-scheduled/route.ts](../app/api/cron/process-scheduled/route.ts) | 2026-06-12 |
 | `/api/cron/process-scheduled-posts` | [app/api/cron/process-scheduled-posts/route.ts](../app/api/cron/process-scheduled-posts/route.ts) | 2026-05-20 |
@@ -175,6 +181,22 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/diagnostic/share/[id]/revoke` | [app/api/diagnostic/share/[id]/revoke/route.ts](../app/api/diagnostic/share/[id]/revoke/route.ts) | 2026-06-03 |
 | `/api/events` | [app/api/events/route.ts](../app/api/events/route.ts) | 2026-05-18 |
 | `/api/health/cron` | [app/api/health/cron/route.ts](../app/api/health/cron/route.ts) | 2026-05-17 |
+| `/api/organisations` | [app/api/organisations/route.ts](../app/api/organisations/route.ts) | unknown |
+| `/api/organisations/[id]` | [app/api/organisations/[id]/route.ts](../app/api/organisations/[id]/route.ts) | unknown |
+| `/api/organisations/[id]/join` | [app/api/organisations/[id]/join/route.ts](../app/api/organisations/[id]/join/route.ts) | unknown |
+| `/api/organisations/[id]/members/[memberId]` | [app/api/organisations/[id]/members/[memberId]/route.ts](../app/api/organisations/[id]/members/[memberId]/route.ts) | unknown |
+| `/api/organisations/[id]/regenerate-key` | [app/api/organisations/[id]/regenerate-key/route.ts](../app/api/organisations/[id]/regenerate-key/route.ts) | unknown |
+| `/api/organisations/switch` | [app/api/organisations/switch/route.ts](../app/api/organisations/switch/route.ts) | unknown |
+| `/api/projects` | [app/api/projects/route.ts](../app/api/projects/route.ts) | unknown |
+| `/api/projects/[id]` | [app/api/projects/[id]/route.ts](../app/api/projects/[id]/route.ts) | unknown |
+| `/api/projects/[id]/activity` | [app/api/projects/[id]/activity/route.ts](../app/api/projects/[id]/activity/route.ts) | unknown |
+| `/api/projects/[id]/cards` | [app/api/projects/[id]/cards/route.ts](../app/api/projects/[id]/cards/route.ts) | unknown |
+| `/api/projects/[id]/cards/[cardId]` | [app/api/projects/[id]/cards/[cardId]/route.ts](../app/api/projects/[id]/cards/[cardId]/route.ts) | unknown |
+| `/api/projects/[id]/cards/[cardId]/move` | [app/api/projects/[id]/cards/[cardId]/move/route.ts](../app/api/projects/[id]/cards/[cardId]/move/route.ts) | unknown |
+| `/api/projects/[id]/columns` | [app/api/projects/[id]/columns/route.ts](../app/api/projects/[id]/columns/route.ts) | unknown |
+| `/api/projects/[id]/columns/[colId]` | [app/api/projects/[id]/columns/[colId]/route.ts](../app/api/projects/[id]/columns/[colId]/route.ts) | unknown |
+| `/api/projects/[id]/members` | [app/api/projects/[id]/members/route.ts](../app/api/projects/[id]/members/route.ts) | unknown |
+| `/api/projects/[id]/members/[memberId]` | [app/api/projects/[id]/members/[memberId]/route.ts](../app/api/projects/[id]/members/[memberId]/route.ts) | unknown |
 | `/api/rules` | [app/api/rules/route.ts](../app/api/rules/route.ts) | 2026-06-08 |
 | `/api/rules/[id]` | [app/api/rules/[id]/route.ts](../app/api/rules/[id]/route.ts) | 2026-06-08 |
 | `/api/rules/[id]/toggle` | [app/api/rules/[id]/toggle/route.ts](../app/api/rules/[id]/toggle/route.ts) | 2026-06-08 |
