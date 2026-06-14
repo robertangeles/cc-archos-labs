@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Header } from "../components/layout/header";
 import { Footer } from "../components/layout/footer";
+import { SearchProvider } from "../components/search/search-provider";
 import { getSignedInLead } from "../lib/lead-display";
 import {
   buildPageMetadata,
@@ -96,13 +97,15 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
-        <Header
-          lead={
-            signedInLead ? { firstName: signedInLead.firstName } : null
-          }
-        />
-        <div className="flex-1 flex flex-col">{children}</div>
-        <Footer />
+        <SearchProvider>
+          <Header
+            lead={
+              signedInLead ? { firstName: signedInLead.firstName } : null
+            }
+          />
+          <div className="flex-1 flex flex-col">{children}</div>
+          <Footer />
+        </SearchProvider>
       </body>
     </html>
   );

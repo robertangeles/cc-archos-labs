@@ -2,11 +2,42 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-06-12
+updated: 2026-06-14
 related:
 ---
 
 Append-only log of sessions. Newest entry at the top.
+
+## 2026-06-14 — Site-wide search (#36)
+
+Built backlog item #36: `/search` page + Cmd-K modal.
+
+**New files (7):**
+- `app/api/search/route.ts` — `GET /api/search?q=...` with embedding + ILIKE fallback, rate limiting
+- `lib/posts/search-fallback.ts` — ILIKE text search fallback for embedding API outages
+- `hooks/use-search.ts` — debounced client search hook (350ms, AbortController)
+- `components/search/search-result-row.tsx` — shared result component (compact + full modes)
+- `components/search/search-dialog.tsx` — Cmd-K modal with keyboard nav (arrows, Enter, Escape)
+- `components/search/search-provider.tsx` — global Cmd-K/Ctrl-K listener, mounted in root layout
+- `app/search/page.tsx` + `app/search/layout.tsx` — shareable search page with URL sync
+
+**Modified:** `app/layout.tsx` — wrapped content with `<SearchProvider>`.
+
+**Verified:** tsc clean, 886 tests pass, API returns correct results via curl, visual test on desktop + mobile (390px) via browse.
+
+## 2026-06-14 — Backlog audit and reconciliation
+
+Full audit of shipped state vs backlog. Found the backlog was 3+ weeks stale (last updated 2026-05-21) and missing entire feature systems built between 2026-05-27 and 2026-06-14.
+
+**Backlog items marked shipped:** #9 (consulting page), #12 (SEO/meta), #13 (privacy/terms — DB-managed via CMS catch-all).
+
+**Unbacklogged systems documented:** About page, CMS pages system, user auth (multi-strategy), admin panel, chat workspace, skill execution platform, workflow builder, rules engine, brain/memory system, account workspace, CDMP practice exam, knowledge base, user personalisation, llms.txt.
+
+**Files updated:**
+- `wiki/backlog/backlog.md` — Phase 1 marked shipped, unbacklogged systems section added, duplicate "What's deliberately not on this list" removed, stale "First build priority" removed.
+- `wiki/backlog/shipped.md` — Full rewrite catching up 3 weeks of shipping: Phase 1, Phase 1.E follow-ups, Phase 3 items, Phase 4, plus all unbacklogged systems.
+
+**Remaining open items:** #35 (newsletter), #36 (search/Cmd-K), #40 (embeddings model admin), #41 (Plausible), #44 (apex 301), #45 (domain non-renewal reminders), #46 (needs_review content sweep), #50 (social analytics), Phase D deferrals, housekeeping items.
 
 ## 2026-06-12 — Phase 1.E follow-ups (backlog items 31–34)
 

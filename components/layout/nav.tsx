@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { LeadSignOutButton } from "./lead-sign-out-button";
+import { useOpenSearch } from "../search/search-provider";
 
 const TOPLEVEL = [
   { href: "/", label: "Home" },
@@ -187,6 +188,33 @@ function ToolsMenu() {
   );
 }
 
+function SearchButton() {
+  const openSearch = useOpenSearch();
+  if (!openSearch) return null;
+  return (
+    <button
+      type="button"
+      onClick={openSearch}
+      aria-label="Search"
+      className="text-ink-subtle transition-colors duration-150 hover:text-ink"
+    >
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        strokeWidth={2}
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+        />
+      </svg>
+    </button>
+  );
+}
+
 export function Nav({ lead }: { lead: NavLeadProps | null }) {
   return (
     <nav className="flex items-center gap-x-5 text-sm text-ink-subtle sm:gap-x-7">
@@ -200,6 +228,7 @@ export function Nav({ lead }: { lead: NavLeadProps | null }) {
         </Link>
       ))}
       <ToolsMenu />
+      <SearchButton />
       <AuthControl lead={lead} />
     </nav>
   );

@@ -2,7 +2,7 @@
 title: Archos Labs HQ — Build Backlog
 category: synthesis
 created: 2026-05-07
-updated: 2026-05-21
+updated: 2026-06-14
 related: [[index]], [[log]], [[state]], [[shipped]], [[2026-05-08-phase2-ceo-review]], [[2026-05-20-translation-layer-public-render]], [[2026-05-20-phase-c-cutover]]
 ---
 
@@ -38,17 +38,15 @@ Prioritised build list for the Archos Labs HQ at archoslabs.xyz. Ordered by what
 
 ---
 
-## Phase 1 — Revenue Now (consulting pipeline)
+## Phase 1 — Revenue Now (consulting pipeline) — ✅ SHIPPED
 
-The pieces that turn a stranger into a paid consulting conversation. Home page already exists from Phase 0; this phase deepens conversion.
+The pieces that turn a stranger into a paid consulting conversation. All items shipped.
 
-9. **Consulting page (`/consulting`)** — Three service lines (AI Readiness Assessment, Data Architecture, AI Agent Development). Day rate ($1,100 AUD) and fixed price ($3,000 AUD AI Readiness Assessment) shown plainly. How to engage. Verify: a visitor can identify the right service line and the next step without scrolling twice.
-10. **Contact endpoint (`POST /api/contact`)** — name, email, organisation, message. Server-side validation, rate-limited (100/IP/hour per CLAUDE.md), secure-by-default. No DB yet — initial implementation can email via Resend or write to a server log. Verify: integration test for happy path + 400 on bad input + 429 on rate-limit; a real submission lands somewhere Rob will see it.
-11. **Contact form UI** — embedded on Home + Consulting. Plain-language errors, intentional loading state, success state that doesn't feel like a dead end. Verify: E2E test submits the form successfully on mobile width.
-12. **Basic SEO + meta** — title, description, Open Graph image, robots, sitemap. archoslabs.xyz must look credible when shared. Verify: `view-source` shows correct meta on `/` and `/consulting`; OG renders correctly in a Slack/LinkedIn preview test.
-13. **Privacy + terms pages** — short, plain-language, honest. Footer links. Required before collecting any contact data per CLAUDE.md privacy stance. Verify: pages exist, footer linked, no legal placeholders.
-
-**Phase 1 ships when:** a stranger can find archoslabs.xyz, understand the offer, and book a consulting conversation in under 2 minutes.
+9. **Consulting page (`/consulting`)** — ✅ shipped 2026-05-27. SMB rewrite with "I" voice, ServiceCard components, Objection FAQ, StickyMobileCta. Three service lines, how to engage.
+10. **Contact endpoint (`POST /api/contact`)** — ✅ shipped 2026-05-15. Server-side validation, rate-limited.
+11. **Contact form UI** — ✅ shipped 2026-05-22. Embedded on Home + Consulting + Contact page at `/contact`.
+12. **Basic SEO + meta** — ✅ shipped. OG image generators (`app/opengraph-image.tsx`, per-page variants), `sitemap.xml` route, meta tags on all pages.
+13. **Privacy + terms pages** — ✅ shipped. Served as DB-managed pages via `app/[...slug]` catch-all route + CMS pages admin. Footer linked.
 
 ---
 
@@ -118,7 +116,6 @@ The pieces that turn a stranger into a paid consulting conversation. Home page a
 
 These are small, standalone, can be picked up in spare minutes:
 
-- **`/about` photo decision** — `/about` page still uses the original `/images/about-me.png` (1856×2304 portrait) while the Translation Layer Written By card uses `/images/ran-square.png` (737×739 square) which crops cleanly to the circular avatar. Decide whether to swap `/about` to the square too (one-line code change in `app/about/page.tsx` const `PHOTO_SRC`), keep both, or replace the portrait file. Currently the two photos are different headshots — readers visiting both surfaces see two different Robs.
 - **Tense update on `wiki/decisions/2026-05-19-translation-layer-migration.md`** — reads as future-tense plan even though Phases A1, A4, B, C are all shipped. Either rewrite to past-tense + cross-link to the Phase B / Phase C decision docs, or leave as a pre-launch snapshot. Cheap either way; record the choice rather than letting it bit-rot silently.
 
 ---
@@ -177,7 +174,7 @@ Per the CEO + design + eng plan review locked 2026-05-12, the home page's `mailt
 
 35. **Newsletter capture + Resend integration (D1)** — signup card at the 60% scroll mark on `/blog/[slug]` + footer variant, `/api/newsletter/subscribe` + `/api/newsletter/confirm`, double-opt-in flow via Resend, rate-limit 5/min/IP, idempotent for already-subscribed addresses, admin list at `/admin/newsletter`. `newsletter_signup` schema already shipped in PR #61. Verify: real signup arrives in inbox; confirmation link consume idempotent; admin list paginates.
 
-36. **`/search` page + Cmd-K modal (D2)** — semantic search over the 1024-dim post embeddings via HNSW ANN, FTS fallback on provider failure. `/search?q=...` shareable URL surface + `Cmd-K` / `Ctrl-K` modal that reuses the same result component. Mobile: slide-up sheet. Empty-state fallback: "No matches for '[query]'. Try [3 popular categories as chips]." Verify: typing returns debounced ranked results in <200ms p99; Cmd-K opens from any page; keyboard nav works.
+36. **`/search` page + Cmd-K modal (D2)** — ✅ **SHIPPED 2026-06-14.** Semantic search over 1024-dim post embeddings via HNSW ANN. `GET /api/search?q=...` endpoint with rate limiting + ILIKE fallback on embedding failure. `/search?q=...` shareable URL surface with full result rows (images, excerpts, categories). `Cmd-K` / `Ctrl-K` global modal with compact results, keyboard navigation (arrows + Enter + Escape), mobile bottom sheet. `SearchProvider` mounted in root layout. Files: `app/api/search/route.ts`, `lib/posts/search-fallback.ts`, `hooks/use-search.ts`, `components/search/{search-result-row,search-dialog,search-provider}.tsx`, `app/search/{page,layout}.tsx`.
 
 37. **Admin `needs_review` queue UI** — ✅ **SHIPPED 2026-05-20** (Slice A backend PR #72, Slice B UI in feature/posts-admin-ui). Filter pill on `/admin/blog/posts` surfaces the 120-post queue; per-post "Mark reviewed" button in the editor side panel flips `needs_review=false` and writes an audit revision. See [[2026-05-20-posts-admin-phase-d-backend]] + [[2026-05-20-posts-admin-phase-d-ui]].
 
@@ -207,7 +204,7 @@ These came up in the Slice A planning but were deliberately excluded from the ca
 
 - **Review truncated alt text rows (125-char cap mid-sentence cuts).** The backfill hard-truncates at 125 chars per CHECK constraint design — some WP alts were longer and got cut mid-thought. First known candidate: `ai-infrastructure-strategy` (alt currently ends with "...symbolizing AI strategy built"). Query: `SELECT slug, og_image_alt FROM post WHERE length(og_image_alt) = 125 ORDER BY slug;` to find all truncations. Either edit each manually in the admin editor or relax the cap (CHECK constraint can be dropped + a higher limit re-applied — needs migration 0018 or similar).
 
-39. **RSS `/blog/feed.xml` route** — for readers who follow via RSS reader + LinkedIn newsletter sync. Last 20 listed posts, full excerpt + link back. Verify: validates at validator.w3.org/feed; LinkedIn newsletter import succeeds.
+39. **RSS `/blog/feed.xml` route** — ✅ **SHIPPED.** Route live at `app/blog/feed.xml/route.ts`.
 
 ### Phase 3 polish (smaller items)
 
@@ -217,9 +214,9 @@ These came up in the Slice A planning but were deliberately excluded from the ca
 
 ### Phase 3 operational ops (your move, no code)
 
-42. **Submit `https://archoslabs.xyz/sitemap.xml` to Google Search Console** — archoslabs.xyz property → Sitemaps → submit URL. Verify: GSC reports all 257 /blog-prefixed URLs discovered within 7 days.
+42. **Submit `https://archoslabs.xyz/sitemap.xml` to Google Search Console** — ✅ **SHIPPED 2026-06-12.** Submitted by Rob manually.
 
-43. **Submit same URL to Bing Webmaster Tools** — archoslabs.xyz property → Sitemaps → submit. Bing → Copilot → ChatGPT pipeline means Bing indexing is indirect AIEO surface. Verify: Bing dashboard reports sitemap processed.
+43. **Submit same URL to Bing Webmaster Tools** — ✅ **SHIPPED 2026-06-12.** Submitted by Rob manually.
 
 44. **Apex 301 from `robertangeles.com/*` → `https://archoslabs.xyz/blog`** — in the domain registrar's forwarding settings. Pick **Permanent (301)**, not 302. Single-line forward, no per-slug redirect map needed. Verify: `curl -sI https://robertangeles.com/some-old-path` returns HTTP 301 + correct Location header.
 
@@ -229,10 +226,7 @@ These came up in the Slice A planning but were deliberately excluded from the ca
 
 48. **IndexNow push-indexing client — ✅ SHIPPED 2026-05-21.** `lib/indexnow.ts` + `app/indexnow.txt/route.ts` + write-path wiring across posts admin, pages admin, and scheduled-publisher cron. Submits to `api.indexnow.org` (Bing/Yandex/Naver/Seznam/Yep/Amazon); Google doesn't participate. Fire-and-forget with 5-min same-URL debounce. See [[2026-05-21-indexnow]] for the full record. Operator step: set `INDEXNOW_KEY` in Render env.
 
-47. **Per-slug 301 redirect mechanism** — the WP migration produced one malformed slug (`ai-workforce-strategy-without-people-plansai-workforce-strategy-without-people-plans`, fixed in DB 2026-05-21). The old URL had been in the live sitemap before the fix, so external indexers may have it cached. There is currently NO in-codebase redirect mechanism — no `middleware.ts`, no `next.config.ts` `redirects()` block, no `lib/redirects/`. Two acceptable shapes:
-    - **Static `redirects()` in `next.config.ts`** — fine for the one entry today, simplest possible thing.
-    - **DB-backed `redirect` table read by middleware** — right shape if/when more slug renames happen (e.g. operator-driven slug edits in the admin). Schema: `from_path text PK, to_path text NOT NULL, status int default 301, created_at timestamptz`. Middleware reads cache, falls through to the route handler.
-    Verify: `curl -sI https://archoslabs.xyz/blog/ai-workforce-strategy-without-people-plansai-workforce-strategy-without-people-plans` returns `301` + correct `Location` header. Pick whichever shape fits the size of the problem when it lands (start static; promote to DB-backed only when the second rename happens).
+47. **Per-slug 301 redirect mechanism** — ✅ **SHIPPED 2026-06-12.** Static `redirects()` in `next.config.ts` for the one known malformed slug. Promote to DB-backed only when a second rename happens.
 
 ### Phase 3 content sweep (only Rob can do)
 
@@ -255,35 +249,63 @@ These came up in the Slice A planning but were deliberately excluded from the ca
 
 ---
 
+## Shipped but previously unbacklogged (added 2026-06-14)
+
+These systems were built between 2026-05-27 and 2026-06-14 without backlog entries. Recorded here for completeness; canonical ship state is always [[state]].
+
+### About page — ✅ SHIPPED 2026-05-27
+`/about` with PersonCard, PhilosophyBlock, WayOfWorkingSteps components. OG image variant.
+
+### CMS Pages system — ✅ SHIPPED
+Full DB-backed page management: `page`, `pageBlock`, `pageRevision` tables. Admin CRUD at `/admin/(authed)/pages` with blocks editor, revisions, soft-delete + restore. Public render via `app/[...slug]` catch-all. Privacy, terms, and other static pages served from DB.
+
+### User auth system — ✅ SHIPPED
+Multi-strategy auth: magic links (Resend), Google OAuth, email/password with password reset. Email change with confirmation flow. Session-based auth via `userSession` table. Routes at `/api/auth/*`, UI at `/(auth)/*`.
+
+### Admin panel — ✅ SHIPPED
+Full admin panel at `/admin/(authed)/*`: users management (roles, active toggle), site settings, integrations (secrets with AES-GCM encryption, audit log, master key rotation, provider test endpoints), knowledge base management, blog posts editor, pages editor, bookings management, prompts editor, CDMP config, auth settings. Login at `/admin/login`.
+
+### Chat workspace — ✅ SHIPPED 2026-06-08–10
+Conversational AI interface: `conversation`, `message`, `conversationShare` tables. CRUD + search at `/api/chat/*`. Image support. Slash commands. Share via token at `/share/chat/[token]`. History at `/account/history`.
+
+### Skill execution platform — ✅ SHIPPED 2026-06-07–08
+User-defined skills with versioning: `skill`, `skillVersion`, `skillInput`, `skillOutput`, `skillExecution` tables. CRUD + execute at `/api/skills/*`. UI at `/account/skills/*` (list, create, edit).
+
+### Workflow builder — ✅ SHIPPED 2026-06-07–08
+Multi-step workflow automation: `workflow`, `workflowStep`, `workflowField`, `workflowExecutionRun`, `workflowExecutionLog`, `workflowExecToken`, `workflowPendingApproval` tables. CRUD + execute + streaming at `/api/workflows/*`. UI at `/account/workflows/*` (list, create, edit). Duplicate support.
+
+### Rules engine — ✅ SHIPPED
+User-defined automation rules: `userRule` table. CRUD + toggle at `/api/rules/*`.
+
+### Brain / memory system — ✅ SHIPPED 2026-06-10
+Per-user brain provisioning: `userBrain` table. Status + provision + memories at `/api/brain/*`. UI at `/account/brain`.
+
+### Account workspace — ✅ SHIPPED 2026-06-11
+Unified workspace at `/account/workspace`. Sub-pages: brain, history, personalisation, scheduled posts, social accounts, skills, workflows.
+
+### CDMP Practice Exam — ✅ SHIPPED 2026-06-03
+Free practice exams for CDMP certification at `/tools/cdmp-practice`. `cdmpExamSession`, `cdmpExamAnswer`, `cdmpQuestionFlag` tables. History view at `/tools/cdmp-practice/history/[sessionId]`. API at `/api/cdmp/*` (start, answer, complete, flag, history, results). Admin config at `/admin/(authed)/cdmp`.
+
+### User personalisation — ✅ SHIPPED 2026-06-08
+Personalisation settings at `/account/personalisation`.
+
+### Knowledge base — ✅ SHIPPED
+Document upload + chunking: `knowledgeDocument`, `knowledgeChunk` tables. Upload + CRUD at `/api/admin/knowledge/*`. Admin UI at `/admin/(authed)/knowledge`.
+
+### llms.txt — ✅ SHIPPED
+LLM-friendly site description at `/llms.txt` and `/llms-full.txt`.
+
+---
+
 ## What's deliberately not on this list
 
-- Admin panel — deferred per [[2026-05-08-admin-deferred]] until Phase 2 ships and there's content to manage.
 - Internationalisation — single-language launch.
-- Custom CMS — content lives in code or markdown until volume demands otherwise.
-- Multiple tools — only the AI Readiness Assessment is in scope at Phase 2. The platform is structured for more, not built for more.
 - Multi-Claude-call architecture — the spec's three concurrent calls collapsed to one structured-JSON call (cost, latency, coherence).
 - Sector benchmark bars — fake numeric data on a credibility-driven tool. Replace with verdict statement only at MVP. Earn back when there are 100+ real submissions to derive actual benchmarks.
 - Supabase — replaced with Render Postgres + Drizzle + Resend magic-link per CLAUDE.md standards (see [[2026-05-08-render-postgres-over-neon]] for the later Neon → Render Postgres swap).
 - Separate staging environment — single-DB posture per [[deployment-architecture]]; revisit only when a second contributor lands or a destructive schema change warrants rehearsal.
 - TTS / audio versions of posts — bling without demand signal; revisit when post analytics suggest audio-first readers exist.
 - "Mentioned in" cross-post backlinks — useful for a 200-post library but cosmetic until the search + admin queue are in.
-
----
-
-
-
-- Admin panel — deferred per [[2026-05-08-admin-deferred]] until Phase 2 ships and there's content to manage.
-- Internationalisation — single-language launch.
-- Custom CMS — content lives in code or markdown until volume demands otherwise.
-- Multiple tools — only the AI Readiness Assessment is in scope at Phase 2. The platform is structured for more, not built for more.
-- Multi-Claude-call architecture — the spec's three concurrent calls collapsed to one structured-JSON call (cost, latency, coherence).
-- Sector benchmark bars — fake numeric data on a credibility-driven tool. Replace with verdict statement only at MVP. Earn back when there are 100+ real submissions to derive actual benchmarks.
-- Supabase — replaced with Render Postgres + Drizzle + Resend magic-link per CLAUDE.md standards (see [[2026-05-08-render-postgres-over-neon]] for the later Neon → Render Postgres swap).
-
----
-
-## First build priority
-
-**Phase 0 items 1–4 in order:** Brand foundation → Layout shell → Home page → Render deploy + custom domain.
-
-This is the critical path to a sendable URL — the artifact Rob needs in a consultant's hands within 11 days. CI, tests, and pre-commit hooks (items 5–7) come immediately after, hardening the live site rather than gating its first deploy. Wiki scripts (item 8) are parallelisable any time.
+- Comments / discussion — not a planned surface for this brand.
+- A/B title testing — premature for current readership scale.
+- LinkedIn auto-cross-post on publish — Modelling Room ≠ Translation Layer per [[translation-layer]]; deliberately separate channels.
