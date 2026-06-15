@@ -14,7 +14,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; cardId: string }> },
 ) {
   try {
-    const { ctx } = await requireOrgContext(request, { mutation: true });
+    const { auth, ctx } = await requireOrgContext(request, { mutation: true });
     const { cardId } = await params;
 
     const body = await request.json().catch(() => null);
@@ -31,6 +31,7 @@ export async function PATCH(
       cardId,
       parsed.data.toColumnId,
       parsed.data.toSortOrder,
+      auth.user.id,
     );
     if (!card) {
       // Card not in org, or target column not in the card's project.

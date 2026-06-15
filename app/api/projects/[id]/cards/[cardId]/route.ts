@@ -33,7 +33,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; cardId: string }> },
 ) {
   try {
-    const { ctx } = await requireOrgContext(request, { mutation: true });
+    const { auth, ctx } = await requireOrgContext(request, { mutation: true });
     const { cardId } = await params;
 
     const body = await request.json().catch(() => null);
@@ -45,7 +45,12 @@ export async function PATCH(
       );
     }
 
-    const card = await kanbanService.updateCard(ctx.orgId, cardId, parsed.data);
+    const card = await kanbanService.updateCard(
+      ctx.orgId,
+      cardId,
+      parsed.data,
+      auth.user.id,
+    );
     if (!card) {
       return Response.json({ ok: false, error: "Card not found" }, { status: 404 });
     }
@@ -63,10 +68,14 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; cardId: string }> },
 ) {
   try {
-    const { ctx } = await requireOrgContext(request, { mutation: true });
+    const { auth, ctx } = await requireOrgContext(request, { mutation: true });
     const { cardId } = await params;
 
-    const removed = await kanbanService.deleteCard(ctx.orgId, cardId);
+    const removed = await kanbanService.deleteCard(
+      ctx.orgId,
+      cardId,
+      auth.user.id,
+    );
     if (!removed) {
       return Response.json({ ok: false, error: "Card not found" }, { status: 404 });
     }

@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-15T05:07:51.706Z
+generated: 2026-06-15T05:28:52.150Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -81,7 +81,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-06-03 |
 | `/tools/cdmp-practice/history/[sessionId]` | [app/tools/cdmp-practice/history/[sessionId]/page.tsx](../app/tools/cdmp-practice/history/[sessionId]/page.tsx) | 2026-06-03 |
 
-## API endpoints (145)
+## API endpoints (152)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -196,9 +196,16 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/projects/[id]/activity` | [app/api/projects/[id]/activity/route.ts](../app/api/projects/[id]/activity/route.ts) | 2026-06-15 |
 | `/api/projects/[id]/cards` | [app/api/projects/[id]/cards/route.ts](../app/api/projects/[id]/cards/route.ts) | 2026-06-15 |
 | `/api/projects/[id]/cards/[cardId]` | [app/api/projects/[id]/cards/[cardId]/route.ts](../app/api/projects/[id]/cards/[cardId]/route.ts) | 2026-06-15 |
+| `/api/projects/[id]/cards/[cardId]/activity` | [app/api/projects/[id]/cards/[cardId]/activity/route.ts](../app/api/projects/[id]/cards/[cardId]/activity/route.ts) | unknown |
+| `/api/projects/[id]/cards/[cardId]/comments` | [app/api/projects/[id]/cards/[cardId]/comments/route.ts](../app/api/projects/[id]/cards/[cardId]/comments/route.ts) | unknown |
+| `/api/projects/[id]/cards/[cardId]/comments/[commentId]` | [app/api/projects/[id]/cards/[cardId]/comments/[commentId]/route.ts](../app/api/projects/[id]/cards/[cardId]/comments/[commentId]/route.ts) | unknown |
+| `/api/projects/[id]/cards/[cardId]/labels` | [app/api/projects/[id]/cards/[cardId]/labels/route.ts](../app/api/projects/[id]/cards/[cardId]/labels/route.ts) | unknown |
+| `/api/projects/[id]/cards/[cardId]/labels/[labelId]` | [app/api/projects/[id]/cards/[cardId]/labels/[labelId]/route.ts](../app/api/projects/[id]/cards/[cardId]/labels/[labelId]/route.ts) | unknown |
 | `/api/projects/[id]/cards/[cardId]/move` | [app/api/projects/[id]/cards/[cardId]/move/route.ts](../app/api/projects/[id]/cards/[cardId]/move/route.ts) | 2026-06-15 |
 | `/api/projects/[id]/columns` | [app/api/projects/[id]/columns/route.ts](../app/api/projects/[id]/columns/route.ts) | 2026-06-15 |
 | `/api/projects/[id]/columns/[colId]` | [app/api/projects/[id]/columns/[colId]/route.ts](../app/api/projects/[id]/columns/[colId]/route.ts) | 2026-06-15 |
+| `/api/projects/[id]/labels` | [app/api/projects/[id]/labels/route.ts](../app/api/projects/[id]/labels/route.ts) | unknown |
+| `/api/projects/[id]/labels/[labelId]` | [app/api/projects/[id]/labels/[labelId]/route.ts](../app/api/projects/[id]/labels/[labelId]/route.ts) | unknown |
 | `/api/projects/[id]/members` | [app/api/projects/[id]/members/route.ts](../app/api/projects/[id]/members/route.ts) | 2026-06-15 |
 | `/api/projects/[id]/members/[memberId]` | [app/api/projects/[id]/members/[memberId]/route.ts](../app/api/projects/[id]/members/[memberId]/route.ts) | 2026-06-15 |
 | `/api/rules` | [app/api/rules/route.ts](../app/api/rules/route.ts) | 2026-06-08 |

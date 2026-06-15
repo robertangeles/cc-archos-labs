@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb, type DB } from "../db";
 import {
   project,
@@ -7,7 +7,11 @@ import {
   kanbanCard,
   cardLabel,
   cardLabelAssignment,
+  kanbanCardComment,
+  projectActivity,
+  users,
 } from "../db/schema";
+import { logActivity } from "../projects/service";
 import type {
   CreateColumnInput,
   UpdateColumnInput,
@@ -225,12 +229,65 @@ export async function getBoard(orgId: string, projectId: string, dbArg?: DB) {
     .where(eq(kanbanCard.projectId, projectId))
     .orderBy(asc(kanbanCard.sortOrder), asc(kanbanCard.createdAt));
 
-  // Bucket cards by columnId in one pass, preserving the sorted order above.
-  const cardsByColumn = new Map<string, typeof cards>();
+  // Enrich each card with its labels + a comment count, N+1-safe: two bounded
+  // queries over the project's cards, then assembled in memory. When the
+  // project has no cards we skip both (an empty inArray is invalid SQL).
+  const cardIds = cards.map((c) => c.id);
+
+  const labelsByCard = new Map<
+    string,
+    { id: string; name: string; color: string | null }[]
+  >();
+  const commentCountByCard = new Map<string, number>();
+
+  if (cardIds.length > 0) {
+    const labelRows = await db
+      .select({
+        cardId: cardLabelAssignment.cardId,
+        id: cardLabel.id,
+        name: cardLabel.name,
+        color: cardLabel.color,
+      })
+      .from(cardLabelAssignment)
+      .innerJoin(cardLabel, eq(cardLabelAssignment.labelId, cardLabel.id))
+      .where(inArray(cardLabelAssignment.cardId, cardIds))
+      .orderBy(asc(cardLabel.name));
+    for (const lr of labelRows) {
+      const bucket = labelsByCard.get(lr.cardId);
+      const label = { id: lr.id, name: lr.name, color: lr.color };
+      if (bucket) bucket.push(label);
+      else labelsByCard.set(lr.cardId, [label]);
+    }
+
+    const countRows = await db
+      .select({
+        cardId: kanbanCardComment.cardId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(kanbanCardComment)
+      .where(inArray(kanbanCardComment.cardId, cardIds))
+      .groupBy(kanbanCardComment.cardId);
+    for (const cr of countRows) {
+      commentCountByCard.set(cr.cardId, Number(cr.count));
+    }
+  }
+
+  // Bucket cards by columnId in one pass, preserving the sorted order above,
+  // attaching the additive labels + commentCount fields.
+  type EnrichedCard = (typeof cards)[number] & {
+    labels: { id: string; name: string; color: string | null }[];
+    commentCount: number;
+  };
+  const cardsByColumn = new Map<string, EnrichedCard[]>();
   for (const card of cards) {
+    const enriched: EnrichedCard = {
+      ...card,
+      labels: labelsByCard.get(card.id) ?? [],
+      commentCount: commentCountByCard.get(card.id) ?? 0,
+    };
     const bucket = cardsByColumn.get(card.columnId);
-    if (bucket) bucket.push(card);
-    else cardsByColumn.set(card.columnId, [card]);
+    if (bucket) bucket.push(enriched);
+    else cardsByColumn.set(card.columnId, [enriched]);
   }
 
   return columns.map((column) => ({
@@ -250,6 +307,7 @@ export async function createCard(
   projectId: string,
   columnId: string,
   input: CreateCardInput,
+  userId: string | null = null,
   dbArg?: DB,
 ) {
   const db = dbArg ?? getDb();
@@ -298,6 +356,19 @@ export async function createCard(
       createdAt: kanbanCard.createdAt,
       updatedAt: kanbanCard.updatedAt,
     });
+
+  // Per-card history: record the creation against the project's activity feed.
+  await logActivity(
+    orgId,
+    projectId,
+    userId,
+    "created card",
+    "card",
+    row.id,
+    row.title,
+    db,
+  );
+
   return row;
 }
 
@@ -334,10 +405,12 @@ export async function updateCard(
   orgId: string,
   cardId: string,
   input: UpdateCardInput,
+  userId: string | null = null,
   dbArg?: DB,
 ) {
   const db = dbArg ?? getDb();
-  if (!(await cardProjectInOrg(db, orgId, cardId))) return null;
+  const updateProjectId = await cardProjectInOrg(db, orgId, cardId);
+  if (!updateProjectId) return null;
 
   const [row] = await db
     .update(kanbanCard)
@@ -375,23 +448,61 @@ export async function updateCard(
       createdAt: kanbanCard.createdAt,
       updatedAt: kanbanCard.updatedAt,
     });
-  return row ?? null;
+  if (!row) return null;
+
+  // Per-card history: record the update against the project's activity feed.
+  await logActivity(
+    orgId,
+    updateProjectId,
+    userId,
+    "updated card",
+    "card",
+    row.id,
+    row.title,
+    db,
+  );
+
+  return row;
 }
 
 /** Delete a card, scoped to the org via its project. True if a row was removed. */
 export async function deleteCard(
   orgId: string,
   cardId: string,
+  userId: string | null = null,
   dbArg?: DB,
 ): Promise<boolean> {
   const db = dbArg ?? getDb();
-  if (!(await cardProjectInOrg(db, orgId, cardId))) return false;
+  const deleteProjectId = await cardProjectInOrg(db, orgId, cardId);
+  if (!deleteProjectId) return false;
+
+  // Capture the title before deleting so the history row carries a name.
+  const [existing] = await db
+    .select({ title: kanbanCard.title })
+    .from(kanbanCard)
+    .where(eq(kanbanCard.id, cardId))
+    .limit(1);
 
   const removed = await db
     .delete(kanbanCard)
     .where(eq(kanbanCard.id, cardId))
     .returning({ id: kanbanCard.id });
-  return removed.length > 0;
+  if (removed.length === 0) return false;
+
+  // Per-card history: record the deletion. entity_id points at the now-removed
+  // card id (the project_activity row survives — no FK to kanban_card).
+  await logActivity(
+    orgId,
+    deleteProjectId,
+    userId,
+    "deleted card",
+    "card",
+    cardId,
+    existing?.title ?? null,
+    db,
+  );
+
+  return true;
 }
 
 /**
@@ -404,6 +515,7 @@ export async function moveCard(
   cardId: string,
   toColumnId: string,
   toSortOrder: number,
+  userId: string | null = null,
   dbArg?: DB,
 ) {
   const db = dbArg ?? getDb();
@@ -444,7 +556,60 @@ export async function moveCard(
       createdAt: kanbanCard.createdAt,
       updatedAt: kanbanCard.updatedAt,
     });
-  return row ?? null;
+  if (!row) return null;
+
+  // Per-card history: record the move against the project's activity feed.
+  await logActivity(
+    orgId,
+    projectId,
+    userId,
+    "moved card",
+    "card",
+    row.id,
+    row.title,
+    db,
+  );
+
+  return row;
+}
+
+/**
+ * A card's per-card history: project_activity rows for this card, newest first,
+ * joined to the actor's display info (LEFT join — actor may be null/deleted).
+ * Empty if the card is not in the caller's org.
+ */
+export async function listCardActivity(
+  orgId: string,
+  cardId: string,
+  dbArg?: DB,
+) {
+  const db = dbArg ?? getDb();
+  const projectId = await cardProjectInOrg(db, orgId, cardId);
+  if (!projectId) return [];
+
+  return db
+    .select({
+      id: projectActivity.id,
+      projectId: projectActivity.projectId,
+      userId: projectActivity.userId,
+      action: projectActivity.action,
+      entityType: projectActivity.entityType,
+      entityId: projectActivity.entityId,
+      entityName: projectActivity.entityName,
+      createdAt: projectActivity.createdAt,
+      actorName: users.displayName,
+      actorEmail: users.email,
+    })
+    .from(projectActivity)
+    .leftJoin(users, eq(projectActivity.userId, users.id))
+    .where(
+      and(
+        eq(projectActivity.projectId, projectId),
+        eq(projectActivity.entityType, "card"),
+        eq(projectActivity.entityId, cardId),
+      ),
+    )
+    .orderBy(desc(projectActivity.createdAt));
 }
 
 // ---- labels ----------------------------------------------------------------
@@ -464,6 +629,28 @@ export async function listLabels(orgId: string, projectId: string, dbArg?: DB) {
     })
     .from(cardLabel)
     .where(eq(cardLabel.projectId, projectId))
+    .orderBy(asc(cardLabel.name));
+}
+
+/**
+ * List the labels assigned to a single card, via card_label_assignment joined
+ * to card_label. Verifies the card is in the caller's org. Empty otherwise.
+ */
+export async function getCardLabels(orgId: string, cardId: string, dbArg?: DB) {
+  const db = dbArg ?? getDb();
+  if (!(await cardProjectInOrg(db, orgId, cardId))) return [];
+
+  return db
+    .select({
+      id: cardLabel.id,
+      projectId: cardLabel.projectId,
+      name: cardLabel.name,
+      color: cardLabel.color,
+      createdAt: cardLabel.createdAt,
+    })
+    .from(cardLabelAssignment)
+    .innerJoin(cardLabel, eq(cardLabelAssignment.labelId, cardLabel.id))
+    .where(eq(cardLabelAssignment.cardId, cardId))
     .orderBy(asc(cardLabel.name));
 }
 

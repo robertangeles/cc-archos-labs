@@ -143,6 +143,7 @@ describe("getBoard assembly", () => {
       projectId,
       c1!.id,
       { columnId: c1!.id, title: "second", sortOrder: 1 },
+      null,
       h.db,
     );
     await kanbanService.createCard(
@@ -150,6 +151,7 @@ describe("getBoard assembly", () => {
       projectId,
       c1!.id,
       { columnId: c1!.id, title: "first", sortOrder: 0 },
+      null,
       h.db,
     );
     await kanbanService.createCard(
@@ -157,6 +159,7 @@ describe("getBoard assembly", () => {
       projectId,
       c2!.id,
       { columnId: c2!.id, title: "lonely", sortOrder: 0 },
+      null,
       h.db,
     );
 
@@ -196,6 +199,7 @@ describe("card CRUD", () => {
       projectId,
       col!.id,
       { columnId: col!.id, title: "Map lineage", priority: "high" },
+      null,
       h.db,
     );
     expect(card).not.toBeNull();
@@ -208,12 +212,13 @@ describe("card CRUD", () => {
       orgId,
       card!.id,
       { title: "Map data lineage", priority: "urgent" },
+      null,
       h.db,
     );
     expect(updated!.title).toBe("Map data lineage");
     expect(updated!.priority).toBe("urgent");
 
-    const removed = await kanbanService.deleteCard(orgId, card!.id, h.db);
+    const removed = await kanbanService.deleteCard(orgId, card!.id, null, h.db);
     expect(removed).toBe(true);
     const gone = await kanbanService.getCard(orgId, card!.id, h.db);
     expect(gone).toBeNull();
@@ -235,6 +240,7 @@ describe("card CRUD", () => {
       a.projectId,
       colInA2!.id,
       { columnId: colInA2!.id, title: "cross-project" },
+      null,
       h.db,
     );
     expect(planted).toBeNull();
@@ -254,14 +260,15 @@ describe("card CRUD", () => {
       a.projectId,
       colA!.id,
       { columnId: colA!.id, title: "secret" },
+      null,
       h.db,
     );
 
     expect(await kanbanService.getCard(b.orgId, cardA!.id, h.db)).toBeNull();
     expect(
-      await kanbanService.updateCard(b.orgId, cardA!.id, { title: "x" }, h.db),
+      await kanbanService.updateCard(b.orgId, cardA!.id, { title: "x" }, null, h.db),
     ).toBeNull();
-    expect(await kanbanService.deleteCard(b.orgId, cardA!.id, h.db)).toBe(false);
+    expect(await kanbanService.deleteCard(b.orgId, cardA!.id, null, h.db)).toBe(false);
 
     // The card still exists and is untouched.
     const survivor = await kanbanService.getCard(a.orgId, cardA!.id, h.db);
@@ -289,10 +296,11 @@ describe("moveCard", () => {
       projectId,
       from!.id,
       { columnId: from!.id, title: "movable", sortOrder: 0 },
+      null,
       h.db,
     );
 
-    const moved = await kanbanService.moveCard(orgId, card!.id, to!.id, 3, h.db);
+    const moved = await kanbanService.moveCard(orgId, card!.id, to!.id, 3, null, h.db);
     expect(moved).not.toBeNull();
     expect(moved!.columnId).toBe(to!.id);
     expect(moved!.sortOrder).toBe(3);
@@ -332,6 +340,7 @@ describe("moveCard", () => {
       a.projectId,
       col!.id,
       { columnId: col!.id, title: "stay" },
+      null,
       h.db,
     );
 
@@ -340,6 +349,7 @@ describe("moveCard", () => {
       card!.id,
       foreignCol!.id,
       0,
+      null,
       h.db,
     );
     expect(moved).toBeNull();
@@ -369,11 +379,12 @@ describe("moveCard", () => {
       a.projectId,
       colA!.id,
       { columnId: colA!.id, title: "A card" },
+      null,
       h.db,
     );
 
     // Org B tries to move org A's card into org B's column.
-    const moved = await kanbanService.moveCard(b.orgId, cardA!.id, colB!.id, 0, h.db);
+    const moved = await kanbanService.moveCard(b.orgId, cardA!.id, colB!.id, 0, null, h.db);
     expect(moved).toBeNull();
   });
 });
@@ -392,6 +403,7 @@ describe("labels", () => {
       projectId,
       col!.id,
       { columnId: col!.id, title: "Labelled" },
+      null,
       h.db,
     );
 
@@ -454,6 +466,7 @@ describe("labels", () => {
       a.projectId,
       colA!.id,
       { columnId: colA!.id, title: "A card" },
+      null,
       h.db,
     );
     // Even from org A's context, label B is not in card A's project → false.
