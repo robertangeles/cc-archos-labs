@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-14T23:43:41.950Z
+generated: 2026-06-15T01:08:00.363Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -22,12 +22,12 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-27 |
 | `/account` | [app/account/page.tsx](../app/account/page.tsx) | 2026-06-07 |
 | `/account/brain` | [app/account/brain/page.tsx](../app/account/brain/page.tsx) | 2026-06-10 |
-| `/account/clients` | [app/account/clients/page.tsx](../app/account/clients/page.tsx) | unknown |
+| `/account/clients` | [app/account/clients/page.tsx](../app/account/clients/page.tsx) | 2026-06-15 |
 | `/account/history` | [app/account/history/page.tsx](../app/account/history/page.tsx) | 2026-06-07 |
-| `/account/organisation` | [app/account/organisation/page.tsx](../app/account/organisation/page.tsx) | unknown |
+| `/account/organisation` | [app/account/organisation/page.tsx](../app/account/organisation/page.tsx) | 2026-06-15 |
 | `/account/personalisation` | [app/account/personalisation/page.tsx](../app/account/personalisation/page.tsx) | 2026-06-08 |
-| `/account/projects` | [app/account/projects/page.tsx](../app/account/projects/page.tsx) | unknown |
-| `/account/projects/[id]` | [app/account/projects/[id]/page.tsx](../app/account/projects/[id]/page.tsx) | unknown |
+| `/account/projects` | [app/account/projects/page.tsx](../app/account/projects/page.tsx) | 2026-06-15 |
+| `/account/projects/[id]` | [app/account/projects/[id]/page.tsx](../app/account/projects/[id]/page.tsx) | 2026-06-15 |
 | `/account/scheduled-posts` | [app/account/scheduled-posts/page.tsx](../app/account/scheduled-posts/page.tsx) | 2026-06-14 |
 | `/account/skills` | [app/account/skills/page.tsx](../app/account/skills/page.tsx) | 2026-06-07 |
 | `/account/skills/[id]` | [app/account/skills/[id]/page.tsx](../app/account/skills/[id]/page.tsx) | 2026-06-07 |
@@ -258,23 +258,23 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/chat/chat-sidebar.tsx](../components/chat/chat-sidebar.tsx) | 2026-06-14 |
 | [components/chat/chat-skill-form.tsx](../components/chat/chat-skill-form.tsx) | 2026-06-08 |
 | [components/chat/image-gen-config.tsx](../components/chat/image-gen-config.tsx) | 2026-06-09 |
-| [components/clients/client-detail.tsx](../components/clients/client-detail.tsx) | unknown |
-| [components/clients/client-form.tsx](../components/clients/client-form.tsx) | unknown |
-| [components/clients/clients-view.tsx](../components/clients/clients-view.tsx) | unknown |
+| [components/clients/client-detail.tsx](../components/clients/client-detail.tsx) | 2026-06-15 |
+| [components/clients/client-form.tsx](../components/clients/client-form.tsx) | 2026-06-15 |
+| [components/clients/clients-view.tsx](../components/clients/clients-view.tsx) | 2026-06-15 |
 | [components/contact/contact-form.tsx](../components/contact/contact-form.tsx) | 2026-05-15 |
 | [components/diagnostic/recommended-readings.tsx](../components/diagnostic/recommended-readings.tsx) | 2026-05-24 |
 | [components/icons/social.tsx](../components/icons/social.tsx) | 2026-06-12 |
-| [components/kanban/board.tsx](../components/kanban/board.tsx) | unknown |
-| [components/kanban/card-modal.tsx](../components/kanban/card-modal.tsx) | unknown |
-| [components/kanban/card.tsx](../components/kanban/card.tsx) | unknown |
-| [components/kanban/column.tsx](../components/kanban/column.tsx) | unknown |
-| [components/kanban/types.ts](../components/kanban/types.ts) | unknown |
+| [components/kanban/board.tsx](../components/kanban/board.tsx) | 2026-06-15 |
+| [components/kanban/card-modal.tsx](../components/kanban/card-modal.tsx) | 2026-06-15 |
+| [components/kanban/card.tsx](../components/kanban/card.tsx) | 2026-06-15 |
+| [components/kanban/column.tsx](../components/kanban/column.tsx) | 2026-06-15 |
+| [components/kanban/types.ts](../components/kanban/types.ts) | 2026-06-15 |
 | [components/layout/footer.tsx](../components/layout/footer.tsx) | 2026-05-18 |
-| [components/layout/header.tsx](../components/layout/header.tsx) | 2026-05-22 |
+| [components/layout/header.tsx](../components/layout/header.tsx) | 2026-06-15 |
 | [components/layout/lead-sign-out-button.tsx](../components/layout/lead-sign-out-button.tsx) | 2026-06-10 |
 | [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-06-14 |
-| [components/org/org-management.tsx](../components/org/org-management.tsx) | unknown |
-| [components/org/org-switcher.tsx](../components/org/org-switcher.tsx) | unknown |
+| [components/org/org-management.tsx](../components/org/org-management.tsx) | 2026-06-15 |
+| [components/org/org-switcher.tsx](../components/org/org-switcher.tsx) | 2026-06-15 |
 | [components/pages/block-error-boundary.tsx](../components/pages/block-error-boundary.tsx) | 2026-05-18 |
 | [components/pages/blocks-renderer.test.tsx](../components/pages/blocks-renderer.test.tsx) | 2026-05-18 |
 | [components/pages/blocks-renderer.tsx](../components/pages/blocks-renderer.tsx) | 2026-05-19 |
@@ -293,9 +293,9 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/pages/blocks/timeline-block.tsx](../components/pages/blocks/timeline-block.tsx) | 2026-05-19 |
 | [components/pages/markdown-article.test.tsx](../components/pages/markdown-article.test.tsx) | 2026-05-18 |
 | [components/pages/markdown-article.tsx](../components/pages/markdown-article.tsx) | 2026-05-18 |
-| [components/projects/project-detail.tsx](../components/projects/project-detail.tsx) | unknown |
-| [components/projects/projects-view.tsx](../components/projects/projects-view.tsx) | unknown |
-| [components/projects/status.ts](../components/projects/status.ts) | unknown |
+| [components/projects/project-detail.tsx](../components/projects/project-detail.tsx) | 2026-06-15 |
+| [components/projects/projects-view.tsx](../components/projects/projects-view.tsx) | 2026-06-15 |
+| [components/projects/status.ts](../components/projects/status.ts) | 2026-06-15 |
 | [components/rules/rule-form.tsx](../components/rules/rule-form.tsx) | 2026-06-08 |
 | [components/rules/rules-list.tsx](../components/rules/rules-list.tsx) | 2026-06-08 |
 | [components/search/search-dialog.tsx](../components/search/search-dialog.tsx) | 2026-06-14 |
