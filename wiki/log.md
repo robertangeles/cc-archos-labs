@@ -1426,3 +1426,11 @@ End-to-end verification (local): login → GET /api/admin/settings/site → PUT 
 - Mapped service signals to HTTP: ModelConflictError → 409, null (project/model not in org) → 404, Zod failure → 400, OrgAuthError → 401/403 via orgAuthErrorResponse.
 - Added route-handler tests (22) covering status mapping + missing-auth penetration path; full suite 994 passing, tsc + lint clean.
 - Canvas routes (entities/attributes/relationships) and the feature-flag endpoint intentionally NOT migrated — out of list-view scope.
+
+## 2026-06-15 — Model Studio: client data hook (list-view migration, step 2)
+
+- Migrated Spresso's `useModels` hook into `hooks/use-models.ts` (gnhf run step-1-clone, iteration 5).
+- Adapted to this repo's conventions: plain `fetch` (not Spresso's axios `api` wrapper) against `app/api/model-studio`, the `{ ok, ... }` response envelope, `credentials: "same-origin"` so the org-context cookie rides along, and kebab-case hook filename matching `hooks/use-search.ts`/`use-chat.ts`.
+- `DataModelSummary` type matches the server's `modelSelection` exactly (no `organisationId`/`organisationName` — the service doesn't return them; the page will adapt under single-org context). `create`/`update` consume `ModelCreate`/`ModelUpdate` inferred from `lib/model-studio/validation.ts`.
+- No toast library exists here, so the hook surfaces load errors as state and throws plain-language Errors from create/update/remove for the caller to display (mirrors `components/projects/projects-view.tsx`). create/update/remove apply optimistic list updates.
+- Followed the repo's established `eslint-disable-next-line react-hooks/set-state-in-effect -- initial data fetch on mount` convention (as in `app/account/brain/brain-page-client.tsx`) for the mount-effect refresh. tsc + lint clean; full suite 994 passing.
