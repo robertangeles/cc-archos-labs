@@ -10,9 +10,10 @@ import {
 
 export const runtime = "nodejs";
 
-// Max upload size — 10MB. Matches the Next.js App Router body-size practicality
-// ceiling and keeps a single card attachment reasonable.
-const MAX_FILE_BYTES = 10 * 1024 * 1024;
+// Max upload size — 50MB. The App Router streams the multipart body, so this is
+// bounded by what we buffer in memory before the Cloudinary upload, not a Next
+// body limit. (Cloudinary's own per-file ceiling still applies on their side.)
+const MAX_FILE_BYTES = 50 * 1024 * 1024;
 
 // GET /api/projects/:id/cards/:cardId/attachments — list a card's attachments,
 // oldest-first. Any member. Empty when the card is not in the caller's org.
@@ -81,7 +82,7 @@ export async function POST(
     }
     if (file.size > MAX_FILE_BYTES) {
       return Response.json(
-        { ok: false, error: "File is too large. The limit is 10MB." },
+        { ok: false, error: "File is too large. The limit is 50MB." },
         { status: 400 },
       );
     }

@@ -833,8 +833,8 @@ function AttachmentsTab({
 
   async function upload(file: File) {
     setError(null);
-    if (file.size > 10 * 1024 * 1024) {
-      setError("Files must be 10MB or smaller.");
+    if (file.size > 50 * 1024 * 1024) {
+      setError("Files must be 50MB or smaller.");
       return;
     }
     setUploading(true);
@@ -882,7 +882,7 @@ function AttachmentsTab({
         ) : (
           <Paperclip className="h-4 w-4" />
         )}
-        {uploading ? "Uploading…" : "Add a file (max 10MB)"}
+        {uploading ? "Uploading…" : "Add a file (max 50MB)"}
         <input
           type="file"
           className="hidden"
