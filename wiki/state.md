@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-15T12:12:39.639Z
+generated: 2026-06-15T12:23:23.198Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -187,8 +187,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/diagnostic/share/[id]/revoke` | [app/api/diagnostic/share/[id]/revoke/route.ts](../app/api/diagnostic/share/[id]/revoke/route.ts) | 2026-06-03 |
 | `/api/events` | [app/api/events/route.ts](../app/api/events/route.ts) | 2026-05-18 |
 | `/api/health/cron` | [app/api/health/cron/route.ts](../app/api/health/cron/route.ts) | 2026-05-17 |
-| `/api/model-studio` | [app/api/model-studio/route.ts](../app/api/model-studio/route.ts) | unknown |
-| `/api/model-studio/[id]` | [app/api/model-studio/[id]/route.ts](../app/api/model-studio/[id]/route.ts) | unknown |
+| `/api/model-studio` | [app/api/model-studio/route.ts](../app/api/model-studio/route.ts) | 2026-06-15 |
+| `/api/model-studio/[id]` | [app/api/model-studio/[id]/route.ts](../app/api/model-studio/[id]/route.ts) | 2026-06-15 |
 | `/api/organisations` | [app/api/organisations/route.ts](../app/api/organisations/route.ts) | 2026-06-15 |
 | `/api/organisations/[id]` | [app/api/organisations/[id]/route.ts](../app/api/organisations/[id]/route.ts) | 2026-06-15 |
 | `/api/organisations/[id]/join` | [app/api/organisations/[id]/join/route.ts](../app/api/organisations/[id]/join/route.ts) | 2026-06-15 |
@@ -245,7 +245,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/execute` | [app/api/workflows/[id]/execute/route.ts](../app/api/workflows/[id]/execute/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]/execute-stream` | [app/api/workflows/[id]/execute-stream/route.ts](../app/api/workflows/[id]/execute-stream/route.ts) | 2026-06-14 |
 
-## Components (107)
+## Components (108)
 
 | File | Last shipped |
 |------|--------------|
@@ -287,6 +287,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/layout/header.tsx](../components/layout/header.tsx) | 2026-06-15 |
 | [components/layout/lead-sign-out-button.tsx](../components/layout/lead-sign-out-button.tsx) | 2026-06-10 |
 | [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-06-14 |
+| [components/model-studio/delete-model-dialog.tsx](../components/model-studio/delete-model-dialog.tsx) | unknown |
 | [components/org/org-management.tsx](../components/org/org-management.tsx) | 2026-06-15 |
 | [components/org/org-switcher.tsx](../components/org/org-switcher.tsx) | 2026-06-15 |
 | [components/pages/block-error-boundary.tsx](../components/pages/block-error-boundary.tsx) | 2026-05-18 |
