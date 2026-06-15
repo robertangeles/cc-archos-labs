@@ -2,11 +2,47 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-06-14
+updated: 2026-06-15
 related:
 ---
 
 Append-only log of sessions. Newest entry at the top.
+
+## 2026-06-15 — Org/Clients/Projects/Kanban migration built + polished
+
+Built the full org/consulting workspace on `feature/org-projects-clients-kanban` (see [[org-consulting-workspace]]). Layers 1+2 (schema, org-context, services, ~30 routes, UI) plus a heavy polish/parity pass:
+
+- **Kanban:** tabbed card modal (Details / Comments / History / Files), labels, org-member assignees, editable Status (column) dropdown, whole-card drag + column drag-to-reorder, vibrant colour-coded priority/columns + summary, completion meter + timeline, team-members manager.
+- **Clients:** tabbed contract modal (Details / Documents) with Cloudinary attachments; required-field markers.
+- **Projects:** show + edit the client (join returns clientName); team members + Manage.
+- **Cross-cutting:** `components/ui/date-field.tsx` AU DD/MM/YYYY picker replacing every native date input; `components/ui/attachments-panel.tsx` reusable files UI; Cloudinary integration (admin Media Storage panel + `lib/cloudinary.ts`); fixed the social publish "Content is required" stale-error bug.
+- **DB:** migrations `0025` (14 tables + backfill) + `0026` (`contract_attachment`) applied to the **local DEV clone** only (this session introduced a DEV/PROD split — see [[deployment-architecture]]). PROD cutover is the remaining manual step.
+- **Tests:** 964 vitest green (pglite cross-org isolation + migration idempotency), tsc + lint clean. Cloudinary verified end-to-end.
+
+Also folded in a prior uncommitted blog redirect (`next.config.ts`) and the 2026-06-14 deploy-verification lesson.
+
+## 2026-06-14 — Deploy fix, cron config, CEO plan for Spresso migration
+
+**Production incident:** Render auto-deploy silently stopped on June 9 (commit 0ad8d55). GitHub App lost repo access. Six PRs (#149-#154) were merged but never deployed. Discovered when a scheduled social post failed to publish at 5 PM — the cron endpoint returned 404 because the code wasn't deployed.
+
+**Fix:** Restored GitHub App permissions, manual deploy pushed all 14 commits live. Created Render Cron Job for `process-scheduled-social` (matching existing cron config: Git Provider, Node, Singapore, Starter, `build: true`).
+
+**Wiki updates:**
+- Updated `wiki/entities/deployment-architecture.md` — added third cron job, added exact Render cron config table, added post-deploy verification checklist
+- Created `wiki/lessons-learned/2026-06-14-deploy-verification-and-cron-config.md` — three rules: verify deploys, document cron config exactly, never guess at infrastructure
+
+**CEO Plan (in progress — pick up next session):**
+Ran `/plan-ceo-review` via `/office-hours` for migrating 4 features from Spresso to Archos Labs Metis Workspace: Organisations, Projects, Clients, Kanban Board. Design doc saved to `~/.gstack/projects/robertangeles-cc-archos-labs/robangeles-main-design-20260614-163810.md`.
+
+Key decisions:
+- All four features ship as a unit (no phased rollout)
+- **Revised Premise 3:** Org layer wraps ALL workspace features (Chat, Brain, Skills, Workflows, Social) — not just new features. Full org-scoping for consistent multi-user UX.
+- Approach B: Big Bang Migration chosen (no intermediate states)
+- Auth: org context fetched server-side from session, not embedded in JWT
+- Real-time: optimistic UI with polling (WebSocket deferred)
+- Data migration: auto-create default org per user, backfill organisation_id on 9 parent tables
+
+**Status:** Design doc written and partially reviewed (spec review found 13 issues, major ones fixed). CEO review sections 1-11 NOT yet run. Resume with `/plan-ceo-review` next session — the design doc will be auto-discovered.
 
 ## 2026-06-14 — Site-wide search (#36)
 
