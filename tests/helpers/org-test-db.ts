@@ -30,10 +30,12 @@ const USERS_STUB = `
 `;
 
 // Org-feature migrations, applied in order. 0025 = org/clients/projects/kanban
-// tables; 0026 = contract_attachment. Add later org migrations here.
+// tables; 0026 = contract_attachment; 0027 = data_model (Model Studio). Add
+// later org migrations here.
 const MIGRATION_FILES = [
   "drizzle/0025_natural_war_machine.sql",
   "drizzle/0026_light_mysterio.sql",
+  "drizzle/0027_model_studio_data_model.sql",
 ];
 
 // Run a drizzle-generated SQL file one statement at a time, exactly as

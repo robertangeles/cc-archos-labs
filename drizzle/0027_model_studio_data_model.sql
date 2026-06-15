@@ -1,4 +1,4 @@
-CREATE TABLE "data_model" (
+CREATE TABLE IF NOT EXISTS "data_model" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"project_id" uuid NOT NULL,
 	"owner_id" uuid NOT NULL,
@@ -15,8 +15,14 @@ CREATE TABLE "data_model" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "data_model" ADD CONSTRAINT "data_model_project_id_project_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "data_model" ADD CONSTRAINT "data_model_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "data_model_project_owner_name_idx" ON "data_model" USING btree ("project_id","owner_id","name");--> statement-breakpoint
-CREATE INDEX "data_model_project_id_idx" ON "data_model" USING btree ("project_id");--> statement-breakpoint
-CREATE INDEX "data_model_owner_id_idx" ON "data_model" USING btree ("owner_id");
+DO $$ BEGIN
+	ALTER TABLE "data_model" ADD CONSTRAINT "data_model_project_id_project_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."project"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+	ALTER TABLE "data_model" ADD CONSTRAINT "data_model_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "data_model_project_owner_name_idx" ON "data_model" USING btree ("project_id","owner_id","name");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "data_model_project_id_idx" ON "data_model" USING btree ("project_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "data_model_owner_id_idx" ON "data_model" USING btree ("owner_id");
