@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Pencil,
@@ -847,9 +847,8 @@ function ContractsSection({
 }) {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
-  const [adding, setAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [sectionError, setSectionError] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<Contract | null>(null); // null = new
 
   // Load this client's contracts. setState lives in promise callbacks so it
   // doesn't trip the cascading-render lint rule.
@@ -864,71 +863,19 @@ function ContractsSection({
       .finally(() => setLoading(false));
   }, [clientId]);
 
-  async function handleCreate(
-    values: ContractFormValues,
-  ): Promise<string | void> {
-    const res = await fetch(`/api/clients/${clientId}/contracts`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(serializeContract(values)),
-    });
-    if (res.status === 403) {
-      onPermissionDenied();
-      return "You don't have permission to add contracts.";
-    }
-    if (!res.ok) {
-      return "We couldn't save this contract. Please try again.";
-    }
-    const data = await res.json();
-    if (data.contract) setContracts((prev) => [data.contract, ...prev]);
-    setAdding(false);
+  // The modal owns the create/update/delete fetches; the section just keeps the
+  // list in sync. handleSaved covers both create (prepend) and update (replace).
+  function handleSaved(saved: Contract) {
+    setContracts((prev) =>
+      prev.some((c) => c.id === saved.id)
+        ? prev.map((c) => (c.id === saved.id ? saved : c))
+        : [saved, ...prev],
+    );
   }
 
-  async function handleUpdate(
-    id: string,
-    values: ContractFormValues,
-  ): Promise<string | void> {
-    const res = await fetch(`/api/clients/${clientId}/contracts/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(serializeContract(values)),
-    });
-    if (res.status === 403) {
-      onPermissionDenied();
-      return "You don't have permission to edit contracts.";
-    }
-    if (!res.ok) {
-      return "We couldn't save your changes. Please try again.";
-    }
-    const data = await res.json();
-    if (data.contract) {
-      setContracts((prev) =>
-        prev.map((c) => (c.id === id ? data.contract : c)),
-      );
-    }
-    setEditingId(null);
-  }
-
-  async function handleDelete(id: string) {
-    if (!confirm("Delete this contract? This cannot be undone.")) return;
-    setSectionError(null);
-    try {
-      const res = await fetch(`/api/clients/${clientId}/contracts/${id}`, {
-        method: "DELETE",
-      });
-      if (res.status === 403) {
-        onPermissionDenied();
-        setSectionError("You don't have permission to delete contracts.");
-        return;
-      }
-      if (!res.ok) {
-        setSectionError("We couldn't delete this contract. Please try again.");
-        return;
-      }
-      setContracts((prev) => prev.filter((c) => c.id !== id));
-    } catch {
-      setSectionError("Network error. Please try again.");
-    }
+  function handleDeleted(id: string) {
+    setContracts((prev) => prev.filter((c) => c.id !== id));
+    setModalOpen(false);
   }
 
   return (
@@ -939,25 +886,10 @@ function ContractsSection({
         canWrite={canWrite}
         addLabel="Add contract"
         onAdd={() => {
-          setAdding(true);
-          setEditingId(null);
+          setEditing(null);
+          setModalOpen(true);
         }}
       />
-
-      {sectionError && (
-        <p className="mt-3 text-sm text-semantic-error">{sectionError}</p>
-      )}
-
-      {adding && (
-        <div className="mt-4">
-          <ContractEditor
-            initialValues={EMPTY_CONTRACT}
-            onSubmit={handleCreate}
-            onCancel={() => setAdding(false)}
-            submitLabel="Add contract"
-          />
-        </div>
-      )}
 
       {loading ? (
         <div className="mt-4 space-y-2">
@@ -968,7 +900,7 @@ function ContractsSection({
             />
           ))}
         </div>
-      ) : contracts.length === 0 && !adding ? (
+      ) : contracts.length === 0 ? (
         <p className="mt-4 text-sm text-ink-subtle">
           No contracts yet.
           {canWrite && " Record the first engagement for this client."}
@@ -983,73 +915,57 @@ function ContractsSection({
               initial="hidden"
               animate="visible"
             >
-              {editingId === c.id ? (
-                <ContractEditor
-                  initialValues={{
-                    name: c.name,
-                    contractType: c.contractType ?? "",
-                    status: c.status ?? "",
-                    startDate: c.startDate ?? "",
-                    endDate: c.endDate ?? "",
-                    billingRate: c.billingRate ?? "",
-                    notes: c.notes ?? "",
-                  }}
-                  onSubmit={(v) => handleUpdate(c.id, v)}
-                  onCancel={() => setEditingId(null)}
-                  submitLabel="Save changes"
-                />
-              ) : (
-                <div className="rounded-lg border border-hairline bg-surface-2 px-4 py-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-flex items-center gap-1.5 text-sm font-medium text-ink">
-                          <FileText className="h-3.5 w-3.5 text-ink-tertiary" />
-                          {c.name}
-                        </span>
-                        {c.status && (
-                          <span className="rounded-full bg-surface-3 px-2 py-0.5 text-[10px] font-medium text-ink-subtle">
-                            {c.status}
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-subtle">
-                        {c.contractType && <span>{c.contractType}</span>}
-                        {(c.startDate || c.endDate) && (
-                          <span>
-                            {formatAuDate(c.startDate) || "—"} →{" "}
-                            {formatAuDate(c.endDate) || "ongoing"}
-                          </span>
-                        )}
-                        {c.billingRate && <span>Rate: {c.billingRate}</span>}
-                      </div>
-                      {c.notes && (
-                        <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-ink-muted">
-                          {c.notes}
-                        </p>
-                      )}
-                    </div>
-                    {canWrite && (
-                      <RowActions
-                        onEdit={() => {
-                          setEditingId(c.id);
-                          setAdding(false);
-                        }}
-                        onDelete={() => handleDelete(c.id)}
-                        editLabel="Edit contract"
-                        deleteLabel="Delete contract"
-                      />
-                    )}
-                  </div>
-                  <AttachmentsPanel
-                    basePath={`/api/clients/${clientId}/contracts/${c.id}/attachments`}
-                    canEdit={canWrite}
-                  />
+              <button
+                type="button"
+                onClick={() => {
+                  setEditing(c);
+                  setModalOpen(true);
+                }}
+                className="block w-full rounded-lg border border-hairline bg-surface-2 px-4 py-3 text-left transition-colors hover:border-hairline-strong"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-ink">
+                    <FileText className="h-3.5 w-3.5 text-ink-tertiary" />
+                    {c.name}
+                  </span>
+                  {c.status && (
+                    <span className="rounded-full bg-surface-3 px-2 py-0.5 text-[10px] font-medium text-ink-subtle">
+                      {c.status}
+                    </span>
+                  )}
                 </div>
-              )}
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-subtle">
+                  {c.contractType && <span>{c.contractType}</span>}
+                  {(c.startDate || c.endDate) && (
+                    <span>
+                      {formatAuDate(c.startDate) || "—"} →{" "}
+                      {formatAuDate(c.endDate) || "ongoing"}
+                    </span>
+                  )}
+                  {c.billingRate && <span>Rate: {c.billingRate}</span>}
+                </div>
+                {c.notes && (
+                  <p className="mt-2 line-clamp-2 whitespace-pre-wrap text-xs leading-relaxed text-ink-muted">
+                    {c.notes}
+                  </p>
+                )}
+              </button>
             </motion.li>
           ))}
         </ul>
+      )}
+
+      {modalOpen && (
+        <ContractModal
+          key={editing?.id ?? "new"}
+          clientId={clientId}
+          initial={editing}
+          canWrite={canWrite}
+          onClose={() => setModalOpen(false)}
+          onSaved={handleSaved}
+          onDeleted={handleDeleted}
+          onPermissionDenied={onPermissionDenied}
+        />
       )}
     </section>
   );
@@ -1068,21 +984,59 @@ function serializeContract(v: ContractFormValues) {
   };
 }
 
-function ContractEditor({
-  initialValues,
-  onSubmit,
-  onCancel,
-  submitLabel,
+// ContractModal — a contract in a tabbed modal (Details / Documents), matching
+// the Kanban card modal. New contracts open on Details; Documents unlocks once
+// the contract is saved (an attachment needs a contract id). The modal owns the
+// create/update/delete fetches and reports back via onSaved / onDeleted.
+function ContractModal({
+  clientId,
+  initial,
+  canWrite,
+  onClose,
+  onSaved,
+  onDeleted,
+  onPermissionDenied,
 }: {
-  initialValues: ContractFormValues;
-  onSubmit: (values: ContractFormValues) => Promise<string | void>;
-  onCancel: () => void;
-  submitLabel: string;
+  clientId: string;
+  initial: Contract | null; // null = new
+  canWrite: boolean;
+  onClose: () => void;
+  onSaved: (contract: Contract) => void;
+  onDeleted: (id: string) => void;
+  onPermissionDenied: () => void;
 }) {
-  const [values, setValues] = useState<ContractFormValues>(initialValues);
+  const [contract, setContract] = useState<Contract | null>(initial);
+  const [tab, setTab] = useState<"details" | "documents">("details");
+  const [values, setValues] = useState<ContractFormValues>(
+    initial
+      ? {
+          name: initial.name,
+          contractType: initial.contractType ?? "",
+          status: initial.status ?? "",
+          startDate: initial.startDate ?? "",
+          endDate: initial.endDate ?? "",
+          billingRate: initial.billingRate ?? "",
+          notes: initial.notes ?? "",
+        }
+      : EMPTY_CONTRACT,
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const close = useCallback(() => {
+    if (!saving && !deleting) onClose();
+  }, [saving, deleting, onClose]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") close();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [close]);
 
   function set<K extends keyof ContractFormValues>(
     key: K,
@@ -1098,8 +1052,7 @@ function ContractEditor({
     }
   }
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function submit() {
     setFormError(null);
     const found = validateContract(values);
     if (Object.keys(found).length > 0) {
@@ -1108,8 +1061,32 @@ function ContractEditor({
     }
     setSaving(true);
     try {
-      const message = await onSubmit(values);
-      if (typeof message === "string") setFormError(message);
+      const body = JSON.stringify(serializeContract(values));
+      const res = contract
+        ? await fetch(`/api/clients/${clientId}/contracts/${contract.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body,
+          })
+        : await fetch(`/api/clients/${clientId}/contracts`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body,
+          });
+      if (res.status === 403) {
+        onPermissionDenied();
+        setFormError("You don't have permission to save contracts.");
+        return;
+      }
+      if (!res.ok) {
+        setFormError("We couldn't save this contract. Please try again.");
+        return;
+      }
+      const data = await res.json();
+      if (data.contract) {
+        setContract(data.contract);
+        onSaved(data.contract);
+      }
     } catch {
       setFormError("Something went wrong. Please try again.");
     } finally {
@@ -1117,85 +1094,235 @@ function ContractEditor({
     }
   }
 
+  async function handleDelete() {
+    if (!contract) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(
+        `/api/clients/${clientId}/contracts/${contract.id}`,
+        { method: "DELETE" },
+      );
+      if (res.status === 403) {
+        onPermissionDenied();
+        setFormError("You don't have permission to delete contracts.");
+        return;
+      }
+      if (!res.ok) {
+        setFormError("We couldn't delete this contract. Please try again.");
+        return;
+      }
+      onDeleted(contract.id);
+    } catch {
+      setFormError("Something went wrong. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const tabs = [
+    { key: "details" as const, label: "Details", icon: FileText },
+    { key: "documents" as const, label: "Documents", icon: Paperclip },
+  ];
+
   return (
-    <form
-      onSubmit={submit}
-      className="space-y-4 rounded-lg border border-hairline bg-surface-2 p-4"
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-6"
+      onMouseDown={close}
     >
-      <div className="grid gap-4 sm:grid-cols-2">
-        <SmallField
-          label="Contract name"
-          value={values.name}
-          onChange={(v) => set("name", v)}
-          error={errors.name}
-          maxLength={CONTRACT_MAX.name}
-          placeholder="AI Readiness Assessment"
-          required
-        />
-        <SmallField
-          label="Type"
-          value={values.contractType}
-          onChange={(v) => set("contractType", v)}
-          error={errors.contractType}
-          maxLength={CONTRACT_MAX.contractType}
-          placeholder="Fixed price"
-        />
-        <SmallField
-          label="Status"
-          value={values.status}
-          onChange={(v) => set("status", v)}
-          error={errors.status}
-          maxLength={CONTRACT_MAX.status}
-          placeholder="Active"
-        />
-        <SmallField
-          label="Billing rate"
-          value={values.billingRate}
-          onChange={(v) => set("billingRate", v)}
-          error={errors.billingRate}
-          placeholder="1100.00"
-        />
-        <SmallField
-          label="Start date"
-          type="date"
-          value={values.startDate}
-          onChange={(v) => set("startDate", v)}
-          error={errors.startDate}
-        />
-        <SmallField
-          label="End date"
-          type="date"
-          value={values.endDate}
-          onChange={(v) => set("endDate", v)}
-          error={errors.endDate}
-        />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Contract"
+        onMouseDown={(e) => e.stopPropagation()}
+        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-hairline bg-canvas sm:rounded-2xl"
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 border-b border-hairline px-5 py-4">
+          <h3 className="min-w-0 truncate text-lg font-semibold tracking-tight text-ink">
+            {contract ? contract.name : "New contract"}
+          </h3>
+          <button
+            type="button"
+            onClick={close}
+            aria-label="Close"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex items-center gap-1 border-b border-hairline px-3">
+          {tabs.map((t) => {
+            const Icon = t.icon;
+            const active = tab === t.key;
+            const disabled = t.key === "documents" && !contract;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                disabled={disabled}
+                onClick={() => setTab(t.key)}
+                title={disabled ? "Save the contract first" : undefined}
+                className={`-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                  active
+                    ? "border-primary text-ink"
+                    : "border-transparent text-ink-subtle hover:text-ink"
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-5 py-5">
+          {tab === "details" ? (
+            <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <SmallField
+                  label="Contract name"
+                  value={values.name}
+                  onChange={(v) => set("name", v)}
+                  error={errors.name}
+                  maxLength={CONTRACT_MAX.name}
+                  placeholder="AI Readiness Assessment"
+                  required
+                />
+                <SmallField
+                  label="Type"
+                  value={values.contractType}
+                  onChange={(v) => set("contractType", v)}
+                  error={errors.contractType}
+                  maxLength={CONTRACT_MAX.contractType}
+                  placeholder="Fixed price"
+                />
+                <SmallField
+                  label="Status"
+                  value={values.status}
+                  onChange={(v) => set("status", v)}
+                  error={errors.status}
+                  maxLength={CONTRACT_MAX.status}
+                  placeholder="Active"
+                />
+                <SmallField
+                  label="Billing rate"
+                  value={values.billingRate}
+                  onChange={(v) => set("billingRate", v)}
+                  error={errors.billingRate}
+                  placeholder="1100.00"
+                />
+                <SmallField
+                  label="Start date"
+                  type="date"
+                  value={values.startDate}
+                  onChange={(v) => set("startDate", v)}
+                  error={errors.startDate}
+                />
+                <SmallField
+                  label="End date"
+                  type="date"
+                  value={values.endDate}
+                  onChange={(v) => set("endDate", v)}
+                  error={errors.endDate}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
+                  Notes
+                </label>
+                <textarea
+                  rows={3}
+                  value={values.notes}
+                  maxLength={CONTRACT_MAX.notes}
+                  onChange={(e) => set("notes", e.target.value)}
+                  className="mt-1 block w-full rounded-md border border-hairline bg-surface-1 px-3 py-2 text-sm text-ink placeholder:text-ink-tertiary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                {errors.notes && (
+                  <p className="mt-1 text-xs text-semantic-error">
+                    {errors.notes}
+                  </p>
+                )}
+              </div>
+
+              {!contract && (
+                <p className="flex items-center gap-1.5 text-xs text-ink-tertiary">
+                  <Paperclip className="h-3 w-3" />
+                  Save the contract, then attach documents in the Documents tab.
+                </p>
+              )}
+
+              {formError && (
+                <p className="text-sm text-semantic-error">{formError}</p>
+              )}
+            </div>
+          ) : contract ? (
+            <AttachmentsPanel
+              basePath={`/api/clients/${clientId}/contracts/${contract.id}/attachments`}
+              canEdit={canWrite}
+            />
+          ) : (
+            <p className="py-6 text-center text-sm text-ink-subtle">
+              Save the contract first to attach documents.
+            </p>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between gap-3 border-t border-hairline px-5 py-4">
+          {contract && canWrite ? (
+            confirmDelete ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-ink-subtle">Delete this contract?</span>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-semantic-error/40 bg-semantic-error/10 px-3 py-1.5 text-sm font-medium text-semantic-error transition-colors hover:bg-semantic-error/20 disabled:opacity-60"
+                >
+                  {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Delete
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(false)}
+                  disabled={deleting}
+                  className="min-h-9 rounded-md px-2 py-1.5 text-sm text-ink-subtle transition-colors hover:text-ink disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-ink-tertiary transition-colors hover:text-semantic-error"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </button>
+            )
+          ) : (
+            <span />
+          )}
+
+          {tab === "details" && canWrite && (
+            <button
+              type="button"
+              onClick={submit}
+              disabled={saving || deleting}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-60"
+            >
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              {contract ? "Save changes" : "Add contract"}
+            </button>
+          )}
+        </div>
       </div>
-
-      <div>
-        <label className="block text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
-          Notes
-        </label>
-        <textarea
-          rows={3}
-          value={values.notes}
-          maxLength={CONTRACT_MAX.notes}
-          onChange={(e) => set("notes", e.target.value)}
-          className="mt-1 block w-full rounded-md border border-hairline bg-surface-1 px-3 py-2 text-sm text-ink placeholder:text-ink-tertiary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-        />
-        {errors.notes && (
-          <p className="mt-1 text-xs text-semantic-error">{errors.notes}</p>
-        )}
-      </div>
-
-      {formError && <p className="text-sm text-semantic-error">{formError}</p>}
-
-      <p className="flex items-center gap-1.5 text-xs text-ink-tertiary">
-        <Paperclip className="h-3 w-3" />
-        Save the contract first, then attach documents to it below.
-      </p>
-
-      <EditorButtons saving={saving} onCancel={onCancel} submitLabel={submitLabel} />
-    </form>
+    </div>
   );
 }
 
