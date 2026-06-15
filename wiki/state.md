@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-15T12:23:23.198Z
+generated: 2026-06-15T12:26:41.783Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -245,7 +245,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/execute` | [app/api/workflows/[id]/execute/route.ts](../app/api/workflows/[id]/execute/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]/execute-stream` | [app/api/workflows/[id]/execute-stream/route.ts](../app/api/workflows/[id]/execute-stream/route.ts) | 2026-06-14 |
 
-## Components (108)
+## Components (109)
 
 | File | Last shipped |
 |------|--------------|
@@ -287,7 +287,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/layout/header.tsx](../components/layout/header.tsx) | 2026-06-15 |
 | [components/layout/lead-sign-out-button.tsx](../components/layout/lead-sign-out-button.tsx) | 2026-06-10 |
 | [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-06-14 |
-| [components/model-studio/delete-model-dialog.tsx](../components/model-studio/delete-model-dialog.tsx) | unknown |
+| [components/model-studio/create-model-dialog.tsx](../components/model-studio/create-model-dialog.tsx) | unknown |
+| [components/model-studio/delete-model-dialog.tsx](../components/model-studio/delete-model-dialog.tsx) | 2026-06-15 |
 | [components/org/org-management.tsx](../components/org/org-management.tsx) | 2026-06-15 |
 | [components/org/org-switcher.tsx](../components/org/org-switcher.tsx) | 2026-06-15 |
 | [components/pages/block-error-boundary.tsx](../components/pages/block-error-boundary.tsx) | 2026-05-18 |
