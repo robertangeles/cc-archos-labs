@@ -82,7 +82,7 @@ export function KanbanColumn({
   }
 
   return (
-    <div className="flex max-h-full w-[300px] min-w-[300px] flex-col rounded-xl border border-hairline bg-surface-1">
+    <div className="flex max-h-full w-[450px] min-w-[450px] flex-col rounded-xl border border-hairline bg-surface-1">
       <div className="flex items-center justify-between gap-2 px-3 py-2.5">
         <div className="flex min-w-0 items-center gap-2">
           {column.color && (
