@@ -1416,3 +1416,13 @@ End-to-end verification (local): login → GET /api/admin/settings/site → PUT 
   - All 3 platforms tested with real credentials
 - Added lesson learned: never use drizzle-kit push, use pnpm db:migrate
 - Added Phase 4 follow-ups to backlog (items 49-51: scheduling, analytics, cache fix)
+
+## 2026-06-15 — Model Studio: API route handlers (list-view migration, step 2)
+
+- Migrated the Spresso Model Studio model CRUD routes into Next.js App Router handlers (gnhf run step-1-clone, iteration 4):
+  - `app/api/model-studio/route.ts` — GET (list, any member) + POST (create, any member)
+  - `app/api/model-studio/[id]/route.ts` — GET (any member) + PATCH/DELETE (owner|admin)
+- Adapted Spresso's owner-OR-member authz to this repo's org-context: mirrors `app/api/projects` exactly (member reads/creates; owner|admin mutates existing). Response shape is `{ ok, ... }`, not Spresso's `{ success, data }`.
+- Mapped service signals to HTTP: ModelConflictError → 409, null (project/model not in org) → 404, Zod failure → 400, OrgAuthError → 401/403 via orgAuthErrorResponse.
+- Added route-handler tests (22) covering status mapping + missing-auth penetration path; full suite 994 passing, tsc + lint clean.
+- Canvas routes (entities/attributes/relationships) and the feature-flag endpoint intentionally NOT migrated — out of list-view scope.
