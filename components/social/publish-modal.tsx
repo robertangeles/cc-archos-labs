@@ -138,6 +138,26 @@ export function PublishModal({
 
   const handlePublish = useCallback(async () => {
     if (publishing || selectedPlatforms.size === 0) return;
+
+    // Every selected platform needs content. The server rejects an empty one
+    // with a generic message, so catch it here, name the platform, and switch
+    // to its tab — otherwise an untouched (auto-selected) platform fails
+    // silently while a full tab is on screen.
+    const emptyPublish = [...selectedPlatforms].filter(
+      (p) => !(perPlatformContent[p] ?? "").trim(),
+    );
+    if (emptyPublish.length > 0) {
+      setActiveTab(emptyPublish[0]);
+      setResults(
+        emptyPublish.map((p) => ({
+          platform: p,
+          status: "error" as const,
+          error: "Add content for this platform, or unselect it above.",
+        })),
+      );
+      return;
+    }
+
     setPublishing(true);
     setResults(null);
 
@@ -189,6 +209,25 @@ export function PublishModal({
       !scheduledTime
     )
       return;
+
+    // Same guard as publish: a selected-but-empty platform would fail on the
+    // server with a generic "Content is required". Catch it, name it, jump to it.
+    const emptySchedule = [...selectedPlatforms].filter(
+      (p) => !(perPlatformContent[p] ?? "").trim(),
+    );
+    if (emptySchedule.length > 0) {
+      setActiveTab(emptySchedule[0]);
+      setScheduleResult({
+        ok: false,
+        error: `Add content for ${emptySchedule
+          .map((p) => PLATFORM_DISPLAY_NAMES[p])
+          .join(", ")}, or unselect ${
+          emptySchedule.length > 1 ? "them" : "it"
+        } above.`,
+      });
+      return;
+    }
+
     setScheduleSubmitting(true);
     setScheduleResult(null);
 
