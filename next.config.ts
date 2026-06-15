@@ -17,6 +17,16 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source:
+          "/blog/ai-workforce-strategy-without-people-plansai-workforce-strategy-without-people-plans",
+        destination: "/blog/ai-workforce-strategy-without-people-plans",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {
