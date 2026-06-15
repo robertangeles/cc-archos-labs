@@ -14,6 +14,8 @@ import {
   Star,
   X,
   FileText,
+  Users,
+  Hash,
 } from "lucide-react";
 import { ClientForm, type ClientFormValues } from "./client-form";
 
@@ -228,45 +230,44 @@ export function ClientDetail({
           </div>
         ) : (
           <div>
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex min-w-0 items-center gap-3">
-                <span
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                  style={{
-                    backgroundColor:
-                      "color-mix(in srgb, var(--color-primary) 10%, transparent)",
-                    color: "var(--color-primary)",
-                  }}
-                >
-                  <span className="text-base font-semibold">
-                    {client.name.charAt(0).toUpperCase()}
-                  </span>
-                </span>
-                <div className="min-w-0">
-                  <h2 className="truncate text-lg font-semibold tracking-tight text-ink">
-                    {client.name}
-                  </h2>
-                  {client.industry && (
-                    <p className="truncate text-sm text-ink-subtle">
-                      {client.industry}
-                    </p>
-                  )}
-                </div>
+            {/* Hero identity */}
+            <div className="flex items-start gap-4">
+              <span
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-xl font-semibold"
+                style={{
+                  background:
+                    "linear-gradient(145deg, color-mix(in srgb, var(--color-primary) 26%, transparent), color-mix(in srgb, var(--color-primary) 7%, transparent))",
+                  color: "var(--color-primary)",
+                  boxShadow:
+                    "inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 22%, transparent)",
+                }}
+              >
+                {client.name.charAt(0).toUpperCase()}
+              </span>
+              <div className="min-w-0 flex-1">
+                {client.industry && (
+                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-tertiary">
+                    {client.industry}
+                  </p>
+                )}
+                <h2 className="mt-1 break-words text-2xl font-semibold leading-tight tracking-tight text-ink">
+                  {client.name}
+                </h2>
               </div>
               {canWrite && (
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 items-center gap-1">
                   <button
                     onClick={() => setEditing(true)}
-                    className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-hairline bg-surface-1 px-3 py-2 text-sm font-medium text-ink-subtle transition-colors hover:border-hairline-strong hover:text-ink"
+                    aria-label="Edit client"
+                    className="flex h-9 w-9 items-center justify-center rounded-md text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink"
                   >
-                    <Pencil className="h-3.5 w-3.5" />
-                    Edit
+                    <Pencil className="h-4 w-4" />
                   </button>
                   <button
                     onClick={handleDelete}
                     disabled={deleting}
                     aria-label="Delete client"
-                    className="inline-flex min-h-11 items-center justify-center rounded-md border border-hairline bg-surface-1 px-3 py-2 text-sm font-medium text-semantic-error/80 transition-colors hover:border-semantic-error/40 hover:text-semantic-error disabled:opacity-60"
+                    className="flex h-9 w-9 items-center justify-center rounded-md text-ink-tertiary transition-colors hover:bg-semantic-error/10 hover:text-semantic-error disabled:opacity-60"
                   >
                     {deleting ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -278,49 +279,52 @@ export function ClientDetail({
               )}
             </div>
 
-            {/* Field grid */}
-            <dl className="mt-6 grid gap-x-8 gap-y-4 sm:grid-cols-2">
-              <DetailRow label="Company size" value={client.companySize} />
-              <DetailRow label="ABN / Tax ID" value={client.abnTaxId} />
-              {client.website && (
-                <div>
-                  <dt className="text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
-                    Website
-                  </dt>
-                  <dd className="mt-1">
-                    <a
-                      href={client.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-sm text-primary transition-colors hover:text-primary-hover"
-                    >
-                      <Globe className="h-3.5 w-3.5" />
-                      <span className="truncate">{client.website}</span>
-                    </a>
-                  </dd>
-                </div>
-              )}
-              {address && (
-                <div className="sm:col-span-2">
-                  <dt className="text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
-                    Address
-                  </dt>
-                  <dd className="mt-1 flex items-start gap-1.5 text-sm text-ink-muted">
-                    <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ink-tertiary" />
-                    <span>{address}</span>
-                  </dd>
-                </div>
-              )}
-            </dl>
+            {/* Meta strip */}
+            {(client.companySize ||
+              client.website ||
+              client.abnTaxId ||
+              address) && (
+              <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-hairline pt-5 text-sm text-ink-muted">
+                {client.companySize && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5 text-ink-tertiary" />
+                    {client.companySize}
+                  </span>
+                )}
+                {client.website && (
+                  <a
+                    href={client.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-primary transition-colors hover:text-primary-hover"
+                  >
+                    <Globe className="h-3.5 w-3.5" />
+                    {prettyHost(client.website)}
+                  </a>
+                )}
+                {client.abnTaxId && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Hash className="h-3.5 w-3.5 text-ink-tertiary" />
+                    {client.abnTaxId}
+                  </span>
+                )}
+                {address && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5 text-ink-tertiary" />
+                    {address}
+                  </span>
+                )}
+              </div>
+            )}
 
             {client.notes && (
-              <div className="mt-6 border-t border-hairline pt-4">
-                <dt className="text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
+              <div className="mt-5 border-t border-hairline pt-4">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
                   Notes
-                </dt>
-                <dd className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink-muted">
+                </p>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink-muted">
                   {client.notes}
-                </dd>
+                </p>
               </div>
             )}
 
@@ -348,22 +352,14 @@ export function ClientDetail({
   );
 }
 
-function DetailRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | null;
-}) {
-  if (!value) return null;
-  return (
-    <div>
-      <dt className="text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
-        {label}
-      </dt>
-      <dd className="mt-1 text-sm text-ink-muted">{value}</dd>
-    </div>
-  );
+/** Show a website as a clean hostname (drop protocol + www + trailing slash). */
+function prettyHost(url: string): string {
+  try {
+    const u = new URL(url.includes("://") ? url : `https://${url}`);
+    return u.host.replace(/^www\./, "") + (u.pathname !== "/" ? u.pathname.replace(/\/$/, "") : "");
+  } catch {
+    return url.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "");
+  }
 }
 
 // ============================================================================
