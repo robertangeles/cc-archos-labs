@@ -253,7 +253,11 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
 
       <div className="mt-5">
         {tab === "board" ? (
-          <KanbanBoard projectId={projectId} />
+          <KanbanBoard
+            projectId={projectId}
+            startDate={project.startDate}
+            endDate={project.endDate}
+          />
         ) : (
           <ActivityTimeline projectId={projectId} />
         )}

@@ -18,7 +18,7 @@ import {
   horizontalListSortingStrategy,
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
-import { Plus, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { KanbanColumn } from "./column";
 import { CardModal } from "./card-modal";
 import {
@@ -41,6 +41,37 @@ import {
 
 interface KanbanBoardProps {
   projectId: string;
+  startDate?: string | null;
+  endDate?: string | null;
+}
+
+// Columns whose cards count as "done" for the completion meter.
+const DONE_RE = /\b(done|complete|completed|closed|shipped|archived)\b/i;
+
+/** Format a "YYYY-MM-DD" calendar date as "1 Apr" (AU, UTC-pinned). */
+function fmtShortDate(d: string): string {
+  return new Date(`${d}T00:00:00Z`).toLocaleDateString("en-AU", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
+
+/**
+ * Percent of the project's time elapsed between start and end (clamped 0–100),
+ * with formatted endpoint labels. Null unless both dates are set and valid.
+ */
+function computeTimeline(
+  start?: string | null,
+  end?: string | null,
+): { pct: number; startLabel: string; endLabel: string } | null {
+  if (!start || !end) return null;
+  const s = Date.parse(`${start}T00:00:00Z`);
+  const e = Date.parse(`${end}T23:59:59Z`);
+  if (Number.isNaN(s) || Number.isNaN(e) || e <= s) return null;
+  const now = Date.now();
+  const pct = Math.max(0, Math.min(100, Math.round(((now - s) / (e - s)) * 100)));
+  return { pct, startLabel: fmtShortDate(start), endLabel: fmtShortDate(end) };
 }
 
 /** Find which column currently holds a card id. */
@@ -95,7 +126,11 @@ function applyMove(
   });
 }
 
-export function KanbanBoard({ projectId }: KanbanBoardProps) {
+export function KanbanBoard({
+  projectId,
+  startDate,
+  endDate,
+}: KanbanBoardProps) {
   const [columns, setColumns] = useState<BoardColumn[]>([]);
   const [members, setMembers] = useState<ProjectMember[]>([]);
   const [orgMembers, setOrgMembers] = useState<OrgMember[]>([]);
@@ -445,8 +480,67 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
     );
   }
 
+  // Completion meter (cards in "done" columns / all cards) + time-elapsed bar.
+  const allCards = columns.flatMap((c) => c.cards);
+  const totalCards = allCards.length;
+  const doneCards = columns
+    .filter((c) => DONE_RE.test(c.name))
+    .reduce((n, c) => n + c.cards.length, 0);
+  const donePct = totalCards ? Math.round((doneCards / totalCards) * 100) : 0;
+  const timeline = computeTimeline(startDate, endDate);
+
   return (
     <div>
+      {/* Project progress — completion meter + time-elapsed timeline. */}
+      {(totalCards > 0 || timeline) && (
+        <div className="mb-4 space-y-3">
+          {totalCards > 0 && (
+            <div className="flex items-center gap-2 text-xs">
+              <CheckCircle2
+                className="h-3.5 w-3.5"
+                style={{
+                  color:
+                    donePct === 100
+                      ? "var(--color-semantic-success)"
+                      : "var(--color-ink-tertiary)",
+                }}
+              />
+              <span className="text-ink-subtle">
+                <span className="font-semibold text-ink">
+                  {doneCards}/{totalCards}
+                </span>{" "}
+                done
+              </span>
+              <span className="font-semibold text-primary">{donePct}%</span>
+            </div>
+          )}
+
+          {timeline && (
+            <div className="flex items-center gap-3 text-[11px] text-ink-tertiary">
+              <span className="shrink-0">{timeline.startLabel}</span>
+              <div className="relative h-1.5 flex-1 rounded-full bg-surface-3">
+                <div
+                  className="absolute inset-y-0 left-0 rounded-full"
+                  style={{
+                    width: `${timeline.pct}%`,
+                    background:
+                      "linear-gradient(90deg, var(--color-primary), #f59e0b)",
+                  }}
+                />
+                <div
+                  className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-canvas bg-primary shadow"
+                  style={{ left: `${timeline.pct}%` }}
+                />
+              </div>
+              <span className="shrink-0">{timeline.endLabel}</span>
+              <span className="shrink-0 font-semibold text-ink-subtle">
+                {timeline.pct}%
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Colourful summary — one chip per column, accent-coded, with its count. */}
       {columns.length > 0 && (
         <div className="mb-4 flex flex-wrap gap-2">
