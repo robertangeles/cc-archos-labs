@@ -727,6 +727,7 @@ function ContactEditor({
           error={errors.name}
           maxLength={CONTACT_MAX.name}
           placeholder="Jane Smith"
+          required
         />
         <SmallField
           label="Role"
@@ -1129,6 +1130,7 @@ function ContractEditor({
           error={errors.name}
           maxLength={CONTRACT_MAX.name}
           placeholder="AI Readiness Assessment"
+          required
         />
         <SmallField
           label="Type"
@@ -1274,6 +1276,7 @@ function SmallField({
   type = "text",
   maxLength,
   placeholder,
+  required,
 }: {
   label: string;
   value: string;
@@ -1282,11 +1285,13 @@ function SmallField({
   type?: string;
   maxLength?: number;
   placeholder?: string;
+  required?: boolean;
 }) {
   return (
     <div>
       <label className="block text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
         {label}
+        {required && <span className="text-semantic-error"> *</span>}
       </label>
       {type === "date" ? (
         // Australian DD/MM/YYYY picker — the native input would render in the

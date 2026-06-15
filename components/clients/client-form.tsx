@@ -94,6 +94,7 @@ interface FieldProps {
   placeholder?: string;
   type?: string;
   maxLength?: number;
+  required?: boolean;
 }
 
 function Field({
@@ -105,11 +106,13 @@ function Field({
   placeholder,
   type = "text",
   maxLength,
+  required,
 }: FieldProps) {
   return (
     <div>
       <label htmlFor={`client-${id}`} className={LABEL_STYLES}>
         {label}
+        {required && <span className="text-semantic-error"> *</span>}
       </label>
       <input
         id={`client-${id}`}
@@ -192,6 +195,7 @@ export function ClientForm({
         onChange={update}
         placeholder="Acme Financial"
         maxLength={MAX.name}
+        required
       />
 
       <div className="grid gap-5 sm:grid-cols-2">
