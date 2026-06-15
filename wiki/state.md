@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-15T01:08:00.363Z
+generated: 2026-06-15T01:43:10.716Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -136,7 +136,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/auth/lead/request` | [app/api/auth/lead/request/route.ts](../app/api/auth/lead/request/route.ts) | 2026-05-15 |
 | `/api/auth/lead/verify` | [app/api/auth/lead/verify/route.ts](../app/api/auth/lead/verify/route.ts) | 2026-06-03 |
 | `/api/auth/login` | [app/api/auth/login/route.ts](../app/api/auth/login/route.ts) | 2026-05-26 |
-| `/api/auth/logout` | [app/api/auth/logout/route.ts](../app/api/auth/logout/route.ts) | 2026-05-25 |
+| `/api/auth/logout` | [app/api/auth/logout/route.ts](../app/api/auth/logout/route.ts) | 2026-06-15 |
 | `/api/auth/magic-link/request` | [app/api/auth/magic-link/request/route.ts](../app/api/auth/magic-link/request/route.ts) | 2026-06-03 |
 | `/api/auth/magic-link/verify` | [app/api/auth/magic-link/verify/route.ts](../app/api/auth/magic-link/verify/route.ts) | 2026-06-03 |
 | `/api/auth/me` | [app/api/auth/me/route.ts](../app/api/auth/me/route.ts) | 2026-06-03 |
