@@ -5,6 +5,7 @@ import {
   project,
   projectMember,
   projectActivity,
+  client,
   users,
 } from "../db/schema";
 import type { OrgRole } from "../auth/org-context";
@@ -53,6 +54,7 @@ export async function listProjects(orgId: string, dbArg?: DB) {
       id: project.id,
       organisationId: project.organisationId,
       clientId: project.clientId,
+      clientName: client.name,
       userId: project.userId,
       name: project.name,
       description: project.description,
@@ -63,6 +65,7 @@ export async function listProjects(orgId: string, dbArg?: DB) {
       updatedAt: project.updatedAt,
     })
     .from(project)
+    .leftJoin(client, eq(project.clientId, client.id))
     .where(eq(project.organisationId, orgId))
     .orderBy(desc(project.createdAt));
 }
@@ -75,6 +78,7 @@ export async function getProject(orgId: string, projectId: string, dbArg?: DB) {
       id: project.id,
       organisationId: project.organisationId,
       clientId: project.clientId,
+      clientName: client.name,
       userId: project.userId,
       name: project.name,
       description: project.description,
@@ -85,6 +89,7 @@ export async function getProject(orgId: string, projectId: string, dbArg?: DB) {
       updatedAt: project.updatedAt,
     })
     .from(project)
+    .leftJoin(client, eq(project.clientId, client.id))
     .where(and(eq(project.id, projectId), eq(project.organisationId, orgId)))
     .limit(1);
   return row ?? null;
@@ -123,7 +128,8 @@ export async function createProject(
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
     });
-  return row;
+  // Re-read through the join so the response carries clientName.
+  return getProject(orgId, row.id, db);
 }
 
 /** Update a project, scoped to the org. Returns null if not found in the org. */
@@ -167,7 +173,8 @@ export async function updateProject(
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
     });
-  return row ?? null;
+  // Re-read through the join so the response carries clientName.
+  return row ? getProject(orgId, row.id, db) : null;
 }
 
 /** Delete a project, scoped to the org. Returns true if a row was removed. */

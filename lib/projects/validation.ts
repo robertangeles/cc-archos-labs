@@ -36,7 +36,8 @@ const projectStatus = z.enum(["active", "on_hold", "completed", "archived"]);
 export const createProjectSchema = z.object({
   name: requiredText(255),
   description: optionalText(20000),
-  clientId: z.string().uuid("Invalid client id").optional(),
+  // nullable so a project's client can be cleared on update ("No client").
+  clientId: z.string().uuid("Invalid client id").nullable().optional(),
   status: projectStatus.optional(),
   startDate: isoDate,
   endDate: isoDate,

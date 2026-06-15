@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { FolderKanban, Plus, Loader2 } from "lucide-react";
+import { FolderKanban, Plus, Loader2, Building2 } from "lucide-react";
 import {
   PROJECT_STATUS_LABELS,
   PROJECT_STATUS_COLORS,
@@ -26,6 +26,7 @@ interface ProjectSummary {
   description: string | null;
   status: string;
   clientId: string | null;
+  clientName: string | null;
   startDate: string | null;
   endDate: string | null;
   createdAt: string;
@@ -193,6 +194,12 @@ export function ProjectsView() {
                     <span className="text-sm font-medium text-ink transition-colors group-hover:text-primary-hover">
                       {p.name}
                     </span>
+                    {p.clientName && (
+                      <span className="inline-flex items-center gap-1 text-xs text-ink-subtle">
+                        <Building2 className="h-3 w-3 shrink-0 text-ink-tertiary" />
+                        {p.clientName}
+                      </span>
+                    )}
                     {p.description && (
                       <span className="line-clamp-1 text-xs text-ink-subtle">
                         {p.description}

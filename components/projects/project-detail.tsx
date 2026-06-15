@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Activity as ActivityIcon,
   LayoutGrid,
+  Building2,
 } from "lucide-react";
 import { KanbanBoard } from "@/components/kanban/board";
 import {
@@ -33,6 +34,7 @@ interface Project {
   description: string | null;
   status: string;
   clientId: string | null;
+  clientName: string | null;
   startDate: string | null;
   endDate: string | null;
   createdAt: string;
@@ -194,6 +196,15 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
               {statusLabel(project.status)}
             </span>
           </div>
+          {project.clientName && (
+            <Link
+              href="/account/clients"
+              className="mt-1.5 inline-flex items-center gap-1.5 text-sm text-ink-subtle transition-colors hover:text-ink"
+            >
+              <Building2 className="h-3.5 w-3.5 text-ink-tertiary" />
+              {project.clientName}
+            </Link>
+          )}
           {project.description && (
             <p className="mt-2 max-w-2xl text-sm text-ink-subtle">
               {project.description}
@@ -294,8 +305,20 @@ function EditProjectForm({
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description ?? "");
   const [status, setStatus] = useState(project.status);
+  const [clientId, setClientId] = useState(project.clientId ?? "");
+  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Clients for the picker; a failure just means an empty list, not a broken form.
+  useEffect(() => {
+    fetch("/api/clients", { credentials: "same-origin" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.clients) setClients(data.clients);
+      })
+      .catch(() => {});
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -319,6 +342,7 @@ function EditProjectForm({
           name: trimmed,
           description: description.trim(),
           status,
+          clientId: clientId || null,
         }),
       });
       const data = await res.json().catch(() => null);
@@ -391,6 +415,27 @@ function EditProjectForm({
           ))}
         </select>
       </div>
+
+      {clients.length > 0 && (
+        <div>
+          <label htmlFor="edit-project-client" className={LABEL_STYLES}>
+            Client
+          </label>
+          <select
+            id="edit-project-client"
+            value={clientId}
+            onChange={(e) => setClientId(e.target.value)}
+            className={FIELD_STYLES}
+          >
+            <option value="">No client</option>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {error && (
         <div className="rounded-md border border-semantic-error/30 bg-semantic-error/10 px-4 py-3">
