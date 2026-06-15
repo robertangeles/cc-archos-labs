@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-15T12:29:00.147Z
+generated: 2026-06-15T12:34:03.250Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -81,7 +81,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-06-03 |
 | `/tools/cdmp-practice/history/[sessionId]` | [app/tools/cdmp-practice/history/[sessionId]/page.tsx](../app/tools/cdmp-practice/history/[sessionId]/page.tsx) | 2026-06-03 |
 
-## API endpoints (159)
+## API endpoints (160)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -189,6 +189,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/health/cron` | [app/api/health/cron/route.ts](../app/api/health/cron/route.ts) | 2026-05-17 |
 | `/api/model-studio` | [app/api/model-studio/route.ts](../app/api/model-studio/route.ts) | 2026-06-15 |
 | `/api/model-studio/[id]` | [app/api/model-studio/[id]/route.ts](../app/api/model-studio/[id]/route.ts) | 2026-06-15 |
+| `/api/model-studio/flag` | [app/api/model-studio/flag/route.ts](../app/api/model-studio/flag/route.ts) | unknown |
 | `/api/organisations` | [app/api/organisations/route.ts](../app/api/organisations/route.ts) | 2026-06-15 |
 | `/api/organisations/[id]` | [app/api/organisations/[id]/route.ts](../app/api/organisations/[id]/route.ts) | 2026-06-15 |
 | `/api/organisations/[id]/join` | [app/api/organisations/[id]/join/route.ts](../app/api/organisations/[id]/join/route.ts) | 2026-06-15 |
@@ -289,7 +290,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-06-14 |
 | [components/model-studio/create-model-dialog.tsx](../components/model-studio/create-model-dialog.tsx) | 2026-06-15 |
 | [components/model-studio/delete-model-dialog.tsx](../components/model-studio/delete-model-dialog.tsx) | 2026-06-15 |
-| [components/model-studio/edit-model-dialog.tsx](../components/model-studio/edit-model-dialog.tsx) | unknown |
+| [components/model-studio/edit-model-dialog.tsx](../components/model-studio/edit-model-dialog.tsx) | 2026-06-15 |
 | [components/org/org-management.tsx](../components/org/org-management.tsx) | 2026-06-15 |
 | [components/org/org-switcher.tsx](../components/org/org-switcher.tsx) | 2026-06-15 |
 | [components/pages/block-error-boundary.tsx](../components/pages/block-error-boundary.tsx) | 2026-05-18 |
