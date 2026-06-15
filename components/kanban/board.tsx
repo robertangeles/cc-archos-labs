@@ -419,7 +419,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-72 w-[300px] min-w-[300px] animate-pulse rounded-xl border border-hairline bg-surface-1"
+            className="h-[560px] w-[300px] min-w-[300px] animate-pulse rounded-xl border border-hairline bg-surface-1"
           />
         ))}
       </div>

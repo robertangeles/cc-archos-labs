@@ -105,7 +105,7 @@ export function KanbanColumn({
         transition,
         opacity: isDragging ? 0.5 : 1,
       }}
-      className="flex max-h-full w-[300px] min-w-[300px] flex-col rounded-xl border border-hairline bg-surface-1"
+      className="flex min-h-[560px] max-h-[80vh] w-[300px] min-w-[300px] flex-col rounded-xl border border-hairline bg-surface-1"
     >
       <div
         ref={setActivatorNodeRef}
