@@ -45,10 +45,21 @@ const LABEL_STYLES =
 
 type Tab = "details" | "comments" | "history" | "attachments";
 
+/** A column the card can be moved to, shown in the Status dropdown. */
+export interface StatusOption {
+  id: string;
+  name: string;
+  accent: string;
+}
+
 interface CardModalProps {
   projectId: string;
   card: BoardCard;
   members: ProjectMember[];
+  /** Every column in the project — the Status dropdown moves the card. */
+  statusOptions: StatusOption[];
+  /** Move the card to a column (status change) without leaving the modal. */
+  onChangeColumn: (toColumnId: string) => void;
   onClose: () => void;
   onSaved: (card: BoardCard) => void;
   onDeleted: (cardId: string) => void;
@@ -80,11 +91,14 @@ export function CardModal({
   projectId,
   card,
   members,
+  statusOptions,
+  onChangeColumn,
   onClose,
   onSaved,
   onDeleted,
 }: CardModalProps) {
   const [tab, setTab] = useState<Tab>("details");
+  const [columnId, setColumnId] = useState(card.columnId);
   const [title, setTitle] = useState(card.title);
   const [description, setDescription] = useState(card.description ?? "");
   const [priority, setPriority] = useState(card.priority);
@@ -305,6 +319,38 @@ export function CardModal({
         <div className="flex-1 overflow-y-auto px-5 py-5">
           {tab === "details" && (
             <div className="space-y-5">
+              <div>
+                <label htmlFor="card-status" className={LABEL_STYLES}>
+                  Status
+                </label>
+                <div className="mt-1 flex items-center gap-2">
+                  <span
+                    aria-hidden
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{
+                      backgroundColor:
+                        statusOptions.find((o) => o.id === columnId)?.accent ??
+                        "var(--color-ink-subtle)",
+                    }}
+                  />
+                  <select
+                    id="card-status"
+                    value={columnId}
+                    onChange={(e) => {
+                      setColumnId(e.target.value);
+                      onChangeColumn(e.target.value);
+                    }}
+                    className="block w-full rounded-md border border-hairline bg-surface-1 px-4 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    {statusOptions.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <div>
                 <label htmlFor="card-description" className={LABEL_STYLES}>
                   Description

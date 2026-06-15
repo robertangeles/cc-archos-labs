@@ -280,6 +280,31 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
     [columns, persistMove],
   );
 
+  // Move the open card to another column from the modal's Status dropdown. The
+  // source column is looked up from current state by id (robust to a stale
+  // openCard), the card is appended to the target, and openCard is synced so
+  // the dropdown + a later save use the new column.
+  const handleChangeOpenCardColumn = useCallback(
+    (toColumnId: string) => {
+      if (!openCard) return;
+      const source = columns.find((c) =>
+        c.cards.some((k) => k.id === openCard.id),
+      );
+      if (!source || source.id === toColumnId) return;
+      const target = columns.find((c) => c.id === toColumnId);
+      const targetIndex = target ? target.cards.length : 0;
+      preMoveSnapshot.current = columns;
+      setColumns((prev) =>
+        applyMove(prev, openCard.id, source.id, toColumnId, targetIndex),
+      );
+      setOpenCard((prev) =>
+        prev ? { ...prev, columnId: toColumnId } : prev,
+      );
+      void persistMove(openCard.id, toColumnId, targetIndex);
+    },
+    [openCard, columns, persistMove],
+  );
+
   // ---- card create / save / delete callbacks -------------------------------
 
   function handleCardCreated(card: BoardCard) {
@@ -445,6 +470,12 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
           projectId={projectId}
           card={openCard}
           members={displayMembers}
+          statusOptions={columns.map((c, i) => ({
+            id: c.id,
+            name: c.name,
+            accent: columnAccent(c.color, i),
+          }))}
+          onChangeColumn={handleChangeOpenCardColumn}
           onClose={() => setOpenCard(null)}
           onSaved={handleCardSaved}
           onDeleted={handleCardDeleted}
