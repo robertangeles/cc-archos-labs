@@ -105,21 +105,20 @@ export function KanbanCard({
     <div
       ref={setNodeRef}
       style={{ ...style, borderLeft: `3px solid ${ps.border}` }}
-      className="group/card relative rounded-lg border border-hairline bg-surface-2 transition-all hover:-translate-y-0.5 hover:border-hairline-strong hover:shadow-lg hover:shadow-black/30"
+      {...attributes}
+      {...listeners}
+      className="group/card relative cursor-grab touch-none rounded-lg border border-hairline bg-surface-2 transition-all hover:-translate-y-0.5 hover:border-hairline-strong hover:shadow-lg hover:shadow-black/30 active:cursor-grabbing"
     >
       <div className="flex items-start gap-1.5 p-3">
-        {/* Drag handle — keeps pointer-drag off the clickable body. */}
-        <button
-          type="button"
-          aria-label="Drag card"
-          className="mt-0.5 flex h-6 w-6 shrink-0 cursor-grab touch-none items-center justify-center rounded text-ink-tertiary opacity-0 transition-opacity hover:text-ink-subtle group-hover/card:opacity-100 active:cursor-grabbing"
-          {...attributes}
-          {...listeners}
+        {/* Visual drag affordance — the whole card is draggable. */}
+        <span
+          aria-hidden
+          className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded text-ink-tertiary opacity-0 transition-opacity group-hover/card:opacity-60"
         >
           <GripVertical className="h-4 w-4" />
-        </button>
+        </span>
 
-        {/* Body — click opens the modal. */}
+        {/* Body — a tap (move < 6px) opens the modal; a drag moves the card. */}
         <button
           type="button"
           onClick={() => onOpen(card)}
@@ -179,7 +178,11 @@ export function KanbanCard({
               {assignee.initials}
             </span>
           )}
-          <div className="relative" ref={menuRef}>
+          <div
+            className="relative"
+            ref={menuRef}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
             <button
               type="button"
               aria-label="Card actions"
