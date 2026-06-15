@@ -3493,3 +3493,59 @@ export const cardLabelAssignment = pgTable(
 );
 export type CardLabelAssignment = typeof cardLabelAssignment.$inferSelect;
 export type NewCardLabelAssignment = typeof cardLabelAssignment.$inferInsert;
+
+// ============================================================================
+// data_model — Model Studio (migrated from Spresso)
+// ============================================================================
+// A data model lives inside a project; the organisation is derived via
+// project.organisation_id, so no org column is denormalised here. Owned by
+// the user who created it. activeLayer/notation/originDirection are
+// render/intent state for the (future) canvas; metadata/tags are open-ended
+// JSONB envelopes validated by Zod at the application layer.
+export const dataModel = pgTable(
+  "data_model",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    // Creator/owner. Cascade so a user's models go with them on delete.
+    ownerId: uuid("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 200 }).notNull(),
+    description: text("description"),
+    // Last layer the user viewed: conceptual | logical | physical.
+    activeLayer: varchar("active_layer", { length: 20 })
+      .notNull()
+      .default("conceptual"),
+    // Notation preference: ie | idef1x (render-only, not data).
+    notation: varchar("notation", { length: 20 }).notNull().default("ie"),
+    // Modelling direction at creation: greenfield | existing_system.
+    originDirection: varchar("origin_direction", { length: 20 })
+      .notNull()
+      .default("greenfield"),
+    metadata: jsonb("metadata").notNull().default({}),
+    tags: jsonb("tags").notNull().default([]),
+    // Soft milestone: when DDL was last exported (null = never).
+    lastExportedAt: timestamp("last_exported_at", { withTimezone: true }),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // One model name per (project, owner) pair — two projects can each own
+    // a "Customer Domain" model without conflict.
+    uniqueIndex("data_model_project_owner_name_idx").on(
+      table.projectId,
+      table.ownerId,
+      table.name,
+    ),
+    // List models for a project (the Model Studio list view).
+    index("data_model_project_id_idx").on(table.projectId),
+    // List models owned by a user (global / profile view).
+    index("data_model_owner_id_idx").on(table.ownerId),
+  ],
+);
+export type DataModel = typeof dataModel.$inferSelect;
+export type NewDataModel = typeof dataModel.$inferInsert;
