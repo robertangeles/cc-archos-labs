@@ -137,7 +137,7 @@ export function CardModal({
         aria-modal="true"
         aria-label="Edit card"
         onMouseDown={(e) => e.stopPropagation()}
-        className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-hairline bg-canvas sm:rounded-2xl"
+        className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl border border-hairline bg-canvas sm:rounded-2xl"
       >
         <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
           <h2 className="text-sm font-medium text-ink">Card</h2>

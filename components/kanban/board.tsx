@@ -292,7 +292,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-72 w-[450px] min-w-[450px] animate-pulse rounded-xl border border-hairline bg-surface-1"
+            className="h-72 w-[300px] min-w-[300px] animate-pulse rounded-xl border border-hairline bg-surface-1"
           />
         ))}
       </div>
@@ -371,7 +371,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
 
         <DragOverlay>
           {activeCard ? (
-            <div className="w-[434px] rounded-lg border border-hairline-strong bg-surface-2 p-3 shadow-lg">
+            <div className="w-[284px] rounded-lg border border-hairline-strong bg-surface-2 p-3 shadow-lg">
               <p className="line-clamp-3 text-sm text-ink">{activeCard.title}</p>
             </div>
           ) : null}
