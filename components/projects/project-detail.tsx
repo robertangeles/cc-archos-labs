@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -10,6 +10,9 @@ import {
   Activity as ActivityIcon,
   LayoutGrid,
   Building2,
+  UserPlus,
+  X,
+  Trash2,
 } from "lucide-react";
 import { KanbanBoard } from "@/components/kanban/board";
 import {
@@ -212,16 +215,19 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
           )}
         </div>
 
-        {!editing && (
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-hairline bg-surface-1 px-3 py-1.5 text-sm font-medium text-ink-subtle transition-colors hover:border-hairline-strong hover:text-ink"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-            Edit
-          </button>
-        )}
+        <div className="flex shrink-0 items-center gap-3">
+          <TeamMembers projectId={projectId} />
+          {!editing && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-hairline bg-surface-1 px-3 py-1.5 text-sm font-medium text-ink-subtle transition-colors hover:border-hairline-strong hover:text-ink"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
+            </button>
+          )}
+        </div>
       </header>
 
       {editing && (
@@ -292,6 +298,313 @@ function TabButton({
       {icon}
       {label}
     </button>
+  );
+}
+
+// ---- Team members ----------------------------------------------------------
+
+interface MemberRow {
+  id: string;
+  userId: string;
+  role: string;
+  displayName: string | null;
+  email: string;
+}
+
+interface OrgMemberRow {
+  userId: string;
+  displayName: string | null;
+  email: string;
+  role: string;
+}
+
+function memberInitial(name: string | null, email: string): string {
+  const src = (name && name.trim()) || email.trim() || "?";
+  return src.charAt(0).toUpperCase();
+}
+
+// A small avatar bubble. Colour is derived from the id so each member is stable
+// and distinguishable in the stack.
+const AVATAR_COLORS = [
+  "#5e6ad2",
+  "#f59e0b",
+  "#3b82f6",
+  "#22c55e",
+  "#a855f7",
+  "#ec4899",
+];
+function avatarColor(seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+
+function Avatar({
+  name,
+  email,
+  seed,
+  ring,
+}: {
+  name: string | null;
+  email: string;
+  seed: string;
+  ring?: boolean;
+}) {
+  return (
+    <span
+      title={name || email}
+      className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold text-white ${
+        ring ? "ring-2 ring-canvas" : ""
+      }`}
+      style={{ backgroundColor: avatarColor(seed) }}
+    >
+      {memberInitial(name, email)}
+    </span>
+  );
+}
+
+// TeamMembers — avatar stack + Manage button in the project header. Manage opens
+// a modal to add/remove members (consistent with the card/contract modals).
+function TeamMembers({ projectId }: { projectId: string }) {
+  const [members, setMembers] = useState<MemberRow[]>([]);
+  const [manage, setManage] = useState(false);
+
+  const reload = useCallback(() => {
+    fetch(`/api/projects/${projectId}/members`, { credentials: "same-origin" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.members) setMembers(d.members as MemberRow[]);
+      })
+      .catch(() => {});
+  }, [projectId]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="hidden text-[10px] font-medium uppercase tracking-wider text-ink-tertiary md:inline">
+        Team
+      </span>
+      <div className="flex -space-x-2">
+        {members.slice(0, 4).map((m) => (
+          <Avatar
+            key={m.id}
+            name={m.displayName}
+            email={m.email}
+            seed={m.userId}
+            ring
+          />
+        ))}
+        {members.length > 4 && (
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-3 text-[10px] font-semibold text-ink-subtle ring-2 ring-canvas">
+            +{members.length - 4}
+          </span>
+        )}
+        {members.length === 0 && (
+          <span className="text-xs text-ink-tertiary">No members</span>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={() => setManage(true)}
+        className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-hairline bg-surface-1 px-3 py-1.5 text-sm font-medium text-ink-subtle transition-colors hover:border-hairline-strong hover:text-ink"
+      >
+        <UserPlus className="h-3.5 w-3.5" />
+        Manage
+      </button>
+      {manage && (
+        <ManageMembersModal
+          projectId={projectId}
+          members={members}
+          onClose={() => setManage(false)}
+          onChanged={reload}
+        />
+      )}
+    </div>
+  );
+}
+
+function ManageMembersModal({
+  projectId,
+  members,
+  onClose,
+  onChanged,
+}: {
+  projectId: string;
+  members: MemberRow[];
+  onClose: () => void;
+  onChanged: () => void;
+}) {
+  const [orgMembers, setOrgMembers] = useState<OrgMemberRow[]>([]);
+  const [addUserId, setAddUserId] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/organisations/members", { credentials: "same-origin" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.members) setOrgMembers(d.members as OrgMemberRow[]);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  // Org members not already on the project — the add picker's options.
+  const memberIds = new Set(members.map((m) => m.userId));
+  const addable = orgMembers.filter((o) => !memberIds.has(o.userId));
+
+  async function add() {
+    if (!addUserId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/members`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: addUserId }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.status === 403) {
+        setError("Only an owner or admin can add members.");
+        return;
+      }
+      if (!res.ok || !data?.ok) {
+        setError(data?.error ?? "Could not add the member. Please try again.");
+        return;
+      }
+      setAddUserId("");
+      onChanged();
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(memberRowId: string) {
+    setError(null);
+    const res = await fetch(
+      `/api/projects/${projectId}/members/${memberRowId}`,
+      { method: "DELETE", credentials: "same-origin" },
+    ).catch(() => null);
+    if (res && res.status === 403) {
+      setError("Only an owner or admin can remove members.");
+      return;
+    }
+    onChanged();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-6"
+      onMouseDown={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Manage team members"
+        onMouseDown={(e) => e.stopPropagation()}
+        className="flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-hairline bg-canvas sm:rounded-2xl"
+      >
+        <div className="flex items-center justify-between gap-3 border-b border-hairline px-5 py-4">
+          <h3 className="text-lg font-semibold tracking-tight text-ink">
+            Team members
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="flex h-9 w-9 items-center justify-center rounded-md text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-5">
+          {error && (
+            <p className="mb-3 text-sm text-semantic-error">{error}</p>
+          )}
+
+          <ul className="space-y-2">
+            {members.map((m) => (
+              <li
+                key={m.id}
+                className="flex items-center gap-3 rounded-md border border-hairline bg-surface-1 px-3 py-2"
+              >
+                <Avatar name={m.displayName} email={m.email} seed={m.userId} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-ink">
+                    {m.displayName || m.email}
+                  </p>
+                  <p className="truncate text-[11px] text-ink-tertiary">
+                    {m.role}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => remove(m.id)}
+                  aria-label="Remove member"
+                  className="flex h-8 w-8 items-center justify-center rounded-md text-ink-tertiary transition-colors hover:text-semantic-error"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </li>
+            ))}
+            {members.length === 0 && (
+              <li className="py-2 text-center text-sm text-ink-subtle">
+                No members yet.
+              </li>
+            )}
+          </ul>
+
+          <div className="mt-4 border-t border-hairline pt-4">
+            <span className="block text-xs font-medium uppercase tracking-wider text-ink-subtle">
+              Add a member
+            </span>
+            {addable.length === 0 ? (
+              <p className="mt-2 text-xs text-ink-tertiary">
+                Everyone in the organisation is already on this project.
+              </p>
+            ) : (
+              <div className="mt-2 flex items-center gap-2">
+                <select
+                  value={addUserId}
+                  onChange={(e) => setAddUserId(e.target.value)}
+                  className="flex-1 rounded-md border border-hairline bg-surface-1 px-3 py-2 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  <option value="">Select a person…</option>
+                  {addable.map((o) => (
+                    <option key={o.userId} value={o.userId}>
+                      {o.displayName || o.email}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={add}
+                  disabled={busy || !addUserId}
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-60"
+                >
+                  {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Add
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
