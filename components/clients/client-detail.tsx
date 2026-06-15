@@ -16,6 +16,7 @@ import {
   FileText,
   Users,
   Hash,
+  Paperclip,
 } from "lucide-react";
 import { ClientForm, type ClientFormValues } from "./client-form";
 import { DateField, formatAuDate } from "@/components/ui/date-field";
@@ -1185,6 +1186,11 @@ function ContractEditor({
       </div>
 
       {formError && <p className="text-sm text-semantic-error">{formError}</p>}
+
+      <p className="flex items-center gap-1.5 text-xs text-ink-tertiary">
+        <Paperclip className="h-3 w-3" />
+        Save the contract first, then attach documents to it below.
+      </p>
 
       <EditorButtons saving={saving} onCancel={onCancel} submitLabel={submitLabel} />
     </form>
