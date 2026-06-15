@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { XIcon, LinkedinIcon, BlueskyIcon } from "@/components/icons/social";
+import { DateField } from "@/components/ui/date-field";
 import type { SocialPlatform } from "@/lib/social/types";
 import {
   PLATFORM_CHAR_LIMITS,
@@ -134,10 +135,33 @@ export function PublishModal({
       else next.add(platform);
       return next;
     });
+    // Selecting/unselecting changes what's required — drop stale errors.
+    setScheduleResult(null);
+    setResults(null);
   }, []);
 
   const handlePublish = useCallback(async () => {
     if (publishing || selectedPlatforms.size === 0) return;
+
+    // Every selected platform needs content. The server rejects an empty one
+    // with a generic message, so catch it here, name the platform, and switch
+    // to its tab — otherwise an untouched (auto-selected) platform fails
+    // silently while a full tab is on screen.
+    const emptyPublish = [...selectedPlatforms].filter(
+      (p) => !(perPlatformContent[p] ?? "").trim(),
+    );
+    if (emptyPublish.length > 0) {
+      setActiveTab(emptyPublish[0]);
+      setResults(
+        emptyPublish.map((p) => ({
+          platform: p,
+          status: "error" as const,
+          error: "Add content for this platform, or unselect it above.",
+        })),
+      );
+      return;
+    }
+
     setPublishing(true);
     setResults(null);
 
@@ -189,6 +213,25 @@ export function PublishModal({
       !scheduledTime
     )
       return;
+
+    // Same guard as publish: a selected-but-empty platform would fail on the
+    // server with a generic "Content is required". Catch it, name it, jump to it.
+    const emptySchedule = [...selectedPlatforms].filter(
+      (p) => !(perPlatformContent[p] ?? "").trim(),
+    );
+    if (emptySchedule.length > 0) {
+      setActiveTab(emptySchedule[0]);
+      setScheduleResult({
+        ok: false,
+        error: `Add content for ${emptySchedule
+          .map((p) => PLATFORM_DISPLAY_NAMES[p])
+          .join(", ")}, or unselect ${
+          emptySchedule.length > 1 ? "them" : "it"
+        } above.`,
+      });
+      return;
+    }
+
     setScheduleSubmitting(true);
     setScheduleResult(null);
 
@@ -352,12 +395,15 @@ export function PublishModal({
               <div>
                 <textarea
                   value={currentContent}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setPerPlatformContent((prev) => ({
                       ...prev,
                       [activeTab]: e.target.value,
-                    }))
-                  }
+                    }));
+                    // Clear any stale validation error now that content changed.
+                    setScheduleResult(null);
+                    setResults(null);
+                  }}
                   rows={6}
                   className="w-full resize-none rounded-md border border-hairline bg-surface-1 px-3 py-2 text-sm text-ink placeholder:text-ink-subtle/50 focus:border-primary focus:outline-none"
                   placeholder={`Content for ${PLATFORM_DISPLAY_NAMES[activeTab]}...`}
@@ -404,15 +450,15 @@ export function PublishModal({
           {scheduleMode && (
             <div className="space-y-3 rounded-md border border-hairline bg-surface-1 p-3">
               <div className="flex gap-2">
-                <input
-                  type="date"
+                <DateField
                   value={scheduledDate}
-                  onChange={(e) => {
-                    setScheduledDate(e.target.value);
+                  onChange={(v) => {
+                    setScheduledDate(v);
                     setScheduleResult(null);
                   }}
+                  placeholder="DD/MM/YYYY"
+                  className="flex-1"
                   min={new Date().toISOString().split("T")[0]}
-                  className="flex-1 rounded-md border border-hairline bg-surface-2 px-2.5 py-1.5 text-xs text-ink focus:border-primary focus:outline-none"
                 />
                 <input
                   type="time"
@@ -444,9 +490,16 @@ export function PublishModal({
               {scheduledDate && scheduledTime && (
                 <p className="text-[10px] text-ink-subtle">
                   Scheduled for{" "}
-                  {new Date(
-                    `${scheduledDate}T${scheduledTime}`,
-                  ).toLocaleString()}{" "}
+                  {new Date(`${scheduledDate}T${scheduledTime}`).toLocaleString(
+                    "en-AU",
+                    {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    },
+                  )}{" "}
                   ({Intl.DateTimeFormat().resolvedOptions().timeZone})
                 </p>
               )}

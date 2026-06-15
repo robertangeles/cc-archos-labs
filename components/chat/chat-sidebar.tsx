@@ -10,6 +10,8 @@ import {
   Clock,
   CalendarClock,
   Brain,
+  Users,
+  FolderKanban,
   Trash2,
   X,
 } from "lucide-react";
@@ -151,6 +153,8 @@ export function ChatSidebar({
         <NavLink href="/account/skills" icon={Sparkles} label="Skills" />
         <NavLink href="/account/workflows" icon={GitBranch} label="Workflows" />
         <NavLink href="/account/scheduled-posts" icon={CalendarClock} label="Social Posts" />
+        <NavLink href="/account/clients" icon={Users} label="Clients" />
+        <NavLink href="/account/projects" icon={FolderKanban} label="Projects" />
         <NavLink href="/account/history" icon={Clock} label="History" />
       </div>
     </div>

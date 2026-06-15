@@ -9,6 +9,8 @@ import {
   MessageSquare,
   Brain,
   CalendarClock,
+  Users,
+  FolderKanban,
   type LucideIcon,
 } from "lucide-react";
 
@@ -24,6 +26,8 @@ const items: NavItem[] = [
   { href: "/account/skills", label: "Skills", icon: Sparkles },
   { href: "/account/workflows", label: "Workflows", icon: GitBranch },
   { href: "/account/scheduled-posts", label: "Social Posts", icon: CalendarClock },
+  { href: "/account/clients", label: "Clients", icon: Users },
+  { href: "/account/projects", label: "Projects", icon: FolderKanban },
   { href: "/account/history", label: "History", icon: Clock },
 ];
 
@@ -61,7 +65,7 @@ export function WorkspaceNav({ mobile }: WorkspaceNavProps) {
   }
 
   return (
-    <nav className="flex flex-col gap-y-1">
+    <nav className="flex flex-col gap-y-1 rounded-xl border border-hairline bg-surface-1 p-2">
       {items.map((item) => {
           const Icon = item.icon;
           const active = pathname.startsWith(item.href);
@@ -71,8 +75,8 @@ export function WorkspaceNav({ mobile }: WorkspaceNavProps) {
               href={item.href}
               className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150 ${
                 active
-                  ? "bg-surface-2 text-ink"
-                  : "text-ink-subtle hover:bg-surface-1 hover:text-ink"
+                  ? "bg-surface-3 text-ink"
+                  : "text-ink-subtle hover:bg-surface-2 hover:text-ink"
               }`}
             >
               <Icon className="h-4 w-4" />

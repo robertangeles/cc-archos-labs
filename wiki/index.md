@@ -11,6 +11,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 ## entities
 - [Local Dev Setup (bring-up on a fresh machine, e.g. ARCHOS)](entities/local-dev-setup.md) — how to recreate `.env.local` (gitignored, not in a pull), install, and run on a new box. The 3 bootstrap secrets (DATABASE_URL/BOOKING_ENCRYPTION_KEY/AUTH_SECRET), the External-vs-Internal Render DB URL trap, and the puppeteer install recovery. Read first on any new machine.
 - [Deployment architecture](entities/deployment-architecture.md) — single Render web service + single Render Postgres + single R2 bucket + single Resend account. `.env.local` and the Render runtime point at the SAME DATABASE_URL. No dev/staging/prod separation. Read before recommending any operational runbook.
+- [Org / Clients / Projects / Kanban (consulting workspace)](entities/org-consulting-workspace.md) — multi-tenant organisation layer + consulting delivery tracking ported from Spresso (branch `feature/org-projects-clients-kanban`). 15 tables (migrations 0025+0026), org-scoped IDOR via `lib/auth/org-context.ts`, Cloudinary contract + card attachments, AU date picker, tabbed card/contract modals, project completion meter + timeline + team members. Layer 3 (org-scoping existing features) NOT built. Migrations 0025+0026 + existing-user org backfill applied to DEV and PROD (2026-06-15); code deploy via PR #155.
 - [The Translation Layer](entities/translation-layer.md) — publication brand at `/blog`; 253 posts migrated from robertangeles.com (rosy-bee). Distinct from The Modelling Room (LinkedIn newsletter) — never conflate the two.
 - [About page](entities/about-page.md) — `/about` route; practitioner dossier composed from the home + about section primitives. Anchors Rob as the credibility surface a sceptical exec lands on before the assessment or call.
 - [gstack — Claude Code skill pack](entities/gstack-tooling.md) — Garry Tan's 50-skill pack installed 2026-05-21 (user-level + team mode in this repo). PreToolUse hook denies skill use when gstack is missing globally. `/browse` is the required web-browsing skill; never use `mcp__claude-in-chrome__*`.
@@ -112,6 +113,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 
 ## lessons-learned
 - [Validate localStorage state on mount](lessons-learned/2026-06-03-stale-localstorage-state.md) — Never show a form from stale localStorage. Validate persisted state on mount.
+- [Deploy verification and cron config documentation](lessons-learned/2026-06-14-deploy-verification-and-cron-config.md) — Verify Render deploy after every PR merge. Document exact cron job config (region, instance, language, build command). Never guess at infrastructure — copy working patterns.
 
 ## state
 - [Project state — auto-generated](state.md) — **source of truth for ship state.** Read this before claiming any route, API endpoint, or component does not exist. Regenerated on every commit touching `app/` or `components/` via `scripts/wiki-state.mjs`.

@@ -2,7 +2,7 @@
 title: Deployment architecture
 category: entity
 created: 2026-05-20
-updated: 2026-05-20
+updated: 2026-06-14
 related: [[2026-05-08-render-postgres-over-neon]], [[integration-config]], [[index]], [[state]]
 ---
 
@@ -57,6 +57,15 @@ When the user mentions deployment, migration, staging, prod cutover, environment
 
 When the user says something architectural that doesn't fit the conventional multi-env mental model (e.g. "Database URL is in our settings", "DEV and PROD DB are the same"), accept it at face value. Don't reinterpret it through a conventional lens.
 
+## 2026-06-15 — temporary local DEV clone for the org migration
+
+For the org/clients/projects/kanban migration (a large additive schema change — see [[org-consulting-workspace]]) a **local DEV Postgres** (`archos_labs_dev`, PG18) was created as a clone of PROD, and `.env.local` was repointed at it. This is exactly the "separate DB for a schema change that warrants a rehearsal" case anticipated above — not a permanent move to multi-env.
+
+- **DEV** (local `archos_labs_dev`): migrations `0025` + `0026` applied + default-org backfill + session test data. `.env.local` → DEV.
+- **PROD** (Render `archos_labs_pdb`, Singapore): migrated 2026-06-15 — `0025` + `0026` applied (after a `pg_dump` backup) + the 9 pre-existing users backfilled a default org each (schema-only migration does not backfill; `createDefaultOrgForUser` runs only at registration). The Render URL is kept commented in `.env.local` as `DATABASE_URL_RENDER_PROD`.
+
+The org migration to PROD was a **manual** run of the idempotent `scripts/db-apply.mjs` against the PROD URL (there is no migrate-on-deploy hook; `build`/`start` are vanilla), plus a one-time existing-user org backfill. Schema is now in sync DEV↔PROD; DEV's test data is not (and must not be) copied to PROD. The single-DB posture above remains the intended steady state once the rehearsal DB is retired. **Backup:** `~/archos_prod_backup_20260615-210817.dump` (pg_restore custom format).
+
 ## Other services on the same posture
 
 | Service | Instance count | Notes |
@@ -79,16 +88,43 @@ If/when the project ever needs a staging environment (scale: a second contributo
 
 ### Render Cron jobs
 
-Two cron jobs are configured in the Render dashboard (not in repo — there is no `render.yaml`). Both POST to authenticated endpoints with `Authorization: Bearer ${CRON_SECRET}` (single secret shared across cron + runtime):
+Three cron jobs are configured in the Render dashboard (not in repo — there is no `render.yaml`). All POST to authenticated endpoints with `Authorization: Bearer ${CRON_SECRET}` (single secret shared across cron + runtime).
 
 | Cron | Schedule | Endpoint | Purpose | Heartbeat row id |
 |---|---|---|---|---|
 | `process-scheduled` | every minute | `POST /api/cron/process-scheduled` | Drains the `scheduled_job` queue (booking reminders, pre-call briefs, post-call follow-ups, no-show recovery) | `singleton` |
 | `process-scheduled-posts` | every minute | `POST /api/cron/process-scheduled-posts` | Flips `post.status='scheduled' AND scheduled_publish_at <= now()` rows to `published`. Writes a `post_revision` row tagged `savedBy='scheduler-cron'` per publish. | `posts-publisher` |
+| `process-scheduled-social` | every minute | `POST /api/cron/process-scheduled-social` | Dequeues `scheduled_social_post` rows where `status='pending' AND scheduled_for <= now()`, publishes to connected social platforms (Twitter, LinkedIn, Bluesky). Max 3 retry attempts per post. | `social-publisher` |
 
-If `CRON_SECRET` is missing / shorter than 16 chars, both routes return 503 (cron not configured) BEFORE checking the bearer. Same behaviour locally + in prod — local dev rarely needs the cron running.
+If `CRON_SECRET` is missing / shorter than 16 chars, all three routes return 503 (cron not configured) BEFORE checking the bearer. Same behaviour locally + in prod — local dev rarely needs the cron running.
 
-When adding a new cron, copy the auth + heartbeat pattern from `app/api/cron/process-scheduled-posts/route.ts`; each cron should write to its own `cron_heartbeat` row id so monitoring can distinguish per-cron health.
+### Render cron job configuration (exact settings)
+
+All three cron jobs use identical Render configuration. **Copy this exactly when adding a new cron:**
+
+| Setting | Value |
+|---|---|
+| Source | Git Provider — `robertangeles/cc-archos-labs`, branch `main` |
+| Language | Node |
+| Region | Singapore (Southeast Asia) — same as database |
+| Instance Type | Starter (0.5 CPU, 512 MB) |
+| Schedule | `* * * * *` (every minute) |
+| Build Command | `true` |
+| Command | `curl -X POST -H "Authorization: Bearer $CRON_SECRET" https://archoslabs.xyz/api/cron/<endpoint-name>` |
+| Auto-Deploy | On Commit |
+| Env vars | `CRON_SECRET` — same value as the web service |
+
+**Do NOT use Docker images for cron jobs.** The Git Provider approach runs in a proper shell where `$CRON_SECRET` is expanded correctly. Docker exec form does not expand environment variables.
+
+When adding a new cron, also copy the auth + heartbeat pattern from `app/api/cron/process-scheduled-posts/route.ts`; each cron should write to its own `cron_heartbeat` row id so monitoring can distinguish per-cron health.
+
+### Post-deploy verification (MANDATORY)
+
+After merging any PR that adds a new cron endpoint, verify:
+1. The Render web service deploy completed successfully (check Events tab)
+2. The new cron job is created in Render dashboard with the settings above
+3. The cron heartbeat row appears in `cron_heartbeat` after the first run
+4. Hit the endpoint manually to confirm it returns 200 (not 404 or 503)
 
 ## Related
 

@@ -49,6 +49,10 @@ const PATCH_FIELDS = [
   "linkedinClientSecret",
   "linkedinEnabled",
   "blueskyEnabled",
+  "cloudinaryCloudName",
+  "cloudinaryApiKey",
+  "cloudinaryApiSecret",
+  "cloudinaryUploadFolder",
 ] as const;
 
 const PatchSchema = z.object({

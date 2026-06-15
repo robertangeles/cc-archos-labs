@@ -19,13 +19,16 @@ export function AccountShell({
   const isProfile =
     pathname === "/account" ||
     pathname.startsWith("/account/personalisation") ||
-    pathname.startsWith("/account/social-accounts");
+    pathname.startsWith("/account/social-accounts") ||
+    pathname.startsWith("/account/organisation");
   const isWorkspaceHome = pathname === "/account/workspace";
   const isWorkspaceSubpage =
     pathname === "/account/brain" ||
     pathname.startsWith("/account/skills") ||
     pathname.startsWith("/account/workflows") ||
     pathname.startsWith("/account/scheduled-posts") ||
+    pathname.startsWith("/account/clients") ||
+    pathname.startsWith("/account/projects") ||
     pathname.startsWith("/account/history");
 
   if (isProfile) {
@@ -55,7 +58,8 @@ export function AccountShell({
           footer { display: none !important; }
           .account-wrapper { padding: 0 !important; max-width: 100% !important; }
         `}</style>
-        <div className="mx-auto max-w-[1080px] px-6 md:px-12">
+        {/* Metis Workspace standard width — consistent across every screen. */}
+        <div className="mx-auto max-w-[1400px] px-6 md:px-12">
           {children}
         </div>
       </>
@@ -69,7 +73,8 @@ export function AccountShell({
           footer { display: none !important; }
           .account-wrapper { padding: 0 !important; max-width: 100% !important; }
         `}</style>
-        <div className="mx-auto max-w-[1080px] px-6 md:px-12">
+        {/* Metis Workspace standard width — consistent across every screen. */}
+        <div className="mx-auto max-w-[1400px] px-6 md:px-12">
           <div className="mb-8 flex items-center justify-between gap-x-4 md:mb-12">
             <div>
               <p className="uppercase text-eyebrow text-ink-subtle">

@@ -93,6 +93,17 @@ export const IntegrationConfigSchema = z.object({
   linkedinClientSecret: z.string().min(1).nullable(),
   linkedinEnabled: z.boolean().default(false),
   blueskyEnabled: z.boolean().default(false),
+
+  // Cloudinary media storage for card attachments + cover images. Cloud
+  // name and API key are identifier-grade (appear in signed-upload URLs),
+  // so they're plaintext. API secret signs every upload — it lives in
+  // ENCRYPTED_FIELDS. Upload folder is an optional plaintext prefix. All
+  // nullable so the app runs without media storage configured (the upload
+  // route returns a 503 with a plain message when these are missing).
+  cloudinaryCloudName: z.string().min(1).nullable(),
+  cloudinaryApiKey: z.string().min(1).nullable(),
+  cloudinaryApiSecret: z.string().min(1).nullable(),
+  cloudinaryUploadFolder: z.string().min(1).nullable(),
 });
 
 export type IntegrationConfig = z.infer<typeof IntegrationConfigSchema>;
@@ -109,6 +120,7 @@ export const ENCRYPTED_FIELDS = [
   "gbrainAdminToken",
   "twitterClientSecret",
   "linkedinClientSecret",
+  "cloudinaryApiSecret",
 ] as const satisfies ReadonlyArray<keyof IntegrationConfig>;
 
 export type EncryptedField = (typeof ENCRYPTED_FIELDS)[number];
@@ -148,9 +160,13 @@ export const CONFIG_DEFAULTS = {
   linkedinClientSecret: null,
   linkedinEnabled: false,
   blueskyEnabled: false,
+  cloudinaryCloudName: null,
+  cloudinaryApiKey: null,
+  cloudinaryApiSecret: null,
+  cloudinaryUploadFolder: null,
 } as const satisfies Pick<
   IntegrationConfig,
-  "contactRecipientEmail" | "resendFromEmail" | "llmModelId" | "llmEnabledModels" | "llmCustomModels" | "gbrainUrl" | "gbrainAdminToken" | "twitterClientId" | "twitterClientSecret" | "twitterEnabled" | "linkedinClientId" | "linkedinClientSecret" | "linkedinEnabled" | "blueskyEnabled"
+  "contactRecipientEmail" | "resendFromEmail" | "llmModelId" | "llmEnabledModels" | "llmCustomModels" | "gbrainUrl" | "gbrainAdminToken" | "twitterClientId" | "twitterClientSecret" | "twitterEnabled" | "linkedinClientId" | "linkedinClientSecret" | "linkedinEnabled" | "blueskyEnabled" | "cloudinaryCloudName" | "cloudinaryApiKey" | "cloudinaryApiSecret" | "cloudinaryUploadFolder"
 >;
 
 // Storage shape inside site_setting.value for key='integration_secrets'.
@@ -194,6 +210,14 @@ export const StoredIntegrationConfigSchema = z.object({
   linkedinClientSecret: z.string().min(1).nullish(),
   linkedinEnabled: z.boolean().nullish(),
   blueskyEnabled: z.boolean().nullish(),
+
+  // Cloudinary media storage. `.nullish()` so a blob written before these
+  // fields existed still parses (missing-key → undefined → normalised to
+  // null by the loader).
+  cloudinaryCloudName: z.string().min(1).nullish(),
+  cloudinaryApiKey: z.string().min(1).nullish(),
+  cloudinaryApiSecret: z.string().min(1).nullish(),
+  cloudinaryUploadFolder: z.string().min(1).nullish(),
 });
 
 export type StoredIntegrationConfig = z.infer<

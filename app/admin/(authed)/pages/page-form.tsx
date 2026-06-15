@@ -8,6 +8,7 @@ import type {
 } from "../../../../lib/pages/types";
 import { CONTENT_MD_MAX_BYTES } from "../../../../lib/pages/schema";
 import { BlocksEditor } from "./blocks-editor";
+import { DateField } from "@/components/ui/date-field";
 
 // Shared form for both create and edit. Mode is derived from whether
 // `initial` is provided. On save: POST to /api/admin/pages (create) or
@@ -257,11 +258,11 @@ export function PageForm({ initial, initialBlocks = [] }: PageFormProps) {
         </div>
         <div>
           <label className={labelClass}>Last reviewed</label>
-          <input
-            type="date"
+          <DateField
             value={lastReviewedAt}
-            onChange={(e) => setLastReviewedAt(e.target.value)}
-            className={`${inputClass} mt-2`}
+            onChange={setLastReviewedAt}
+            placeholder="DD/MM/YYYY"
+            className="mt-2"
           />
           <p className="mt-2 text-[12px] text-ink-subtle">
             Used in the &ldquo;last updated&rdquo; stamp on the public page.

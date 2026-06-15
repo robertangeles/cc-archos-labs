@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-14T05:12:36.610Z
+generated: 2026-06-15T10:51:27.692Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -9,7 +9,7 @@ Auto-generated snapshot of what is currently shipped. **Source of truth for ship
 
 Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `app/` or `components/` to fire the pre-commit hook.
 
-## Routes (63)
+## Routes (67)
 
 | Route | File | Last shipped |
 |-------|------|--------------|
@@ -22,8 +22,12 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-27 |
 | `/account` | [app/account/page.tsx](../app/account/page.tsx) | 2026-06-07 |
 | `/account/brain` | [app/account/brain/page.tsx](../app/account/brain/page.tsx) | 2026-06-10 |
+| `/account/clients` | [app/account/clients/page.tsx](../app/account/clients/page.tsx) | 2026-06-15 |
 | `/account/history` | [app/account/history/page.tsx](../app/account/history/page.tsx) | 2026-06-07 |
+| `/account/organisation` | [app/account/organisation/page.tsx](../app/account/organisation/page.tsx) | 2026-06-15 |
 | `/account/personalisation` | [app/account/personalisation/page.tsx](../app/account/personalisation/page.tsx) | 2026-06-08 |
+| `/account/projects` | [app/account/projects/page.tsx](../app/account/projects/page.tsx) | 2026-06-15 |
+| `/account/projects/[id]` | [app/account/projects/[id]/page.tsx](../app/account/projects/[id]/page.tsx) | 2026-06-15 |
 | `/account/scheduled-posts` | [app/account/scheduled-posts/page.tsx](../app/account/scheduled-posts/page.tsx) | 2026-06-14 |
 | `/account/skills` | [app/account/skills/page.tsx](../app/account/skills/page.tsx) | 2026-06-07 |
 | `/account/skills/[id]` | [app/account/skills/[id]/page.tsx](../app/account/skills/[id]/page.tsx) | 2026-06-07 |
@@ -44,7 +48,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/admin/(authed)/cdmp` | [app/admin/(authed)/cdmp/page.tsx](../app/admin/(authed)/cdmp/page.tsx) | 2026-06-03 |
 | `/admin/(authed)/diagnostic` | [app/admin/(authed)/diagnostic/page.tsx](../app/admin/(authed)/diagnostic/page.tsx) | 2026-05-15 |
 | `/admin/(authed)/integrations` | [app/admin/(authed)/integrations/page.tsx](../app/admin/(authed)/integrations/page.tsx) | 2026-05-15 |
-| `/admin/(authed)/integrations/[slug]` | [app/admin/(authed)/integrations/[slug]/page.tsx](../app/admin/(authed)/integrations/[slug]/page.tsx) | 2026-06-12 |
+| `/admin/(authed)/integrations/[slug]` | [app/admin/(authed)/integrations/[slug]/page.tsx](../app/admin/(authed)/integrations/[slug]/page.tsx) | 2026-06-15 |
 | `/admin/(authed)/knowledge` | [app/admin/(authed)/knowledge/page.tsx](../app/admin/(authed)/knowledge/page.tsx) | 2026-06-03 |
 | `/admin/(authed)/pages` | [app/admin/(authed)/pages/page.tsx](../app/admin/(authed)/pages/page.tsx) | 2026-05-18 |
 | `/admin/(authed)/pages/[id]` | [app/admin/(authed)/pages/[id]/page.tsx](../app/admin/(authed)/pages/[id]/page.tsx) | 2026-05-18 |
@@ -67,7 +71,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/book/manage/[token]/reschedule` | [app/book/manage/[token]/reschedule/page.tsx](../app/book/manage/[token]/reschedule/page.tsx) | 2026-05-17 |
 | `/consulting` | [app/consulting/page.tsx](../app/consulting/page.tsx) | 2026-05-27 |
 | `/contact` | [app/contact/page.tsx](../app/contact/page.tsx) | 2026-05-22 |
-| `/search` | [app/search/page.tsx](../app/search/page.tsx) | unknown |
+| `/search` | [app/search/page.tsx](../app/search/page.tsx) | 2026-06-14 |
 | `/share/chat/[token]` | [app/share/chat/[token]/page.tsx](../app/share/chat/[token]/page.tsx) | 2026-06-08 |
 | `/sign-in` | [app/sign-in/page.tsx](../app/sign-in/page.tsx) | 2026-05-12 |
 | `/sign-in/check-email` | [app/sign-in/check-email/page.tsx](../app/sign-in/check-email/page.tsx) | 2026-05-15 |
@@ -77,7 +81,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-06-03 |
 | `/tools/cdmp-practice/history/[sessionId]` | [app/tools/cdmp-practice/history/[sessionId]/page.tsx](../app/tools/cdmp-practice/history/[sessionId]/page.tsx) | 2026-06-03 |
 
-## API endpoints (123)
+## API endpoints (157)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -87,7 +91,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/google-oauth/cb` | [app/api/admin/google-oauth/cb/route.ts](../app/api/admin/google-oauth/cb/route.ts) | 2026-05-31 |
 | `/api/admin/google-oauth/disconnect` | [app/api/admin/google-oauth/disconnect/route.ts](../app/api/admin/google-oauth/disconnect/route.ts) | 2026-05-22 |
 | `/api/admin/google-oauth/start` | [app/api/admin/google-oauth/start/route.ts](../app/api/admin/google-oauth/start/route.ts) | 2026-05-15 |
-| `/api/admin/integrations` | [app/api/admin/integrations/route.ts](../app/api/admin/integrations/route.ts) | 2026-06-12 |
+| `/api/admin/integrations` | [app/api/admin/integrations/route.ts](../app/api/admin/integrations/route.ts) | 2026-06-15 |
 | `/api/admin/integrations/models` | [app/api/admin/integrations/models/route.ts](../app/api/admin/integrations/models/route.ts) | 2026-06-07 |
 | `/api/admin/integrations/reveal` | [app/api/admin/integrations/reveal/route.ts](../app/api/admin/integrations/reveal/route.ts) | 2026-05-15 |
 | `/api/admin/integrations/reveal-auth` | [app/api/admin/integrations/reveal-auth/route.ts](../app/api/admin/integrations/reveal-auth/route.ts) | 2026-05-15 |
@@ -132,14 +136,14 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/auth/lead/request` | [app/api/auth/lead/request/route.ts](../app/api/auth/lead/request/route.ts) | 2026-05-15 |
 | `/api/auth/lead/verify` | [app/api/auth/lead/verify/route.ts](../app/api/auth/lead/verify/route.ts) | 2026-06-03 |
 | `/api/auth/login` | [app/api/auth/login/route.ts](../app/api/auth/login/route.ts) | 2026-05-26 |
-| `/api/auth/logout` | [app/api/auth/logout/route.ts](../app/api/auth/logout/route.ts) | 2026-05-25 |
+| `/api/auth/logout` | [app/api/auth/logout/route.ts](../app/api/auth/logout/route.ts) | 2026-06-15 |
 | `/api/auth/magic-link/request` | [app/api/auth/magic-link/request/route.ts](../app/api/auth/magic-link/request/route.ts) | 2026-06-03 |
 | `/api/auth/magic-link/verify` | [app/api/auth/magic-link/verify/route.ts](../app/api/auth/magic-link/verify/route.ts) | 2026-06-03 |
 | `/api/auth/me` | [app/api/auth/me/route.ts](../app/api/auth/me/route.ts) | 2026-06-03 |
 | `/api/auth/password-reset/confirm` | [app/api/auth/password-reset/confirm/route.ts](../app/api/auth/password-reset/confirm/route.ts) | 2026-05-25 |
 | `/api/auth/password-reset/request` | [app/api/auth/password-reset/request/route.ts](../app/api/auth/password-reset/request/route.ts) | 2026-05-26 |
 | `/api/auth/profile` | [app/api/auth/profile/route.ts](../app/api/auth/profile/route.ts) | 2026-06-03 |
-| `/api/auth/register` | [app/api/auth/register/route.ts](../app/api/auth/register/route.ts) | 2026-06-03 |
+| `/api/auth/register` | [app/api/auth/register/route.ts](../app/api/auth/register/route.ts) | 2026-06-15 |
 | `/api/auth/verify-email` | [app/api/auth/verify-email/route.ts](../app/api/auth/verify-email/route.ts) | 2026-06-03 |
 | `/api/booking/[slug]/availability` | [app/api/booking/[slug]/availability/route.ts](../app/api/booking/[slug]/availability/route.ts) | 2026-05-17 |
 | `/api/booking/[slug]/create` | [app/api/booking/[slug]/create/route.ts](../app/api/booking/[slug]/create/route.ts) | 2026-06-12 |
@@ -163,6 +167,14 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/chat/conversations/search` | [app/api/chat/conversations/search/route.ts](../app/api/chat/conversations/search/route.ts) | 2026-06-08 |
 | `/api/chat/image` | [app/api/chat/image/route.ts](../app/api/chat/image/route.ts) | 2026-06-09 |
 | `/api/chat/slash-command` | [app/api/chat/slash-command/route.ts](../app/api/chat/slash-command/route.ts) | 2026-06-08 |
+| `/api/clients` | [app/api/clients/route.ts](../app/api/clients/route.ts) | 2026-06-15 |
+| `/api/clients/[id]` | [app/api/clients/[id]/route.ts](../app/api/clients/[id]/route.ts) | 2026-06-15 |
+| `/api/clients/[id]/contacts` | [app/api/clients/[id]/contacts/route.ts](../app/api/clients/[id]/contacts/route.ts) | 2026-06-15 |
+| `/api/clients/[id]/contacts/[contactId]` | [app/api/clients/[id]/contacts/[contactId]/route.ts](../app/api/clients/[id]/contacts/[contactId]/route.ts) | 2026-06-15 |
+| `/api/clients/[id]/contracts` | [app/api/clients/[id]/contracts/route.ts](../app/api/clients/[id]/contracts/route.ts) | 2026-06-15 |
+| `/api/clients/[id]/contracts/[contractId]` | [app/api/clients/[id]/contracts/[contractId]/route.ts](../app/api/clients/[id]/contracts/[contractId]/route.ts) | 2026-06-15 |
+| `/api/clients/[id]/contracts/[contractId]/attachments` | [app/api/clients/[id]/contracts/[contractId]/attachments/route.ts](../app/api/clients/[id]/contracts/[contractId]/attachments/route.ts) | 2026-06-15 |
+| `/api/clients/[id]/contracts/[contractId]/attachments/[attachmentId]` | [app/api/clients/[id]/contracts/[contractId]/attachments/[attachmentId]/route.ts](../app/api/clients/[id]/contracts/[contractId]/attachments/[attachmentId]/route.ts) | 2026-06-15 |
 | `/api/contact` | [app/api/contact/route.ts](../app/api/contact/route.ts) | 2026-05-15 |
 | `/api/cron/process-scheduled` | [app/api/cron/process-scheduled/route.ts](../app/api/cron/process-scheduled/route.ts) | 2026-06-12 |
 | `/api/cron/process-scheduled-posts` | [app/api/cron/process-scheduled-posts/route.ts](../app/api/cron/process-scheduled-posts/route.ts) | 2026-05-20 |
@@ -175,10 +187,36 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/diagnostic/share/[id]/revoke` | [app/api/diagnostic/share/[id]/revoke/route.ts](../app/api/diagnostic/share/[id]/revoke/route.ts) | 2026-06-03 |
 | `/api/events` | [app/api/events/route.ts](../app/api/events/route.ts) | 2026-05-18 |
 | `/api/health/cron` | [app/api/health/cron/route.ts](../app/api/health/cron/route.ts) | 2026-05-17 |
+| `/api/organisations` | [app/api/organisations/route.ts](../app/api/organisations/route.ts) | 2026-06-15 |
+| `/api/organisations/[id]` | [app/api/organisations/[id]/route.ts](../app/api/organisations/[id]/route.ts) | 2026-06-15 |
+| `/api/organisations/[id]/join` | [app/api/organisations/[id]/join/route.ts](../app/api/organisations/[id]/join/route.ts) | 2026-06-15 |
+| `/api/organisations/[id]/members/[memberId]` | [app/api/organisations/[id]/members/[memberId]/route.ts](../app/api/organisations/[id]/members/[memberId]/route.ts) | 2026-06-15 |
+| `/api/organisations/[id]/regenerate-key` | [app/api/organisations/[id]/regenerate-key/route.ts](../app/api/organisations/[id]/regenerate-key/route.ts) | 2026-06-15 |
+| `/api/organisations/members` | [app/api/organisations/members/route.ts](../app/api/organisations/members/route.ts) | 2026-06-15 |
+| `/api/organisations/switch` | [app/api/organisations/switch/route.ts](../app/api/organisations/switch/route.ts) | 2026-06-15 |
+| `/api/projects` | [app/api/projects/route.ts](../app/api/projects/route.ts) | 2026-06-15 |
+| `/api/projects/[id]` | [app/api/projects/[id]/route.ts](../app/api/projects/[id]/route.ts) | 2026-06-15 |
+| `/api/projects/[id]/activity` | [app/api/projects/[id]/activity/route.ts](../app/api/projects/[id]/activity/route.ts) | 2026-06-15 |
+| `/api/projects/[id]/cards` | [app/api/projects/[id]/cards/route.ts](../app/api/projects/[id]/cards/route.ts) | 2026-06-15 |
+| `/api/projects/[id]/cards/[cardId]` | [app/api/projects/[id]/cards/[cardId]/route.ts](../app/api/projects/[id]/cards/[cardId]/route.ts) | 2026-06-15 |
+| `/api/projects/[id]/cards/[cardId]/activity` | [app/api/projects/[id]/cards/[cardId]/activity/route.ts](../app/api/projects/[id]/cards/[cardId]/activity/route.ts) | 2026-06-15 |
+| `/api/projects/[id]/cards/[cardId]/attachments` | [app/api/projects/[id]/cards/[cardId]/attachments/route.ts](../app/api/projects/[id]/cards/[cardId]/attachments/route.ts) | 2026-06-15 |
+| `/api/projects/[id]/cards/[cardId]/attachments/[attachmentId]` | [app/api/projects/[id]/cards/[cardId]/attachments/[attachmentId]/route.ts](../app/api/projects/[id]/cards/[cardId]/attachments/[attachmentId]/route.ts) | 2026-06-15 |
+| `/api/projects/[id]/cards/[cardId]/comments` | [app/api/projects/[id]/cards/[cardId]/comments/route.ts](../app/api/projects/[id]/cards/[cardId]/comments/route.ts) | 2026-06-15 |
+| `/api/projects/[id]/cards/[cardId]/comments/[commentId]` | [app/api/projects/[id]/cards/[cardId]/comments/[commentId]/route.ts](../app/api/projects/[id]/cards/[cardId]/comments/[commentId]/route.ts) | 2026-06-15 |
+| `/api/projects/[id]/cards/[cardId]/labels` | [app/api/projects/[id]/cards/[cardId]/labels/route.ts](../app/api/projects/[id]/cards/[cardId]/labels/route.ts) | 2026-06-15 |
+| `/api/projects/[id]/cards/[cardId]/labels/[labelId]` | [app/api/projects/[id]/cards/[cardId]/labels/[labelId]/route.ts](../app/api/projects/[id]/cards/[cardId]/labels/[labelId]/route.ts) | 2026-06-15 |
+| `/api/projects/[id]/cards/[cardId]/move` | [app/api/projects/[id]/cards/[cardId]/move/route.ts](../app/api/projects/[id]/cards/[cardId]/move/route.ts) | 2026-06-15 |
+| `/api/projects/[id]/columns` | [app/api/projects/[id]/columns/route.ts](../app/api/projects/[id]/columns/route.ts) | 2026-06-15 |
+| `/api/projects/[id]/columns/[colId]` | [app/api/projects/[id]/columns/[colId]/route.ts](../app/api/projects/[id]/columns/[colId]/route.ts) | 2026-06-15 |
+| `/api/projects/[id]/labels` | [app/api/projects/[id]/labels/route.ts](../app/api/projects/[id]/labels/route.ts) | 2026-06-15 |
+| `/api/projects/[id]/labels/[labelId]` | [app/api/projects/[id]/labels/[labelId]/route.ts](../app/api/projects/[id]/labels/[labelId]/route.ts) | 2026-06-15 |
+| `/api/projects/[id]/members` | [app/api/projects/[id]/members/route.ts](../app/api/projects/[id]/members/route.ts) | 2026-06-15 |
+| `/api/projects/[id]/members/[memberId]` | [app/api/projects/[id]/members/[memberId]/route.ts](../app/api/projects/[id]/members/[memberId]/route.ts) | 2026-06-15 |
 | `/api/rules` | [app/api/rules/route.ts](../app/api/rules/route.ts) | 2026-06-08 |
 | `/api/rules/[id]` | [app/api/rules/[id]/route.ts](../app/api/rules/[id]/route.ts) | 2026-06-08 |
 | `/api/rules/[id]/toggle` | [app/api/rules/[id]/toggle/route.ts](../app/api/rules/[id]/toggle/route.ts) | 2026-06-08 |
-| `/api/search` | [app/api/search/route.ts](../app/api/search/route.ts) | unknown |
+| `/api/search` | [app/api/search/route.ts](../app/api/search/route.ts) | 2026-06-14 |
 | `/api/skills` | [app/api/skills/route.ts](../app/api/skills/route.ts) | 2026-06-07 |
 | `/api/skills/[id]` | [app/api/skills/[id]/route.ts](../app/api/skills/[id]/route.ts) | 2026-06-07 |
 | `/api/skills/[id]/execute` | [app/api/skills/[id]/execute/route.ts](../app/api/skills/[id]/execute/route.ts) | 2026-06-08 |
@@ -205,13 +243,13 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/execute` | [app/api/workflows/[id]/execute/route.ts](../app/api/workflows/[id]/execute/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]/execute-stream` | [app/api/workflows/[id]/execute-stream/route.ts](../app/api/workflows/[id]/execute-stream/route.ts) | 2026-06-14 |
 
-## Components (92)
+## Components (107)
 
 | File | Last shipped |
 |------|--------------|
 | [components/admin/integrations/consultant-profile-form.tsx](../components/admin/integrations/consultant-profile-form.tsx) | 2026-06-12 |
-| [components/admin/integrations/integrations-grid.tsx](../components/admin/integrations/integrations-grid.tsx) | 2026-05-17 |
-| [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-06-12 |
+| [components/admin/integrations/integrations-grid.tsx](../components/admin/integrations/integrations-grid.tsx) | 2026-06-15 |
+| [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-06-15 |
 | [components/analytics/analytics-client.tsx](../components/analytics/analytics-client.tsx) | 2026-05-18 |
 | [components/blog/author-bio.tsx](../components/blog/author-bio.tsx) | 2026-05-24 |
 | [components/blog/category-chips.tsx](../components/blog/category-chips.tsx) | 2026-05-20 |
@@ -229,16 +267,26 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/chat/chat-input.tsx](../components/chat/chat-input.tsx) | 2026-06-10 |
 | [components/chat/chat-message.tsx](../components/chat/chat-message.tsx) | 2026-06-14 |
 | [components/chat/chat-model-picker.tsx](../components/chat/chat-model-picker.tsx) | 2026-06-09 |
-| [components/chat/chat-sidebar.tsx](../components/chat/chat-sidebar.tsx) | 2026-06-14 |
+| [components/chat/chat-sidebar.tsx](../components/chat/chat-sidebar.tsx) | 2026-06-15 |
 | [components/chat/chat-skill-form.tsx](../components/chat/chat-skill-form.tsx) | 2026-06-08 |
 | [components/chat/image-gen-config.tsx](../components/chat/image-gen-config.tsx) | 2026-06-09 |
+| [components/clients/client-detail.tsx](../components/clients/client-detail.tsx) | 2026-06-15 |
+| [components/clients/client-form.tsx](../components/clients/client-form.tsx) | 2026-06-15 |
+| [components/clients/clients-view.tsx](../components/clients/clients-view.tsx) | 2026-06-15 |
 | [components/contact/contact-form.tsx](../components/contact/contact-form.tsx) | 2026-05-15 |
 | [components/diagnostic/recommended-readings.tsx](../components/diagnostic/recommended-readings.tsx) | 2026-05-24 |
 | [components/icons/social.tsx](../components/icons/social.tsx) | 2026-06-12 |
+| [components/kanban/board.tsx](../components/kanban/board.tsx) | 2026-06-15 |
+| [components/kanban/card-modal.tsx](../components/kanban/card-modal.tsx) | 2026-06-15 |
+| [components/kanban/card.tsx](../components/kanban/card.tsx) | 2026-06-15 |
+| [components/kanban/column.tsx](../components/kanban/column.tsx) | 2026-06-15 |
+| [components/kanban/types.ts](../components/kanban/types.ts) | 2026-06-15 |
 | [components/layout/footer.tsx](../components/layout/footer.tsx) | 2026-05-18 |
-| [components/layout/header.tsx](../components/layout/header.tsx) | 2026-05-22 |
+| [components/layout/header.tsx](../components/layout/header.tsx) | 2026-06-15 |
 | [components/layout/lead-sign-out-button.tsx](../components/layout/lead-sign-out-button.tsx) | 2026-06-10 |
-| [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-06-11 |
+| [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-06-14 |
+| [components/org/org-management.tsx](../components/org/org-management.tsx) | 2026-06-15 |
+| [components/org/org-switcher.tsx](../components/org/org-switcher.tsx) | 2026-06-15 |
 | [components/pages/block-error-boundary.tsx](../components/pages/block-error-boundary.tsx) | 2026-05-18 |
 | [components/pages/blocks-renderer.test.tsx](../components/pages/blocks-renderer.test.tsx) | 2026-05-18 |
 | [components/pages/blocks-renderer.tsx](../components/pages/blocks-renderer.tsx) | 2026-05-19 |
@@ -257,11 +305,14 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/pages/blocks/timeline-block.tsx](../components/pages/blocks/timeline-block.tsx) | 2026-05-19 |
 | [components/pages/markdown-article.test.tsx](../components/pages/markdown-article.test.tsx) | 2026-05-18 |
 | [components/pages/markdown-article.tsx](../components/pages/markdown-article.tsx) | 2026-05-18 |
+| [components/projects/project-detail.tsx](../components/projects/project-detail.tsx) | 2026-06-15 |
+| [components/projects/projects-view.tsx](../components/projects/projects-view.tsx) | 2026-06-15 |
+| [components/projects/status.ts](../components/projects/status.ts) | 2026-06-15 |
 | [components/rules/rule-form.tsx](../components/rules/rule-form.tsx) | 2026-06-08 |
 | [components/rules/rules-list.tsx](../components/rules/rules-list.tsx) | 2026-06-08 |
-| [components/search/search-dialog.tsx](../components/search/search-dialog.tsx) | unknown |
-| [components/search/search-provider.tsx](../components/search/search-provider.tsx) | unknown |
-| [components/search/search-result-row.tsx](../components/search/search-result-row.tsx) | unknown |
+| [components/search/search-dialog.tsx](../components/search/search-dialog.tsx) | 2026-06-14 |
+| [components/search/search-provider.tsx](../components/search/search-provider.tsx) | 2026-06-14 |
+| [components/search/search-result-row.tsx](../components/search/search-result-row.tsx) | 2026-06-14 |
 | [components/sections/about/index.ts](../components/sections/about/index.ts) | 2026-05-18 |
 | [components/sections/about/person-card.tsx](../components/sections/about/person-card.tsx) | 2026-05-27 |
 | [components/sections/about/philosophy-block.tsx](../components/sections/about/philosophy-block.tsx) | 2026-05-27 |
@@ -283,11 +334,13 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/skills/skill-detail.tsx](../components/skills/skill-detail.tsx) | 2026-06-08 |
 | [components/skills/skills-list.tsx](../components/skills/skills-list.tsx) | 2026-06-08 |
 | [components/skills/use-enabled-models.ts](../components/skills/use-enabled-models.ts) | 2026-06-08 |
-| [components/social/publish-modal.tsx](../components/social/publish-modal.tsx) | 2026-06-14 |
-| [components/social/scheduled-posts-list.tsx](../components/social/scheduled-posts-list.tsx) | 2026-06-14 |
+| [components/social/publish-modal.tsx](../components/social/publish-modal.tsx) | 2026-06-15 |
+| [components/social/scheduled-posts-list.tsx](../components/social/scheduled-posts-list.tsx) | 2026-06-15 |
 | [components/social/social-accounts-page.tsx](../components/social/social-accounts-page.tsx) | 2026-06-12 |
 | [components/social/upcoming-posts-widget.tsx](../components/social/upcoming-posts-widget.tsx) | 2026-06-14 |
+| [components/ui/attachments-panel.tsx](../components/ui/attachments-panel.tsx) | 2026-06-15 |
 | [components/ui/button.tsx](../components/ui/button.tsx) | 2026-05-15 |
+| [components/ui/date-field.tsx](../components/ui/date-field.tsx) | 2026-06-15 |
 | [components/ui/dialog.tsx](../components/ui/dialog.tsx) | 2026-05-15 |
 | [components/ui/field.tsx](../components/ui/field.tsx) | 2026-05-15 |
 | [components/ui/pill.tsx](../components/ui/pill.tsx) | 2026-05-15 |

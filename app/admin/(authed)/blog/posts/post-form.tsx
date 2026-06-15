@@ -21,6 +21,7 @@ import type {
 } from "../../../../../lib/posts-admin/types";
 import { LinkSuggestionsDrawer } from "./link-suggestions-drawer";
 import { PreviewPane } from "./preview-pane";
+import { DateField } from "@/components/ui/date-field";
 
 // Shared form for both create + edit. Mode is derived from whether
 // `initial` is provided. On save: POST to /api/admin/posts (create) or
@@ -701,16 +702,12 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
             Publish at ({tzAbbrev})
           </label>
           <div className="mt-2 grid grid-cols-[1fr_auto] gap-x-2">
-            <input
-              type="date"
+            <DateField
               value={scheduledDate}
-              onChange={(e) => setScheduledDate(e.target.value)}
-              onClick={openNativePicker}
-              onFocus={openNativePicker}
+              onChange={setScheduledDate}
+              placeholder="DD/MM/YYYY"
               disabled={status !== "scheduled"}
               min={todayInMelbourne}
-              aria-label="Publish date (Melbourne)"
-              className={`${inputClass} cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:invert dark:[&::-webkit-calendar-picker-indicator]:invert`}
             />
             <input
               type="time"

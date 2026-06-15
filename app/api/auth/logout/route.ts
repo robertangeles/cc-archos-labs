@@ -35,13 +35,25 @@ export async function POST(request: Request) {
   if (payload) {
     // Best-effort revoke. revokeSession's WHERE clause is
     // (id = ? AND revoked_at IS NULL) so a double-logout is a no-op.
-    await revokeSession(payload.sessionId);
-    await logAuthEvent({
-      userId: payload.userId,
-      eventType: "logout",
-      ipAddress: ip || null,
-      userAgent,
-    });
+    // Best-effort DB revoke. If the DB is unreachable, we MUST still clear
+    // the cookie below — otherwise a transient DB failure strands the user
+    // signed in (the route would 500 before clearSessionCookie ran, and the
+    // client only catches network errors, not 500s). Sign-out must always
+    // succeed client-side.
+    try {
+      await revokeSession(payload.sessionId);
+      await logAuthEvent({
+        userId: payload.userId,
+        eventType: "logout",
+        ipAddress: ip || null,
+        userAgent,
+      });
+    } catch (err) {
+      console.error(
+        "[/api/auth/logout] session revoke failed; clearing cookie anyway:",
+        err instanceof Error ? err.message : String(err),
+      );
+    }
   }
 
   await clearSessionCookie();

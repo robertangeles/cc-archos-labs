@@ -44,6 +44,9 @@
     "calibrate:threshold": "node --env-file=.env.local --import tsx scripts/calibrate-threshold.ts"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@node-rs/argon2": "^2.0.2",
     "cmdk": "^1.1.1",
     "drizzle-orm": "^0.45.2",
@@ -67,6 +70,7 @@
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1049.0",
+    "@electric-sql/pglite": "^0.5.2",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

@@ -184,6 +184,18 @@ function decryptAndValidate(rawValue: unknown): IntegrationConfig {
   if (decrypted.blueskyEnabled === undefined || decrypted.blueskyEnabled === null) {
     decrypted.blueskyEnabled = false;
   }
+  // Cloudinary plaintext fields (the secret is normalised in the encrypted
+  // loop above). undefined → null so IntegrationConfigSchema (.nullable)
+  // accepts a blob written before these fields existed.
+  if (decrypted.cloudinaryCloudName === undefined) {
+    decrypted.cloudinaryCloudName = null;
+  }
+  if (decrypted.cloudinaryApiKey === undefined) {
+    decrypted.cloudinaryApiKey = null;
+  }
+  if (decrypted.cloudinaryUploadFolder === undefined) {
+    decrypted.cloudinaryUploadFolder = null;
+  }
 
   const parsed = IntegrationConfigSchema.safeParse(decrypted);
   if (!parsed.success) {
@@ -238,6 +250,10 @@ function readFromEnv(): IntegrationConfig {
     linkedinClientSecret: process.env.LINKEDIN_CLIENT_SECRET || null,
     linkedinEnabled: process.env.LINKEDIN_ENABLED === "true",
     blueskyEnabled: process.env.BLUESKY_ENABLED === "true",
+    cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME || null,
+    cloudinaryApiKey: process.env.CLOUDINARY_API_KEY || null,
+    cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || null,
+    cloudinaryUploadFolder: process.env.CLOUDINARY_UPLOAD_FOLDER || null,
   };
 
   const parsed = IntegrationConfigSchema.safeParse(config);
@@ -395,6 +411,10 @@ export async function migrateEnvToDB(): Promise<{
     linkedinClientSecret: process.env.LINKEDIN_CLIENT_SECRET ?? null,
     linkedinEnabled: false,
     blueskyEnabled: false,
+    cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME ?? null,
+    cloudinaryApiKey: process.env.CLOUDINARY_API_KEY ?? null,
+    cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET ?? null,
+    cloudinaryUploadFolder: process.env.CLOUDINARY_UPLOAD_FOLDER ?? null,
   };
 
   const written: Array<keyof IntegrationConfig> = [];
@@ -590,6 +610,10 @@ export async function getIntegrationConfigRedacted(): Promise<{
   linkedinClientSecret: string;
   linkedinEnabled: boolean;
   blueskyEnabled: boolean;
+  cloudinaryCloudName: string | null;
+  cloudinaryApiKey: string | null;
+  cloudinaryApiSecret: string;
+  cloudinaryUploadFolder: string | null;
 }> {
   const config = await getIntegrationConfig();
   return {
@@ -614,6 +638,10 @@ export async function getIntegrationConfigRedacted(): Promise<{
     linkedinClientSecret: redactSecret(config.linkedinClientSecret ?? ""),
     linkedinEnabled: config.linkedinEnabled,
     blueskyEnabled: config.blueskyEnabled,
+    cloudinaryCloudName: config.cloudinaryCloudName,
+    cloudinaryApiKey: config.cloudinaryApiKey,
+    cloudinaryApiSecret: redactSecret(config.cloudinaryApiSecret ?? ""),
+    cloudinaryUploadFolder: config.cloudinaryUploadFolder,
   };
 }
 
