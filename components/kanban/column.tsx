@@ -22,6 +22,7 @@ interface KanbanColumnProps {
   column: BoardColumn;
   columns: BoardColumn[];
   members: ProjectMember[];
+  accent: string;
   onOpenCard: (card: BoardCard) => void;
   onMoveCardToColumn: (card: BoardCard, toColumnId: string) => void;
   onCardCreated: (card: BoardCard) => void;
@@ -32,6 +33,7 @@ export function KanbanColumn({
   column,
   columns,
   members,
+  accent,
   onOpenCard,
   onMoveCardToColumn,
   onCardCreated,
@@ -82,20 +84,27 @@ export function KanbanColumn({
   }
 
   return (
-    <div className="flex max-h-full w-[300px] min-w-[300px] flex-col rounded-xl border border-hairline bg-surface-1">
+    <div
+      className="flex max-h-full w-[300px] min-w-[300px] flex-col rounded-xl border border-hairline bg-surface-1"
+      style={{ borderTop: `2px solid ${accent}` }}
+    >
       <div className="flex items-center justify-between gap-2 px-3 py-2.5">
         <div className="flex min-w-0 items-center gap-2">
-          {column.color && (
-            <span
-              aria-hidden
-              className="inline-block h-2 w-2 shrink-0 rounded-full"
-              style={{ backgroundColor: column.color }}
-            />
-          )}
-          <span className="truncate text-sm font-medium text-ink">
+          <span
+            aria-hidden
+            className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: accent }}
+          />
+          <span className="truncate text-sm font-semibold text-ink">
             {column.name}
           </span>
-          <span className="rounded-full bg-surface-3 px-1.5 py-0.5 text-[10px] font-medium text-ink-subtle">
+          <span
+            className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+            style={{
+              backgroundColor: `color-mix(in srgb, ${accent} 20%, transparent)`,
+              color: accent,
+            }}
+          >
             {column.cards.length}
           </span>
         </div>

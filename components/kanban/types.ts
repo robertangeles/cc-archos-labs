@@ -108,10 +108,69 @@ export const PRIORITY_LABELS: Record<CardPriority, string> = {
 };
 
 /**
- * Whether a priority is "elevated" (high | urgent). Per DESIGN.md the lavender
- * accent is scarce — only an elevated card shows the lavender dot; everything
- * else gets a muted dot.
+ * Whether a priority is "elevated" (high | urgent).
  */
 export function isElevatedPriority(priority: string): boolean {
   return priority === "high" || priority === "urgent";
+}
+
+/**
+ * Vibrant priority palette — each priority carries its own colour as a signal
+ * (red urgent, amber high, blue medium, slate low). Used for the filled badge
+ * on a card and the card's left accent bar.
+ */
+export interface PriorityStyle {
+  dot: string;
+  text: string;
+  bg: string;
+  border: string;
+}
+
+export const PRIORITY_STYLES: Record<CardPriority, PriorityStyle> = {
+  urgent: {
+    dot: "#ef4444",
+    text: "#fca5a5",
+    bg: "rgba(239, 68, 68, 0.16)",
+    border: "#ef4444",
+  },
+  high: {
+    dot: "#f59e0b",
+    text: "#fcd34d",
+    bg: "rgba(245, 158, 11, 0.16)",
+    border: "#f59e0b",
+  },
+  medium: {
+    dot: "#3b82f6",
+    text: "#93c5fd",
+    bg: "rgba(59, 130, 246, 0.16)",
+    border: "#3b82f6",
+  },
+  low: {
+    dot: "#64748b",
+    text: "#cbd5e1",
+    bg: "rgba(148, 163, 184, 0.14)",
+    border: "#64748b",
+  },
+};
+
+export function priorityStyle(priority: string): PriorityStyle {
+  return PRIORITY_STYLES[priority as CardPriority] ?? PRIORITY_STYLES.medium;
+}
+
+/**
+ * Default column accent palette, cycled by column position when a column has no
+ * explicit colour. Mirrors a board's natural flow: slate → amber → blue → green
+ * → violet → pink.
+ */
+export const COLUMN_ACCENTS = [
+  "#64748b",
+  "#f59e0b",
+  "#3b82f6",
+  "#22c55e",
+  "#a855f7",
+  "#ec4899",
+];
+
+export function columnAccent(color: string | null, index: number): string {
+  return color || COLUMN_ACCENTS[index % COLUMN_ACCENTS.length];
 }

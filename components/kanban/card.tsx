@@ -14,7 +14,7 @@ import {
   type BoardCard,
   type BoardColumn,
   type ProjectMember,
-  isElevatedPriority,
+  priorityStyle,
 } from "./types";
 
 // ============================================================================
@@ -97,15 +97,15 @@ export function KanbanCard({
     opacity: isDragging ? 0.4 : 1,
   };
 
-  const elevated = isElevatedPriority(card.priority);
+  const ps = priorityStyle(card.priority);
   const assignee = memberLabel(members, card.assigneeId);
   const otherColumns = columns.filter((c) => c.id !== card.columnId);
 
   return (
     <div
       ref={setNodeRef}
-      style={style}
-      className="group/card relative rounded-lg border border-hairline bg-surface-2 transition-colors hover:border-hairline-strong"
+      style={{ ...style, borderLeft: `3px solid ${ps.border}` }}
+      className="group/card relative rounded-lg border border-hairline bg-surface-2 transition-all hover:-translate-y-0.5 hover:border-hairline-strong hover:shadow-lg hover:shadow-black/30"
     >
       <div className="flex items-start gap-1.5 p-3">
         {/* Drag handle — keeps pointer-drag off the clickable body. */}
@@ -143,19 +143,16 @@ export function KanbanCard({
           )}
           <p className="line-clamp-3 text-sm text-ink">{card.title}</p>
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-            <span className="flex items-center gap-1.5">
+            <span
+              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+              style={{ backgroundColor: ps.bg, color: ps.text }}
+            >
               <span
                 aria-hidden
-                className="inline-block h-2 w-2 rounded-full"
-                style={{
-                  backgroundColor: elevated
-                    ? "var(--color-primary)"
-                    : "var(--color-ink-tertiary)",
-                }}
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: ps.dot }}
               />
-              <span className="text-[11px] capitalize text-ink-subtle">
-                {card.priority}
-              </span>
+              {card.priority}
             </span>
             {card.dueDate && (
               <span className="flex items-center gap-1 text-[11px] text-ink-tertiary">

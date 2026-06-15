@@ -21,6 +21,7 @@ import {
   type BoardColumn,
   type ProjectMember,
   type OrgMember,
+  columnAccent,
 } from "./types";
 
 // ============================================================================
@@ -353,6 +354,33 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
 
   return (
     <div>
+      {/* Colourful summary — one chip per column, accent-coded, with its count. */}
+      {columns.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {columns.map((c, i) => {
+            const accent = columnAccent(c.color, i);
+            return (
+              <div
+                key={c.id}
+                className="flex items-center gap-2 rounded-lg border border-hairline bg-surface-1 px-3 py-2"
+                style={{ borderLeft: `3px solid ${accent}` }}
+              >
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: accent }}
+                />
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-subtle">
+                  {c.name}
+                </span>
+                <span className="text-sm font-bold text-ink">
+                  {c.cards.length}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {moveError && (
         <div className="mb-3 flex items-center gap-2 rounded-md border border-semantic-error/30 bg-semantic-error/10 px-4 py-2.5">
           <AlertCircle className="h-4 w-4 shrink-0 text-semantic-error" />
@@ -368,13 +396,14 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
         onDragCancel={() => setActiveCard(null)}
       >
         <div className="flex items-start gap-4 overflow-x-auto pb-2">
-          {columns.map((column) => (
+          {columns.map((column, index) => (
             <KanbanColumn
               key={column.id}
               projectId={projectId}
               column={column}
               columns={columns}
               members={displayMembers}
+              accent={columnAccent(column.color, index)}
               onOpenCard={setOpenCard}
               onMoveCardToColumn={handleMoveCardToColumn}
               onCardCreated={handleCardCreated}
