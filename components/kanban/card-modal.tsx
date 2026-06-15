@@ -347,6 +347,7 @@ export function CardModal({
                     value={dueDate}
                     onChange={setDueDate}
                     placeholder="DD/MM/YYYY"
+                    className="mt-1"
                   />
                 </div>
               </div>

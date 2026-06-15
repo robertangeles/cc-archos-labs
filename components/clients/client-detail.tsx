@@ -1284,6 +1284,7 @@ function SmallField({
           value={value}
           onChange={onChange}
           placeholder={placeholder ?? "DD/MM/YYYY"}
+          className="mt-1"
         />
       ) : (
         <input

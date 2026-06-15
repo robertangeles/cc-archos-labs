@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-15T08:30:32.607Z
+generated: 2026-06-15T08:33:01.289Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -332,7 +332,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/skills/skill-detail.tsx](../components/skills/skill-detail.tsx) | 2026-06-08 |
 | [components/skills/skills-list.tsx](../components/skills/skills-list.tsx) | 2026-06-08 |
 | [components/skills/use-enabled-models.ts](../components/skills/use-enabled-models.ts) | 2026-06-08 |
-| [components/social/publish-modal.tsx](../components/social/publish-modal.tsx) | 2026-06-14 |
+| [components/social/publish-modal.tsx](../components/social/publish-modal.tsx) | 2026-06-15 |
 | [components/social/scheduled-posts-list.tsx](../components/social/scheduled-posts-list.tsx) | 2026-06-14 |
 | [components/social/social-accounts-page.tsx](../components/social/social-accounts-page.tsx) | 2026-06-12 |
 | [components/social/upcoming-posts-widget.tsx](../components/social/upcoming-posts-widget.tsx) | 2026-06-14 |

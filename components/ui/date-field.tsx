@@ -148,7 +148,7 @@ export function DateField({
         id={id}
         type="button"
         onClick={openCalendar}
-        className="mt-1 flex w-full items-center justify-between gap-2 rounded-md border border-hairline bg-surface-1 px-4 py-2.5 text-left text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+        className="flex w-full items-center justify-between gap-2 rounded-md border border-hairline bg-surface-1 px-4 py-2.5 text-left text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
       >
         <span className={display ? "text-ink" : "text-ink-tertiary"}>
           {display || placeholder}

@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { XIcon, LinkedinIcon, BlueskyIcon } from "@/components/icons/social";
+import { DateField } from "@/components/ui/date-field";
 import type { SocialPlatform } from "@/lib/social/types";
 import {
   PLATFORM_CHAR_LIMITS,
@@ -443,15 +444,14 @@ export function PublishModal({
           {scheduleMode && (
             <div className="space-y-3 rounded-md border border-hairline bg-surface-1 p-3">
               <div className="flex gap-2">
-                <input
-                  type="date"
+                <DateField
                   value={scheduledDate}
-                  onChange={(e) => {
-                    setScheduledDate(e.target.value);
+                  onChange={(v) => {
+                    setScheduledDate(v);
                     setScheduleResult(null);
                   }}
-                  min={new Date().toISOString().split("T")[0]}
-                  className="flex-1 rounded-md border border-hairline bg-surface-2 px-2.5 py-1.5 text-xs text-ink focus:border-primary focus:outline-none"
+                  placeholder="DD/MM/YYYY"
+                  className="flex-1"
                 />
                 <input
                   type="time"
@@ -483,9 +483,16 @@ export function PublishModal({
               {scheduledDate && scheduledTime && (
                 <p className="text-[10px] text-ink-subtle">
                   Scheduled for{" "}
-                  {new Date(
-                    `${scheduledDate}T${scheduledTime}`,
-                  ).toLocaleString()}{" "}
+                  {new Date(`${scheduledDate}T${scheduledTime}`).toLocaleString(
+                    "en-AU",
+                    {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    },
+                  )}{" "}
                   ({Intl.DateTimeFormat().resolvedOptions().timeZone})
                 </p>
               )}
