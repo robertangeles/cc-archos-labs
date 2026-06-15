@@ -29,7 +29,12 @@ const USERS_STUB = `
   )
 `;
 
-const MIGRATION_FILE = "drizzle/0025_natural_war_machine.sql";
+// Org-feature migrations, applied in order. 0025 = org/clients/projects/kanban
+// tables; 0026 = contract_attachment. Add later org migrations here.
+const MIGRATION_FILES = [
+  "drizzle/0025_natural_war_machine.sql",
+  "drizzle/0026_light_mysterio.sql",
+];
 
 // Run a drizzle-generated SQL file one statement at a time, exactly as
 // scripts/db-apply.mjs does in production (split on the statement-breakpoint
@@ -59,13 +64,18 @@ export interface OrgTestDb {
 
 export async function makeOrgTestDb(): Promise<OrgTestDb> {
   const client = new PGlite();
-  const migrationSql = readFileSync(
-    join(process.cwd(), MIGRATION_FILE),
-    "utf8",
+  const migrationSqls = MIGRATION_FILES.map((f) =>
+    readFileSync(join(process.cwd(), f), "utf8"),
   );
 
+  const applyAll = async () => {
+    for (const migrationSql of migrationSqls) {
+      await runMigration(client, migrationSql);
+    }
+  };
+
   await client.query(USERS_STUB);
-  await runMigration(client, migrationSql);
+  await applyAll();
 
   // pglite's drizzle client and postgres-js's share the query API; the cast
   // keeps service functions (typed against the app DB) usable in tests.
@@ -74,7 +84,7 @@ export async function makeOrgTestDb(): Promise<OrgTestDb> {
   return {
     db,
     client,
-    applyMigration: () => runMigration(client, migrationSql),
+    applyMigration: applyAll,
     createUser: async (email: string, name = "Test User") => {
       const res = await client.query<{ id: string }>(
         `INSERT INTO "users" ("email","display_name") VALUES ($1,$2) RETURNING id`,

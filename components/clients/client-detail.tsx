@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { ClientForm, type ClientFormValues } from "./client-form";
 import { DateField, formatAuDate } from "@/components/ui/date-field";
+import { AttachmentsPanel } from "@/components/ui/attachments-panel";
 
 // ============================================================================
 // ClientDetail — the right pane: one client's full record.
@@ -1038,6 +1039,10 @@ function ContractsSection({
                       />
                     )}
                   </div>
+                  <AttachmentsPanel
+                    basePath={`/api/clients/${clientId}/contracts/${c.id}/attachments`}
+                    canEdit={canWrite}
+                  />
                 </div>
               )}
             </motion.li>

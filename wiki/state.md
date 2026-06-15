@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-15T09:38:27.943Z
+generated: 2026-06-15T09:59:24.869Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -81,7 +81,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-06-03 |
 | `/tools/cdmp-practice/history/[sessionId]` | [app/tools/cdmp-practice/history/[sessionId]/page.tsx](../app/tools/cdmp-practice/history/[sessionId]/page.tsx) | 2026-06-03 |
 
-## API endpoints (155)
+## API endpoints (157)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -173,6 +173,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/clients/[id]/contacts/[contactId]` | [app/api/clients/[id]/contacts/[contactId]/route.ts](../app/api/clients/[id]/contacts/[contactId]/route.ts) | 2026-06-15 |
 | `/api/clients/[id]/contracts` | [app/api/clients/[id]/contracts/route.ts](../app/api/clients/[id]/contracts/route.ts) | 2026-06-15 |
 | `/api/clients/[id]/contracts/[contractId]` | [app/api/clients/[id]/contracts/[contractId]/route.ts](../app/api/clients/[id]/contracts/[contractId]/route.ts) | 2026-06-15 |
+| `/api/clients/[id]/contracts/[contractId]/attachments` | [app/api/clients/[id]/contracts/[contractId]/attachments/route.ts](../app/api/clients/[id]/contracts/[contractId]/attachments/route.ts) | unknown |
+| `/api/clients/[id]/contracts/[contractId]/attachments/[attachmentId]` | [app/api/clients/[id]/contracts/[contractId]/attachments/[attachmentId]/route.ts](../app/api/clients/[id]/contracts/[contractId]/attachments/[attachmentId]/route.ts) | unknown |
 | `/api/contact` | [app/api/contact/route.ts](../app/api/contact/route.ts) | 2026-05-15 |
 | `/api/cron/process-scheduled` | [app/api/cron/process-scheduled/route.ts](../app/api/cron/process-scheduled/route.ts) | 2026-06-12 |
 | `/api/cron/process-scheduled-posts` | [app/api/cron/process-scheduled-posts/route.ts](../app/api/cron/process-scheduled-posts/route.ts) | 2026-05-20 |
@@ -241,7 +243,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/execute` | [app/api/workflows/[id]/execute/route.ts](../app/api/workflows/[id]/execute/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]/execute-stream` | [app/api/workflows/[id]/execute-stream/route.ts](../app/api/workflows/[id]/execute-stream/route.ts) | 2026-06-14 |
 
-## Components (106)
+## Components (107)
 
 | File | Last shipped |
 |------|--------------|
@@ -336,6 +338,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/social/scheduled-posts-list.tsx](../components/social/scheduled-posts-list.tsx) | 2026-06-15 |
 | [components/social/social-accounts-page.tsx](../components/social/social-accounts-page.tsx) | 2026-06-12 |
 | [components/social/upcoming-posts-widget.tsx](../components/social/upcoming-posts-widget.tsx) | 2026-06-14 |
+| [components/ui/attachments-panel.tsx](../components/ui/attachments-panel.tsx) | unknown |
 | [components/ui/button.tsx](../components/ui/button.tsx) | 2026-05-15 |
 | [components/ui/date-field.tsx](../components/ui/date-field.tsx) | 2026-06-15 |
 | [components/ui/dialog.tsx](../components/ui/dialog.tsx) | 2026-05-15 |

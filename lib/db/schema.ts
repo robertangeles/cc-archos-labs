@@ -3242,6 +3242,33 @@ export const clientContract = pgTable(
 export type ClientContract = typeof clientContract.$inferSelect;
 export type NewClientContract = typeof clientContract.$inferInsert;
 
+// contract_attachment — files attached to a client contract (Cloudinary-backed).
+// Scoped to the org through the contract's client (see lib/contract-attachments).
+export const clientContractAttachment = pgTable(
+  "contract_attachment",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    contractId: uuid("contract_id")
+      .notNull()
+      .references(() => clientContract.id, { onDelete: "cascade" }),
+    fileName: varchar("file_name", { length: 255 }).notNull(),
+    fileUrl: text("file_url").notNull(),
+    fileType: varchar("file_type", { length: 100 }),
+    fileSize: integer("file_size"),
+    uploadedBy: uuid("uploaded_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("contract_attachment_contract_id_idx").on(table.contractId),
+  ],
+);
+export type ClientContractAttachment =
+  typeof clientContractAttachment.$inferSelect;
+export type NewClientContractAttachment =
+  typeof clientContractAttachment.$inferInsert;
+
 // project — a unit of work, scoped to an org, optionally tied to a client.
 export const project = pgTable(
   "project",
