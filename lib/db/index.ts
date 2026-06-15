@@ -10,7 +10,7 @@ import * as schema from "./schema";
 // DB layer would just create connection storms. Render Postgres handles
 // connection re-use at the platform level via PgBouncer-style pooling.
 
-const REDACTED_KEYS = ["llmApiKey", "resendApiKey", "adminPassword", "turnstileSecretKey", "googleOauthClientSecret"];
+const REDACTED_KEYS = ["llmApiKey", "resendApiKey", "adminPassword", "turnstileSecretKey", "googleOauthClientSecret", "cloudinaryApiSecret"];
 const PARAM_TRUNCATE_LEN = 120;
 
 class SafeLogger implements Logger {

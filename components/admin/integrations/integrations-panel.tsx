@@ -34,6 +34,13 @@ export interface RedactedConfig {
   linkedinClientSecret: string;
   linkedinEnabled: boolean;
   blueskyEnabled: boolean;
+  // Cloudinary media storage. Cloud name + API key are identifier-grade
+  // (plaintext); the API secret is always redacted. Upload folder is an
+  // optional plaintext path prefix.
+  cloudinaryCloudName: string | null;
+  cloudinaryApiKey: string | null;
+  cloudinaryApiSecret: string;
+  cloudinaryUploadFolder: string | null;
 }
 
 export interface AuditRow {
@@ -55,6 +62,7 @@ const ENCRYPTED_FIELDS: ReadonlyArray<FieldKey> = [
   "gbrainAdminToken",
   "twitterClientSecret",
   "linkedinClientSecret",
+  "cloudinaryApiSecret",
 ];
 
 // Fields that accept null (empty string in the form clears them).
@@ -71,6 +79,10 @@ const NULLABLE_FIELDS: ReadonlyArray<FieldKey> = [
   "twitterClientSecret",
   "linkedinClientId",
   "linkedinClientSecret",
+  "cloudinaryCloudName",
+  "cloudinaryApiKey",
+  "cloudinaryApiSecret",
+  "cloudinaryUploadFolder",
 ];
 
 function isEncrypted(field: FieldKey): boolean {
@@ -111,7 +123,8 @@ export type IntegrationSlug =
   | "ai-model"
   | "authentication"
   | "google-calendar"
-  | "anti-spam";
+  | "anti-spam"
+  | "media-storage";
 
 // Google-specific extras passed in only when view === 'google-calendar'.
 // Coming from the page server component which reads the consultant row.
@@ -543,6 +556,76 @@ export function IntegrationsPanel({
             onSave={() => handleSave("turnstileSecretKey")}
             onReveal={() => handleReveal("turnstileSecretKey")}
             onHide={() => handleHide("turnstileSecretKey")}
+          />
+        </Section>
+      )}
+
+      {view === "media-storage" && (
+        <Section title="Media Storage (Cloudinary)">
+          <p className="text-[12px] text-ink-subtle">
+            File storage for project card attachments and cover images.
+            Create a free account at{" "}
+            <a
+              href="https://cloudinary.com/console"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-ink"
+            >
+              cloudinary.com/console
+            </a>{" "}
+            and copy the Cloud name, API Key, and API Secret from the
+            dashboard. Uploads are signed server-side — the secret never
+            reaches the browser.
+          </p>
+          <ConfigField
+            field="cloudinaryCloudName"
+            label="Cloud name"
+            hint="From the Cloudinary dashboard — appears in your delivery URLs."
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus["cloudinaryCloudName"]}
+            onEdit={(v) => setEditing((e) => ({ ...e, cloudinaryCloudName: v }))}
+            onSave={() => handleSave("cloudinaryCloudName")}
+          />
+          <ConfigField
+            field="cloudinaryApiKey"
+            label="API key"
+            hint="Identifier-grade — included in signed upload requests."
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus["cloudinaryApiKey"]}
+            onEdit={(v) => setEditing((e) => ({ ...e, cloudinaryApiKey: v }))}
+            onSave={() => handleSave("cloudinaryApiKey")}
+          />
+          <ConfigField
+            field="cloudinaryApiSecret"
+            label="API secret"
+            hint="Signs every upload. Encrypted at rest. Leave blank to keep the current value."
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus["cloudinaryApiSecret"]}
+            onEdit={(v) =>
+              setEditing((e) => ({ ...e, cloudinaryApiSecret: v }))
+            }
+            onSave={() => handleSave("cloudinaryApiSecret")}
+            onReveal={() => handleReveal("cloudinaryApiSecret")}
+            onHide={() => handleHide("cloudinaryApiSecret")}
+          />
+          <ConfigField
+            field="cloudinaryUploadFolder"
+            label="Upload folder"
+            hint="Optional path prefix for uploaded files (e.g. archos/cards). Leave empty for the account root."
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus["cloudinaryUploadFolder"]}
+            onEdit={(v) =>
+              setEditing((e) => ({ ...e, cloudinaryUploadFolder: v }))
+            }
+            onSave={() => handleSave("cloudinaryUploadFolder")}
           />
         </Section>
       )}
@@ -986,6 +1069,10 @@ function RevealAuthModal({
     linkedinClientSecret: "LinkedIn Client Secret",
     linkedinEnabled: "",
     blueskyEnabled: "",
+    cloudinaryCloudName: "",
+    cloudinaryApiKey: "",
+    cloudinaryApiSecret: "Cloudinary API Secret",
+    cloudinaryUploadFolder: "",
   };
 
   return (

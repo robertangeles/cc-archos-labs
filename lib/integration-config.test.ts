@@ -85,6 +85,7 @@ describe("integration-config-shared", () => {
         "gbrainAdminToken",
         "twitterClientSecret",
         "linkedinClientSecret",
+        "cloudinaryApiSecret",
       ]);
     });
 
@@ -124,6 +125,10 @@ describe("integration-config-shared", () => {
         linkedinClientSecret: null,
         linkedinEnabled: false,
         blueskyEnabled: false,
+        cloudinaryCloudName: null,
+        cloudinaryApiKey: null,
+        cloudinaryApiSecret: null,
+        cloudinaryUploadFolder: null,
       };
       expect(IntegrationConfigSchema.safeParse(valid).success).toBe(true);
     });
@@ -176,6 +181,10 @@ describe("integration-config-shared", () => {
         linkedinClientSecret: null,
         linkedinEnabled: false,
         blueskyEnabled: false,
+        cloudinaryCloudName: null,
+        cloudinaryApiKey: null,
+        cloudinaryApiSecret: null,
+        cloudinaryUploadFolder: null,
       };
       const parsed = IntegrationConfigSchema.safeParse(valid);
       expect(parsed.success).toBe(true);
@@ -205,6 +214,10 @@ describe("integration-config-shared", () => {
         linkedinClientSecret: null,
         linkedinEnabled: false,
         blueskyEnabled: false,
+        cloudinaryCloudName: null,
+        cloudinaryApiKey: null,
+        cloudinaryApiSecret: null,
+        cloudinaryUploadFolder: null,
       };
       const parsed = IntegrationConfigSchema.safeParse(valid);
       expect(parsed.success).toBe(true);

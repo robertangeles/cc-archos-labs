@@ -24,6 +24,7 @@ const VALID_SLUGS: ReadonlyArray<IntegrationSlug> = [
   "authentication",
   "google-calendar",
   "anti-spam",
+  "media-storage",
 ];
 
 const TITLES: Record<IntegrationSlug, string> = {
@@ -32,6 +33,7 @@ const TITLES: Record<IntegrationSlug, string> = {
   authentication: "Authentication",
   "google-calendar": "Google Calendar",
   "anti-spam": "Anti-spam (Turnstile)",
+  "media-storage": "Media Storage (Cloudinary)",
 };
 
 const SUBTITLES: Record<IntegrationSlug, string> = {
@@ -45,6 +47,8 @@ const SUBTITLES: Record<IntegrationSlug, string> = {
     "OAuth credentials + grant status. Connecting reads your availability and creates events with Meet links for booked calls.",
   "anti-spam":
     "Cloudflare Turnstile site + secret keys. Required to enable bot protection on the public booking form.",
+  "media-storage":
+    "Cloudinary cloud name, API key + secret. Required for project card attachments and cover-image uploads.",
 };
 
 interface PageProps {

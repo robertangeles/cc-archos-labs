@@ -66,6 +66,13 @@ export function IntegrationsGrid({
         "Cloudflare Turnstile bot protection for the public Book-a-Call form.",
       status: redactedSecretToStatus(config.turnstileSecretKey),
     },
+    {
+      slug: "media-storage",
+      title: "Media Storage (Cloudinary)",
+      description:
+        "File storage for project card attachments and cover images. Signed uploads.",
+      status: redactedSecretToStatus(config.cloudinaryApiSecret),
+    },
   ];
 
   return (

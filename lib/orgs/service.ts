@@ -122,6 +122,26 @@ export async function listUserOrgs(userId: string) {
 }
 
 /** Org detail + members. joinKey only returned to owner/admin (route decides). */
+/**
+ * List the members of an org for the assignee picker — userId, display name,
+ * email, role. Newest member first. Does not expose the org row or join key.
+ * Pure data access; the route resolves + authorises the org first.
+ */
+export async function listOrgMembers(orgId: string, dbArg?: DB) {
+  const db = dbArg ?? getDb();
+  return db
+    .select({
+      userId: organisationMember.userId,
+      displayName: users.displayName,
+      email: users.email,
+      role: organisationMember.role,
+    })
+    .from(organisationMember)
+    .innerJoin(users, eq(organisationMember.userId, users.id))
+    .where(eq(organisationMember.organisationId, orgId))
+    .orderBy(desc(organisationMember.createdAt));
+}
+
 export async function getOrgWithMembers(orgId: string) {
   const db = getDb();
   const rows = await db
