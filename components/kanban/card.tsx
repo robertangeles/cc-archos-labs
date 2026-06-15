@@ -51,9 +51,13 @@ function memberLabel(
 }
 
 function formatDue(date: string): string {
+  // dueDate is a calendar date ("YYYY-MM-DD", no time/zone). new Date() parses
+  // it as UTC midnight, so we pin the display to UTC — otherwise a viewer in a
+  // negative-UTC timezone would see the day before. Order stays en-AU.
   return new Date(date).toLocaleDateString("en-AU", {
     day: "numeric",
     month: "short",
+    timeZone: "UTC",
   });
 }
 
