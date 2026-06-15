@@ -135,6 +135,9 @@ export function PublishModal({
       else next.add(platform);
       return next;
     });
+    // Selecting/unselecting changes what's required — drop stale errors.
+    setScheduleResult(null);
+    setResults(null);
   }, []);
 
   const handlePublish = useCallback(async () => {
@@ -392,12 +395,15 @@ export function PublishModal({
               <div>
                 <textarea
                   value={currentContent}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setPerPlatformContent((prev) => ({
                       ...prev,
                       [activeTab]: e.target.value,
-                    }))
-                  }
+                    }));
+                    // Clear any stale validation error now that content changed.
+                    setScheduleResult(null);
+                    setResults(null);
+                  }}
                   rows={6}
                   className="w-full resize-none rounded-md border border-hairline bg-surface-1 px-3 py-2 text-sm text-ink placeholder:text-ink-subtle/50 focus:border-primary focus:outline-none"
                   placeholder={`Content for ${PLATFORM_DISPLAY_NAMES[activeTab]}...`}
