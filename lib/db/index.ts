@@ -42,10 +42,14 @@ export function getDb() {
     );
   }
 
-  // Render Postgres requires SSL; postgres.js doesn't auto-detect from
-  // the URL alone. Setting ssl explicitly so this works for both the
-  // External Database URL (local dev) and the Internal one (Render).
-  const client = postgres(databaseUrl, { max: 1, ssl: "require" });
+  // Render Postgres requires SSL; a local dev Postgres (127.0.0.1) does not.
+  // Detect from the host so DEV (local) and PROD (Render) both connect with
+  // the right setting — no extra env var to manage.
+  const isLocal = /@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(databaseUrl);
+  const client = postgres(databaseUrl, {
+    max: 1,
+    ssl: isLocal ? false : "require",
+  });
   cachedDb = drizzle(client, {
     schema,
     logger: process.env.NODE_ENV === "development" ? new SafeLogger() : false,

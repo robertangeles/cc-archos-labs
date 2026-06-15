@@ -18,7 +18,9 @@ if (!url) {
   process.exit(1);
 }
 
-const sql = postgres(url, { max: 1, ssl: "require" });
+// Local dev Postgres (127.0.0.1) has no SSL; Render requires it. Detect by host.
+const isLocal = /@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(url);
+const sql = postgres(url, { max: 1, ssl: isLocal ? false : "require" });
 
 try {
   // Track applied migrations in a small metadata table so re-runs skip

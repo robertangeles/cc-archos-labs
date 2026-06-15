@@ -11,7 +11,12 @@ export default {
   dialect: "postgresql",
   dbCredentials: {
     url: process.env.DATABASE_URL ?? "",
-    ssl: { rejectUnauthorized: false },
+    // Local dev Postgres (127.0.0.1) has no SSL; Render requires it.
+    ssl: /@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(
+      process.env.DATABASE_URL ?? "",
+    )
+      ? false
+      : { rejectUnauthorized: false },
   },
   verbose: true,
   strict: false,
