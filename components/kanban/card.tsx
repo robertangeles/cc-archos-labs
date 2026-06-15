@@ -3,7 +3,13 @@
 import { useState, useRef, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Calendar, MoreHorizontal, ArrowRightLeft, GripVertical } from "lucide-react";
+import {
+  Calendar,
+  MoreHorizontal,
+  ArrowRightLeft,
+  GripVertical,
+  MessageSquare,
+} from "lucide-react";
 import {
   type BoardCard,
   type BoardColumn,
@@ -115,6 +121,22 @@ export function KanbanCard({
           onClick={() => onOpen(card)}
           className="min-w-0 flex-1 text-left"
         >
+          {card.labels && card.labels.length > 0 && (
+            <div className="mb-1.5 flex flex-wrap gap-1">
+              {card.labels.map((l) => (
+                <span
+                  key={l.id}
+                  className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium leading-none"
+                  style={{
+                    backgroundColor: `color-mix(in srgb, ${l.color || "var(--color-ink-subtle)"} 16%, transparent)`,
+                    color: l.color || "var(--color-ink-subtle)",
+                  }}
+                >
+                  {l.name}
+                </span>
+              ))}
+            </div>
+          )}
           <p className="line-clamp-3 text-sm text-ink">{card.title}</p>
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
             <span className="flex items-center gap-1.5">
@@ -135,6 +157,12 @@ export function KanbanCard({
               <span className="flex items-center gap-1 text-[11px] text-ink-tertiary">
                 <Calendar className="h-3 w-3" />
                 {formatDue(card.dueDate)}
+              </span>
+            )}
+            {card.commentCount !== undefined && card.commentCount > 0 && (
+              <span className="flex items-center gap-1 text-[11px] text-ink-tertiary">
+                <MessageSquare className="h-3 w-3" />
+                {card.commentCount}
               </span>
             )}
           </div>

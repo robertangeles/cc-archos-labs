@@ -16,7 +16,12 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Plus, Loader2, AlertCircle } from "lucide-react";
 import { KanbanColumn } from "./column";
 import { CardModal } from "./card-modal";
-import { type BoardCard, type BoardColumn, type ProjectMember } from "./types";
+import {
+  type BoardCard,
+  type BoardColumn,
+  type ProjectMember,
+  type OrgMember,
+} from "./types";
 
 // ============================================================================
 // KanbanBoard — fetches the full board (columns with embedded cards) and the
@@ -87,6 +92,7 @@ function applyMove(
 export function KanbanBoard({ projectId }: KanbanBoardProps) {
   const [columns, setColumns] = useState<BoardColumn[]>([]);
   const [members, setMembers] = useState<ProjectMember[]>([]);
+  const [orgMembers, setOrgMembers] = useState<OrgMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeCard, setActiveCard] = useState<BoardCard | null>(null);
@@ -135,12 +141,39 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
     void (async () => {
       await fetchBoard();
     })();
-    // Members power the assignee picker + initials. A failure is non-fatal.
+    // Project members power the board's member list. A failure is non-fatal.
     fetch(`/api/projects/${projectId}/members`, { credentials: "same-origin" })
       .then((r) => r.json())
       .then((data) => setMembers((data.members ?? []) as ProjectMember[]))
       .catch(() => setMembers([]));
+    // Org members are assignable to cards (the assignee may not be a project
+    // member). Used to resolve assignee avatars on every card face.
+    fetch("/api/organisations/members", { credentials: "same-origin" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.members) setOrgMembers(data.members as OrgMember[]);
+      })
+      .catch(() => setOrgMembers([]));
   }, [fetchBoard, projectId]);
+
+  // Union of project + org members (deduped by userId) so any assignee resolves
+  // to a name/avatar on a card, regardless of project membership.
+  const displayMembers: ProjectMember[] = (() => {
+    const byId = new Map<string, ProjectMember>();
+    for (const m of members) byId.set(m.userId, m);
+    for (const o of orgMembers) {
+      if (!byId.has(o.userId)) {
+        byId.set(o.userId, {
+          id: o.userId,
+          userId: o.userId,
+          role: o.role,
+          displayName: o.displayName,
+          email: o.email,
+        });
+      }
+    }
+    return Array.from(byId.values());
+  })();
 
   // ---- drag handlers -------------------------------------------------------
 
@@ -341,7 +374,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
               projectId={projectId}
               column={column}
               columns={columns}
-              members={members}
+              members={displayMembers}
               onOpenCard={setOpenCard}
               onMoveCardToColumn={handleMoveCardToColumn}
               onCardCreated={handleCardCreated}
@@ -382,7 +415,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
         <CardModal
           projectId={projectId}
           card={openCard}
-          members={members}
+          members={displayMembers}
           onClose={() => setOpenCard(null)}
           onSaved={handleCardSaved}
           onDeleted={handleCardDeleted}

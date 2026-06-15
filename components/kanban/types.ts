@@ -22,6 +22,54 @@ export interface BoardCard {
   artifactUrl: string | null;
   createdAt: string;
   updatedAt: string;
+  // Enriched by getBoard (additive).
+  labels?: CardLabel[];
+  commentCount?: number;
+}
+
+/** A label definition within a project. */
+export interface CardLabel {
+  id: string;
+  name: string;
+  color: string | null;
+}
+
+/** A comment on a card, with its author resolved. */
+export interface CardComment {
+  id: string;
+  body: string;
+  userId: string | null;
+  displayName: string | null;
+  email: string | null;
+  createdAt: string;
+}
+
+/** A history entry for a card (from project_activity). */
+export interface CardActivity {
+  id: string;
+  action: string;
+  entityName: string | null;
+  userId: string | null;
+  displayName: string | null;
+  createdAt: string;
+}
+
+/** A file attached to a card (stored in Cloudinary). */
+export interface CardAttachment {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  fileType: string | null;
+  fileSize: number | null;
+  createdAt: string;
+}
+
+/** A member of the current organisation (assignable to cards). */
+export interface OrgMember {
+  userId: string;
+  displayName: string | null;
+  email: string;
+  role: string;
 }
 
 export interface BoardColumn {
