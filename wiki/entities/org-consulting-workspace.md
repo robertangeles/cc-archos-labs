@@ -44,7 +44,7 @@ DB-driven via the admin **Integrations → Media Storage** panel ([[integration-
 
 ## Migration / deploy status
 
-Migrations `0025` + `0026` are applied to the **local DEV database only** (the clone this session introduced — see [[deployment-architecture]]). The live Render PROD database has not yet received them; that cutover is the remaining production step. Nothing is destructive — both migrations are additive + idempotent.
+Migrations `0025` + `0026` are applied to **both DEV and the live Render PROD database** (2026-06-15; `pg_dump` backup taken first). `0025` is **schema-only** — it does NOT backfill orgs. `createDefaultOrgForUser` runs only at registration, so the 9 pre-existing PROD users were backfilled separately (a one-time run of the same idempotent function's logic): each now owns a default org with an owner membership. PROD verified: 9 users → 9 orgs → 9 memberships, 0 users without an org, schema in sync with DEV. **Remaining:** merge PR #155 so the Render web service deploys the code (and verify the deploy actually completes — auto-deploy has silently failed before). DEV test data is NOT and should NOT be copied to PROD.
 
 ## Not built / deferred
 

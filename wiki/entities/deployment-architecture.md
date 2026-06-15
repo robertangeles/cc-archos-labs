@@ -62,9 +62,9 @@ When the user says something architectural that doesn't fit the conventional mul
 For the org/clients/projects/kanban migration (a large additive schema change — see [[org-consulting-workspace]]) a **local DEV Postgres** (`archos_labs_dev`, PG18) was created as a clone of PROD, and `.env.local` was repointed at it. This is exactly the "separate DB for a schema change that warrants a rehearsal" case anticipated above — not a permanent move to multi-env.
 
 - **DEV** (local `archos_labs_dev`): migrations `0025` + `0026` applied + default-org backfill + session test data. `.env.local` → DEV.
-- **PROD** (Render `archos_labs_pdb`, Singapore): unchanged — does **not** yet have `0025`/`0026`. The Render URL is kept commented in `.env.local` as `DATABASE_URL_RENDER_PROD`.
+- **PROD** (Render `archos_labs_pdb`, Singapore): migrated 2026-06-15 — `0025` + `0026` applied (after a `pg_dump` backup) + the 9 pre-existing users backfilled a default org each (schema-only migration does not backfill; `createDefaultOrgForUser` runs only at registration). The Render URL is kept commented in `.env.local` as `DATABASE_URL_RENDER_PROD`.
 
-Applying the org migration to PROD is a **manual** `pnpm db:migrate` run against the PROD URL (there is no migrate-on-deploy hook; `build`/`start` are vanilla). Take a `pg_dump` backup first. Both migrations are additive + idempotent. After cutover the *schema* is in sync; DEV's test data is not (and must not be) copied to PROD. The single-DB posture above remains the intended steady state once the rehearsal DB is retired.
+The org migration to PROD was a **manual** run of the idempotent `scripts/db-apply.mjs` against the PROD URL (there is no migrate-on-deploy hook; `build`/`start` are vanilla), plus a one-time existing-user org backfill. Schema is now in sync DEV↔PROD; DEV's test data is not (and must not be) copied to PROD. The single-DB posture above remains the intended steady state once the rehearsal DB is retired. **Backup:** `~/archos_prod_backup_20260615-210817.dump` (pg_restore custom format).
 
 ## Other services on the same posture
 
