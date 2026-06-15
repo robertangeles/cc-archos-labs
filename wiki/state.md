@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-15T12:40:27.432Z
+generated: 2026-06-15T12:44:16.583Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -80,8 +80,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/ai-readiness/share/[token]` | [app/tools/ai-readiness/share/[token]/page.tsx](../app/tools/ai-readiness/share/[token]/page.tsx) | 2026-05-13 |
 | `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-06-03 |
 | `/tools/cdmp-practice/history/[sessionId]` | [app/tools/cdmp-practice/history/[sessionId]/page.tsx](../app/tools/cdmp-practice/history/[sessionId]/page.tsx) | 2026-06-03 |
-| `/workspace/model-studio` | [app/workspace/model-studio/page.tsx](../app/workspace/model-studio/page.tsx) | unknown |
-| `/workspace/model-studio/[id]` | [app/workspace/model-studio/[id]/page.tsx](../app/workspace/model-studio/[id]/page.tsx) | unknown |
+| `/workspace/model-studio` | [app/workspace/model-studio/page.tsx](../app/workspace/model-studio/page.tsx) | 2026-06-15 |
+| `/workspace/model-studio/[id]` | [app/workspace/model-studio/[id]/page.tsx](../app/workspace/model-studio/[id]/page.tsx) | 2026-06-15 |
 
 ## API endpoints (160)
 
@@ -293,7 +293,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/model-studio/create-model-dialog.tsx](../components/model-studio/create-model-dialog.tsx) | 2026-06-15 |
 | [components/model-studio/delete-model-dialog.tsx](../components/model-studio/delete-model-dialog.tsx) | 2026-06-15 |
 | [components/model-studio/edit-model-dialog.tsx](../components/model-studio/edit-model-dialog.tsx) | 2026-06-15 |
-| [components/model-studio/model-studio-view.tsx](../components/model-studio/model-studio-view.tsx) | unknown |
+| [components/model-studio/model-studio-view.tsx](../components/model-studio/model-studio-view.tsx) | 2026-06-15 |
 | [components/org/org-management.tsx](../components/org/org-management.tsx) | 2026-06-15 |
 | [components/org/org-switcher.tsx](../components/org/org-switcher.tsx) | 2026-06-15 |
 | [components/pages/block-error-boundary.tsx](../components/pages/block-error-boundary.tsx) | 2026-05-18 |

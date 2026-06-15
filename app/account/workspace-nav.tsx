@@ -11,6 +11,7 @@ import {
   CalendarClock,
   Users,
   FolderKanban,
+  Boxes,
   type LucideIcon,
 } from "lucide-react";
 
@@ -28,6 +29,7 @@ const items: NavItem[] = [
   { href: "/account/scheduled-posts", label: "Social Posts", icon: CalendarClock },
   { href: "/account/clients", label: "Clients", icon: Users },
   { href: "/account/projects", label: "Projects", icon: FolderKanban },
+  { href: "/workspace/model-studio", label: "Model Studio", icon: Boxes },
   { href: "/account/history", label: "History", icon: Clock },
 ];
 
