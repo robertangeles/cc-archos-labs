@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-15T12:34:03.250Z
+generated: 2026-06-15T12:40:27.432Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -9,7 +9,7 @@ Auto-generated snapshot of what is currently shipped. **Source of truth for ship
 
 Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `app/` or `components/` to fire the pre-commit hook.
 
-## Routes (67)
+## Routes (69)
 
 | Route | File | Last shipped |
 |-------|------|--------------|
@@ -80,6 +80,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/ai-readiness/share/[token]` | [app/tools/ai-readiness/share/[token]/page.tsx](../app/tools/ai-readiness/share/[token]/page.tsx) | 2026-05-13 |
 | `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-06-03 |
 | `/tools/cdmp-practice/history/[sessionId]` | [app/tools/cdmp-practice/history/[sessionId]/page.tsx](../app/tools/cdmp-practice/history/[sessionId]/page.tsx) | 2026-06-03 |
+| `/workspace/model-studio` | [app/workspace/model-studio/page.tsx](../app/workspace/model-studio/page.tsx) | unknown |
+| `/workspace/model-studio/[id]` | [app/workspace/model-studio/[id]/page.tsx](../app/workspace/model-studio/[id]/page.tsx) | unknown |
 
 ## API endpoints (160)
 
@@ -189,7 +191,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/health/cron` | [app/api/health/cron/route.ts](../app/api/health/cron/route.ts) | 2026-05-17 |
 | `/api/model-studio` | [app/api/model-studio/route.ts](../app/api/model-studio/route.ts) | 2026-06-15 |
 | `/api/model-studio/[id]` | [app/api/model-studio/[id]/route.ts](../app/api/model-studio/[id]/route.ts) | 2026-06-15 |
-| `/api/model-studio/flag` | [app/api/model-studio/flag/route.ts](../app/api/model-studio/flag/route.ts) | unknown |
+| `/api/model-studio/flag` | [app/api/model-studio/flag/route.ts](../app/api/model-studio/flag/route.ts) | 2026-06-15 |
 | `/api/organisations` | [app/api/organisations/route.ts](../app/api/organisations/route.ts) | 2026-06-15 |
 | `/api/organisations/[id]` | [app/api/organisations/[id]/route.ts](../app/api/organisations/[id]/route.ts) | 2026-06-15 |
 | `/api/organisations/[id]/join` | [app/api/organisations/[id]/join/route.ts](../app/api/organisations/[id]/join/route.ts) | 2026-06-15 |
@@ -246,7 +248,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/execute` | [app/api/workflows/[id]/execute/route.ts](../app/api/workflows/[id]/execute/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]/execute-stream` | [app/api/workflows/[id]/execute-stream/route.ts](../app/api/workflows/[id]/execute-stream/route.ts) | 2026-06-14 |
 
-## Components (110)
+## Components (111)
 
 | File | Last shipped |
 |------|--------------|
@@ -291,6 +293,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/model-studio/create-model-dialog.tsx](../components/model-studio/create-model-dialog.tsx) | 2026-06-15 |
 | [components/model-studio/delete-model-dialog.tsx](../components/model-studio/delete-model-dialog.tsx) | 2026-06-15 |
 | [components/model-studio/edit-model-dialog.tsx](../components/model-studio/edit-model-dialog.tsx) | 2026-06-15 |
+| [components/model-studio/model-studio-view.tsx](../components/model-studio/model-studio-view.tsx) | unknown |
 | [components/org/org-management.tsx](../components/org/org-management.tsx) | 2026-06-15 |
 | [components/org/org-switcher.tsx](../components/org/org-switcher.tsx) | 2026-06-15 |
 | [components/pages/block-error-boundary.tsx](../components/pages/block-error-boundary.tsx) | 2026-05-18 |
