@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useDroppable } from "@dnd-kit/core";
 import {
+  useSortable,
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Plus, Loader2 } from "lucide-react";
+import { CSS } from "@dnd-kit/utilities";
+import { Plus, Loader2, GripVertical } from "lucide-react";
 import { KanbanCard } from "./card";
 import { type BoardCard, type BoardColumn, type ProjectMember } from "./types";
 
@@ -38,7 +39,19 @@ export function KanbanColumn({
   onMoveCardToColumn,
   onCardCreated,
 }: KanbanColumnProps) {
-  const { setNodeRef, isOver } = useDroppable({
+  // The column is a sortable item (for column reorder) AND the droppable target
+  // for cards — useSortable provides both. Only the header is the drag activator
+  // so dragging a card inside the column never starts a column drag.
+  const {
+    setNodeRef,
+    setActivatorNodeRef,
+    attributes,
+    listeners,
+    transform,
+    transition,
+    isDragging,
+    isOver,
+  } = useSortable({
     id: column.id,
     data: { type: "column", columnId: column.id },
   });
@@ -85,10 +98,21 @@ export function KanbanColumn({
 
   return (
     <div
+      ref={setNodeRef}
+      style={{
+        borderTop: `2px solid ${accent}`,
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+      }}
       className="flex max-h-full w-[300px] min-w-[300px] flex-col rounded-xl border border-hairline bg-surface-1"
-      style={{ borderTop: `2px solid ${accent}` }}
     >
-      <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+      <div
+        ref={setActivatorNodeRef}
+        {...attributes}
+        {...listeners}
+        className="group/col flex cursor-grab items-center justify-between gap-2 px-3 py-2.5 active:cursor-grabbing"
+      >
         <div className="flex min-w-0 items-center gap-2">
           <span
             aria-hidden
@@ -108,10 +132,10 @@ export function KanbanColumn({
             {column.cards.length}
           </span>
         </div>
+        <GripVertical className="h-4 w-4 shrink-0 text-ink-tertiary opacity-0 transition-opacity group-hover/col:opacity-60" />
       </div>
 
       <div
-        ref={setNodeRef}
         className={`min-h-[60px] flex-1 space-y-2 overflow-y-auto px-2 pb-2 transition-colors ${
           isOver ? "rounded-lg bg-surface-2/60" : ""
         }`}

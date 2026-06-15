@@ -12,7 +12,12 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import {
+  SortableContext,
+  arrayMove,
+  horizontalListSortingStrategy,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
 import { Plus, Loader2, AlertCircle } from "lucide-react";
 import { KanbanColumn } from "./column";
 import { CardModal } from "./card-modal";
@@ -97,6 +102,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeCard, setActiveCard] = useState<BoardCard | null>(null);
+  const [activeColumnId, setActiveColumnId] = useState<string | null>(null);
   const [openCard, setOpenCard] = useState<BoardCard | null>(null);
   const [moveError, setMoveError] = useState<string | null>(null);
   const [addingColumn, setAddingColumn] = useState(false);
@@ -179,13 +185,43 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
   // ---- drag handlers -------------------------------------------------------
 
   function handleDragStart(event: DragStartEvent) {
-    const card = event.active.data.current?.card as BoardCard | undefined;
+    const data = event.active.data.current;
+    if (data?.type === "column") {
+      setActiveColumnId(String(event.active.id));
+      return;
+    }
+    const card = data?.card as BoardCard | undefined;
     if (card) setActiveCard(card);
   }
 
   async function handleDragEnd(event: DragEndEvent) {
-    setActiveCard(null);
     const { active, over } = event;
+
+    // --- Column reorder -----------------------------------------------------
+    if (active.data.current?.type === "column") {
+      setActiveColumnId(null);
+      if (!over) return;
+      const overData = over.data.current as { type?: string } | undefined;
+      const targetColumnId =
+        overData?.type === "column"
+          ? String(over.id)
+          : findColumnOfCard(columns, String(over.id))?.id;
+      if (!targetColumnId || targetColumnId === String(active.id)) return;
+      const oldIndex = columns.findIndex((c) => c.id === active.id);
+      const newIndex = columns.findIndex((c) => c.id === targetColumnId);
+      if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) return;
+      const before = columns;
+      const reordered = arrayMove(columns, oldIndex, newIndex).map((c, i) => ({
+        ...c,
+        sortOrder: i,
+      }));
+      setColumns(reordered);
+      void persistColumnOrder(before, reordered);
+      return;
+    }
+
+    // --- Card move ----------------------------------------------------------
+    setActiveCard(null);
     if (!over) return;
 
     const cardId = String(active.id);
@@ -261,6 +297,38 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
         await fetchBoard();
       } finally {
         preMoveSnapshot.current = null;
+      }
+    },
+    [projectId, fetchBoard],
+  );
+
+  /** Persist a column reorder by PATCHing each column whose position changed. */
+  const persistColumnOrder = useCallback(
+    async (before: BoardColumn[], ordered: BoardColumn[]) => {
+      setMoveError(null);
+      const patches = ordered
+        .map((c, i) => ({ id: c.id, i }))
+        .filter(({ id, i }) => {
+          const prev = before.find((b) => b.id === id);
+          return !prev || prev.sortOrder !== i;
+        });
+      try {
+        await Promise.all(
+          patches.map(({ id, i }) =>
+            fetch(`/api/projects/${projectId}/columns/${id}`, {
+              method: "PATCH",
+              credentials: "same-origin",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ sortOrder: i }),
+            }).then((r) => {
+              if (!r.ok) throw new Error("column reorder failed");
+            }),
+          ),
+        );
+      } catch {
+        setMoveError("Could not reorder columns. They have been put back.");
+        setColumns(before);
+        await fetchBoard();
       }
     },
     [projectId, fetchBoard],
@@ -418,22 +486,30 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
         collisionDetection={closestCorners}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
-        onDragCancel={() => setActiveCard(null)}
+        onDragCancel={() => {
+          setActiveCard(null);
+          setActiveColumnId(null);
+        }}
       >
         <div className="flex items-start gap-4 overflow-x-auto pb-2">
-          {columns.map((column, index) => (
-            <KanbanColumn
-              key={column.id}
-              projectId={projectId}
-              column={column}
-              columns={columns}
-              members={displayMembers}
-              accent={columnAccent(column.color, index)}
-              onOpenCard={setOpenCard}
-              onMoveCardToColumn={handleMoveCardToColumn}
-              onCardCreated={handleCardCreated}
-            />
-          ))}
+          <SortableContext
+            items={columns.map((c) => c.id)}
+            strategy={horizontalListSortingStrategy}
+          >
+            {columns.map((column, index) => (
+              <KanbanColumn
+                key={column.id}
+                projectId={projectId}
+                column={column}
+                columns={columns}
+                members={displayMembers}
+                accent={columnAccent(column.color, index)}
+                onOpenCard={setOpenCard}
+                onMoveCardToColumn={handleMoveCardToColumn}
+                onCardCreated={handleCardCreated}
+              />
+            ))}
+          </SortableContext>
 
           <div className="w-[260px] min-w-[260px] shrink-0">
             {addingColumn ? (
@@ -457,7 +533,13 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
         </div>
 
         <DragOverlay>
-          {activeCard ? (
+          {activeColumnId ? (
+            <div className="w-[300px] rounded-xl border border-hairline-strong bg-surface-1 p-3 opacity-90 shadow-2xl">
+              <span className="text-sm font-semibold text-ink">
+                {columns.find((c) => c.id === activeColumnId)?.name ?? "Column"}
+              </span>
+            </div>
+          ) : activeCard ? (
             <div className="w-[284px] rounded-lg border border-hairline-strong bg-surface-2 p-3 shadow-lg">
               <p className="line-clamp-3 text-sm text-ink">{activeCard.title}</p>
             </div>
