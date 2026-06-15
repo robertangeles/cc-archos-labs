@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-15T08:02:23.366Z
+generated: 2026-06-15T08:08:54.284Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -241,7 +241,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/execute` | [app/api/workflows/[id]/execute/route.ts](../app/api/workflows/[id]/execute/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]/execute-stream` | [app/api/workflows/[id]/execute-stream/route.ts](../app/api/workflows/[id]/execute-stream/route.ts) | 2026-06-14 |
 
-## Components (105)
+## Components (106)
 
 | File | Last shipped |
 |------|--------------|
@@ -337,6 +337,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/social/social-accounts-page.tsx](../components/social/social-accounts-page.tsx) | 2026-06-12 |
 | [components/social/upcoming-posts-widget.tsx](../components/social/upcoming-posts-widget.tsx) | 2026-06-14 |
 | [components/ui/button.tsx](../components/ui/button.tsx) | 2026-05-15 |
+| [components/ui/date-field.tsx](../components/ui/date-field.tsx) | unknown |
 | [components/ui/dialog.tsx](../components/ui/dialog.tsx) | 2026-05-15 |
 | [components/ui/field.tsx](../components/ui/field.tsx) | 2026-05-15 |
 | [components/ui/pill.tsx](../components/ui/pill.tsx) | 2026-05-15 |

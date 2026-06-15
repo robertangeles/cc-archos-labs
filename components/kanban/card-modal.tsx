@@ -25,6 +25,7 @@ import {
   CARD_PRIORITIES,
   PRIORITY_LABELS,
 } from "./types";
+import { DateField } from "@/components/ui/date-field";
 
 // ============================================================================
 // CardModal — the full card record across four tabs: Details, Comments,
@@ -341,12 +342,11 @@ export function CardModal({
                   <label htmlFor="card-due" className={LABEL_STYLES}>
                     Due date
                   </label>
-                  <input
+                  <DateField
                     id="card-due"
-                    type="date"
                     value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                    className={FIELD_STYLES}
+                    onChange={setDueDate}
+                    placeholder="DD/MM/YYYY"
                   />
                 </div>
               </div>
