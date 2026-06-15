@@ -18,6 +18,7 @@ import {
   Hash,
 } from "lucide-react";
 import { ClientForm, type ClientFormValues } from "./client-form";
+import { DateField, formatAuDate } from "@/components/ui/date-field";
 
 // ============================================================================
 // ClientDetail — the right pane: one client's full record.
@@ -1013,7 +1014,8 @@ function ContractsSection({
                         {c.contractType && <span>{c.contractType}</span>}
                         {(c.startDate || c.endDate) && (
                           <span>
-                            {c.startDate ?? "—"} → {c.endDate ?? "ongoing"}
+                            {formatAuDate(c.startDate) || "—"} →{" "}
+                            {formatAuDate(c.endDate) || "ongoing"}
                           </span>
                         )}
                         {c.billingRate && <span>Rate: {c.billingRate}</span>}
@@ -1275,15 +1277,25 @@ function SmallField({
       <label className="block text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
         {label}
       </label>
-      <input
-        type={type}
-        value={value}
-        maxLength={maxLength}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-1 block w-full rounded-md border border-hairline bg-surface-1 px-3 py-2 text-sm text-ink placeholder:text-ink-tertiary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-        aria-invalid={error ? true : undefined}
-      />
+      {type === "date" ? (
+        // Australian DD/MM/YYYY picker — the native input would render in the
+        // browser's US locale (see components/ui/date-field.tsx).
+        <DateField
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder ?? "DD/MM/YYYY"}
+        />
+      ) : (
+        <input
+          type={type}
+          value={value}
+          maxLength={maxLength}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          className="mt-1 block w-full rounded-md border border-hairline bg-surface-1 px-3 py-2 text-sm text-ink placeholder:text-ink-tertiary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          aria-invalid={error ? true : undefined}
+        />
+      )}
       {error && <p className="mt-1 text-xs text-semantic-error">{error}</p>}
     </div>
   );

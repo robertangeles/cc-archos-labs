@@ -54,12 +54,23 @@ function parseIso(v: string): { y: number; m: number; d: number } | null {
   };
 }
 
-/** "2026-06-17" -> "17/06/2026". Australian order, no timezone involved. */
-function formatAu(v: string): string {
+/**
+ * "2026-06-17" -> "17/06/2026". Australian order, no timezone involved.
+ *
+ * Exported so read-only views (e.g. contract date ranges) show the same
+ * format as the picker. It works purely on the numeric parts of the string,
+ * so the displayed day is the stored day for every viewer — see the note on
+ * the component above for why a calendar date must not round-trip through a
+ * timezone.
+ */
+export function formatAuDate(v: string | null | undefined): string {
+  if (!v) return "";
   const p = parseIso(v);
   if (!p) return "";
   return `${pad2(p.d)}/${pad2(p.m + 1)}/${p.y}`;
 }
+
+const formatAu = formatAuDate;
 
 /** Days in a month, and the weekday (Mon=0..Sun=6) the 1st falls on. */
 function monthMeta(year: number, month: number) {

@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-15T08:08:54.284Z
+generated: 2026-06-15T08:12:52.806Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -337,7 +337,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/social/social-accounts-page.tsx](../components/social/social-accounts-page.tsx) | 2026-06-12 |
 | [components/social/upcoming-posts-widget.tsx](../components/social/upcoming-posts-widget.tsx) | 2026-06-14 |
 | [components/ui/button.tsx](../components/ui/button.tsx) | 2026-05-15 |
-| [components/ui/date-field.tsx](../components/ui/date-field.tsx) | unknown |
+| [components/ui/date-field.tsx](../components/ui/date-field.tsx) | 2026-06-15 |
 | [components/ui/dialog.tsx](../components/ui/dialog.tsx) | 2026-05-15 |
 | [components/ui/field.tsx](../components/ui/field.tsx) | 2026-05-15 |
 | [components/ui/pill.tsx](../components/ui/pill.tsx) | 2026-05-15 |
