@@ -6,6 +6,7 @@ import { XIcon, LinkedinIcon, BlueskyIcon } from "@/components/icons/social";
 import type { SocialPlatform } from "@/lib/social/types";
 import { PLATFORM_DISPLAY_NAMES, SOCIAL_PLATFORMS } from "@/lib/social/types";
 import { PublishModal } from "@/components/social/publish-modal";
+import { DateField } from "@/components/ui/date-field";
 
 /* ------------------------------------------------------------------ */
 /* Platform icon mapping                                              */
@@ -338,12 +339,12 @@ export function ScheduledPostsList() {
                 {isEditing ? (
                   <div className="mt-3 space-y-2">
                     <div className="flex gap-2">
-                      <input
-                        type="date"
+                      <DateField
                         value={editDate}
-                        onChange={(e) => setEditDate(e.target.value)}
+                        onChange={setEditDate}
+                        placeholder="DD/MM/YYYY"
+                        className="flex-1"
                         min={new Date().toISOString().split("T")[0]}
-                        className="flex-1 rounded-md border border-hairline bg-surface-1 px-2.5 py-1.5 text-xs text-ink focus:border-primary focus:outline-none"
                       />
                       <input
                         type="time"

@@ -20,6 +20,8 @@ interface DateFieldProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
+  min?: string; // "YYYY-MM-DD" — days before this are not selectable
 }
 
 const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
@@ -87,6 +89,8 @@ export function DateField({
   onChange,
   placeholder = "Select a date",
   className = "",
+  disabled = false,
+  min,
 }: DateFieldProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -124,6 +128,7 @@ export function DateField({
   }, [open]);
 
   function openCalendar() {
+    if (disabled) return;
     const s = parseIso(value);
     if (s) setView({ y: s.y, m: s.m });
     setOpen((o) => !o);
@@ -148,7 +153,8 @@ export function DateField({
         id={id}
         type="button"
         onClick={openCalendar}
-        className="flex w-full items-center justify-between gap-2 rounded-md border border-hairline bg-surface-1 px-4 py-2.5 text-left text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+        disabled={disabled}
+        className="flex w-full items-center justify-between gap-2 rounded-md border border-hairline bg-surface-1 px-4 py-2.5 text-left text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span className={display ? "text-ink" : "text-ink-tertiary"}>
           {display || placeholder}
@@ -232,17 +238,21 @@ export function DateField({
                 view.y === todayParts.y &&
                 view.m === todayParts.m &&
                 day === todayParts.d;
+              const beforeMin = min ? iso < min : false;
               return (
                 <button
                   key={iso}
                   type="button"
+                  disabled={beforeMin}
                   onClick={() => pick(day)}
                   className={`flex h-8 items-center justify-center rounded-md text-sm transition-colors ${
-                    isSelected
-                      ? "bg-primary font-medium text-on-primary"
-                      : isToday
-                        ? "text-ink ring-1 ring-inset ring-hairline-strong hover:bg-surface-2"
-                        : "text-ink-subtle hover:bg-surface-2 hover:text-ink"
+                    beforeMin
+                      ? "cursor-not-allowed text-ink-tertiary/40"
+                      : isSelected
+                        ? "bg-primary font-medium text-on-primary"
+                        : isToday
+                          ? "text-ink ring-1 ring-inset ring-hairline-strong hover:bg-surface-2"
+                          : "text-ink-subtle hover:bg-surface-2 hover:text-ink"
                   }`}
                 >
                   {day}

@@ -452,6 +452,7 @@ export function PublishModal({
                   }}
                   placeholder="DD/MM/YYYY"
                   className="flex-1"
+                  min={new Date().toISOString().split("T")[0]}
                 />
                 <input
                   type="time"
