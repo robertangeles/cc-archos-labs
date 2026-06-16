@@ -59,7 +59,7 @@ export function ModelDetailView({ modelId }: { modelId: string }) {
 
   if (status === "loading") {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-ink-subtle">
+      <div className="flex flex-1 items-center justify-center text-sm text-ink-subtle">
         Loading model…
       </div>
     );
@@ -67,7 +67,7 @@ export function ModelDetailView({ modelId }: { modelId: string }) {
 
   if (status === "notfound" || !model) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
         <div className="rounded-2xl border border-hairline bg-surface-2 p-4 text-ink-subtle">
           <Boxes className="h-7 w-7" />
         </div>
@@ -88,7 +88,7 @@ export function ModelDetailView({ modelId }: { modelId: string }) {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex flex-1 min-h-0 flex-col">
       <header className="flex items-center justify-between gap-4 border-b border-hairline px-6 py-3">
         <div className="flex min-w-0 items-center gap-3">
           <Link
@@ -123,7 +123,9 @@ export function ModelDetailView({ modelId }: { modelId: string }) {
         </div>
       </header>
 
-      <div className="min-h-0 flex-1">
+      {/* Relative box; the canvas fills it absolutely so React Flow always gets
+          a definite pixel height (percentage heights collapse inside flex). */}
+      <div className="relative min-h-0 flex-1">
         {/* Remount per layer so positions/edges reload cleanly for that layer. */}
         <ModelCanvas key={layer} modelId={modelId} layer={layer} />
       </div>

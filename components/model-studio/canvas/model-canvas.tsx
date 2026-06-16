@@ -330,7 +330,7 @@ function InnerCanvas({ modelId, layer }: { modelId: string; layer: Layer }) {
 
 export function ModelCanvas({ modelId, layer }: { modelId: string; layer: Layer }) {
   return (
-    <div className="h-full w-full">
+    <div className="absolute inset-0">
       <ReactFlowProvider>
         <InnerCanvas modelId={modelId} layer={layer} />
       </ReactFlowProvider>
