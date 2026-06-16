@@ -3549,3 +3549,219 @@ export const dataModel = pgTable(
 );
 export type DataModel = typeof dataModel.$inferSelect;
 export type NewDataModel = typeof dataModel.$inferInsert;
+
+// ============================================================================
+// data_model_entity — Model Studio canvas (migrated from Spresso)
+// ============================================================================
+// An entity is a box on the canvas inside a data model. It carries its own
+// layer (conceptual|logical|physical) so the canvas can render one layer at a
+// time. display_id (E001, E002, …) is a monotonic per-model label assigned at
+// creation. version is an optimistic lock — PATCH bumps it; a stale PATCH 409s.
+// Position/viewport are NOT stored here — they live in data_model_canvas_state,
+// scoped per user + layer, so the entity row stays pure model data.
+export const dataModelEntity = pgTable(
+  "data_model_entity",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    dataModelId: uuid("data_model_id")
+      .notNull()
+      .references(() => dataModel.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 128 }).notNull(),
+    businessName: varchar("business_name", { length: 255 }),
+    description: text("description"),
+    // standard | associative | subtype | supertype.
+    entityType: varchar("entity_type", { length: 50 })
+      .notNull()
+      .default("standard"),
+    // conceptual | logical | physical.
+    layer: varchar("layer", { length: 20 }).notNull(),
+    // E001, E002, … monotonic per model, assigned in a transaction.
+    displayId: varchar("display_id", { length: 10 }),
+    // Per-alternate-key-group labels, e.g. { "AK1": "NI number" }.
+    altKeyLabels: jsonb("alt_key_labels").notNull().default({}),
+    metadata: jsonb("metadata").notNull().default({}),
+    tags: jsonb("tags").notNull().default([]),
+    // Optimistic lock for concurrent PATCH.
+    version: integer("version").notNull().default(1),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // One entity name per model — surfaces a 409 on collision.
+    uniqueIndex("data_model_entity_model_name_idx").on(
+      table.dataModelId,
+      table.name,
+    ),
+    // Monotonic display id is unique within a model; also serves lookup by E-id.
+    uniqueIndex("data_model_entity_model_display_id_idx").on(
+      table.dataModelId,
+      table.displayId,
+    ),
+    // List entities for a model (the canvas load).
+    index("data_model_entity_data_model_id_idx").on(table.dataModelId),
+  ],
+);
+export type DataModelEntity = typeof dataModelEntity.$inferSelect;
+export type NewDataModelEntity = typeof dataModelEntity.$inferInsert;
+
+// ============================================================================
+// data_model_attribute — Model Studio canvas (migrated from Spresso)
+// ============================================================================
+// An attribute is a column inside an entity. ordinal_position orders them
+// within the entity (reorder swaps two rows atomically). The boolean flags and
+// classification drive the canvas key/FK glyphs. version is the optimistic lock.
+export const dataModelAttribute = pgTable(
+  "data_model_attribute",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Denormalised model id (alongside entity_id) so the canvas can batch-load
+    // every attribute for a model in one query without joining through entity.
+    dataModelId: uuid("data_model_id")
+      .notNull()
+      .references(() => dataModel.id, { onDelete: "cascade" }),
+    entityId: uuid("entity_id")
+      .notNull()
+      .references(() => dataModelEntity.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 128 }).notNull(),
+    // Postgres-native type name: uuid, varchar, integer, text, numeric, …
+    dataType: varchar("data_type", { length: 100 }),
+    // e.g. { precision: 18, scale: 2 } for numeric(18,2).
+    dataTypeParams: jsonb("data_type_params"),
+    ordinalPosition: integer("ordinal_position").notNull(),
+    isPrimaryKey: boolean("is_primary_key").notNull().default(false),
+    isNullable: boolean("is_nullable").notNull().default(true),
+    isUnique: boolean("is_unique").notNull().default(false),
+    isForeignKey: boolean("is_foreign_key").notNull().default(false),
+    // Governance/sensitivity classification (DMBOK + compliance categories):
+    // PII | PCI | PHI | Financial | Confidential | Restricted | Internal | Public.
+    // Nullable — null means "no classification set" (the default). Validated at
+    // the application layer; the column is a plain varchar so the list can
+    // evolve without a migration. Structural role lives in the boolean flags.
+    classification: varchar("classification", { length: 50 }),
+    // AK1, AK2, … alternate-key-group membership (null = none).
+    altKeyGroup: varchar("alt_key_group", { length: 10 }),
+    defaultValue: text("default_value"),
+    description: text("description"),
+    metadata: jsonb("metadata").notNull().default({}),
+    version: integer("version").notNull().default(1),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // One attribute name per entity — surfaces a 409 on collision.
+    uniqueIndex("data_model_attribute_entity_name_idx").on(
+      table.entityId,
+      table.name,
+    ),
+    // List attributes for an entity (ordered render in the entity node).
+    index("data_model_attribute_entity_id_idx").on(table.entityId),
+    // Batch-load all attributes for a model (canvas preload).
+    index("data_model_attribute_data_model_id_idx").on(table.dataModelId),
+  ],
+);
+export type DataModelAttribute = typeof dataModelAttribute.$inferSelect;
+export type NewDataModelAttribute = typeof dataModelAttribute.$inferInsert;
+
+// ============================================================================
+// data_model_relationship — Model Studio canvas (migrated from Spresso)
+// ============================================================================
+// A relationship is an edge between two entities in the same model. Cardinality
+// and verb phrases drive the IE/IDEF1X glyphs; waypoints persist user-authored
+// edge routing. Both endpoints are validated to belong to the same model at the
+// service layer. version is the optimistic lock.
+export const dataModelRelationship = pgTable(
+  "data_model_relationship",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    dataModelId: uuid("data_model_id")
+      .notNull()
+      .references(() => dataModel.id, { onDelete: "cascade" }),
+    sourceEntityId: uuid("source_entity_id")
+      .notNull()
+      .references(() => dataModelEntity.id, { onDelete: "cascade" }),
+    targetEntityId: uuid("target_entity_id")
+      .notNull()
+      .references(() => dataModelEntity.id, { onDelete: "cascade" }),
+    // Forward verb phrase, e.g. "manages".
+    name: varchar("name", { length: 128 }),
+    // Inverse verb phrase, e.g. "is_managed_by".
+    nameInverse: varchar("name_inverse", { length: 128 }),
+    // 0..1 | 1..1 | 0..* | 1..* (validated at the application layer).
+    sourceCardinality: varchar("source_cardinality", { length: 20 }).notNull(),
+    targetCardinality: varchar("target_cardinality", { length: 20 }).notNull(),
+    isIdentifying: boolean("is_identifying").notNull().default(false),
+    isNullableForeignKey: boolean("is_nullable_foreign_key")
+      .notNull()
+      .default(false),
+    description: text("description"),
+    metadata: jsonb("metadata").notNull().default({}),
+    // [{ x, y }, …] user-authored waypoints for edge routing.
+    waypoints: jsonb("waypoints"),
+    version: integer("version").notNull().default(1),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // List relationships for a model (the canvas load).
+    index("data_model_relationship_data_model_id_idx").on(table.dataModelId),
+    // Find edges touching an entity (cascade preview, redraw on entity move).
+    index("data_model_relationship_source_entity_id_idx").on(
+      table.sourceEntityId,
+    ),
+    index("data_model_relationship_target_entity_id_idx").on(
+      table.targetEntityId,
+    ),
+  ],
+);
+export type DataModelRelationship = typeof dataModelRelationship.$inferSelect;
+export type NewDataModelRelationship = typeof dataModelRelationship.$inferInsert;
+
+// ============================================================================
+// data_model_canvas_state — Model Studio canvas (migrated from Spresso)
+// ============================================================================
+// Per-user, per-layer view state for a model: where each entity node sits, the
+// viewport, and the notation preference. One row per (model, user, layer) —
+// last-write-wins (no version column), because this is ephemeral UI state, not
+// authored model data.
+export const dataModelCanvasState = pgTable(
+  "data_model_canvas_state",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    dataModelId: uuid("data_model_id")
+      .notNull()
+      .references(() => dataModel.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    layer: varchar("layer", { length: 20 }).notNull(),
+    // { [entityId]: { x, y }, … }
+    nodePositions: jsonb("node_positions").notNull().default({}),
+    viewport: jsonb("viewport")
+      .notNull()
+      .default({ x: 0, y: 0, zoom: 1 }),
+    // ie | idef1x (per-user render preference).
+    notation: varchar("notation", { length: 10 }).notNull().default("ie"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // One canvas state per user per model per layer — the upsert key.
+    uniqueIndex("data_model_canvas_state_model_user_layer_idx").on(
+      table.dataModelId,
+      table.userId,
+      table.layer,
+    ),
+    // List canvas states for a model (e.g. cleanup on model delete).
+    index("data_model_canvas_state_data_model_id_idx").on(table.dataModelId),
+  ],
+);
+export type DataModelCanvasState = typeof dataModelCanvasState.$inferSelect;
+export type NewDataModelCanvasState = typeof dataModelCanvasState.$inferInsert;

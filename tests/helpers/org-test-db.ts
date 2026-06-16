@@ -36,6 +36,7 @@ const MIGRATION_FILES = [
   "drizzle/0025_natural_war_machine.sql",
   "drizzle/0026_light_mysterio.sql",
   "drizzle/0027_model_studio_data_model.sql",
+  "drizzle/0028_unknown_puma.sql",
 ];
 
 // Run a drizzle-generated SQL file one statement at a time, exactly as
