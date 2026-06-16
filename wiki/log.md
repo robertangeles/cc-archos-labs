@@ -2,11 +2,17 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-06-15
+updated: 2026-06-16
 related:
 ---
 
 Append-only log of sessions. Newest entry at the top.
+
+## 2026-06-16 — Fixed /workspace/model-studio 500: unapplied migration 0027
+
+`/workspace/model-studio` threw a server error despite a clean build and passing tests. Root cause: `data_model` was defined in `lib/db/schema.ts`, migration `0027_model_studio_data_model.sql` was committed and in `_journal.json`, but `pnpm db:migrate` had never been run — so the table did not exist in the single shared Postgres (`to_regclass('public.data_model')` → null). Authenticated `/api/model-studio` requests queried a missing table and 500'd.
+
+Fix: `pnpm db:migrate` applied the lone pending 0027 (idempotent, purely additive). Verified table resolves with 14 columns + 4 indexes, list-style query returns clean, `pnpm build` clean, 29 model-studio API tests pass. New lesson: [[2026-06-16-migration-generated-not-applied]].
 
 ## 2026-06-15 — Org/Clients/Projects/Kanban migration built + polished
 
