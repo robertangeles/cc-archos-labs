@@ -4,6 +4,7 @@ import { getDb, type DB } from "../db";
 import {
   dataModel,
   dataModelAttribute,
+  dataModelCanvasState,
   dataModelEntity,
   dataModelRelationship,
   project,
@@ -17,6 +18,7 @@ import type {
   AttributeUpdate,
   RelationshipCreate,
   RelationshipUpdate,
+  CanvasStatePut,
 } from "./canvas-validation";
 
 // ============================================================================
@@ -792,4 +794,96 @@ export async function deleteRelationship(
     .where(eq(dataModelRelationship.id, relationshipId))
     .returning({ id: dataModelRelationship.id });
   return removed.length > 0;
+}
+
+// ---- canvas state ----------------------------------------------------------
+
+const canvasStateSelection = {
+  layer: dataModelCanvasState.layer,
+  nodePositions: dataModelCanvasState.nodePositions,
+  viewport: dataModelCanvasState.viewport,
+  notation: dataModelCanvasState.notation,
+  updatedAt: dataModelCanvasState.updatedAt,
+} as const;
+
+/** The empty default returned when a user has no saved state for a layer yet. */
+function emptyCanvasState(layer: Layer) {
+  return {
+    layer,
+    nodePositions: {} as Record<string, { x: number; y: number }>,
+    viewport: { x: 0, y: 0, zoom: 1 },
+    notation: "ie" as const,
+    updatedAt: null as Date | null,
+  };
+}
+
+/**
+ * Read the caller's saved canvas state for a model + layer. Returns null when
+ * the model is not in the org (route → 404); returns the empty default when the
+ * model is in the org but the user has no saved state yet.
+ */
+export async function getCanvasState(
+  orgId: string,
+  modelId: string,
+  userId: string,
+  layer: Layer,
+  dbArg?: DB,
+) {
+  const db = dbArg ?? getDb();
+  if (!(await modelInOrg(db, orgId, modelId))) return null;
+
+  const [row] = await db
+    .select(canvasStateSelection)
+    .from(dataModelCanvasState)
+    .where(
+      and(
+        eq(dataModelCanvasState.dataModelId, modelId),
+        eq(dataModelCanvasState.userId, userId),
+        eq(dataModelCanvasState.layer, layer),
+      ),
+    )
+    .limit(1);
+  return row ?? emptyCanvasState(layer);
+}
+
+/**
+ * Upsert the caller's canvas state for a model + layer. Last-write-wins (no
+ * version lock — this is ephemeral view state). Returns null when the model is
+ * not in the org. userId comes from the authenticated session, never the body.
+ */
+export async function saveCanvasState(
+  orgId: string,
+  modelId: string,
+  userId: string,
+  input: CanvasStatePut,
+  dbArg?: DB,
+) {
+  const db = dbArg ?? getDb();
+  if (!(await modelInOrg(db, orgId, modelId))) return null;
+
+  const [row] = await db
+    .insert(dataModelCanvasState)
+    .values({
+      dataModelId: modelId,
+      userId,
+      layer: input.layer,
+      nodePositions: input.nodePositions,
+      viewport: input.viewport,
+      ...(input.notation !== undefined ? { notation: input.notation } : {}),
+    })
+    .onConflictDoUpdate({
+      target: [
+        dataModelCanvasState.dataModelId,
+        dataModelCanvasState.userId,
+        dataModelCanvasState.layer,
+      ],
+      set: {
+        nodePositions: input.nodePositions,
+        viewport: input.viewport,
+        ...(input.notation !== undefined ? { notation: input.notation } : {}),
+        updatedAt: sql`now()`,
+      },
+    })
+    .returning(canvasStateSelection);
+  return row;
 }
