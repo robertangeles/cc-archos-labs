@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-16T22:14:59.703Z
+generated: 2026-06-16T22:29:19.347Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -256,7 +256,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/execute` | [app/api/workflows/[id]/execute/route.ts](../app/api/workflows/[id]/execute/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]/execute-stream` | [app/api/workflows/[id]/execute-stream/route.ts](../app/api/workflows/[id]/execute-stream/route.ts) | 2026-06-14 |
 
-## Components (118)
+## Components (119)
 
 | File | Last shipped |
 |------|--------------|
@@ -303,6 +303,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/model-studio/canvas/entity-dialog.tsx](../components/model-studio/canvas/entity-dialog.tsx) | 2026-06-16 |
 | [components/model-studio/canvas/entity-node.tsx](../components/model-studio/canvas/entity-node.tsx) | 2026-06-16 |
 | [components/model-studio/canvas/model-canvas.tsx](../components/model-studio/canvas/model-canvas.tsx) | 2026-06-17 |
+| [components/model-studio/canvas/model-detail-view.tsx](../components/model-studio/canvas/model-detail-view.tsx) | unknown |
 | [components/model-studio/canvas/relationship-dialog.tsx](../components/model-studio/canvas/relationship-dialog.tsx) | 2026-06-17 |
 | [components/model-studio/canvas/relationship-edge.tsx](../components/model-studio/canvas/relationship-edge.tsx) | 2026-06-16 |
 | [components/model-studio/create-model-dialog.tsx](../components/model-studio/create-model-dialog.tsx) | 2026-06-15 |
