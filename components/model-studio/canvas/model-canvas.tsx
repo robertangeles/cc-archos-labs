@@ -1,22 +1,28 @@
 "use client";
 
 import "@xyflow/react/dist/style.css";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Plus } from "lucide-react";
 import {
   Background,
   Controls,
+  Panel,
   ReactFlow,
   ReactFlowProvider,
   useEdgesState,
   useNodesState,
+  type NodeMouseHandler,
 } from "@xyflow/react";
 import { useEntities } from "@/hooks/use-entities";
 import { useAttributes } from "@/hooks/use-attributes";
 import { useRelationships } from "@/hooks/use-relationships";
 import { useCanvasState } from "@/hooks/use-canvas-state";
 import type { Layer } from "@/lib/model-studio/validation";
+import type { EntityRow } from "@/lib/model-studio/canvas-types";
 import { EntityNode, type EntityNodeType } from "./entity-node";
 import { RelationshipEdge, type RelationshipEdgeType } from "./relationship-edge";
+import { EntityDialog, type EntityFormValues } from "./entity-dialog";
+import { DeleteEntityDialog } from "./delete-entity-dialog";
 
 // ============================================================================
 // ModelCanvas — the React Flow surface for one model + layer (read-only render
@@ -45,6 +51,39 @@ function InnerCanvas({ modelId, layer }: { modelId: string; layer: Layer }) {
   const { entities } = entitiesHook;
   const { attributes } = attributesHook;
   const { relationships } = relationshipsHook;
+
+  // Entity dialog state: create (no entity), edit (entity set), delete confirm.
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState<EntityRow | null>(null);
+  const [deleting, setDeleting] = useState<EntityRow | null>(null);
+
+  const onNodeDoubleClick = useCallback<NodeMouseHandler>(
+    (_e, node) => {
+      const entity = entities.find((x) => x.id === node.id);
+      if (entity) setEditing(entity);
+    },
+    [entities],
+  );
+
+  const handleCreate = useCallback(
+    async (values: EntityFormValues) => {
+      await entitiesHook.create({ ...values, layer });
+    },
+    [entitiesHook, layer],
+  );
+
+  const handleEdit = useCallback(
+    async (values: EntityFormValues) => {
+      if (!editing) return;
+      await entitiesHook.update(editing.id, { ...values, version: editing.version });
+    },
+    [editing, entitiesHook],
+  );
+
+  const handleDelete = useCallback(
+    (entity: EntityRow) => entitiesHook.remove(entity.id),
+    [entitiesHook],
+  );
   const positions = useMemo(
     () => canvasState.state?.nodePositions ?? {},
     [canvasState.state],
@@ -92,23 +131,78 @@ function InnerCanvas({ modelId, layer }: { modelId: string; layer: Layer }) {
     );
   }, [relationships, entities, setEdges]);
 
+  const conflict = entitiesHook.conflict;
+
   return (
-    <ReactFlow
-      nodes={nodes}
-      edges={edges}
-      onNodesChange={onNodesChange}
-      onEdgesChange={onEdgesChange}
-      nodeTypes={nodeTypes}
-      edgeTypes={edgeTypes}
-      fitView
-      minZoom={0.2}
-      maxZoom={2}
-      proOptions={{ hideAttribution: true }}
-      className="bg-canvas"
-    >
-      <Background color="var(--color-hairline)" gap={20} />
-      <Controls className="!border-hairline !bg-surface-2" />
-    </ReactFlow>
+    <>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onNodeDoubleClick={onNodeDoubleClick}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        fitView
+        minZoom={0.2}
+        maxZoom={2}
+        proOptions={{ hideAttribution: true }}
+        className="bg-canvas"
+      >
+        <Background color="var(--color-hairline)" gap={20} />
+        <Controls className="!border-hairline !bg-surface-2" />
+
+        <Panel position="top-left">
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            data-testid="add-entity"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-surface-2/90 px-3 py-1.5 text-sm font-medium text-ink shadow-sm backdrop-blur hover:border-primary/50 transition-colors"
+          >
+            <Plus className="h-4 w-4 text-primary" /> Add entity
+          </button>
+        </Panel>
+
+        {conflict && (
+          <Panel position="top-center">
+            <div className="flex items-center gap-3 rounded-lg border border-amber-500/40 bg-surface-2/95 px-3 py-2 text-xs text-ink-muted shadow-md backdrop-blur">
+              This entity changed in another tab.
+              <button
+                type="button"
+                onClick={() => {
+                  void entitiesHook.refresh();
+                  entitiesHook.clearConflict();
+                }}
+                className="font-medium text-primary hover:underline"
+              >
+                Refresh
+              </button>
+            </div>
+          </Panel>
+        )}
+      </ReactFlow>
+
+      <EntityDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onSubmit={handleCreate}
+      />
+      <EntityDialog
+        open={editing !== null}
+        entity={editing}
+        onClose={() => setEditing(null)}
+        onSubmit={handleEdit}
+        onRequestDelete={(entity) => {
+          setEditing(null);
+          setDeleting(entity);
+        }}
+      />
+      <DeleteEntityDialog
+        entity={deleting}
+        onClose={() => setDeleting(null)}
+        onConfirm={handleDelete}
+      />
+    </>
   );
 }
 
