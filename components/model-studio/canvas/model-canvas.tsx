@@ -11,6 +11,7 @@ import {
   ReactFlowProvider,
   useEdgesState,
   useNodesState,
+  useReactFlow,
   type Connection,
   type EdgeMouseHandler,
   type NodeMouseHandler,
@@ -199,6 +200,18 @@ function InnerCanvas({ modelId, layer }: { modelId: string; layer: Layer }) {
     );
   }, [relationships, entities, setEdges]);
 
+  // Autosave layout. Gate on the canvas-state load so the initial fitView can't
+  // persist fallback-grid positions over a saved layout before it hydrates.
+  const { getViewport } = useReactFlow();
+  const canvasLoading = canvasState.isLoading;
+  const persistLayout = useCallback(() => {
+    if (canvasLoading) return;
+    const nodePositions = Object.fromEntries(
+      nodes.map((n) => [n.id, { x: n.position.x, y: n.position.y }]),
+    );
+    canvasState.save({ nodePositions, viewport: getViewport() });
+  }, [canvasLoading, nodes, canvasState, getViewport]);
+
   const conflict = entitiesHook.conflict ?? relationshipsHook.conflict;
 
   return (
@@ -212,6 +225,8 @@ function InnerCanvas({ modelId, layer }: { modelId: string; layer: Layer }) {
         onNodeDoubleClick={onNodeDoubleClick}
         onConnect={onConnect}
         onEdgeDoubleClick={onEdgeDoubleClick}
+        onNodeDragStop={persistLayout}
+        onMoveEnd={persistLayout}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView

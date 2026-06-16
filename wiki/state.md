@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-16T22:09:55.373Z
+generated: 2026-06-16T22:14:59.703Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -303,7 +303,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/model-studio/canvas/entity-dialog.tsx](../components/model-studio/canvas/entity-dialog.tsx) | 2026-06-16 |
 | [components/model-studio/canvas/entity-node.tsx](../components/model-studio/canvas/entity-node.tsx) | 2026-06-16 |
 | [components/model-studio/canvas/model-canvas.tsx](../components/model-studio/canvas/model-canvas.tsx) | 2026-06-17 |
-| [components/model-studio/canvas/relationship-dialog.tsx](../components/model-studio/canvas/relationship-dialog.tsx) | unknown |
+| [components/model-studio/canvas/relationship-dialog.tsx](../components/model-studio/canvas/relationship-dialog.tsx) | 2026-06-17 |
 | [components/model-studio/canvas/relationship-edge.tsx](../components/model-studio/canvas/relationship-edge.tsx) | 2026-06-16 |
 | [components/model-studio/create-model-dialog.tsx](../components/model-studio/create-model-dialog.tsx) | 2026-06-15 |
 | [components/model-studio/delete-model-dialog.tsx](../components/model-studio/delete-model-dialog.tsx) | 2026-06-15 |
