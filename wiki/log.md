@@ -2,11 +2,24 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-06-16
+updated: 2026-06-17
 related:
 ---
 
 Append-only log of sessions. Newest entry at the top.
+
+## 2026-06-17 — Model Studio canvas migration (gnhf 12–29)
+
+Migrated the Spresso canvas phase end-to-end: a React Flow modelling surface where entities are nodes, relationships are edges, and attributes live in each box. 18 individually-clean commits (gnhf 12–29), each tsc/lint/test/build green.
+
+- **Schema (12):** 4 tables in migration 0028 — `data_model_entity`/`_attribute`/`_relationship`/`_canvas_state`. Hand-edited idempotent (drizzle-kit 0.31 dropped `IF NOT EXISTS`; repo enforces an idempotency test). `MIGRATION_FILES` test harness updated. Applied to the shared DB.
+- **Validation (13)** + **services (14–17):** entity (monotonic E001 display ids), attribute (ordinal reorder), relationship (cross-model endpoint guard), canvas-state (per-user upsert). Optimistic version-locking via `VersionConflictError`. ~58 service/validation tests.
+- **Routes (18–21):** full CRUD under `/api/model-studio/[id]/…` + batch `/attributes`. Reads any member; mutations owner|admin; canvas-state per-user. 409 VERSION_CONFLICT contract. ~50 route tests, all curl-verified (401/403 unauth).
+- **Frontend (22–28):** `@xyflow/react` v12 + 4 plain-fetch hooks; ER-style nodes + cardinality edges; entity/attribute/relationship CRUD dialogs + attribute panel; canvas-state autosave (gated on load to avoid fitView clobber); page swap with a layer switcher. Tokens only, Spresso accent→primary remap, React Flow CSS scoped to the client component.
+- **Decisions surfaced:** attribute `classification` corrected to Spresso's governance enum (nullable, not a structural enum) after a research error — gnhf 12 amended. Canvas `classification` structure lives in the boolean flags.
+- **Deferred:** AI (inference/auto-describe/synthetic-data), realtime/cross-tab, undo/redo, Dagre tidy, DDL export. **Playwright E2E not built** — no harness exists in the repo; authenticated visual QA should run via gstack `/qa`.
+
+New page: [[model-studio-canvas]]. Branch `gnhf/step-1-clone-https-g-6eeac0`, not pushed.
 
 ## 2026-06-16 — Fixed /workspace/model-studio 500: unapplied migration 0027
 
