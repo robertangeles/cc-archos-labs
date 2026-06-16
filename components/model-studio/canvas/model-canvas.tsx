@@ -11,6 +11,8 @@ import {
   ReactFlowProvider,
   useEdgesState,
   useNodesState,
+  type Connection,
+  type EdgeMouseHandler,
   type NodeMouseHandler,
 } from "@xyflow/react";
 import { useEntities } from "@/hooks/use-entities";
@@ -18,12 +20,13 @@ import { useAttributes } from "@/hooks/use-attributes";
 import { useRelationships } from "@/hooks/use-relationships";
 import { useCanvasState } from "@/hooks/use-canvas-state";
 import type { Layer } from "@/lib/model-studio/validation";
-import type { EntityRow } from "@/lib/model-studio/canvas-types";
+import type { EntityRow, RelationshipRow } from "@/lib/model-studio/canvas-types";
 import { EntityNode, type EntityNodeType } from "./entity-node";
 import { RelationshipEdge, type RelationshipEdgeType } from "./relationship-edge";
 import { EntityDialog, type EntityFormValues } from "./entity-dialog";
 import { DeleteEntityDialog } from "./delete-entity-dialog";
 import { AttributePanel } from "./attribute-panel";
+import { RelationshipDialog, type RelationshipFormValues } from "./relationship-dialog";
 
 // ============================================================================
 // ModelCanvas — the React Flow surface for one model + layer (read-only render
@@ -100,6 +103,55 @@ function InnerCanvas({ modelId, layer }: { modelId: string; layer: Layer }) {
     (entity: EntityRow) => entitiesHook.remove(entity.id),
     [entitiesHook],
   );
+
+  // Relationship dialog state: create (endpoints from a drag-connect) + edit.
+  const [relCreate, setRelCreate] = useState<{ source: string; target: string } | null>(null);
+  const [relEdit, setRelEdit] = useState<RelationshipRow | null>(null);
+
+  const onConnect = useCallback((c: Connection) => {
+    if (c.source && c.target) setRelCreate({ source: c.source, target: c.target });
+  }, []);
+
+  const onEdgeDoubleClick = useCallback<EdgeMouseHandler>(
+    (_e, edge) => {
+      const rel = relationships.find((r) => r.id === edge.id);
+      if (rel) setRelEdit(rel);
+    },
+    [relationships],
+  );
+
+  const handleRelCreate = useCallback(
+    async (values: RelationshipFormValues) => {
+      if (!relCreate) return;
+      await relationshipsHook.create({
+        sourceEntityId: relCreate.source,
+        targetEntityId: relCreate.target,
+        ...values,
+      });
+    },
+    [relCreate, relationshipsHook],
+  );
+
+  const handleRelEdit = useCallback(
+    async (values: RelationshipFormValues) => {
+      if (!relEdit) return;
+      await relationshipsHook.update(relEdit.id, { ...values, version: relEdit.version });
+    },
+    [relEdit, relationshipsHook],
+  );
+
+  const handleRelDelete = useCallback(
+    async (rel: RelationshipRow) => {
+      await relationshipsHook.remove(rel.id);
+      setRelEdit(null);
+    },
+    [relationshipsHook],
+  );
+
+  const nameOf = useCallback(
+    (id?: string) => entities.find((e) => e.id === id)?.name,
+    [entities],
+  );
   const positions = useMemo(
     () => canvasState.state?.nodePositions ?? {},
     [canvasState.state],
@@ -147,7 +199,7 @@ function InnerCanvas({ modelId, layer }: { modelId: string; layer: Layer }) {
     );
   }, [relationships, entities, setEdges]);
 
-  const conflict = entitiesHook.conflict;
+  const conflict = entitiesHook.conflict ?? relationshipsHook.conflict;
 
   return (
     <>
@@ -158,6 +210,8 @@ function InnerCanvas({ modelId, layer }: { modelId: string; layer: Layer }) {
         onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}
         onNodeDoubleClick={onNodeDoubleClick}
+        onConnect={onConnect}
+        onEdgeDoubleClick={onEdgeDoubleClick}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
@@ -183,12 +237,14 @@ function InnerCanvas({ modelId, layer }: { modelId: string; layer: Layer }) {
         {conflict && (
           <Panel position="top-center">
             <div className="flex items-center gap-3 rounded-lg border border-amber-500/40 bg-surface-2/95 px-3 py-2 text-xs text-ink-muted shadow-md backdrop-blur">
-              This entity changed in another tab.
+              This changed in another tab.
               <button
                 type="button"
                 onClick={() => {
                   void entitiesHook.refresh();
+                  void relationshipsHook.refresh();
                   entitiesHook.clearConflict();
+                  relationshipsHook.clearConflict();
                 }}
                 className="font-medium text-primary hover:underline"
               >
@@ -235,6 +291,23 @@ function InnerCanvas({ modelId, layer }: { modelId: string; layer: Layer }) {
           void attributesHook.refresh();
           attributesHook.clearConflict();
         }}
+      />
+
+      <RelationshipDialog
+        open={relCreate !== null}
+        sourceName={nameOf(relCreate?.source)}
+        targetName={nameOf(relCreate?.target)}
+        onClose={() => setRelCreate(null)}
+        onSubmit={handleRelCreate}
+      />
+      <RelationshipDialog
+        open={relEdit !== null}
+        relationship={relEdit}
+        sourceName={nameOf(relEdit?.sourceEntityId)}
+        targetName={nameOf(relEdit?.targetEntityId)}
+        onClose={() => setRelEdit(null)}
+        onSubmit={handleRelEdit}
+        onRequestDelete={handleRelDelete}
       />
     </>
   );
