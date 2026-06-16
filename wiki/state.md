@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-16T13:50:58.552Z
+generated: 2026-06-16T22:05:59.859Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -256,7 +256,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/execute` | [app/api/workflows/[id]/execute/route.ts](../app/api/workflows/[id]/execute/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]/execute-stream` | [app/api/workflows/[id]/execute-stream/route.ts](../app/api/workflows/[id]/execute-stream/route.ts) | 2026-06-14 |
 
-## Components (116)
+## Components (117)
 
 | File | Last shipped |
 |------|--------------|
@@ -298,8 +298,9 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/layout/header.tsx](../components/layout/header.tsx) | 2026-06-15 |
 | [components/layout/lead-sign-out-button.tsx](../components/layout/lead-sign-out-button.tsx) | 2026-06-10 |
 | [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-06-14 |
-| [components/model-studio/canvas/delete-entity-dialog.tsx](../components/model-studio/canvas/delete-entity-dialog.tsx) | unknown |
-| [components/model-studio/canvas/entity-dialog.tsx](../components/model-studio/canvas/entity-dialog.tsx) | unknown |
+| [components/model-studio/canvas/attribute-panel.tsx](../components/model-studio/canvas/attribute-panel.tsx) | unknown |
+| [components/model-studio/canvas/delete-entity-dialog.tsx](../components/model-studio/canvas/delete-entity-dialog.tsx) | 2026-06-16 |
+| [components/model-studio/canvas/entity-dialog.tsx](../components/model-studio/canvas/entity-dialog.tsx) | 2026-06-16 |
 | [components/model-studio/canvas/entity-node.tsx](../components/model-studio/canvas/entity-node.tsx) | 2026-06-16 |
 | [components/model-studio/canvas/model-canvas.tsx](../components/model-studio/canvas/model-canvas.tsx) | 2026-06-16 |
 | [components/model-studio/canvas/relationship-edge.tsx](../components/model-studio/canvas/relationship-edge.tsx) | 2026-06-16 |

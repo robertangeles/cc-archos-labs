@@ -23,6 +23,7 @@ import { EntityNode, type EntityNodeType } from "./entity-node";
 import { RelationshipEdge, type RelationshipEdgeType } from "./relationship-edge";
 import { EntityDialog, type EntityFormValues } from "./entity-dialog";
 import { DeleteEntityDialog } from "./delete-entity-dialog";
+import { AttributePanel } from "./attribute-panel";
 
 // ============================================================================
 // ModelCanvas — the React Flow surface for one model + layer (read-only render
@@ -56,6 +57,12 @@ function InnerCanvas({ modelId, layer }: { modelId: string; layer: Layer }) {
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<EntityRow | null>(null);
   const [deleting, setDeleting] = useState<EntityRow | null>(null);
+  // Single-click selects an entity and opens its attribute panel.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const onNodeClick = useCallback<NodeMouseHandler>((_e, node) => {
+    setSelectedId(node.id);
+  }, []);
 
   const onNodeDoubleClick = useCallback<NodeMouseHandler>(
     (_e, node) => {
@@ -63,6 +70,15 @@ function InnerCanvas({ modelId, layer }: { modelId: string; layer: Layer }) {
       if (entity) setEditing(entity);
     },
     [entities],
+  );
+
+  const selectedEntity = useMemo(
+    () => entities.find((e) => e.id === selectedId) ?? null,
+    [entities, selectedId],
+  );
+  const selectedAttributes = useMemo(
+    () => attributes.filter((a) => a.entityId === selectedId),
+    [attributes, selectedId],
   );
 
   const handleCreate = useCallback(
@@ -140,6 +156,7 @@ function InnerCanvas({ modelId, layer }: { modelId: string; layer: Layer }) {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onNodeClick={onNodeClick}
         onNodeDoubleClick={onNodeDoubleClick}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
@@ -201,6 +218,23 @@ function InnerCanvas({ modelId, layer }: { modelId: string; layer: Layer }) {
         entity={deleting}
         onClose={() => setDeleting(null)}
         onConfirm={handleDelete}
+      />
+
+      <AttributePanel
+        entity={selectedEntity}
+        attributes={selectedAttributes}
+        conflict={attributesHook.conflict}
+        onClose={() => setSelectedId(null)}
+        onCreate={(input) => attributesHook.create(selectedId!, input)}
+        onUpdate={(attributeId, patch) => attributesHook.update(selectedId!, attributeId, patch)}
+        onReorder={(attributeId, direction, version) =>
+          attributesHook.reorder(selectedId!, attributeId, direction, version)
+        }
+        onRemove={(attributeId) => attributesHook.remove(selectedId!, attributeId)}
+        onResolveConflict={() => {
+          void attributesHook.refresh();
+          attributesHook.clearConflict();
+        }}
       />
     </>
   );
