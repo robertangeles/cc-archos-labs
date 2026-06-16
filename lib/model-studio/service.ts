@@ -61,7 +61,7 @@ const PG_UNIQUE_VIOLATION = "23505";
  *  violation. Drizzle wraps the driver error and carries the original pg error
  *  — with the SQLSTATE `code` — on `.cause`, so we walk the chain rather than
  *  reading `err.code` alone (which differs between postgres-js and pglite). */
-function isUniqueViolation(err: unknown): boolean {
+export function isUniqueViolation(err: unknown): boolean {
   let cursor: unknown = err;
   for (let depth = 0; cursor && depth < 5; depth++) {
     if (
