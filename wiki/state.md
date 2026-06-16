@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-16T13:05:37.051Z
+generated: 2026-06-16T13:07:59.830Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -83,7 +83,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/workspace/model-studio` | [app/workspace/model-studio/page.tsx](../app/workspace/model-studio/page.tsx) | 2026-06-15 |
 | `/workspace/model-studio/[id]` | [app/workspace/model-studio/[id]/page.tsx](../app/workspace/model-studio/[id]/page.tsx) | 2026-06-15 |
 
-## API endpoints (164)
+## API endpoints (166)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -193,8 +193,10 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/model-studio/[id]` | [app/api/model-studio/[id]/route.ts](../app/api/model-studio/[id]/route.ts) | 2026-06-15 |
 | `/api/model-studio/[id]/entities` | [app/api/model-studio/[id]/entities/route.ts](../app/api/model-studio/[id]/entities/route.ts) | 2026-06-16 |
 | `/api/model-studio/[id]/entities/[entityId]` | [app/api/model-studio/[id]/entities/[entityId]/route.ts](../app/api/model-studio/[id]/entities/[entityId]/route.ts) | 2026-06-16 |
-| `/api/model-studio/[id]/entities/[entityId]/attributes` | [app/api/model-studio/[id]/entities/[entityId]/attributes/route.ts](../app/api/model-studio/[id]/entities/[entityId]/attributes/route.ts) | unknown |
-| `/api/model-studio/[id]/entities/[entityId]/attributes/[attributeId]` | [app/api/model-studio/[id]/entities/[entityId]/attributes/[attributeId]/route.ts](../app/api/model-studio/[id]/entities/[entityId]/attributes/[attributeId]/route.ts) | unknown |
+| `/api/model-studio/[id]/entities/[entityId]/attributes` | [app/api/model-studio/[id]/entities/[entityId]/attributes/route.ts](../app/api/model-studio/[id]/entities/[entityId]/attributes/route.ts) | 2026-06-16 |
+| `/api/model-studio/[id]/entities/[entityId]/attributes/[attributeId]` | [app/api/model-studio/[id]/entities/[entityId]/attributes/[attributeId]/route.ts](../app/api/model-studio/[id]/entities/[entityId]/attributes/[attributeId]/route.ts) | 2026-06-16 |
+| `/api/model-studio/[id]/relationships` | [app/api/model-studio/[id]/relationships/route.ts](../app/api/model-studio/[id]/relationships/route.ts) | unknown |
+| `/api/model-studio/[id]/relationships/[relationshipId]` | [app/api/model-studio/[id]/relationships/[relationshipId]/route.ts](../app/api/model-studio/[id]/relationships/[relationshipId]/route.ts) | unknown |
 | `/api/model-studio/flag` | [app/api/model-studio/flag/route.ts](../app/api/model-studio/flag/route.ts) | 2026-06-15 |
 | `/api/organisations` | [app/api/organisations/route.ts](../app/api/organisations/route.ts) | 2026-06-15 |
 | `/api/organisations/[id]` | [app/api/organisations/[id]/route.ts](../app/api/organisations/[id]/route.ts) | 2026-06-15 |
