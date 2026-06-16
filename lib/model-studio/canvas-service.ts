@@ -1,7 +1,13 @@
 import "server-only";
 import { and, asc, desc, eq, gt, lt, sql } from "drizzle-orm";
 import { getDb, type DB } from "../db";
-import { dataModel, dataModelAttribute, dataModelEntity, project } from "../db/schema";
+import {
+  dataModel,
+  dataModelAttribute,
+  dataModelEntity,
+  dataModelRelationship,
+  project,
+} from "../db/schema";
 import { ModelConflictError, isUniqueViolation } from "./service";
 import type { Layer } from "./validation";
 import type {
@@ -9,6 +15,8 @@ import type {
   EntityUpdate,
   AttributeCreate,
   AttributeUpdate,
+  RelationshipCreate,
+  RelationshipUpdate,
 } from "./canvas-validation";
 
 // ============================================================================
@@ -34,6 +42,15 @@ export class VersionConflictError extends Error {
   constructor(public readonly serverVersion: number) {
     super("This record was changed since you loaded it. Refresh and try again.");
     this.name = "VersionConflictError";
+  }
+}
+
+/** Thrown when a relationship references an entity that is not in the same
+ *  model (a cross-model or cross-org endpoint). Routes map this to HTTP 400. */
+export class InvalidEndpointError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidEndpointError";
   }
 }
 
@@ -575,4 +592,204 @@ export async function reorderAttribute(
   });
 
   return getAttribute(orgId, modelId, entityId, attributeId, db);
+}
+
+// ---- relationship ----------------------------------------------------------
+
+/** Columns returned for every relationship. */
+const relationshipSelection = {
+  id: dataModelRelationship.id,
+  dataModelId: dataModelRelationship.dataModelId,
+  sourceEntityId: dataModelRelationship.sourceEntityId,
+  targetEntityId: dataModelRelationship.targetEntityId,
+  name: dataModelRelationship.name,
+  nameInverse: dataModelRelationship.nameInverse,
+  sourceCardinality: dataModelRelationship.sourceCardinality,
+  targetCardinality: dataModelRelationship.targetCardinality,
+  isIdentifying: dataModelRelationship.isIdentifying,
+  isNullableForeignKey: dataModelRelationship.isNullableForeignKey,
+  description: dataModelRelationship.description,
+  metadata: dataModelRelationship.metadata,
+  waypoints: dataModelRelationship.waypoints,
+  version: dataModelRelationship.version,
+  createdBy: dataModelRelationship.createdBy,
+  createdAt: dataModelRelationship.createdAt,
+  updatedAt: dataModelRelationship.updatedAt,
+} as const;
+
+/** True when an entity belongs to the given model. Used to reject cross-model
+ *  (and therefore cross-org) relationship endpoints. */
+async function entityInModel(
+  db: DB,
+  modelId: string,
+  entityId: string,
+): Promise<boolean> {
+  const rows = await db
+    .select({ id: dataModelEntity.id })
+    .from(dataModelEntity)
+    .where(
+      and(
+        eq(dataModelEntity.id, entityId),
+        eq(dataModelEntity.dataModelId, modelId),
+      ),
+    )
+    .limit(1);
+  return rows.length > 0;
+}
+
+/** Fetch one relationship, scoped to the org. */
+async function getRelationship(
+  orgId: string,
+  modelId: string,
+  relationshipId: string,
+  dbArg?: DB,
+) {
+  const db = dbArg ?? getDb();
+  const [row] = await db
+    .select(relationshipSelection)
+    .from(dataModelRelationship)
+    .innerJoin(dataModel, eq(dataModelRelationship.dataModelId, dataModel.id))
+    .innerJoin(project, eq(dataModel.projectId, project.id))
+    .where(
+      and(
+        eq(dataModelRelationship.id, relationshipId),
+        eq(dataModelRelationship.dataModelId, modelId),
+        eq(project.organisationId, orgId),
+      ),
+    )
+    .limit(1);
+  return row ?? null;
+}
+
+/** List a model's relationships. Returns null when the model is not in the org.
+ *  The canvas draws only edges whose both endpoints are visible on the active
+ *  layer, so no layer filter is applied here. */
+export async function listRelationships(
+  orgId: string,
+  modelId: string,
+  dbArg?: DB,
+) {
+  const db = dbArg ?? getDb();
+  if (!(await modelInOrg(db, orgId, modelId))) return null;
+  return db
+    .select(relationshipSelection)
+    .from(dataModelRelationship)
+    .where(eq(dataModelRelationship.dataModelId, modelId))
+    .orderBy(asc(dataModelRelationship.createdAt));
+}
+
+/**
+ * Create a relationship between two entities in a model. Returns null if the
+ * model is not in the org. Throws InvalidEndpointError when either endpoint is
+ * not an entity of this model (which also blocks cross-org endpoints).
+ */
+export async function createRelationship(
+  orgId: string,
+  modelId: string,
+  createdBy: string,
+  input: RelationshipCreate,
+  dbArg?: DB,
+) {
+  const db = dbArg ?? getDb();
+  if (!(await modelInOrg(db, orgId, modelId))) return null;
+
+  if (!(await entityInModel(db, modelId, input.sourceEntityId))) {
+    throw new InvalidEndpointError("Source entity is not in this model.");
+  }
+  if (!(await entityInModel(db, modelId, input.targetEntityId))) {
+    throw new InvalidEndpointError("Target entity is not in this model.");
+  }
+
+  const [row] = await db
+    .insert(dataModelRelationship)
+    .values({
+      dataModelId: modelId,
+      createdBy,
+      sourceEntityId: input.sourceEntityId,
+      targetEntityId: input.targetEntityId,
+      name: input.name ?? null,
+      nameInverse: input.nameInverse ?? null,
+      sourceCardinality: input.sourceCardinality,
+      targetCardinality: input.targetCardinality,
+      isIdentifying: input.isIdentifying ?? false,
+      isNullableForeignKey: input.isNullableForeignKey ?? false,
+      description: input.description ?? null,
+      metadata: input.metadata ?? {},
+      waypoints: input.waypoints ?? null,
+    })
+    .returning(relationshipSelection);
+  return row;
+}
+
+/** Update a relationship, scoped + version-locked. Null if not in org; throws
+ *  VersionConflictError on a stale write. */
+export async function updateRelationship(
+  orgId: string,
+  modelId: string,
+  relationshipId: string,
+  patch: RelationshipUpdate,
+  dbArg?: DB,
+) {
+  const db = dbArg ?? getDb();
+  if (!(await getRelationship(orgId, modelId, relationshipId, db))) return null;
+
+  const updated = await db
+    .update(dataModelRelationship)
+    .set({
+      ...(patch.name !== undefined ? { name: patch.name ?? null } : {}),
+      ...(patch.nameInverse !== undefined
+        ? { nameInverse: patch.nameInverse ?? null }
+        : {}),
+      ...(patch.sourceCardinality !== undefined
+        ? { sourceCardinality: patch.sourceCardinality }
+        : {}),
+      ...(patch.targetCardinality !== undefined
+        ? { targetCardinality: patch.targetCardinality }
+        : {}),
+      ...(patch.isIdentifying !== undefined
+        ? { isIdentifying: patch.isIdentifying }
+        : {}),
+      ...(patch.isNullableForeignKey !== undefined
+        ? { isNullableForeignKey: patch.isNullableForeignKey }
+        : {}),
+      ...(patch.description !== undefined
+        ? { description: patch.description ?? null }
+        : {}),
+      ...(patch.metadata !== undefined ? { metadata: patch.metadata } : {}),
+      ...(patch.waypoints !== undefined
+        ? { waypoints: patch.waypoints ?? null }
+        : {}),
+      version: sql`${dataModelRelationship.version} + 1`,
+      updatedAt: sql`now()`,
+    })
+    .where(
+      and(
+        eq(dataModelRelationship.id, relationshipId),
+        eq(dataModelRelationship.version, patch.version),
+      ),
+    )
+    .returning({ id: dataModelRelationship.id });
+
+  if (updated.length === 0) {
+    const current = await getRelationship(orgId, modelId, relationshipId, db);
+    if (!current) return null;
+    throw new VersionConflictError(current.version);
+  }
+  return getRelationship(orgId, modelId, relationshipId, db);
+}
+
+/** Delete a relationship, scoped to the org. Returns true if a row was removed. */
+export async function deleteRelationship(
+  orgId: string,
+  modelId: string,
+  relationshipId: string,
+  dbArg?: DB,
+): Promise<boolean> {
+  const db = dbArg ?? getDb();
+  if (!(await getRelationship(orgId, modelId, relationshipId, db))) return false;
+  const removed = await db
+    .delete(dataModelRelationship)
+    .where(eq(dataModelRelationship.id, relationshipId))
+    .returning({ id: dataModelRelationship.id });
+  return removed.length > 0;
 }
