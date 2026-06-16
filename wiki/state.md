@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-16T13:41:26.422Z
+generated: 2026-06-16T13:46:35.877Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -191,7 +191,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/health/cron` | [app/api/health/cron/route.ts](../app/api/health/cron/route.ts) | 2026-05-17 |
 | `/api/model-studio` | [app/api/model-studio/route.ts](../app/api/model-studio/route.ts) | 2026-06-15 |
 | `/api/model-studio/[id]` | [app/api/model-studio/[id]/route.ts](../app/api/model-studio/[id]/route.ts) | 2026-06-15 |
-| `/api/model-studio/[id]/attributes` | [app/api/model-studio/[id]/attributes/route.ts](../app/api/model-studio/[id]/attributes/route.ts) | unknown |
+| `/api/model-studio/[id]/attributes` | [app/api/model-studio/[id]/attributes/route.ts](../app/api/model-studio/[id]/attributes/route.ts) | 2026-06-16 |
 | `/api/model-studio/[id]/canvas-state` | [app/api/model-studio/[id]/canvas-state/route.ts](../app/api/model-studio/[id]/canvas-state/route.ts) | 2026-06-16 |
 | `/api/model-studio/[id]/entities` | [app/api/model-studio/[id]/entities/route.ts](../app/api/model-studio/[id]/entities/route.ts) | 2026-06-16 |
 | `/api/model-studio/[id]/entities/[entityId]` | [app/api/model-studio/[id]/entities/[entityId]/route.ts](../app/api/model-studio/[id]/entities/[entityId]/route.ts) | 2026-06-16 |
@@ -256,7 +256,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/execute` | [app/api/workflows/[id]/execute/route.ts](../app/api/workflows/[id]/execute/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]/execute-stream` | [app/api/workflows/[id]/execute-stream/route.ts](../app/api/workflows/[id]/execute-stream/route.ts) | 2026-06-14 |
 
-## Components (111)
+## Components (114)
 
 | File | Last shipped |
 |------|--------------|
@@ -298,6 +298,9 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/layout/header.tsx](../components/layout/header.tsx) | 2026-06-15 |
 | [components/layout/lead-sign-out-button.tsx](../components/layout/lead-sign-out-button.tsx) | 2026-06-10 |
 | [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-06-14 |
+| [components/model-studio/canvas/entity-node.tsx](../components/model-studio/canvas/entity-node.tsx) | unknown |
+| [components/model-studio/canvas/model-canvas.tsx](../components/model-studio/canvas/model-canvas.tsx) | unknown |
+| [components/model-studio/canvas/relationship-edge.tsx](../components/model-studio/canvas/relationship-edge.tsx) | unknown |
 | [components/model-studio/create-model-dialog.tsx](../components/model-studio/create-model-dialog.tsx) | 2026-06-15 |
 | [components/model-studio/delete-model-dialog.tsx](../components/model-studio/delete-model-dialog.tsx) | 2026-06-15 |
 | [components/model-studio/edit-model-dialog.tsx](../components/model-studio/edit-model-dialog.tsx) | 2026-06-15 |
