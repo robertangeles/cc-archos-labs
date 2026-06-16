@@ -19,7 +19,9 @@ Migrated the Spresso canvas phase end-to-end: a React Flow modelling surface whe
 - **Decisions surfaced:** attribute `classification` corrected to Spresso's governance enum (nullable, not a structural enum) after a research error — gnhf 12 amended. Canvas `classification` structure lives in the boolean flags.
 - **Deferred:** AI (inference/auto-describe/synthetic-data), realtime/cross-tab, undo/redo, Dagre tidy, DDL export. **Playwright E2E not built** — no harness exists in the repo; authenticated visual QA should run via gstack `/qa`.
 
-New page: [[model-studio-canvas]]. Branch `gnhf/step-1-clone-https-g-6eeac0`, not pushed.
+**E2E (gnhf 28b):** stood up the Playwright harness the repo lacked (config + `test:e2e` + `tests/e2e/model-canvas.spec.ts`), seeding auth by registering a real user (no backdoor). It immediately caught a real bug — the canvas rendered as a zero-height void under the layout's `min-h-full` body — fixed via `flex-1 min-h-0` + `absolute inset-0`. See [[2026-06-17-react-flow-height-collapse]]. E2E green; vitest 1109.
+
+New pages: [[model-studio-canvas]], [[2026-06-17-react-flow-height-collapse]]. Branch `gnhf/step-1-clone-https-g-6eeac0`, not pushed.
 
 ## 2026-06-16 — Fixed /workspace/model-studio 500: unapplied migration 0027
 
