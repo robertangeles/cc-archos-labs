@@ -5,7 +5,6 @@ import * as projectService from "../../lib/projects/service";
 import * as modelService from "../../lib/model-studio/service";
 import { ModelConflictError } from "../../lib/model-studio/service";
 import * as canvas from "../../lib/model-studio/canvas-service";
-import { VersionConflictError } from "../../lib/model-studio/canvas-service";
 import { modelCreateSchema } from "../../lib/model-studio/validation";
 import { entityCreateSchema } from "../../lib/model-studio/canvas-validation";
 

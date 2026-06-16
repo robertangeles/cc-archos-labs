@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-16T13:10:26.759Z
+generated: 2026-06-16T13:41:26.422Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -83,7 +83,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/workspace/model-studio` | [app/workspace/model-studio/page.tsx](../app/workspace/model-studio/page.tsx) | 2026-06-15 |
 | `/workspace/model-studio/[id]` | [app/workspace/model-studio/[id]/page.tsx](../app/workspace/model-studio/[id]/page.tsx) | 2026-06-15 |
 
-## API endpoints (167)
+## API endpoints (168)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -191,7 +191,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/health/cron` | [app/api/health/cron/route.ts](../app/api/health/cron/route.ts) | 2026-05-17 |
 | `/api/model-studio` | [app/api/model-studio/route.ts](../app/api/model-studio/route.ts) | 2026-06-15 |
 | `/api/model-studio/[id]` | [app/api/model-studio/[id]/route.ts](../app/api/model-studio/[id]/route.ts) | 2026-06-15 |
-| `/api/model-studio/[id]/canvas-state` | [app/api/model-studio/[id]/canvas-state/route.ts](../app/api/model-studio/[id]/canvas-state/route.ts) | unknown |
+| `/api/model-studio/[id]/attributes` | [app/api/model-studio/[id]/attributes/route.ts](../app/api/model-studio/[id]/attributes/route.ts) | unknown |
+| `/api/model-studio/[id]/canvas-state` | [app/api/model-studio/[id]/canvas-state/route.ts](../app/api/model-studio/[id]/canvas-state/route.ts) | 2026-06-16 |
 | `/api/model-studio/[id]/entities` | [app/api/model-studio/[id]/entities/route.ts](../app/api/model-studio/[id]/entities/route.ts) | 2026-06-16 |
 | `/api/model-studio/[id]/entities/[entityId]` | [app/api/model-studio/[id]/entities/[entityId]/route.ts](../app/api/model-studio/[id]/entities/[entityId]/route.ts) | 2026-06-16 |
 | `/api/model-studio/[id]/entities/[entityId]/attributes` | [app/api/model-studio/[id]/entities/[entityId]/attributes/route.ts](../app/api/model-studio/[id]/entities/[entityId]/attributes/route.ts) | 2026-06-16 |
