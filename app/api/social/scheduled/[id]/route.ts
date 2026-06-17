@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { getDb } from "@/lib/db";
 import { scheduledSocialPost } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+import { isSocialPlatform, PLATFORM_MAX_CHAR_LIMITS } from "@/lib/social/types";
 
 export const runtime = "nodejs";
 
@@ -33,9 +34,10 @@ export async function PATCH(
     );
   }
 
-  const { scheduledFor, displayTimezone } = body as {
+  const { scheduledFor, displayTimezone, content } = body as {
     scheduledFor?: string;
     displayTimezone?: string;
+    content?: string;
   };
 
   // --- Validate scheduledFor ---
@@ -70,6 +72,14 @@ export async function PATCH(
     );
   }
 
+  // --- Validate optional content (length check happens after we know the platform) ---
+  if (content !== undefined && (typeof content !== "string" || !content.trim())) {
+    return NextResponse.json(
+      { ok: false, error: "Content must be a non-empty string if provided." },
+      { status: 400 },
+    );
+  }
+
   try {
     const db = getDb();
 
@@ -78,6 +88,7 @@ export async function PATCH(
       .select({
         id: scheduledSocialPost.id,
         status: scheduledSocialPost.status,
+        platform: scheduledSocialPost.platform,
       })
       .from(scheduledSocialPost)
       .where(
@@ -97,9 +108,23 @@ export async function PATCH(
 
     if (rows[0].status !== "pending") {
       return NextResponse.json(
-        { ok: false, error: "Only pending posts can be rescheduled." },
+        { ok: false, error: "Only pending posts can be edited." },
         { status: 409 },
       );
+    }
+
+    // --- Enforce the platform character limit when content changes ---
+    if (content !== undefined && isSocialPlatform(rows[0].platform)) {
+      const charLimit = PLATFORM_MAX_CHAR_LIMITS[rows[0].platform];
+      if (content.length > charLimit) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: `Content exceeds ${charLimit.toLocaleString()} character limit for ${rows[0].platform}.`,
+          },
+          { status: 400 },
+        );
+      }
     }
 
     // --- Update ---
@@ -109,6 +134,9 @@ export async function PATCH(
     };
     if (displayTimezone) {
       updates.displayTimezone = displayTimezone.trim();
+    }
+    if (content !== undefined) {
+      updates.content = content.trim();
     }
 
     await db
@@ -127,7 +155,7 @@ export async function PATCH(
 }
 
 // ---------------------------------------------------------------------------
-// DELETE /api/social/scheduled/[id] — cancel a pending post
+// DELETE /api/social/scheduled/[id] — permanently delete a scheduled post
 // ---------------------------------------------------------------------------
 export async function DELETE(
   _request: Request,
@@ -168,27 +196,30 @@ export async function DELETE(
       );
     }
 
-    if (rows[0].status !== "pending") {
+    // Block deletion only while a post is mid-publish — deleting that row
+    // out from under the cron publisher would race the running job.
+    if (rows[0].status === "processing") {
       return NextResponse.json(
-        { ok: false, error: "Only pending posts can be cancelled." },
+        { ok: false, error: "This post is publishing right now and can't be deleted." },
         { status: 409 },
       );
     }
 
-    // Soft-cancel: set status to 'cancelled'
+    // Hard delete, scoped to the owner (defence in depth on top of the IDOR check above).
     await db
-      .update(scheduledSocialPost)
-      .set({
-        status: "cancelled",
-        updatedAt: new Date(),
-      })
-      .where(eq(scheduledSocialPost.id, id));
+      .delete(scheduledSocialPost)
+      .where(
+        and(
+          eq(scheduledSocialPost.id, id),
+          eq(scheduledSocialPost.userId, user.user.id),
+        ),
+      );
 
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[social/scheduled/[id]] DELETE error:", err);
     return NextResponse.json(
-      { ok: false, error: "Failed to cancel post." },
+      { ok: false, error: "Failed to delete post." },
       { status: 500 },
     );
   }

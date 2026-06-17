@@ -2,13 +2,14 @@
 title: Wiki Index
 category: synthesis
 created: 2026-05-07
-updated: 2026-06-05
-related: [[state]], [[backlog]], [[shipped]], [[book-a-call-architecture]], [[booking-prompts-in-db]], [[claude-eval-suites]], [[lead-session-and-owner-only-reports]], [[magic-link-sign-in]], [[transactional-email-rendering]], [[integration-config]], [[design-system]], [[2026-05-20-wiki-karpathy-ops]], [[2026-05-20-posts-admin-phase-d-backend]], [[2026-05-20-posts-admin-phase-d-ui]], [[2026-05-21-sitemap-aieo-fixes]], [[2026-05-21-indexnow]], [[2026-06-05-seo-crawl-budget-pagination-fix]]
+updated: 2026-06-17
+related: [[state]], [[scheduled-social-posts]], [[backlog]], [[shipped]], [[book-a-call-architecture]], [[booking-prompts-in-db]], [[claude-eval-suites]], [[lead-session-and-owner-only-reports]], [[magic-link-sign-in]], [[transactional-email-rendering]], [[integration-config]], [[design-system]], [[2026-05-20-wiki-karpathy-ops]], [[2026-05-20-posts-admin-phase-d-backend]], [[2026-05-20-posts-admin-phase-d-ui]], [[2026-05-21-sitemap-aieo-fixes]], [[2026-05-21-indexnow]], [[2026-06-05-seo-crawl-budget-pagination-fix]]
 ---
 
 Master catalog of all wiki pages. Read this at the start of every session. For current ship state by route / endpoint / component, read [[state]] first (auto-generated, always fresh). For runtime topology and the (unusual) single-environment, single-DB posture, read [[deployment-architecture]] before suggesting any deploy / migration / cutover runbook.
 
 ## entities
+- [Scheduled Social Posts — CRUD lifecycle](entities/scheduled-social-posts.md) — full create/read/update/delete for `/account/scheduled-posts`. "Edit" now edits post text + schedule together (PATCH accepts optional `content`, re-validated vs `PLATFORM_MAX_CHAR_LIMITS`); "Delete" is a confirmed **hard delete** (replaced the old soft-cancel that left `cancelled` ghost rows). Only block is `processing` (mid-publish) → 409. Branch `feature/edit-scheduled-post-content`.
 - [Model Studio Canvas](entities/model-studio-canvas.md) — the React Flow data-modelling surface at `/workspace/model-studio/[id]` (gnhf 12–29). 4 tables (migration 0028: entity/attribute/relationship/canvas-state), optimistic version-locking (409 VERSION_CONFLICT), per-user per-layer node positions, owner|admin-gated mutations, governance classification on attributes. Deferred: AI/realtime/undo/Dagre/DDL-export + the authenticated Playwright E2E (use `/qa`).
 - [Local Dev Setup (bring-up on a fresh machine, e.g. ARCHOS)](entities/local-dev-setup.md) — how to recreate `.env.local` (gitignored, not in a pull), install, and run on a new box. The 3 bootstrap secrets (DATABASE_URL/BOOKING_ENCRYPTION_KEY/AUTH_SECRET), the External-vs-Internal Render DB URL trap, and the puppeteer install recovery. Read first on any new machine.
 - [Deployment architecture](entities/deployment-architecture.md) — single Render web service + single Render Postgres + single R2 bucket + single Resend account. `.env.local` and the Render runtime point at the SAME DATABASE_URL. No dev/staging/prod separation. Read before recommending any operational runbook.

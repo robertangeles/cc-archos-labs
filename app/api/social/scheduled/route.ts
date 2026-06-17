@@ -41,11 +41,12 @@ export async function GET() {
       .where(eq(scheduledSocialPost.userId, user.user.id))
       .orderBy(asc(scheduledSocialPost.scheduledFor));
 
-    // Return first 200 chars of content as contentPreview
+    // Return first 200 chars as a preview, plus full content for inline editing
     const posts = rows.map((row) => ({
       id: row.id,
       platform: row.platform,
       contentPreview: row.content.slice(0, 200),
+      content: row.content,
       scheduledFor: row.scheduledFor,
       displayTimezone: row.displayTimezone,
       status: row.status,
