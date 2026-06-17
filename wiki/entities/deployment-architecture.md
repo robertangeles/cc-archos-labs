@@ -2,11 +2,14 @@
 title: Deployment architecture
 category: entity
 created: 2026-05-20
-updated: 2026-06-14
+updated: 2026-06-17
 related: [[2026-05-08-render-postgres-over-neon]], [[integration-config]], [[index]], [[state]]
 ---
 
-The runtime topology of Archos Labs. **Single environment, single database** — there is no dev / staging / prod separation at the data layer. This is unusual relative to industry convention; documenting it explicitly so future sessions don't assume a multi-env setup and build elaborate machinery to bridge it.
+The runtime topology of Archos Labs.
+
+> **⚠️ CURRENT REALITY (since 2026-06-15): TWO databases, not one.**
+> `.env.local`'s `DATABASE_URL` points at a **local DEV Postgres** (`archos_labs_dev`, host `127.0.0.1`, PG18, no SSL). **PROD** is the Render `archos_labs_pdb` (Singapore), kept commented in `.env.local` as `DATABASE_URL_RENDER_PROD`. **They are separate.** Anything you run locally via `.env.local` (`db:migrate`, seeds, ad-hoc SQL) hits **DEV only**; PROD must be migrated separately (see the 2026-06-15 section below). Before claiming where data lives, **check the `DATABASE_URL` host** — a `127.0.0.1` / no-SSL connection is DEV, period. The original "single database" framing below (created 2026-05-20) is **historical** — kept for the deploy/web-service topology, but the data layer is no longer single-DB.
 
 ## The shape
 
