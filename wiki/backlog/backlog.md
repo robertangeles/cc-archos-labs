@@ -310,6 +310,12 @@ Not surfaced in the (future "Metis") workspace until the platform scope lands. T
 
 ---
 
+## Tech debt
+
+- **▢ Twitter content-length ceiling mismatch** ([issue #160](https://github.com/robertangeles/cc-archos-labs/issues/160)) — server (POST + PATCH on `scheduled`) validates Twitter against `PLATFORM_MAX_CHAR_LIMITS` (25 000) while the client enforces an X-Premium-aware `effectiveLimit` (280 / 25 000) and the publisher enforces nothing. A non-premium row of 281–25 000 chars persists and then fails at publish. Premium state is client-only, so the fix is system-wide (persist a per-post long-form flag, or tighten uniformly, plus a cron-side length guard). Surfaced by PR #159; out of scope there. **Verify:** a non-premium 300-char tweet is rejected at create/edit, or fails fast in cron with a clear message — not after 3 silent retries.
+
+---
+
 ## What's deliberately not on this list
 
 - Internationalisation — single-language launch.
