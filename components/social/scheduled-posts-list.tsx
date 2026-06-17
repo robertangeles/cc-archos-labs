@@ -4,9 +4,24 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { PenLine } from "lucide-react";
 import { XIcon, LinkedinIcon, BlueskyIcon } from "@/components/icons/social";
 import type { SocialPlatform } from "@/lib/social/types";
-import { PLATFORM_DISPLAY_NAMES, PLATFORM_MAX_CHAR_LIMITS, SOCIAL_PLATFORMS } from "@/lib/social/types";
+import { PLATFORM_CHAR_LIMITS, PLATFORM_DISPLAY_NAMES, SOCIAL_PLATFORMS } from "@/lib/social/types";
 import { PublishModal } from "@/components/social/publish-modal";
 import { DateField } from "@/components/ui/date-field";
+
+/* ------------------------------------------------------------------ */
+/* Character limits                                                   */
+/* ------------------------------------------------------------------ */
+
+/* X Premium raises the Twitter limit; the flag is set in the publish modal
+ * and persisted in localStorage. We mirror its effective limit here so the
+ * editor caps content the same way compose did when the post was created. */
+const X_PREMIUM_KEY = "archos_x_premium";
+const X_PREMIUM_LIMIT = 25_000;
+
+function effectiveLimit(platform: SocialPlatform, xPremium: boolean): number {
+  if (platform === "twitter" && xPremium) return X_PREMIUM_LIMIT;
+  return PLATFORM_CHAR_LIMITS[platform];
+}
 
 /* ------------------------------------------------------------------ */
 /* Platform icon mapping                                              */
@@ -71,6 +86,13 @@ export function ScheduledPostsList() {
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [connectedPlatforms, setConnectedPlatforms] = useState<SocialPlatform[]>([]);
   const [activeTab, setActiveTab] = useState<"scheduled" | "posted">("scheduled");
+
+  /* Whether the user has X Premium (set in the publish modal). Read once so
+   * the Twitter limit in the editor matches what compose enforced. */
+  const [xPremium] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(X_PREMIUM_KEY) === "true";
+  });
 
   /* Delete confirmation: id of the post awaiting a confirm tap */
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
@@ -323,6 +345,7 @@ export function ScheduledPostsList() {
           {displayList.map((post) => {
             const Icon = PLATFORM_ICONS[post.platform];
             const isEditing = editingId === post.id;
+            const charLimit = effectiveLimit(post.platform, xPremium);
 
             return (
               <div
@@ -367,12 +390,12 @@ export function ScheduledPostsList() {
                       <div className="mt-1 flex justify-end">
                         <span
                           className={`text-[10px] ${
-                            editContent.length > PLATFORM_MAX_CHAR_LIMITS[post.platform]
+                            editContent.length > charLimit
                               ? "text-red-400"
                               : "text-ink-subtle"
                           }`}
                         >
-                          {editContent.length}/{PLATFORM_MAX_CHAR_LIMITS[post.platform]}
+                          {editContent.length}/{charLimit}
                         </span>
                       </div>
                     </div>
@@ -400,7 +423,7 @@ export function ScheduledPostsList() {
                           !editDate ||
                           !editTime ||
                           !editContent.trim() ||
-                          editContent.length > PLATFORM_MAX_CHAR_LIMITS[post.platform]
+                          editContent.length > charLimit
                         }
                         className="rounded-md bg-primary px-3 py-1 text-[10px] font-medium text-white transition-colors hover:bg-primary-hover disabled:opacity-50"
                       >

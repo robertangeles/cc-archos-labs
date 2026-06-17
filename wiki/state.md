@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-17T05:30:09.394Z
+generated: 2026-06-17T05:39:08.173Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -243,8 +243,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/social/linkedin/disconnect` | [app/api/social/linkedin/disconnect/route.ts](../app/api/social/linkedin/disconnect/route.ts) | 2026-06-14 |
 | `/api/social/linkedin/status` | [app/api/social/linkedin/status/route.ts](../app/api/social/linkedin/status/route.ts) | 2026-06-12 |
 | `/api/social/publish` | [app/api/social/publish/route.ts](../app/api/social/publish/route.ts) | 2026-06-12 |
-| `/api/social/scheduled` | [app/api/social/scheduled/route.ts](../app/api/social/scheduled/route.ts) | 2026-06-14 |
-| `/api/social/scheduled/[id]` | [app/api/social/scheduled/[id]/route.ts](../app/api/social/scheduled/[id]/route.ts) | 2026-06-14 |
+| `/api/social/scheduled` | [app/api/social/scheduled/route.ts](../app/api/social/scheduled/route.ts) | 2026-06-17 |
+| `/api/social/scheduled/[id]` | [app/api/social/scheduled/[id]/route.ts](../app/api/social/scheduled/[id]/route.ts) | 2026-06-17 |
 | `/api/social/scheduled/[id]/retry` | [app/api/social/scheduled/[id]/retry/route.ts](../app/api/social/scheduled/[id]/retry/route.ts) | 2026-06-14 |
 | `/api/social/twitter/callback` | [app/api/social/twitter/callback/route.ts](../app/api/social/twitter/callback/route.ts) | 2026-06-12 |
 | `/api/social/twitter/connect` | [app/api/social/twitter/connect/route.ts](../app/api/social/twitter/connect/route.ts) | 2026-06-12 |
@@ -360,7 +360,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/skills/skills-list.tsx](../components/skills/skills-list.tsx) | 2026-06-08 |
 | [components/skills/use-enabled-models.ts](../components/skills/use-enabled-models.ts) | 2026-06-08 |
 | [components/social/publish-modal.tsx](../components/social/publish-modal.tsx) | 2026-06-15 |
-| [components/social/scheduled-posts-list.tsx](../components/social/scheduled-posts-list.tsx) | 2026-06-15 |
+| [components/social/scheduled-posts-list.tsx](../components/social/scheduled-posts-list.tsx) | 2026-06-17 |
 | [components/social/social-accounts-page.tsx](../components/social/social-accounts-page.tsx) | 2026-06-12 |
 | [components/social/upcoming-posts-widget.tsx](../components/social/upcoming-posts-widget.tsx) | 2026-06-14 |
 | [components/ui/attachments-panel.tsx](../components/ui/attachments-panel.tsx) | 2026-06-15 |

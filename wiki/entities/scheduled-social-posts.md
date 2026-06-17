@@ -26,12 +26,13 @@ The full create/read/update/delete lifecycle for a user's scheduled social posts
 
 ## Non-obvious rules (read before changing)
 
-- **Delete is a hard delete, not a soft-cancel.** Before 2026-06-17 `DELETE` set `status = 'cancelled'` and the row lingered in the list forever with no way to remove it. It now actually deletes the row. The only block is `status === 'processing'` (mid-publish) → `409`, so we never race the cron publisher. Legacy `cancelled` rows are still listed and now carry a Delete button so they can be cleared.
+- **Delete is a hard delete, not a soft-cancel.** Before 2026-06-17 `DELETE` set `status = 'cancelled'` and the row lingered in the list forever with no way to remove it. It now actually deletes the row. Deletable states are `pending` / `failed` / `cancelled` (`DELETABLE_STATUSES`) — mirroring the Delete buttons the UI shows. `processing` (mid-publish) and `published` (history) are each rejected with a `409`. Legacy `cancelled` rows now carry a Delete button so they can be cleared.
+- **The delete is atomic.** It runs as a single conditional statement — `DELETE … WHERE id = ? AND user_id = ? AND status IN (DELETABLE_STATUSES)` with `.returning()`. The status predicate closes the TOCTOU window: if the cron flips the row to `processing` between the existence check and the delete, the row no longer matches and the route returns `409` instead of yanking it out from under a running publish.
 - **Deletion is confirmed in the UI.** Clicking Delete swaps the action buttons for a "Delete permanently? This can't be undone." prompt with Delete / Keep. Nothing is removed until the second tap. State: `confirmingDeleteId`.
-- **Edit only applies to `pending` posts.** `PATCH` returns `409` for any other status. Content is re-validated server-side against `PLATFORM_MAX_CHAR_LIMITS` (twitter 25 000, linkedin 3 000, bluesky 300) — the same ceiling `POST` enforces — using the row's stored `platform`.
-- **Ownership.** Both `PATCH` and `DELETE` fetch the row scoped to `user.user.id` (IDOR check) and the `DELETE` query is itself scoped by `userId` as defence in depth.
+- **Edit only applies to `pending` posts.** `PATCH` returns `409` for any other status. Server-side, content is re-validated against `PLATFORM_MAX_CHAR_LIMITS` (the hard ceiling: twitter 25 000, linkedin 3 000, bluesky 300) using the row's stored `platform` — the same ceiling `POST` enforces. Client-side, the editor caps at the **effective** limit via `effectiveLimit()`, which honours the X-Premium flag in `localStorage` (`archos_x_premium`) exactly like the publish modal: non-premium Twitter = 280, premium = 25 000. Without this the editor would let a non-premium user save an oversized tweet that fails at publish.
+- **Ownership.** Both `PATCH` and `DELETE` fetch the row scoped to `user.user.id` (IDOR check) and the `DELETE` statement is itself scoped by `userId` as defence in depth.
 
 ## Deliberately not built
 
-- No edit/delete from the **Posted** tab — published records are history.
-- No per-platform char-limit toggle (X Premium) in the inline editor; it uses the max ceiling, which the server accepts. The X-Premium toggle lives only in the publish modal.
+- No edit/delete from the **Posted** tab — published records are history (the API rejects deleting them too).
+- No X-Premium **toggle** in the editor — it only *reads* the flag the publish modal set. To change premium state a user flips it in the compose modal.

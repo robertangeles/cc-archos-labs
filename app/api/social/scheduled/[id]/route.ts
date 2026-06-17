@@ -2,10 +2,15 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getDb } from "@/lib/db";
 import { scheduledSocialPost } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { isSocialPlatform, PLATFORM_MAX_CHAR_LIMITS } from "@/lib/social/types";
 
 export const runtime = "nodejs";
+
+// Statuses a post can be deleted from — mirrors the Delete actions the UI
+// exposes (pending / failed / cancelled). 'processing' and 'published' are
+// rejected explicitly above.
+const DELETABLE_STATUSES = ["pending", "failed", "cancelled"];
 
 // ---------------------------------------------------------------------------
 // PATCH /api/social/scheduled/[id] — reschedule a pending post
@@ -196,24 +201,43 @@ export async function DELETE(
       );
     }
 
-    // Block deletion only while a post is mid-publish — deleting that row
-    // out from under the cron publisher would race the running job.
+    // A post can only be deleted from a state the UI offers it in. Published
+    // rows are history; a 'processing' row is mid-publish and deleting it would
+    // race the cron publisher.
     if (rows[0].status === "processing") {
       return NextResponse.json(
         { ok: false, error: "This post is publishing right now and can't be deleted." },
         { status: 409 },
       );
     }
+    if (rows[0].status === "published") {
+      return NextResponse.json(
+        { ok: false, error: "Published posts can't be deleted." },
+        { status: 409 },
+      );
+    }
 
-    // Hard delete, scoped to the owner (defence in depth on top of the IDOR check above).
-    await db
+    // Atomic conditional delete, scoped to the owner. The status predicate
+    // closes the TOCTOU window: if the cron flips the row to 'processing'
+    // between the read above and here, it no longer matches and we report the
+    // conflict instead of yanking the row out from under a running publish.
+    const deleted = await db
       .delete(scheduledSocialPost)
       .where(
         and(
           eq(scheduledSocialPost.id, id),
           eq(scheduledSocialPost.userId, user.user.id),
+          inArray(scheduledSocialPost.status, DELETABLE_STATUSES),
         ),
+      )
+      .returning({ id: scheduledSocialPost.id });
+
+    if (deleted.length === 0) {
+      return NextResponse.json(
+        { ok: false, error: "This post can no longer be deleted — it may have started publishing." },
+        { status: 409 },
       );
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
