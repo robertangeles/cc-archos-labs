@@ -2,11 +2,34 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-06-15
+updated: 2026-06-17
 related:
 ---
 
 Append-only log of sessions. Newest entry at the top.
+
+## 2026-06-17 — Model Studio canvas migration (gnhf 12–29)
+
+Migrated the Spresso canvas phase end-to-end: a React Flow modelling surface where entities are nodes, relationships are edges, and attributes live in each box. 18 individually-clean commits (gnhf 12–29), each tsc/lint/test/build green.
+
+- **Schema (12):** 4 tables in migration 0028 — `data_model_entity`/`_attribute`/`_relationship`/`_canvas_state`. Hand-edited idempotent (drizzle-kit 0.31 dropped `IF NOT EXISTS`; repo enforces an idempotency test). `MIGRATION_FILES` test harness updated. Applied to the shared DB.
+- **Validation (13)** + **services (14–17):** entity (monotonic E001 display ids), attribute (ordinal reorder), relationship (cross-model endpoint guard), canvas-state (per-user upsert). Optimistic version-locking via `VersionConflictError`. ~58 service/validation tests.
+- **Routes (18–21):** full CRUD under `/api/model-studio/[id]/…` + batch `/attributes`. Reads any member; mutations owner|admin; canvas-state per-user. 409 VERSION_CONFLICT contract. ~50 route tests, all curl-verified (401/403 unauth).
+- **Frontend (22–28):** `@xyflow/react` v12 + 4 plain-fetch hooks; ER-style nodes + cardinality edges; entity/attribute/relationship CRUD dialogs + attribute panel; canvas-state autosave (gated on load to avoid fitView clobber); page swap with a layer switcher. Tokens only, Spresso accent→primary remap, React Flow CSS scoped to the client component.
+- **Decisions surfaced:** attribute `classification` corrected to Spresso's governance enum (nullable, not a structural enum) after a research error — gnhf 12 amended. Canvas `classification` structure lives in the boolean flags.
+- **Deferred:** AI (inference/auto-describe/synthetic-data), realtime/cross-tab, undo/redo, Dagre tidy, DDL export. **Playwright E2E not built** — no harness exists in the repo; authenticated visual QA should run via gstack `/qa`.
+
+**E2E (gnhf 28b):** stood up the Playwright harness the repo lacked (config + `test:e2e` + `tests/e2e/model-canvas.spec.ts`), seeding auth by registering a real user (no backdoor). It immediately caught a real bug — the canvas rendered as a zero-height void under the layout's `min-h-full` body — fixed via `flex-1 min-h-0` + `absolute inset-0`. See [[2026-06-17-react-flow-height-collapse]]. E2E green; vitest 1109.
+
+New pages: [[model-studio-canvas]], [[2026-06-17-react-flow-height-collapse]].
+
+**Status framing:** this is **Phase 1 of the Model Studio migration — a working visual ER canvas, NOT the full platform.** The "Erwin killer" scope (metadata management, data dictionary, business glossary, DDL forward/reverse engineering, lineage, versioning/diff) is still ahead — roadmap captured in [[model-studio-canvas]] + [[backlog]]. The `model_studio` feature flag is set **OFF**, so the canvas is reachable by direct URL only and not surfaced in the workspace nav. Committed + pushed + PR'd from branch `gnhf/step-1-clone-https-g-6eeac0` so the work is durable while the platform scope is built out.
+
+## 2026-06-16 — Fixed /workspace/model-studio 500: unapplied migration 0027
+
+`/workspace/model-studio` threw a server error despite a clean build and passing tests. Root cause: `data_model` was defined in `lib/db/schema.ts`, migration `0027_model_studio_data_model.sql` was committed and in `_journal.json`, but `pnpm db:migrate` had never been run — so the table did not exist in the single shared Postgres (`to_regclass('public.data_model')` → null). Authenticated `/api/model-studio` requests queried a missing table and 500'd.
+
+Fix: `pnpm db:migrate` applied the lone pending 0027 (idempotent, purely additive). Verified table resolves with 14 columns + 4 indexes, list-style query returns clean, `pnpm build` clean, 29 model-studio API tests pass. New lesson: [[2026-06-16-migration-generated-not-applied]].
 
 ## 2026-06-15 — Org/Clients/Projects/Kanban migration built + polished
 
@@ -1416,3 +1439,67 @@ End-to-end verification (local): login → GET /api/admin/settings/site → PUT 
   - All 3 platforms tested with real credentials
 - Added lesson learned: never use drizzle-kit push, use pnpm db:migrate
 - Added Phase 4 follow-ups to backlog (items 49-51: scheduling, analytics, cache fix)
+
+## 2026-06-15 — Model Studio: API route handlers (list-view migration, step 2)
+
+- Migrated the Spresso Model Studio model CRUD routes into Next.js App Router handlers (gnhf run step-1-clone, iteration 4):
+  - `app/api/model-studio/route.ts` — GET (list, any member) + POST (create, any member)
+  - `app/api/model-studio/[id]/route.ts` — GET (any member) + PATCH/DELETE (owner|admin)
+- Adapted Spresso's owner-OR-member authz to this repo's org-context: mirrors `app/api/projects` exactly (member reads/creates; owner|admin mutates existing). Response shape is `{ ok, ... }`, not Spresso's `{ success, data }`.
+- Mapped service signals to HTTP: ModelConflictError → 409, null (project/model not in org) → 404, Zod failure → 400, OrgAuthError → 401/403 via orgAuthErrorResponse.
+- Added route-handler tests (22) covering status mapping + missing-auth penetration path; full suite 994 passing, tsc + lint clean.
+- Canvas routes (entities/attributes/relationships) and the feature-flag endpoint intentionally NOT migrated — out of list-view scope.
+
+## 2026-06-15 — Model Studio: client data hook (list-view migration, step 2)
+
+- Migrated Spresso's `useModels` hook into `hooks/use-models.ts` (gnhf run step-1-clone, iteration 5).
+- Adapted to this repo's conventions: plain `fetch` (not Spresso's axios `api` wrapper) against `app/api/model-studio`, the `{ ok, ... }` response envelope, `credentials: "same-origin"` so the org-context cookie rides along, and kebab-case hook filename matching `hooks/use-search.ts`/`use-chat.ts`.
+- `DataModelSummary` type matches the server's `modelSelection` exactly (no `organisationId`/`organisationName` — the service doesn't return them; the page will adapt under single-org context). `create`/`update` consume `ModelCreate`/`ModelUpdate` inferred from `lib/model-studio/validation.ts`.
+- No toast library exists here, so the hook surfaces load errors as state and throws plain-language Errors from create/update/remove for the caller to display (mirrors `components/projects/projects-view.tsx`). create/update/remove apply optimistic list updates.
+- Followed the repo's established `eslint-disable-next-line react-hooks/set-state-in-effect -- initial data fetch on mount` convention (as in `app/account/brain/brain-page-client.tsx`) for the mount-effect refresh. tsc + lint clean; full suite 994 passing.
+
+## 2026-06-15 — Model Studio: DeleteModelDialog (list-view migration, step 2)
+
+- Migrated Spresso's `DeleteModelDialog` into `components/model-studio/delete-model-dialog.tsx` (gnhf run step-1-clone, iteration 6). First UI component of the list view.
+- **Design decision (Infection-Virus preserved):** the Spresso design system tokens differ from this repo's. Target `globals.css` has no `text-text-primary`/`text-text-secondary`/`accent` tokens — it uses Linear-lavender tokens (`--color-ink`, `--color-ink-subtle`, `--color-surface-*`, `--color-primary`). Only those two non-existent text tokens were remapped (`text-text-primary`→`text-ink`, `text-text-secondary`→`text-ink-subtle`); everything else (the red/amber destructive glow, `bg-surface-1/2`, `border-white/10`, shadows, the type-`DELETE` gate) is byte-for-byte the Spresso design.
+- Adapted the axios-shaped error catch to this repo's plain-Error convention — the hook's `remove` throws a plain-language `Error` (no axios `response.data`), so the catch reads `err.message` only.
+- Added `"use client"` (Spresso is a Vite SPA with no directive) and the kebab-case filename + `@/` import alias per target convention. tsc + lint clean (used the established `react-hooks/set-state-in-effect` disable for the reset-on-open effect); full suite 994 passing. Not yet wired to a page.
+
+## 2026-06-15 — Model Studio: CreateModelDialog (list-view migration, step 2)
+
+- Migrated Spresso's `CreateModelDialog` into `components/model-studio/create-model-dialog.tsx` (gnhf run step-1-clone, iteration 7). Second UI component of the list view.
+- **Design decision (Infection-Virus preserved, accent token resolved):** Spresso's create dialog uses the yellow `accent` glow (`text-accent`/`bg-accent`/`from-accent`/`border-accent` + `rgba(255,214,10,*)` shadows), which has no target equivalent. Resolved per the design system's stated rule — "the single chromatic accent across the whole system is `--color-primary`" (Linear lavender `#5e6ad2`). Remap: `accent`→`primary`, `rgba(255,214,10,*)`→`rgba(94,106,210,*)` (= primary rgb), `from-accent to-amber-600 text-black` CTA → `from-primary to-primary-hover text-white`, `text-text-primary`→`text-ink`, `text-text-secondary`→`text-ink-subtle`. Layout, gradients, glows, direction cards, and field structure are otherwise the Spresso design.
+- **Org adaptation:** Spresso supported multi-org (org selector + project list filtered to the chosen org). This repo is single-org via the `archos_org` cookie — `/api/projects` already returns only the active org's projects — so the Organisation field/state was removed entirely. The model's org is derived server-side from `project.organisation_id` (see `lib/model-studio/validation.ts`). Project options are loaded from `fetch("/api/projects")` → `{ projects }` (not Spresso's `/organisations` + `/projects` axios pair).
+- Submit builds a `ModelCreate` (name, projectId, activeLayer mapped from originDirection, notation `ie`, description, empty metadata/tags) and calls the migrated `useModels().create`. Error catch adapted to plain-Error convention. Added `"use client"`, kebab-case filename, `@/` alias, and the established `react-hooks/set-state-in-effect` disable for the open/close effects. tsc + lint clean; full suite 994 passing. Not yet wired to a page.
+
+## 2026-06-15 — Model Studio: EditModelDialog (list-view migration, step 2)
+
+- Migrated Spresso's `EditModelDialog` into `components/model-studio/edit-model-dialog.tsx` (gnhf run step-1-clone, iteration 8). Third UI component of the list view; rename/re-describe only — `activeLayer`/`notation`/`originDirection` stay locked to preserve traceability.
+- **Design decision (Infection-Virus preserved):** reused the iteration-7 accent→primary remap verbatim — `accent`→`primary`, `rgba(255,214,10,*)`→`rgba(94,106,210,*)`, `from-accent to-amber-600 text-black` CTA → `from-primary to-primary-hover text-white`, `text-text-primary`→`text-ink`, `text-text-secondary`→`text-ink-subtle`. Layout, dirty/`canSubmit` gating, ⌘↵/Ctrl↵-to-save, ESC-to-close, and the 2,000-char description counter are byte-for-byte the Spresso design.
+- Adapted the axios-shaped error catch to this repo's plain-Error convention (`err.message` only) — `onSave` is wired (by the future page) to the migrated `useModels().update`, which throws a plain-language `Error`. Kept the narrow `onSave(patch)` prop interface from Spresso (`{ name?, description? | null }`); the dialog only sends changed fields.
+- Added `"use client"`, kebab-case filename, `@/` alias, and the established `react-hooks/set-state-in-effect` disable for the seed-on-open effect. tsc + lint clean; full suite 994 passing. Not yet wired to a page.
+
+## 2026-06-15 — Model Studio feature flag (gnhf step-1-clone, iteration 9)
+
+- Migrated Spresso's Model Studio feature flag into `lib/model-studio/flag.ts` + `app/api/model-studio/flag/route.ts` + `hooks/use-model-studio-flag.ts`. This gates the (still-unwired) `ModelStudioPage`: OFF → "Coming soon" stub, ON → empty-state/list view.
+- **Storage decision (reuse, no migration):** Spresso stored the flag in a dedicated `settings` key/value table. This repo already has the equivalent `site_setting` JSONB key/value table and the canonical feature-flag pattern in `lib/pages/feature-flag.ts` (module-level promise cache + explicit invalidation). `flag.ts` mirrors that pattern exactly — stores `{ enabled: bool }` under key `model_studio`, default FALSE (matching Spresso's "false if row missing"), `setModelStudioEnabled` upserts via `onConflictDoUpdate` and clears the cache.
+- **Authz adaptation:** Spresso gated GET with `authenticate` and PUT with `requireRole('Administrator')`. The org-context adaptation: GET readable by any member (`requireOrgContext`), PUT gated to `owner|admin` via `requireRole(ctx, "owner", "admin")` — matching the model PATCH/DELETE gating in `app/api/model-studio/[id]/route.ts`. Response envelope is `{ ok, enabled }`, not Spresso's `{ data: { enabled } }`.
+- **Hook adaptation:** plain fetch + `{ ok, enabled }` + same-origin credentials (not Spresso's axios `api` wrapper). On any network/parse failure `refresh` falls back to OFF rather than exposing the feature on unverified state; `setEnabled` throws a plain-language Error for the caller to surface (no toast library).
+- Added 7 route-handler tests (`flag/route.test.ts`) asserting 200/400/401/403 mapping incl. the non-admin-403 and unauth-401 penetration paths. tsc + lint clean; full suite 1001 passing. Remaining list-view piece: wiring `ModelStudioPage` → `app/workspace/model-studio/page.tsx`.
+
+## 2026-06-15 — Model Studio page wired (gnhf step-1-clone, iteration 10 — list-view migration complete)
+
+- Migrated Spresso's `ModelStudioPage.tsx` into this repo as the convergence point of the list view: `components/model-studio/model-studio-view.tsx` (the client view) rendered by the server page `app/workspace/model-studio/page.tsx`, plus a stub detail route `app/workspace/model-studio/[id]/page.tsx`. This wires together the previously-migrated `useModelStudioFlag`, `useModels`, and the three CRUD dialogs (Create/Edit/Delete).
+- **Routing adaptation:** react-router `useNavigate` → `next/navigation` `useRouter`; Spresso's `navigate('/model-studio/<id>')` → `router.push('/workspace/model-studio/<id>')`. The detail route is a deliberate STUB ("Canvas coming soon" + back link) — the canvas (entities/relationships/DDL) is explicitly out of scope.
+- **Auth adaptation:** `/workspace` has no shared layout (unlike `/account`), so both page wrappers guard auth themselves via `getCurrentUser()` → `redirect('/login?redirect=…')`, mirroring `app/account/organisation/page.tsx`.
+- **Role adaptation:** Spresso's `useAuth().user.role === 'Administrator'` → this repo's per-org role. The view reads the current org's role from `/api/organisations` (default-org-first, matching `org-management.tsx`) and shows the admin "Enable Model Studio" button only for `owner|admin`. The flag PUT is server-gated to `owner|admin` regardless.
+- **Toast adaptation:** Spresso's `useToast` success toasts dropped (no toast library here); the dialogs close on success and the optimistic `useModels` hook + `refresh()` reconcile the list, mirroring `components/projects/projects-view.tsx`.
+- **Design (Infection-Virus preserved):** applied the established accent→primary remap verbatim across the stub/empty-state/library views — `accent`→`primary`, `rgba(255,214,10,*)`→`rgba(94,106,210,*)`, `from-accent to-amber-600 text-black` CTA → `from-primary to-primary-hover text-white`, `text-text-primary`→`text-ink`, `text-text-secondary`→`text-ink-subtle`. The Organisation→Client→Project→Model stratified library layout, kebab menus, layer-coloured badges, and relative-time stamps are byte-for-byte the Spresso design. `DataModelSummary` carries no `organisationName`, so that (always-null) header sub-label never renders — kept structurally faithful for when org name is hydrated later.
+- tsc + lint clean; full suite 1001 passing; `pnpm build` compiles both new routes (`/workspace/model-studio`, `/workspace/model-studio/[id]`) with no existing route broken. The Model Studio LIST VIEW migration (Step 2) is now functionally complete end-to-end.
+
+## 2026-06-15 — Model Studio nav entry point (gnhf step-1-clone, iteration 11)
+
+- The iteration-10 page (`/workspace/model-studio`) was reachable only by typing the URL — no nav link pointed at it, leaving the migrated feature orphaned. Added a "Model Studio" entry (`Boxes` icon → `/workspace/model-studio`) to `app/account/workspace-nav.tsx`, placed right after "Projects" so it sits inside the Organisation → Client → Project hierarchy nav.
+- **Faithful to Spresso:** Spresso surfaced Model Studio as a plain `NAV_MANIFEST` entry (`config/navManifest.ts`: `{ key: 'model-studio', to: '/model-studio', label: 'Model Studio', icon: Boxes }`). Nav visibility was NOT gated by the model-studio feature flag — the flag only gates page content (coming-soon vs library). So the target nav link is likewise always visible; the page itself handles the flag state. This also satisfies the objective's "replace React Router links with Next.js Link" — the manifest's react-router `to` became the existing `WorkspaceNav` `Link href`.
+- Note: `WorkspaceNav` renders inside the `/account` AccountShell, while the page lives under `/workspace` (its own self-guarded route from iteration 10), so clicking the link leaves the account shell. This is a consequence of iteration 10's placement decision, not introduced here; the link still makes the feature reachable. `pathname.startsWith("/workspace/model-studio")` drives the active state correctly with no collision against the `/account/*` items.
+- tsc + lint clean (only pre-existing warnings in `tests/kanban` + `tmp/`); `pnpm build` compiles; full suite 1001 passing.

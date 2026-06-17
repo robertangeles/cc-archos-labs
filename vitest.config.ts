@@ -4,6 +4,12 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
+    // CI runs on 2-core runners. Running the heavy pglite integration files in
+    // parallel with CPU-bound tests (Sharp image transcode, PII-regex scrubbing)
+    // oversubscribes the cores and starves them until they time out — a flaky
+    // failure that moves between tests as load shifts. Run files serially in CI
+    // for stability; keep full parallelism locally where cores are plentiful.
+    fileParallelism: !process.env.CI,
     include: [
       "lib/**/*.test.ts",
       "components/**/*.test.{ts,tsx}",
