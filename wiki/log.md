@@ -21,7 +21,9 @@ Migrated the Spresso canvas phase end-to-end: a React Flow modelling surface whe
 
 **E2E (gnhf 28b):** stood up the Playwright harness the repo lacked (config + `test:e2e` + `tests/e2e/model-canvas.spec.ts`), seeding auth by registering a real user (no backdoor). It immediately caught a real bug — the canvas rendered as a zero-height void under the layout's `min-h-full` body — fixed via `flex-1 min-h-0` + `absolute inset-0`. See [[2026-06-17-react-flow-height-collapse]]. E2E green; vitest 1109.
 
-New pages: [[model-studio-canvas]], [[2026-06-17-react-flow-height-collapse]]. Branch `gnhf/step-1-clone-https-g-6eeac0`, not pushed.
+New pages: [[model-studio-canvas]], [[2026-06-17-react-flow-height-collapse]].
+
+**Status framing:** this is **Phase 1 of the Model Studio migration — a working visual ER canvas, NOT the full platform.** The "Erwin killer" scope (metadata management, data dictionary, business glossary, DDL forward/reverse engineering, lineage, versioning/diff) is still ahead — roadmap captured in [[model-studio-canvas]] + [[backlog]]. The `model_studio` feature flag is set **OFF**, so the canvas is reachable by direct URL only and not surfaced in the workspace nav. Committed + pushed + PR'd from branch `gnhf/step-1-clone-https-g-6eeac0` so the work is durable while the platform scope is built out.
 
 ## 2026-06-16 — Fixed /workspace/model-studio 500: unapplied migration 0027
 

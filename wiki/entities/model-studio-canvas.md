@@ -8,6 +8,10 @@ related: [[deployment-architecture]], [[2026-06-16-migration-generated-not-appli
 
 The visual data-modelling surface of Model Studio: a React Flow canvas where entities are nodes, relationships are edges, and attributes live inside each entity box — migrated from the Spresso repo in gnhf steps 12–29.
 
+## Status (2026-06-17)
+
+**Phase 1 of the Model Studio migration: a working visual ER canvas. NOT a full data-modelling platform yet.** What works end-to-end: entity / attribute / relationship CRUD, per-layer layout that persists, optimistic locking, org-scoped access — verified by ~150 unit/integration tests + a Playwright E2E. What it is *not* (the Erwin-killer scope): no metadata management, data dictionary, business glossary, DDL forward/reverse engineering, lineage, or model versioning/diff. The feature flag (`model_studio` in `site_setting`) is **off** — the canvas is reachable only by direct URL, not yet surfaced in the workspace nav. See the roadmap at the bottom.
+
 ## What it is
 
 `/workspace/model-studio/[id]` renders a per-layer canvas (conceptual / logical / physical) for one `data_model`. Users add entities, give them attributes (with PK/FK/unique/nullable flags, a governance classification, and alt-key groups), and connect them with relationships carrying cardinality and verb phrases. Node positions and viewport persist per user, per layer.
@@ -46,9 +50,25 @@ Reads are open to any org member; entity/attribute/relationship mutations are ga
 - UI uses tokens only; the Spresso accent (yellow #FFD60A) → primary (lavender #5e6ad2) remap is preserved. React Flow's CSS is imported inside the client component (not globals.css) to dodge Tailwind v4 layer ordering.
 - Migration 0028 was hand-edited idempotent (`CREATE TABLE IF NOT EXISTS` + DO-block FK wrappers) — drizzle-kit 0.31 no longer emits `IF NOT EXISTS`, and the repo has an idempotency test. See [[2026-06-16-migration-generated-not-applied]] for the related apply-the-migration lesson.
 
-## Deferred (NOT built this phase)
+## Roadmap — what's NOT built yet
 
-AI features (FK inference, auto-describe, synthetic data); realtime socket.io + BroadcastChannel cross-tab sync; undo/redo command stack; Dagre "Tidy" auto-layout; DDL export. The full authenticated Playwright E2E is also pending — the repo has no Playwright harness, so live canvas QA goes through the gstack `/qa` skill.
+This phase shipped the canvas mechanics. The full "Erwin killer" data-modelling platform is still ahead. Ordered roughly by dependency:
+
+**Near-term canvas polish (originally deferred from this phase):**
+- AI features: FK relationship inference, auto-describe, synthetic data generation.
+- Undo/redo command stack; Dagre "Tidy" auto-layout.
+- Realtime socket.io + BroadcastChannel cross-tab sync.
+
+**The platform scope (the actual product vision):**
+- **Metadata management** — rich, governed metadata on every entity/attribute beyond the current jsonb bag.
+- **Data dictionary** — a searchable, exportable catalogue of every entity/attribute/type across models.
+- **Business glossary** — business terms linked to physical attributes; the conceptual↔logical↔physical bridge made real.
+- **DDL forward engineering** — generate `CREATE TABLE` SQL (and per-dialect variants) from the physical layer.
+- **Reverse engineering** — import an existing database/schema → entities + relationships (the `existing_system` origin direction is stored but not yet wired).
+- **Lineage** — track where data comes from and flows to, across models.
+- **Model versioning + diff** — snapshot, compare, and merge model versions (the `version` columns are per-row optimistic locks, NOT model-level history).
+
+Done since the original deferral note: the Playwright E2E harness now exists (gnhf 28b) and the canvas is live-verified.
 
 ## Key files
 

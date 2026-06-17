@@ -2,8 +2,8 @@
 title: Archos Labs HQ — Build Backlog
 category: synthesis
 created: 2026-05-07
-updated: 2026-06-14
-related: [[index]], [[log]], [[state]], [[shipped]], [[2026-05-08-phase2-ceo-review]], [[2026-05-20-translation-layer-public-render]], [[2026-05-20-phase-c-cutover]]
+updated: 2026-06-17
+related: [[index]], [[log]], [[state]], [[shipped]], [[model-studio-canvas]], [[2026-05-08-phase2-ceo-review]], [[2026-05-20-translation-layer-public-render]], [[2026-05-20-phase-c-cutover]]
 ---
 
 Prioritised build list for the Archos Labs HQ at archoslabs.xyz. Ordered by what unblocks revenue and reduces risk, not by what is most fun to build.
@@ -294,6 +294,19 @@ Document upload + chunking: `knowledgeDocument`, `knowledgeChunk` tables. Upload
 
 ### llms.txt — ✅ SHIPPED
 LLM-friendly site description at `/llms.txt` and `/llms-full.txt`.
+
+---
+
+## Model Studio migration (from Spresso) — IN PROGRESS
+
+Migrating Spresso's data-modelling tool into Archos Labs in phases. The end goal is a full data-modelling platform — an "Erwin killer": metadata management, data dictionary, business glossary, DDL forward/reverse engineering, lineage, model versioning/diff. We are nowhere near that yet. Full detail + roadmap in [[model-studio-canvas]].
+
+- **✅ List view (gnhf 1–11)** — model library under Org → Client → Project; create/edit/delete dialogs; feature flag; nav entry.
+- **✅ Visual ER canvas (gnhf 12–29)** — React Flow surface; entity/attribute/relationship CRUD; per-layer layout autosave; optimistic locking; org-scoped API; ~150 tests + Playwright E2E. Feature flag is **OFF** — reachable by direct URL only, not in the workspace nav yet. This is the slice being committed/PR'd now; it is intentionally not "done."
+- **▢ Canvas polish** — AI inference / auto-describe / synthetic data, undo/redo, Dagre tidy, realtime sync.
+- **▢ Platform scope (the actual product)** — metadata management · data dictionary · business glossary · DDL forward engineering · reverse engineering (import existing DB) · lineage · model versioning + diff.
+
+Not surfaced in the (future "Metis") workspace until the platform scope lands. The canvas mechanics are the foundation everything above builds on.
 
 ---
 
