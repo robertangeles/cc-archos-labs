@@ -40,6 +40,8 @@
 .claude/hooks/*
 !.claude/hooks/check-gstack.sh
 !.claude/settings.json
+# Shared subagents (e.g. the dedicated pr-reviewer) live in the repo
+!.claude/agents/
 
 # debug
 npm-debug.log*
