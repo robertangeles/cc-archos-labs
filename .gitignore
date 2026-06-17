@@ -42,6 +42,8 @@
 !.claude/settings.json
 # Shared subagents (e.g. the dedicated pr-reviewer) live in the repo
 !.claude/agents/
+.claude/agents/*
+!.claude/agents/*.md
 
 # debug
 npm-debug.log*
