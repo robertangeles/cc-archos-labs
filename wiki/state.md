@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-16T23:29:09.050Z
+generated: 2026-06-17T05:39:08.173Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -80,7 +80,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/ai-readiness/share/[token]` | [app/tools/ai-readiness/share/[token]/page.tsx](../app/tools/ai-readiness/share/[token]/page.tsx) | 2026-05-13 |
 | `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-06-03 |
 | `/tools/cdmp-practice/history/[sessionId]` | [app/tools/cdmp-practice/history/[sessionId]/page.tsx](../app/tools/cdmp-practice/history/[sessionId]/page.tsx) | 2026-06-03 |
-| `/workspace/model-studio` | [app/workspace/model-studio/page.tsx](../app/workspace/model-studio/page.tsx) | 2026-06-15 |
+| `/workspace/model-studio` | [app/workspace/model-studio/page.tsx](../app/workspace/model-studio/page.tsx) | 2026-06-17 |
 | `/workspace/model-studio/[id]` | [app/workspace/model-studio/[id]/page.tsx](../app/workspace/model-studio/[id]/page.tsx) | 2026-06-17 |
 
 ## API endpoints (168)
@@ -189,17 +189,17 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/diagnostic/share/[id]/revoke` | [app/api/diagnostic/share/[id]/revoke/route.ts](../app/api/diagnostic/share/[id]/revoke/route.ts) | 2026-06-03 |
 | `/api/events` | [app/api/events/route.ts](../app/api/events/route.ts) | 2026-05-18 |
 | `/api/health/cron` | [app/api/health/cron/route.ts](../app/api/health/cron/route.ts) | 2026-05-17 |
-| `/api/model-studio` | [app/api/model-studio/route.ts](../app/api/model-studio/route.ts) | 2026-06-15 |
-| `/api/model-studio/[id]` | [app/api/model-studio/[id]/route.ts](../app/api/model-studio/[id]/route.ts) | 2026-06-15 |
-| `/api/model-studio/[id]/attributes` | [app/api/model-studio/[id]/attributes/route.ts](../app/api/model-studio/[id]/attributes/route.ts) | 2026-06-16 |
-| `/api/model-studio/[id]/canvas-state` | [app/api/model-studio/[id]/canvas-state/route.ts](../app/api/model-studio/[id]/canvas-state/route.ts) | 2026-06-16 |
-| `/api/model-studio/[id]/entities` | [app/api/model-studio/[id]/entities/route.ts](../app/api/model-studio/[id]/entities/route.ts) | 2026-06-16 |
-| `/api/model-studio/[id]/entities/[entityId]` | [app/api/model-studio/[id]/entities/[entityId]/route.ts](../app/api/model-studio/[id]/entities/[entityId]/route.ts) | 2026-06-16 |
-| `/api/model-studio/[id]/entities/[entityId]/attributes` | [app/api/model-studio/[id]/entities/[entityId]/attributes/route.ts](../app/api/model-studio/[id]/entities/[entityId]/attributes/route.ts) | 2026-06-16 |
-| `/api/model-studio/[id]/entities/[entityId]/attributes/[attributeId]` | [app/api/model-studio/[id]/entities/[entityId]/attributes/[attributeId]/route.ts](../app/api/model-studio/[id]/entities/[entityId]/attributes/[attributeId]/route.ts) | 2026-06-16 |
-| `/api/model-studio/[id]/relationships` | [app/api/model-studio/[id]/relationships/route.ts](../app/api/model-studio/[id]/relationships/route.ts) | 2026-06-16 |
-| `/api/model-studio/[id]/relationships/[relationshipId]` | [app/api/model-studio/[id]/relationships/[relationshipId]/route.ts](../app/api/model-studio/[id]/relationships/[relationshipId]/route.ts) | 2026-06-16 |
-| `/api/model-studio/flag` | [app/api/model-studio/flag/route.ts](../app/api/model-studio/flag/route.ts) | 2026-06-15 |
+| `/api/model-studio` | [app/api/model-studio/route.ts](../app/api/model-studio/route.ts) | 2026-06-17 |
+| `/api/model-studio/[id]` | [app/api/model-studio/[id]/route.ts](../app/api/model-studio/[id]/route.ts) | 2026-06-17 |
+| `/api/model-studio/[id]/attributes` | [app/api/model-studio/[id]/attributes/route.ts](../app/api/model-studio/[id]/attributes/route.ts) | 2026-06-17 |
+| `/api/model-studio/[id]/canvas-state` | [app/api/model-studio/[id]/canvas-state/route.ts](../app/api/model-studio/[id]/canvas-state/route.ts) | 2026-06-17 |
+| `/api/model-studio/[id]/entities` | [app/api/model-studio/[id]/entities/route.ts](../app/api/model-studio/[id]/entities/route.ts) | 2026-06-17 |
+| `/api/model-studio/[id]/entities/[entityId]` | [app/api/model-studio/[id]/entities/[entityId]/route.ts](../app/api/model-studio/[id]/entities/[entityId]/route.ts) | 2026-06-17 |
+| `/api/model-studio/[id]/entities/[entityId]/attributes` | [app/api/model-studio/[id]/entities/[entityId]/attributes/route.ts](../app/api/model-studio/[id]/entities/[entityId]/attributes/route.ts) | 2026-06-17 |
+| `/api/model-studio/[id]/entities/[entityId]/attributes/[attributeId]` | [app/api/model-studio/[id]/entities/[entityId]/attributes/[attributeId]/route.ts](../app/api/model-studio/[id]/entities/[entityId]/attributes/[attributeId]/route.ts) | 2026-06-17 |
+| `/api/model-studio/[id]/relationships` | [app/api/model-studio/[id]/relationships/route.ts](../app/api/model-studio/[id]/relationships/route.ts) | 2026-06-17 |
+| `/api/model-studio/[id]/relationships/[relationshipId]` | [app/api/model-studio/[id]/relationships/[relationshipId]/route.ts](../app/api/model-studio/[id]/relationships/[relationshipId]/route.ts) | 2026-06-17 |
+| `/api/model-studio/flag` | [app/api/model-studio/flag/route.ts](../app/api/model-studio/flag/route.ts) | 2026-06-17 |
 | `/api/organisations` | [app/api/organisations/route.ts](../app/api/organisations/route.ts) | 2026-06-15 |
 | `/api/organisations/[id]` | [app/api/organisations/[id]/route.ts](../app/api/organisations/[id]/route.ts) | 2026-06-15 |
 | `/api/organisations/[id]/join` | [app/api/organisations/[id]/join/route.ts](../app/api/organisations/[id]/join/route.ts) | 2026-06-15 |
@@ -243,8 +243,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/social/linkedin/disconnect` | [app/api/social/linkedin/disconnect/route.ts](../app/api/social/linkedin/disconnect/route.ts) | 2026-06-14 |
 | `/api/social/linkedin/status` | [app/api/social/linkedin/status/route.ts](../app/api/social/linkedin/status/route.ts) | 2026-06-12 |
 | `/api/social/publish` | [app/api/social/publish/route.ts](../app/api/social/publish/route.ts) | 2026-06-12 |
-| `/api/social/scheduled` | [app/api/social/scheduled/route.ts](../app/api/social/scheduled/route.ts) | 2026-06-14 |
-| `/api/social/scheduled/[id]` | [app/api/social/scheduled/[id]/route.ts](../app/api/social/scheduled/[id]/route.ts) | 2026-06-14 |
+| `/api/social/scheduled` | [app/api/social/scheduled/route.ts](../app/api/social/scheduled/route.ts) | 2026-06-17 |
+| `/api/social/scheduled/[id]` | [app/api/social/scheduled/[id]/route.ts](../app/api/social/scheduled/[id]/route.ts) | 2026-06-17 |
 | `/api/social/scheduled/[id]/retry` | [app/api/social/scheduled/[id]/retry/route.ts](../app/api/social/scheduled/[id]/retry/route.ts) | 2026-06-14 |
 | `/api/social/twitter/callback` | [app/api/social/twitter/callback/route.ts](../app/api/social/twitter/callback/route.ts) | 2026-06-12 |
 | `/api/social/twitter/connect` | [app/api/social/twitter/connect/route.ts](../app/api/social/twitter/connect/route.ts) | 2026-06-12 |
@@ -299,17 +299,17 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/layout/lead-sign-out-button.tsx](../components/layout/lead-sign-out-button.tsx) | 2026-06-10 |
 | [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-06-14 |
 | [components/model-studio/canvas/attribute-panel.tsx](../components/model-studio/canvas/attribute-panel.tsx) | 2026-06-17 |
-| [components/model-studio/canvas/delete-entity-dialog.tsx](../components/model-studio/canvas/delete-entity-dialog.tsx) | 2026-06-16 |
-| [components/model-studio/canvas/entity-dialog.tsx](../components/model-studio/canvas/entity-dialog.tsx) | 2026-06-16 |
-| [components/model-studio/canvas/entity-node.tsx](../components/model-studio/canvas/entity-node.tsx) | 2026-06-16 |
+| [components/model-studio/canvas/delete-entity-dialog.tsx](../components/model-studio/canvas/delete-entity-dialog.tsx) | 2026-06-17 |
+| [components/model-studio/canvas/entity-dialog.tsx](../components/model-studio/canvas/entity-dialog.tsx) | 2026-06-17 |
+| [components/model-studio/canvas/entity-node.tsx](../components/model-studio/canvas/entity-node.tsx) | 2026-06-17 |
 | [components/model-studio/canvas/model-canvas.tsx](../components/model-studio/canvas/model-canvas.tsx) | 2026-06-17 |
 | [components/model-studio/canvas/model-detail-view.tsx](../components/model-studio/canvas/model-detail-view.tsx) | 2026-06-17 |
 | [components/model-studio/canvas/relationship-dialog.tsx](../components/model-studio/canvas/relationship-dialog.tsx) | 2026-06-17 |
-| [components/model-studio/canvas/relationship-edge.tsx](../components/model-studio/canvas/relationship-edge.tsx) | 2026-06-16 |
-| [components/model-studio/create-model-dialog.tsx](../components/model-studio/create-model-dialog.tsx) | 2026-06-15 |
-| [components/model-studio/delete-model-dialog.tsx](../components/model-studio/delete-model-dialog.tsx) | 2026-06-15 |
-| [components/model-studio/edit-model-dialog.tsx](../components/model-studio/edit-model-dialog.tsx) | 2026-06-15 |
-| [components/model-studio/model-studio-view.tsx](../components/model-studio/model-studio-view.tsx) | 2026-06-15 |
+| [components/model-studio/canvas/relationship-edge.tsx](../components/model-studio/canvas/relationship-edge.tsx) | 2026-06-17 |
+| [components/model-studio/create-model-dialog.tsx](../components/model-studio/create-model-dialog.tsx) | 2026-06-17 |
+| [components/model-studio/delete-model-dialog.tsx](../components/model-studio/delete-model-dialog.tsx) | 2026-06-17 |
+| [components/model-studio/edit-model-dialog.tsx](../components/model-studio/edit-model-dialog.tsx) | 2026-06-17 |
+| [components/model-studio/model-studio-view.tsx](../components/model-studio/model-studio-view.tsx) | 2026-06-17 |
 | [components/org/org-management.tsx](../components/org/org-management.tsx) | 2026-06-15 |
 | [components/org/org-switcher.tsx](../components/org/org-switcher.tsx) | 2026-06-15 |
 | [components/pages/block-error-boundary.tsx](../components/pages/block-error-boundary.tsx) | 2026-05-18 |
@@ -360,7 +360,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/skills/skills-list.tsx](../components/skills/skills-list.tsx) | 2026-06-08 |
 | [components/skills/use-enabled-models.ts](../components/skills/use-enabled-models.ts) | 2026-06-08 |
 | [components/social/publish-modal.tsx](../components/social/publish-modal.tsx) | 2026-06-15 |
-| [components/social/scheduled-posts-list.tsx](../components/social/scheduled-posts-list.tsx) | 2026-06-15 |
+| [components/social/scheduled-posts-list.tsx](../components/social/scheduled-posts-list.tsx) | 2026-06-17 |
 | [components/social/social-accounts-page.tsx](../components/social/social-accounts-page.tsx) | 2026-06-12 |
 | [components/social/upcoming-posts-widget.tsx](../components/social/upcoming-posts-widget.tsx) | 2026-06-14 |
 | [components/ui/attachments-panel.tsx](../components/ui/attachments-panel.tsx) | 2026-06-15 |

@@ -8,6 +8,15 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-06-17 — Scheduled social posts: editable content + confirmed hard delete
+
+Closed the CRUD gap on `/account/scheduled-posts`. Branch `feature/edit-scheduled-post-content`.
+
+- **Update:** the inline "Edit" (was "Reschedule") now edits **post text + schedule** together. `GET /api/social/scheduled` returns full `content` (not just the 200-char preview); `PATCH /api/social/scheduled/[id]` accepts optional `content`, re-validated server-side against `PLATFORM_MAX_CHAR_LIMITS` using the row's stored platform. Textarea + char counter added to the inline editor.
+- **Delete:** replaced the old **soft-cancel** (set `status='cancelled'`, row lingered forever) with a real **hard delete**. Confirmation built into the UI — Delete → "Delete permanently? This can't be undone." → Delete/Keep. Only block is `status='processing'` (mid-publish) → 409. `DELETE` scoped by `userId` (defence in depth). Delete button now shown for pending/failed/cancelled.
+- **Verified:** tsc + eslint clean; full unit suite 1109/1109 (no test touched the [id] route or soft-cancel); `GET`/`PATCH`/`DELETE` all return 401 without auth. Authenticated click-through left to manual QA.
+- New wiki page [[scheduled-social-posts]].
+
 ## 2026-06-17 — Model Studio canvas migration (gnhf 12–29)
 
 Migrated the Spresso canvas phase end-to-end: a React Flow modelling surface where entities are nodes, relationships are edges, and attributes live in each box. 18 individually-clean commits (gnhf 12–29), each tsc/lint/test/build green.

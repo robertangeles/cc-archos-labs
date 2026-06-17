@@ -2,9 +2,15 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getDb } from "@/lib/db";
 import { scheduledSocialPost } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
+import { isSocialPlatform, PLATFORM_MAX_CHAR_LIMITS } from "@/lib/social/types";
 
 export const runtime = "nodejs";
+
+// Statuses a post can be deleted from — mirrors the Delete actions the UI
+// exposes (pending / failed / cancelled). 'processing' and 'published' are
+// rejected explicitly above.
+const DELETABLE_STATUSES = ["pending", "failed", "cancelled"];
 
 // ---------------------------------------------------------------------------
 // PATCH /api/social/scheduled/[id] — reschedule a pending post
@@ -33,9 +39,10 @@ export async function PATCH(
     );
   }
 
-  const { scheduledFor, displayTimezone } = body as {
+  const { scheduledFor, displayTimezone, content } = body as {
     scheduledFor?: string;
     displayTimezone?: string;
+    content?: string;
   };
 
   // --- Validate scheduledFor ---
@@ -70,6 +77,14 @@ export async function PATCH(
     );
   }
 
+  // --- Validate optional content (length check happens after we know the platform) ---
+  if (content !== undefined && (typeof content !== "string" || !content.trim())) {
+    return NextResponse.json(
+      { ok: false, error: "Content must be a non-empty string if provided." },
+      { status: 400 },
+    );
+  }
+
   try {
     const db = getDb();
 
@@ -78,6 +93,7 @@ export async function PATCH(
       .select({
         id: scheduledSocialPost.id,
         status: scheduledSocialPost.status,
+        platform: scheduledSocialPost.platform,
       })
       .from(scheduledSocialPost)
       .where(
@@ -97,9 +113,23 @@ export async function PATCH(
 
     if (rows[0].status !== "pending") {
       return NextResponse.json(
-        { ok: false, error: "Only pending posts can be rescheduled." },
+        { ok: false, error: "Only pending posts can be edited." },
         { status: 409 },
       );
+    }
+
+    // --- Enforce the platform character limit when content changes ---
+    if (content !== undefined && isSocialPlatform(rows[0].platform)) {
+      const charLimit = PLATFORM_MAX_CHAR_LIMITS[rows[0].platform];
+      if (content.length > charLimit) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: `Content exceeds ${charLimit.toLocaleString()} character limit for ${rows[0].platform}.`,
+          },
+          { status: 400 },
+        );
+      }
     }
 
     // --- Update ---
@@ -109,6 +139,9 @@ export async function PATCH(
     };
     if (displayTimezone) {
       updates.displayTimezone = displayTimezone.trim();
+    }
+    if (content !== undefined) {
+      updates.content = content.trim();
     }
 
     await db
@@ -127,7 +160,7 @@ export async function PATCH(
 }
 
 // ---------------------------------------------------------------------------
-// DELETE /api/social/scheduled/[id] — cancel a pending post
+// DELETE /api/social/scheduled/[id] — permanently delete a scheduled post
 // ---------------------------------------------------------------------------
 export async function DELETE(
   _request: Request,
@@ -168,27 +201,49 @@ export async function DELETE(
       );
     }
 
-    if (rows[0].status !== "pending") {
+    // A post can only be deleted from a state the UI offers it in. Published
+    // rows are history; a 'processing' row is mid-publish and deleting it would
+    // race the cron publisher.
+    if (rows[0].status === "processing") {
       return NextResponse.json(
-        { ok: false, error: "Only pending posts can be cancelled." },
+        { ok: false, error: "This post is publishing right now and can't be deleted." },
+        { status: 409 },
+      );
+    }
+    if (rows[0].status === "published") {
+      return NextResponse.json(
+        { ok: false, error: "Published posts can't be deleted." },
         { status: 409 },
       );
     }
 
-    // Soft-cancel: set status to 'cancelled'
-    await db
-      .update(scheduledSocialPost)
-      .set({
-        status: "cancelled",
-        updatedAt: new Date(),
-      })
-      .where(eq(scheduledSocialPost.id, id));
+    // Atomic conditional delete, scoped to the owner. The status predicate
+    // closes the TOCTOU window: if the cron flips the row to 'processing'
+    // between the read above and here, it no longer matches and we report the
+    // conflict instead of yanking the row out from under a running publish.
+    const deleted = await db
+      .delete(scheduledSocialPost)
+      .where(
+        and(
+          eq(scheduledSocialPost.id, id),
+          eq(scheduledSocialPost.userId, user.user.id),
+          inArray(scheduledSocialPost.status, DELETABLE_STATUSES),
+        ),
+      )
+      .returning({ id: scheduledSocialPost.id });
+
+    if (deleted.length === 0) {
+      return NextResponse.json(
+        { ok: false, error: "This post can no longer be deleted — it may have started publishing." },
+        { status: 409 },
+      );
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[social/scheduled/[id]] DELETE error:", err);
     return NextResponse.json(
-      { ok: false, error: "Failed to cancel post." },
+      { ok: false, error: "Failed to delete post." },
       { status: 500 },
     );
   }

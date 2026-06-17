@@ -4,9 +4,24 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { PenLine } from "lucide-react";
 import { XIcon, LinkedinIcon, BlueskyIcon } from "@/components/icons/social";
 import type { SocialPlatform } from "@/lib/social/types";
-import { PLATFORM_DISPLAY_NAMES, SOCIAL_PLATFORMS } from "@/lib/social/types";
+import { PLATFORM_CHAR_LIMITS, PLATFORM_DISPLAY_NAMES, SOCIAL_PLATFORMS } from "@/lib/social/types";
 import { PublishModal } from "@/components/social/publish-modal";
 import { DateField } from "@/components/ui/date-field";
+
+/* ------------------------------------------------------------------ */
+/* Character limits                                                   */
+/* ------------------------------------------------------------------ */
+
+/* X Premium raises the Twitter limit; the flag is set in the publish modal
+ * and persisted in localStorage. We mirror its effective limit here so the
+ * editor caps content the same way compose did when the post was created. */
+const X_PREMIUM_KEY = "archos_x_premium";
+const X_PREMIUM_LIMIT = 25_000;
+
+function effectiveLimit(platform: SocialPlatform, xPremium: boolean): number {
+  if (platform === "twitter" && xPremium) return X_PREMIUM_LIMIT;
+  return PLATFORM_CHAR_LIMITS[platform];
+}
 
 /* ------------------------------------------------------------------ */
 /* Platform icon mapping                                              */
@@ -49,6 +64,7 @@ interface ScheduledPost {
   id: string;
   platform: SocialPlatform;
   contentPreview: string;
+  content: string;
   scheduledFor: string;
   displayTimezone: string;
   status: string;
@@ -71,8 +87,19 @@ export function ScheduledPostsList() {
   const [connectedPlatforms, setConnectedPlatforms] = useState<SocialPlatform[]>([]);
   const [activeTab, setActiveTab] = useState<"scheduled" | "posted">("scheduled");
 
-  /* Inline reschedule state */
+  /* Whether the user has X Premium (set in the publish modal). Read once so
+   * the Twitter limit in the editor matches what compose enforced. */
+  const [xPremium] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(X_PREMIUM_KEY) === "true";
+  });
+
+  /* Delete confirmation: id of the post awaiting a confirm tap */
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+
+  /* Inline edit state (content + schedule) */
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
   const [editDate, setEditDate] = useState("");
   const [editTime, setEditTime] = useState("");
   const [saving, setSaving] = useState(false);
@@ -138,8 +165,9 @@ export function ScheduledPostsList() {
   /* Actions                                                          */
   /* ---------------------------------------------------------------- */
 
-  const handleCancel = useCallback(
+  const handleDelete = useCallback(
     async (id: string) => {
+      setConfirmingDeleteId(null);
       /* Optimistic removal */
       setPosts((prev) => prev.filter((p) => p.id !== id));
       try {
@@ -176,6 +204,7 @@ export function ScheduledPostsList() {
     const dd = String(dt.getDate()).padStart(2, "0");
     const hh = String(dt.getHours()).padStart(2, "0");
     const min = String(dt.getMinutes()).padStart(2, "0");
+    setEditContent(post.content);
     setEditDate(`${yyyy}-${mm}-${dd}`);
     setEditTime(`${hh}:${min}`);
     setEditingId(post.id);
@@ -183,14 +212,16 @@ export function ScheduledPostsList() {
 
   const cancelEditing = useCallback(() => {
     setEditingId(null);
+    setEditContent("");
     setEditDate("");
     setEditTime("");
   }, []);
 
   const confirmReschedule = useCallback(async () => {
-    if (!editingId || !editDate || !editTime) return;
+    if (!editingId || !editDate || !editTime || !editContent.trim()) return;
     setSaving(true);
 
+    const content = editContent.trim();
     const scheduledFor = new Date(`${editDate}T${editTime}`).toISOString();
     const displayTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -198,13 +229,20 @@ export function ScheduledPostsList() {
       const res = await fetch(`/api/social/scheduled/${editingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scheduledFor, displayTimezone }),
+        body: JSON.stringify({ scheduledFor, displayTimezone, content }),
       });
       if (res.ok) {
         setPosts((prev) =>
           prev.map((p) =>
             p.id === editingId
-              ? { ...p, scheduledFor, displayTimezone, status: "pending" }
+              ? {
+                  ...p,
+                  content,
+                  contentPreview: content.slice(0, 200),
+                  scheduledFor,
+                  displayTimezone,
+                  status: "pending",
+                }
               : p,
           ),
         );
@@ -215,7 +253,7 @@ export function ScheduledPostsList() {
     } finally {
       setSaving(false);
     }
-  }, [editingId, editDate, editTime, cancelEditing]);
+  }, [editingId, editContent, editDate, editTime, cancelEditing]);
 
   /* ---------------------------------------------------------------- */
   /* Sort: upcoming first                                             */
@@ -307,6 +345,7 @@ export function ScheduledPostsList() {
           {displayList.map((post) => {
             const Icon = PLATFORM_ICONS[post.platform];
             const isEditing = editingId === post.id;
+            const charLimit = effectiveLimit(post.platform, xPremium);
 
             return (
               <div
@@ -330,14 +369,36 @@ export function ScheduledPostsList() {
                   </span>
                 </div>
 
-                {/* Content preview */}
-                <p className="mt-2 line-clamp-2 text-xs text-ink-subtle">
-                  {post.contentPreview}
-                </p>
+                {/* Content preview (hidden while editing) */}
+                {!isEditing && (
+                  <p className="mt-2 line-clamp-2 text-xs text-ink-subtle">
+                    {post.contentPreview}
+                  </p>
+                )}
 
                 {/* Scheduled time or inline editor */}
                 {isEditing ? (
                   <div className="mt-3 space-y-2">
+                    <div>
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        rows={5}
+                        className="w-full resize-none rounded-md border border-hairline bg-surface-1 px-2.5 py-1.5 text-xs text-ink placeholder:text-ink-subtle/50 focus:border-primary focus:outline-none"
+                        placeholder={`Content for ${PLATFORM_DISPLAY_NAMES[post.platform]}...`}
+                      />
+                      <div className="mt-1 flex justify-end">
+                        <span
+                          className={`text-[10px] ${
+                            editContent.length > charLimit
+                              ? "text-red-400"
+                              : "text-ink-subtle"
+                          }`}
+                        >
+                          {editContent.length}/{charLimit}
+                        </span>
+                      </div>
+                    </div>
                     <div className="flex gap-2">
                       <DateField
                         value={editDate}
@@ -357,7 +418,13 @@ export function ScheduledPostsList() {
                       <button
                         type="button"
                         onClick={confirmReschedule}
-                        disabled={saving || !editDate || !editTime}
+                        disabled={
+                          saving ||
+                          !editDate ||
+                          !editTime ||
+                          !editContent.trim() ||
+                          editContent.length > charLimit
+                        }
                         className="rounded-md bg-primary px-3 py-1 text-[10px] font-medium text-white transition-colors hover:bg-primary-hover disabled:opacity-50"
                       >
                         {saving ? "Saving..." : "Confirm"}
@@ -385,46 +452,86 @@ export function ScheduledPostsList() {
                   </p>
                 )}
 
-                {/* Action buttons per status */}
-                <div className="mt-3 flex gap-2">
-                  {post.status === "pending" && !isEditing && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => startEditing(post)}
-                        className="rounded-md border border-hairline px-2.5 py-1 text-[10px] font-medium text-ink-subtle transition-colors hover:bg-surface-1 hover:text-ink"
-                      >
-                        Reschedule
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleCancel(post.id)}
-                        className="rounded-md border border-hairline px-2.5 py-1 text-[10px] font-medium text-red-400 transition-colors hover:bg-red-950/20"
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  )}
-                  {post.status === "failed" && (
+                {/* Action buttons per status (or the delete confirmation prompt) */}
+                {confirmingDeleteId === post.id && !isEditing ? (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] text-red-400">
+                      Delete permanently? This can&apos;t be undone.
+                    </span>
                     <button
                       type="button"
-                      onClick={() => handleRetry(post.id)}
+                      onClick={() => handleDelete(post.id)}
+                      className="rounded-md border border-red-700/40 bg-red-950/20 px-2.5 py-1 text-[10px] font-medium text-red-400 transition-colors hover:bg-red-950/40"
+                    >
+                      Delete
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingDeleteId(null)}
                       className="rounded-md border border-hairline px-2.5 py-1 text-[10px] font-medium text-ink-subtle transition-colors hover:bg-surface-1 hover:text-ink"
                     >
-                      Retry
+                      Keep
                     </button>
-                  )}
-                  {post.status === "published" && post.publishedUrl && (
-                    <a
-                      href={post.publishedUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="rounded-md border border-hairline px-2.5 py-1 text-[10px] font-medium text-primary transition-colors hover:bg-primary/10"
-                    >
-                      View
-                    </a>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div className="mt-3 flex gap-2">
+                    {post.status === "pending" && !isEditing && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => startEditing(post)}
+                          className="rounded-md border border-hairline px-2.5 py-1 text-[10px] font-medium text-ink-subtle transition-colors hover:bg-surface-1 hover:text-ink"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmingDeleteId(post.id)}
+                          className="rounded-md border border-hairline px-2.5 py-1 text-[10px] font-medium text-red-400 transition-colors hover:bg-red-950/20"
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
+                    {post.status === "failed" && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleRetry(post.id)}
+                          className="rounded-md border border-hairline px-2.5 py-1 text-[10px] font-medium text-ink-subtle transition-colors hover:bg-surface-1 hover:text-ink"
+                        >
+                          Retry
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmingDeleteId(post.id)}
+                          className="rounded-md border border-hairline px-2.5 py-1 text-[10px] font-medium text-red-400 transition-colors hover:bg-red-950/20"
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
+                    {post.status === "cancelled" && (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingDeleteId(post.id)}
+                        className="rounded-md border border-hairline px-2.5 py-1 text-[10px] font-medium text-red-400 transition-colors hover:bg-red-950/20"
+                      >
+                        Delete
+                      </button>
+                    )}
+                    {post.status === "published" && post.publishedUrl && (
+                      <a
+                        href={post.publishedUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-md border border-hairline px-2.5 py-1 text-[10px] font-medium text-primary transition-colors hover:bg-primary/10"
+                      >
+                        View
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
