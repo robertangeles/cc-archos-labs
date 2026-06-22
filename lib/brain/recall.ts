@@ -8,7 +8,12 @@ export interface RecallResult {
   count: number;
 }
 
-const RECALL_TIMEOUT_MS = 5000;
+// 10s (was 5s): the GBrain vector query runs ~1.5s warm but 5s+ on a
+// cold/just-woken Render instance, which silently blew the old 5s budget
+// and returned no memories. Recall is awaited before the reply streams, so
+// this is also the ceiling on first-message latency after idle; the
+// /api/brain/warm ping on workspace open keeps the common case fast.
+const RECALL_TIMEOUT_MS = 10000;
 
 export async function recallMemories(
   userId: string,
@@ -120,8 +125,12 @@ function extractPages(result: unknown): string[] {
 
 type RecallOutcome = "success" | "timeout" | "error" | "empty" | "no_brain";
 
+// Log the outcome (never the query or memory content — privacy first).
+// Failures are logged in every environment so a silently-degraded brain is
+// visible in prod logs; success/empty stay dev-only to avoid log noise.
 function logRecallOutcome(outcome: RecallOutcome): void {
-  if (process.env.NODE_ENV === "development") {
+  const isFailure = outcome === "timeout" || outcome === "error";
+  if (isFailure || process.env.NODE_ENV === "development") {
     console.log(`[brain:recall] outcome=${outcome}`);
   }
 }

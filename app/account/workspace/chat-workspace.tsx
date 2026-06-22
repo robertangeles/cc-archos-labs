@@ -95,7 +95,14 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
   useEffect(() => {
     fetch("/api/brain/status")
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => { if (data?.provisioned) setBrainProvisioned(true); })
+      .then((data) => {
+        if (data?.provisioned) {
+          setBrainProvisioned(true);
+          // Wake GBrain now so the first message's memory recall is fast
+          // instead of cold-starting mid-send. Best-effort, fire-and-forget.
+          fetch("/api/brain/warm", { method: "POST" }).catch(() => {});
+        }
+      })
       .catch(() => {});
   }, []);
 

@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-17T05:39:08.173Z
+generated: 2026-06-22T12:24:23.089Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -83,7 +83,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/workspace/model-studio` | [app/workspace/model-studio/page.tsx](../app/workspace/model-studio/page.tsx) | 2026-06-17 |
 | `/workspace/model-studio/[id]` | [app/workspace/model-studio/[id]/page.tsx](../app/workspace/model-studio/[id]/page.tsx) | 2026-06-17 |
 
-## API endpoints (168)
+## API endpoints (169)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -156,6 +156,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/brain/memories` | [app/api/brain/memories/route.ts](../app/api/brain/memories/route.ts) | 2026-06-10 |
 | `/api/brain/provision` | [app/api/brain/provision/route.ts](../app/api/brain/provision/route.ts) | 2026-06-10 |
 | `/api/brain/status` | [app/api/brain/status/route.ts](../app/api/brain/status/route.ts) | 2026-06-10 |
+| `/api/brain/warm` | [app/api/brain/warm/route.ts](../app/api/brain/warm/route.ts) | unknown |
 | `/api/cdmp/answer` | [app/api/cdmp/answer/route.ts](../app/api/cdmp/answer/route.ts) | 2026-06-03 |
 | `/api/cdmp/complete` | [app/api/cdmp/complete/route.ts](../app/api/cdmp/complete/route.ts) | 2026-06-03 |
 | `/api/cdmp/flag` | [app/api/cdmp/flag/route.ts](../app/api/cdmp/flag/route.ts) | 2026-06-03 |
