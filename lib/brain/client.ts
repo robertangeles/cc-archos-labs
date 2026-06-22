@@ -115,7 +115,10 @@ export async function getAccessToken(
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: body.toString(),
-    signal: AbortSignal.timeout(5000),
+    // 8s (was 5s): GBrain runs on Render and cold-starts after idle. The
+    // token endpoint is fast when warm (~0.5s) but the very first request
+    // against a sleeping instance needs headroom or recall silently fails.
+    signal: AbortSignal.timeout(8000),
   });
 
   if (!res.ok) {
