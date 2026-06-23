@@ -129,12 +129,17 @@ describe("sanitizeForBrain", () => {
   });
 
   describe("performance", () => {
-    it("processes 10KB input in under 50ms", () => {
+    // Guards against catastrophic regex backtracking (ReDoS) in the sanitiser
+    // — that failure mode manifests as multi-second hangs, so a generous
+    // ceiling catches it while not flaking on a loaded CI runner, where a
+    // healthy run (single-digit ms) can still spike on GC/scheduling. The old
+    // 50ms ceiling was a flake risk for that reason.
+    it("processes 10KB input well under 500ms (ReDoS guard)", () => {
       const text = "This is a normal conversation about project planning. ".repeat(200);
       const start = performance.now();
       sanitizeForBrain(text);
       const elapsed = performance.now() - start;
-      expect(elapsed).toBeLessThan(50);
+      expect(elapsed).toBeLessThan(500);
     });
   });
 });
