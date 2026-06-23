@@ -1521,3 +1521,9 @@ End-to-end verification (local): login → GET /api/admin/settings/site → PUT 
 - **Fix (branch `fix/brain-recall-cold-start-timeout`):** (1) widen timeouts — recall query 5s→10s, token fetch 5s→8s; (2) new `lib/brain/warm.ts` `warmBrain()` + `POST /api/brain/warm`, fired fire-and-forget from the workspace mount (`chat-workspace.tsx`) to pre-fetch+cache the token and run a throwaway query, moving cold-start cost off the user's first message; (3) recall now logs `timeout`/`error` outcomes in prod (was dev-only).
 - **Verified end-to-end against real GBrain + PROD data:** warm-up absorbed a real 6.2s cold start, then recall returned all 5 memories in ~1.8s twice. tsc + lint clean; full suite 1114 passing; `pnpm build` compiles (incl. new `/api/brain/warm`). New `lib/brain/warm.test.ts` (5 cases) passing.
 - Lesson recorded: `wiki/lessons-learned/2026-06-22-brain-recall-cold-start-timeout.md`.
+
+## 2026-06-23 — Rate-limit the brain warm + status endpoints (follow-up to #162)
+
+- Closed the non-blocking follow-up from the brain-recall fix (PR #162): `POST /api/brain/warm` and `GET /api/brain/status` were unrated-limited (an authed user could spam warm → hammer GBrain). Both now use the shared in-memory hourly `rateLimit()` keyed per user: `brain-warm:${userId}` at 100/hr, `brain-status:${userId}` at 200/hr (status fires up to 2×/mount, so 2× the allowance ≈ same ~100 mounts/hr). Check sits right after auth, before any GBrain/DB work; returns 429 on exceed.
+- Sized generously so heavy legitimate use (incl. rapid reloads while testing) doesn't trip it; a 429 degrades gracefully anyway (warm is best-effort/client-ignored; status is display-only). Pattern copied from the existing `brain-delete:${userId}` limiter in `app/api/brain/memories/route.ts`.
+- New tests: `app/api/brain/warm/route.test.ts` + `app/api/brain/status/route.test.ts` (8 cases — 401/429/per-user-key/happy-path each). tsc + lint clean; full suite 1122 passing; build compiles.
