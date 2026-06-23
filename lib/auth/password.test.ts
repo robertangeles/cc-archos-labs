@@ -72,13 +72,15 @@ describe("ENUMERATION_DUMMY_HASH", () => {
 
   it("takes meaningful CPU time to verify (anti-enumeration)", async () => {
     // The whole point of the dummy is that verify runs the real argon2id
-    // work — ~50ms on commodity hardware. The 10ms floor catches the
-    // failure mode that matters (argon2 silently no-op'd, which would
-    // be ~1ms) without being flaky under sequential test load, where
-    // CPU pipeline + JIT warmth can drop a real run to ~14ms.
+    // work — ~50ms on commodity hardware. We only need to catch the one
+    // failure mode that matters: argon2 silently no-op'ing, which returns
+    // in ~1ms. A 5ms floor separates that cleanly (a 19 MiB, t=2 argon2id
+    // verify cannot complete in under 5ms) while leaving margin below a
+    // genuine run — CI has clocked a real run as low as ~10ms under
+    // sequential load, which the previous 10ms floor flaked on.
     const start = Date.now();
     await verifyPassword("any input", ENUMERATION_DUMMY_HASH);
     const elapsed = Date.now() - start;
-    expect(elapsed).toBeGreaterThan(10);
+    expect(elapsed).toBeGreaterThan(5);
   });
 });
