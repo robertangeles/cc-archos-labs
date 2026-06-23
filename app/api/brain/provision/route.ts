@@ -29,8 +29,12 @@ export async function POST() {
       provisionedAt: brain.provisionedAt,
     });
   } catch (e) {
+    // Don't leak the raw error (it can carry GBrain infra detail / status
+    // codes) to the client. Log it server-side for diagnosis; return a
+    // generic message.
+    console.error(`[brain:provision] failed for user=${auth.user.id}:`, e);
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Provisioning failed" },
+      { error: "Provisioning failed" },
       { status: 500 },
     );
   }
