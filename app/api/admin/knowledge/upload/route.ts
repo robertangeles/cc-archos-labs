@@ -45,9 +45,11 @@ export async function POST(request: Request) {
     if (err instanceof IngestError) {
       return NextResponse.json({ error: err.message }, { status: 409 });
     }
+    // Log the raw error for diagnosis; send a generic message to the client.
+    // (The IngestError branch above is a typed, user-safe message.)
     console.error("[POST /api/admin/knowledge/upload]", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Ingestion failed" },
+      { error: "Ingestion failed" },
       { status: 500 },
     );
   }
