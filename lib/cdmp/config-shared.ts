@@ -28,6 +28,29 @@ export const CdmpConfigSchema = z.object({
 export type CdmpConfig = z.infer<typeof CdmpConfigSchema>;
 export type KnowledgeArea = z.infer<typeof KnowledgeAreaSchema>;
 
+// The 7 CDMP Specialist exam subjects, each scoped to a single DMBOK chapter.
+// SINGLE SOURCE OF TRUTH for the start-route validation, the config area picker,
+// and the /tools/cdmp-practice/specialist/[area] routes. Intentionally a code
+// constant OUTSIDE CdmpConfigSchema: getCdmpConfig hard-throws on any stored-
+// config validation mismatch, so adding this to the Zod schema would 500 the
+// whole CDMP tool against the live config row until reseeded. Each slug must
+// exist in knowledgeAreas (validated by the cdmp config test).
+export const SPECIALIST_AREA_SLUGS = [
+  "data_governance",
+  "data_modelling_design",
+  "data_integration_interoperability",
+  "master_reference_data",
+  "data_warehousing_bi",
+  "metadata_management",
+  "data_quality",
+] as const;
+
+export type SpecialistAreaSlug = (typeof SPECIALIST_AREA_SLUGS)[number];
+
+export function isSpecialistAreaSlug(slug: string): slug is SpecialistAreaSlug {
+  return (SPECIALIST_AREA_SLUGS as readonly string[]).includes(slug);
+}
+
 export const CDMP_CONFIG_STARTER: CdmpConfig = {
   version: "1.0.0",
   generationPrompt: `You are an expert exam question writer for the CDMP (Certified Data Management Professional) Fundamentals exam, published by DAMA International.
