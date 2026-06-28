@@ -1876,6 +1876,11 @@ export const knowledgeChunk = pgTable(
     // Source location metadata: chapter title, page range, section heading.
     // Shape varies per source_type; application layer validates (Zod).
     metadata: jsonb("metadata").notNull().default({}),
+    // DMBOK chapter this chunk belongs to, e.g. "Chapter 13". NULL = front/back
+    // matter or unassignable — excluded from CDMP specialist exam pools (the
+    // Fundamentals exam ignores this column; it uses semantic search). Populated
+    // in place by the chapter-detection backfill; only set for the DMBOK document.
+    chapter: text("chapter"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -1892,6 +1897,8 @@ export const knowledgeChunk = pgTable(
       table.documentId,
       table.chunkIndex,
     ),
+    // CDMP specialist generation: "fetch all chunks for one chapter."
+    index("knowledge_chunk_chapter_idx").on(table.chapter),
   ],
 );
 
