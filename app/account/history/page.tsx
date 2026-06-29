@@ -5,6 +5,7 @@ import { buildPageMetadata } from "@/lib/site-config";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getDb } from "@/lib/db";
 import { cdmpExamSession, assessmentSession } from "@/lib/db/schema";
+import { getSpecialistAreas } from "@/lib/cdmp/specialist";
 import { HistoryTabs } from "../history-tabs";
 
 export const dynamic = "force-dynamic";
@@ -33,13 +34,25 @@ export default async function HistoryPage() {
       startedAt: cdmpExamSession.startedAt,
       completedAt: cdmpExamSession.completedAt,
       createdAt: cdmpExamSession.createdAt,
+      examType: cdmpExamSession.examType,
+      specialistArea: cdmpExamSession.specialistArea,
     })
     .from(cdmpExamSession)
     .where(eq(cdmpExamSession.userId, auth.user.id))
     .orderBy(desc(cdmpExamSession.createdAt))
     .limit(20);
 
-  const completed = exams.filter((e) => e.status === "completed");
+  // Resolve specialist slugs to display labels (e.g. data_quality → "Data Quality").
+  const areaLabels = new Map<string, string>(
+    (await getSpecialistAreas()).map((a) => [a.slug, a.label]),
+  );
+  const completed = exams
+    .filter((e) => e.status === "completed")
+    .map((e) => ({
+      ...e,
+      examType: e.examType === "specialist" ? ("specialist" as const) : ("fundamentals" as const),
+      specialistLabel: e.specialistArea ? areaLabels.get(e.specialistArea) ?? null : null,
+    }));
 
   const assessments = await db
     .select({

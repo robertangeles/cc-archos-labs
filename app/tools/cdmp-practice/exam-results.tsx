@@ -528,7 +528,33 @@ export function ExamResults({ result, answers, onRetry, onPracticeWeak }: ExamRe
           transition={{ duration: d(0.25), delay: d(0.8) }}
           className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(320px,2fr)_3fr]"
         >
-          {/* ── Left Column: Radar + Chapter List ── */}
+          {/* ── Left Column: Subject Mastery (specialist) | Radar + Chapters (fundamentals) ── */}
+          {result.examType === "specialist" ? (
+            <div>
+              <h3 className="text-body-sm font-semibold text-ink">Subject mastery</h3>
+              <div className="mt-3 rounded-lg border border-hairline bg-surface-1 px-6 py-8 text-center">
+                <p className="text-body-sm text-ink-subtle">{result.specialistLabel}</p>
+                <p className={`mt-2 text-2xl font-semibold ${scoreToTailwind(result.percentCorrect)}`}>
+                  {bestThreshold ?? "Below Associate"}
+                </p>
+                <p className="mt-1 text-body-sm text-ink-subtle">
+                  {result.percentCorrect}% · {result.correctCount}/{result.totalQuestions} correct
+                </p>
+                {nextTier && (
+                  <p className="mt-3 text-[12px] text-ink-subtle">
+                    {nextTier.gap} more point{nextTier.gap !== 1 ? "s" : ""} to {nextTier.label}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={onRetry}
+                className="mt-6 inline-flex w-full items-center justify-center rounded-md bg-primary px-6 py-2.5 text-sm font-medium text-on-primary transition-colors duration-150 hover:bg-primary-hover"
+              >
+                Try again
+              </button>
+            </div>
+          ) : (
           <div>
             <h3 className="text-body-sm font-semibold text-ink">
               Competency Profile
@@ -591,6 +617,7 @@ export function ExamResults({ result, answers, onRetry, onPracticeWeak }: ExamRe
               </button>
             </div>
           </div>
+          )}
 
           {/* ── Right Column: Question Review ── */}
           <div>

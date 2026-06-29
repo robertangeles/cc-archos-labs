@@ -31,6 +31,8 @@ export async function POST(request: Request) {
       id: cdmpExamSession.id,
       userId: cdmpExamSession.userId,
       status: cdmpExamSession.status,
+      examType: cdmpExamSession.examType,
+      specialistArea: cdmpExamSession.specialistArea,
     })
     .from(cdmpExamSession)
     .where(eq(cdmpExamSession.id, body.sessionId))
@@ -61,7 +63,15 @@ export async function POST(request: Request) {
   }));
 
   const config = await getCdmpConfig();
-  const result = scoreExam(answerRecords, config.knowledgeAreas);
+  const session = sessions[0];
+  const isSpecialist = session.examType === "specialist";
+  const specialistLabel = session.specialistArea
+    ? config.knowledgeAreas.find((a) => a.slug === session.specialistArea)?.label
+    : undefined;
+  const result = scoreExam(answerRecords, config.knowledgeAreas, config.passThresholds, {
+    examType: isSpecialist ? "specialist" : "fundamentals",
+    specialistLabel,
+  });
 
   await db
     .update(cdmpExamSession)
