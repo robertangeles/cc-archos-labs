@@ -51,7 +51,8 @@ export async function POST(request: Request) {
     }
 
     const info = await getSpecialistArea(area);
-    if (!info || info.poolSize === 0) {
+    const minAllowedCount = Math.min(...config.questionCounts);
+    if (!info || info.maxQuestions < minAllowedCount) {
       return NextResponse.json(
         { error: "This subject isn't ready yet. Please try another." },
         { status: 503 },

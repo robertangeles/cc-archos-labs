@@ -86,9 +86,18 @@ describe("POST /api/cdmp/start — specialist validation", () => {
     expect(getSpecialistAreaMock).not.toHaveBeenCalled();
   });
 
-  it("returns 503 when the chapter pool is empty", async () => {
+  it("returns 503 when the chapter pool is empty (poolSize=0, maxQuestions=0)", async () => {
     getSpecialistAreaMock.mockResolvedValue({ slug: "data_quality", label: "Data Quality", chapter: "Chapter 13", poolSize: 0, maxQuestions: 0 });
     const res = await POST(req({ mode: "specialist", specialistArea: "data_quality", questionCount: 20 }));
+    expect(res.status).toBe(503);
+    expect(generateSpecialistExamMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 503 when the chapter pool is too small to support any valid count (poolSize=5, maxQuestions=10)", async () => {
+    // poolSize=5 → maxQuestions=10, which is below the minimum allowed count of 20.
+    // Without this guard the route would fall through to a confusing 400 "must be one of 20,40,60,100".
+    getSpecialistAreaMock.mockResolvedValue({ slug: "data_quality", label: "Data Quality", chapter: "Chapter 13", poolSize: 5, maxQuestions: 10 });
+    const res = await POST(req({ mode: "specialist", specialistArea: "data_quality" }));
     expect(res.status).toBe(503);
     expect(generateSpecialistExamMock).not.toHaveBeenCalled();
   });

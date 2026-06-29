@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-28T04:38:03.801Z
+generated: 2026-06-29T00:27:01.049Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -162,7 +162,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/cdmp/flag` | [app/api/cdmp/flag/route.ts](../app/api/cdmp/flag/route.ts) | 2026-06-03 |
 | `/api/cdmp/history` | [app/api/cdmp/history/route.ts](../app/api/cdmp/history/route.ts) | 2026-06-03 |
 | `/api/cdmp/results/[sessionId]` | [app/api/cdmp/results/[sessionId]/route.ts](../app/api/cdmp/results/[sessionId]/route.ts) | 2026-06-03 |
-| `/api/cdmp/start` | [app/api/cdmp/start/route.ts](../app/api/cdmp/start/route.ts) | 2026-06-03 |
+| `/api/cdmp/start` | [app/api/cdmp/start/route.ts](../app/api/cdmp/start/route.ts) | 2026-06-28 |
 | `/api/chat/conversations` | [app/api/chat/conversations/route.ts](../app/api/chat/conversations/route.ts) | 2026-06-08 |
 | `/api/chat/conversations/[id]` | [app/api/chat/conversations/[id]/route.ts](../app/api/chat/conversations/[id]/route.ts) | 2026-06-08 |
 | `/api/chat/conversations/[id]/messages` | [app/api/chat/conversations/[id]/messages/route.ts](../app/api/chat/conversations/[id]/messages/route.ts) | 2026-06-09 |
