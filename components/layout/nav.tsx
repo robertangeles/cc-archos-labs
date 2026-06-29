@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { LeadSignOutButton } from "./lead-sign-out-button";
 import { useOpenSearch } from "../search/search-provider";
@@ -120,6 +121,7 @@ function ProfileMenu({ firstName }: { firstName: string }) {
 function ToolsMenu() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!open) return;
@@ -176,7 +178,16 @@ function ToolsMenu() {
               key={tool.href}
               href={tool.href}
               role="menuitem"
-              onClick={() => setOpen(false)}
+              onClick={(e) => {
+                setOpen(false);
+                // A Next <Link> to the page you're already on is a no-op, which
+                // leaves a heavy client-state tool (e.g. a finished CDMP exam)
+                // stuck on its results. Force a fresh load so the tool resets.
+                if (tool.href === pathname) {
+                  e.preventDefault();
+                  window.location.href = tool.href;
+                }
+              }}
               className="block rounded px-3 py-2 text-sm text-ink-subtle transition-colors duration-150 hover:bg-canvas hover:text-ink"
             >
               {tool.label}

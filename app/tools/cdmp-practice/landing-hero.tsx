@@ -78,7 +78,8 @@ export function LandingHero({ onStart }: { onStart: () => void }) {
                 Specialist Practice Exams
               </p>
               <p className="mt-1 text-[13px] text-ink-subtle">
-                Coming soon. Targeted practice for each of the 14 DMBOK knowledge areas.
+                Now available — 7 single-subject exams scoped to one DMBOK
+                chapter each. Choose &ldquo;Specialist&rdquo; when you start practicing.
               </p>
             </div>
 

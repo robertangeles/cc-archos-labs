@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-29T01:44:54.389Z
+generated: 2026-06-29T04:47:45.970Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -23,7 +23,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/account` | [app/account/page.tsx](../app/account/page.tsx) | 2026-06-07 |
 | `/account/brain` | [app/account/brain/page.tsx](../app/account/brain/page.tsx) | 2026-06-10 |
 | `/account/clients` | [app/account/clients/page.tsx](../app/account/clients/page.tsx) | 2026-06-15 |
-| `/account/history` | [app/account/history/page.tsx](../app/account/history/page.tsx) | 2026-06-07 |
+| `/account/history` | [app/account/history/page.tsx](../app/account/history/page.tsx) | 2026-06-29 |
 | `/account/organisation` | [app/account/organisation/page.tsx](../app/account/organisation/page.tsx) | 2026-06-15 |
 | `/account/personalisation` | [app/account/personalisation/page.tsx](../app/account/personalisation/page.tsx) | 2026-06-08 |
 | `/account/projects` | [app/account/projects/page.tsx](../app/account/projects/page.tsx) | 2026-06-15 |
@@ -78,9 +78,9 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/ai-readiness` | [app/tools/ai-readiness/page.tsx](../app/tools/ai-readiness/page.tsx) | 2026-06-03 |
 | `/tools/ai-readiness/report/[sessionId]` | [app/tools/ai-readiness/report/[sessionId]/page.tsx](../app/tools/ai-readiness/report/[sessionId]/page.tsx) | 2026-06-03 |
 | `/tools/ai-readiness/share/[token]` | [app/tools/ai-readiness/share/[token]/page.tsx](../app/tools/ai-readiness/share/[token]/page.tsx) | 2026-05-13 |
-| `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-06-03 |
+| `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-06-29 |
 | `/tools/cdmp-practice/history/[sessionId]` | [app/tools/cdmp-practice/history/[sessionId]/page.tsx](../app/tools/cdmp-practice/history/[sessionId]/page.tsx) | 2026-06-03 |
-| `/tools/cdmp-practice/specialist/[area]` | [app/tools/cdmp-practice/specialist/[area]/page.tsx](../app/tools/cdmp-practice/specialist/[area]/page.tsx) | unknown |
+| `/tools/cdmp-practice/specialist/[area]` | [app/tools/cdmp-practice/specialist/[area]/page.tsx](../app/tools/cdmp-practice/specialist/[area]/page.tsx) | 2026-06-29 |
 | `/workspace/model-studio` | [app/workspace/model-studio/page.tsx](../app/workspace/model-studio/page.tsx) | 2026-06-17 |
 | `/workspace/model-studio/[id]` | [app/workspace/model-studio/[id]/page.tsx](../app/workspace/model-studio/[id]/page.tsx) | 2026-06-17 |
 
@@ -159,7 +159,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/brain/status` | [app/api/brain/status/route.ts](../app/api/brain/status/route.ts) | 2026-06-23 |
 | `/api/brain/warm` | [app/api/brain/warm/route.ts](../app/api/brain/warm/route.ts) | 2026-06-23 |
 | `/api/cdmp/answer` | [app/api/cdmp/answer/route.ts](../app/api/cdmp/answer/route.ts) | 2026-06-03 |
-| `/api/cdmp/complete` | [app/api/cdmp/complete/route.ts](../app/api/cdmp/complete/route.ts) | 2026-06-03 |
+| `/api/cdmp/complete` | [app/api/cdmp/complete/route.ts](../app/api/cdmp/complete/route.ts) | 2026-06-29 |
 | `/api/cdmp/flag` | [app/api/cdmp/flag/route.ts](../app/api/cdmp/flag/route.ts) | 2026-06-03 |
 | `/api/cdmp/history` | [app/api/cdmp/history/route.ts](../app/api/cdmp/history/route.ts) | 2026-06-03 |
 | `/api/cdmp/results/[sessionId]` | [app/api/cdmp/results/[sessionId]/route.ts](../app/api/cdmp/results/[sessionId]/route.ts) | 2026-06-03 |
@@ -291,7 +291,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/contact/contact-form.tsx](../components/contact/contact-form.tsx) | 2026-05-15 |
 | [components/diagnostic/recommended-readings.tsx](../components/diagnostic/recommended-readings.tsx) | 2026-05-24 |
 | [components/icons/social.tsx](../components/icons/social.tsx) | 2026-06-12 |
-| [components/json-ld.tsx](../components/json-ld.tsx) | unknown |
+| [components/json-ld.tsx](../components/json-ld.tsx) | 2026-06-29 |
 | [components/kanban/board.tsx](../components/kanban/board.tsx) | 2026-06-15 |
 | [components/kanban/card-modal.tsx](../components/kanban/card-modal.tsx) | 2026-06-15 |
 | [components/kanban/card.tsx](../components/kanban/card.tsx) | 2026-06-15 |
