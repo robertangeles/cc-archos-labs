@@ -3,7 +3,7 @@ title: Next Link to the current URL is a no-op — stateful tools get stuck
 category: synthesis
 created: 2026-06-29
 updated: 2026-06-29
-related: [[cdmp-practice-exam]]
+related: [[2026-06-02-cdmp-sequential-generation-slow]]
 ---
 
 A nav `<Link>` whose href equals the current pathname does not navigate, so a heavy client-state tool on that page never resets.
