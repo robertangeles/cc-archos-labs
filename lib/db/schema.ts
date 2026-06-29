@@ -1931,6 +1931,11 @@ export const cdmpExamSession = pgTable(
     status: text("status").notNull().default("in_progress"),
     // Total questions served in this session.
     questionCount: integer("question_count").notNull(),
+    // 'fundamentals' (all 14 areas, weighted) | 'specialist' (one DMBOK chapter).
+    examType: text("exam_type").notNull().default("fundamentals"),
+    // Specialist exams: the knowledge-area slug (e.g. 'data_quality'); one of
+    // SPECIALIST_AREA_SLUGS. NULL for fundamentals.
+    specialistArea: text("specialist_area"),
     // Final score: number of correct answers.
     correctCount: integer("correct_count"),
     // Final score as percentage (0-100). Computed at completion.
@@ -1953,6 +1958,8 @@ export const cdmpExamSession = pgTable(
     index("cdmp_exam_session_user_id_idx").on(table.userId),
     // Admin analytics: "count completed vs abandoned sessions."
     index("cdmp_exam_session_status_idx").on(table.status),
+    // Admin analytics: "completed specialist exams per subject."
+    index("cdmp_exam_session_specialist_area_idx").on(table.specialistArea),
   ],
 );
 

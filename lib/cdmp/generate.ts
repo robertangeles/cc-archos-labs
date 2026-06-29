@@ -1,7 +1,12 @@
 import "server-only";
 import { randomInt } from "node:crypto";
 import { generateStructured } from "@/lib/claude";
-import { searchKnowledge, type SearchResult } from "@/lib/knowledge/search";
+import {
+  searchKnowledge,
+  getChunksByChapter,
+  type SearchResult,
+  type ChapterChunk,
+} from "@/lib/knowledge/search";
 import { getCdmpConfig } from "./config";
 import type { ChapterDistribution } from "./weights";
 import type { CdmpConfig } from "./config-shared";
@@ -255,5 +260,110 @@ export async function generateQuestionBatch(
   console.log(
     `[cdmp] Total generated: ${questions.length}/${targetCount}`,
   );
+  return questions;
+}
+
+// ============================================================================
+// Specialist exams — single-chapter generation
+// ============================================================================
+// A specialist exam is scoped to ONE DMBOK chapter. Unlike Fundamentals (which
+// samples the same top-K chunks for every question in an area), specialist mode
+// fetches the chapter's full chunk pool ONCE, then for each question samples a
+// coherent set: a random SEED chunk + its nearest neighbours in the pool. This
+// gives variety (each question draws a different cluster) without the incoherent
+// "3 random unrelated paragraphs" problem. The Fundamentals path above is
+// deliberately untouched.
+
+function cosineSimilarity(a: number[], b: number[]): number {
+  let dot = 0;
+  let na = 0;
+  let nb = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    na += a[i] * a[i];
+    nb += b[i] * b[i];
+  }
+  const denom = Math.sqrt(na) * Math.sqrt(nb);
+  return denom === 0 ? 0 : dot / denom;
+}
+
+// Pick a random seed chunk + its (k-1) nearest neighbours within the pool, so
+// the k chunks handed to the LLM are about the same concept (coherent), not a
+// random grab-bag. A fresh random seed per call drives question variety.
+function sampleCoherentSet(pool: ChapterChunk[], k: number): ChapterChunk[] {
+  if (pool.length <= k) return pool;
+  const seedIdx = randomInt(pool.length);
+  const seed = pool[seedIdx];
+  return pool
+    .map((c, i) => ({
+      c,
+      sim: i === seedIdx ? Infinity : cosineSimilarity(seed.embedding, c.embedding),
+    }))
+    .sort((x, y) => y.sim - x.sim)
+    .slice(0, k)
+    .map((r) => r.c);
+}
+
+// Generate `count` questions scoped to one specialist area (a single DMBOK
+// chapter). Returns fewer than `count` only if generation/verification fails
+// repeatedly — the caller (start route) enforces a min-question floor and a
+// supply-based cap. Empty pool → empty array (caller returns a real error).
+export async function generateSpecialistExam(
+  areaSlug: string,
+  count: number,
+): Promise<GeneratedQuestion[]> {
+  const config = await getCdmpConfig();
+  const area = config.knowledgeAreas.find((a) => a.slug === areaSlug);
+  if (!area) {
+    throw new Error(`Unknown specialist area: ${areaSlug}`);
+  }
+
+  const pool = await getChunksByChapter(area.chapter);
+  if (pool.length === 0) {
+    console.error(
+      `[cdmp] specialist: empty pool for "${areaSlug}" (${area.chapter}) — knowledge base may not be chapter-tagged.`,
+    );
+    return [];
+  }
+  console.log(
+    `[cdmp] specialist "${areaSlug}" (${area.chapter}): pool=${pool.length}, generating ${count}, concurrency ${GENERATION_CONCURRENCY}`,
+  );
+
+  const genOne = (): Promise<GeneratedQuestion | null> =>
+    generateSingleQuestion(
+      area.slug,
+      area.label,
+      area.chapter,
+      sampleCoherentSet(pool, config.chunksPerQuestion),
+      config,
+    ).catch((err) => {
+      console.error(
+        `[cdmp] specialist "${areaSlug}" question failed:`,
+        err instanceof Error ? err.message : err,
+      );
+      return null;
+    });
+
+  const settled = await runPool(
+    Array.from({ length: count }, (_, i) => i),
+    GENERATION_CONCURRENCY,
+    () => genOne(),
+  );
+  const questions = settled.filter((q): q is GeneratedQuestion => q !== null);
+
+  for (let wave = 1; wave <= MAX_RETRY_WAVES && questions.length < count; wave++) {
+    const deficit = count - questions.length;
+    console.log(`[cdmp] specialist retry wave ${wave}: ${deficit} still needed`);
+    const retry = await runPool(
+      Array.from({ length: deficit }, (_, i) => i),
+      GENERATION_CONCURRENCY,
+      () => genOne(),
+    );
+    for (const q of retry) {
+      if (q !== null && questions.length < count) questions.push(q);
+    }
+  }
+
+  console.log(`[cdmp] specialist "${areaSlug}": ${questions.length}/${count}`);
   return questions;
 }
