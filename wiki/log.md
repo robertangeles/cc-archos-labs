@@ -1527,3 +1527,12 @@ End-to-end verification (local): login → GET /api/admin/settings/site → PUT 
 - Closed the non-blocking follow-up from the brain-recall fix (PR #162): `POST /api/brain/warm` and `GET /api/brain/status` were unrated-limited (an authed user could spam warm → hammer GBrain). Both now use the shared in-memory hourly `rateLimit()` keyed per user: `brain-warm:${userId}` at 100/hr, `brain-status:${userId}` at 200/hr (status fires up to 2×/mount, so 2× the allowance ≈ same ~100 mounts/hr). Check sits right after auth, before any GBrain/DB work; returns 429 on exceed.
 - Sized generously so heavy legitimate use (incl. rapid reloads while testing) doesn't trip it; a 429 degrades gracefully anyway (warm is best-effort/client-ignored; status is display-only). Pattern copied from the existing `brain-delete:${userId}` limiter in `app/api/brain/memories/route.ts`.
 - New tests: `app/api/brain/warm/route.test.ts` + `app/api/brain/status/route.test.ts` (8 cases — 401/429/per-user-key/happy-path each). tsc + lint clean; full suite 1122 passing; build compiles.
+
+## 2026-06-29 — Fix CDMP practice nav reset + stale specialist landing copy (PR #170)
+
+- Two UX fixes found while locally testing the shipped CDMP specialist exams.
+- **Nav reset:** clicking **Tools → CDMP Practice Exam** from inside a finished exam did nothing. Root cause: the link targets `/tools/cdmp-practice`, the URL the user is already on, and a Next `<Link>` to the current URL is a no-op — so the `<Exam>` client component never re-mounts to reset its `phase` state. Fix in `components/layout/nav.tsx`: scope a same-page reset to the Tools-menu links only — when `tool.href === usePathname()`, `e.preventDefault()` + `window.location.href` forces a fresh load. Top-level nav links untouched.
+- **Copy:** `landing-hero.tsx` specialist announcement "Coming soon" → "Now available".
+- Verified in-browser via /browse (config screen → nav click → resets to landing hero). tsc clean, lint 0 errors, 1150/1150 tests, build OK. CI green; pr-reviewer APPROVE + merged at `c04d582`.
+- Lesson recorded: `wiki/lessons-learned/2026-06-29-nav-link-to-current-url-noop.md`.
+- **Still pending (not blocking this PR):** PROD migrations 0029 + 0030 + chapter backfill — the only remaining work before specialist exams work for live users.
