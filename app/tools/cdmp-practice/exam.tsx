@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { LandingHero } from "./landing-hero";
-import { ExamConfig } from "./exam-config";
+import {
+  ExamConfig,
+  type SpecialistAreaOption,
+  type ExamBeginConfig,
+} from "./exam-config";
 import { ExamQuestionCard } from "./exam-question-card";
 import { ExamProgressBar } from "./exam-progress-bar";
 import { ExamResults, type AnswerDetail } from "./exam-results";
@@ -58,9 +62,16 @@ interface ExamState {
   error: string | null;
 }
 
-export function Exam() {
+interface ExamProps {
+  specialistAreas: SpecialistAreaOption[];
+  // When rendered from a specialist landing page, the subject is pre-locked and
+  // we skip the generic landing hero (the poster was the landing).
+  lockedArea?: SpecialistAreaOption | null;
+}
+
+export function Exam({ specialistAreas, lockedArea = null }: ExamProps) {
   const [state, setState] = useState<ExamState>({
-    phase: "landing",
+    phase: lockedArea ? "config" : "landing",
     sessionId: null,
     config: null,
     questions: [],
@@ -71,10 +82,7 @@ export function Exam() {
   });
 
   const handleStartExam = useCallback(
-    async (config: {
-      questionCount: number;
-      timerEnabled: boolean;
-    }) => {
+    async (config: ExamBeginConfig) => {
       setState((prev) => ({ ...prev, phase: "loading", error: null }));
 
       try {
@@ -286,7 +294,11 @@ export function Exam() {
               {state.error}
             </div>
           )}
-          <ExamConfig onBegin={handleStartExam} />
+          <ExamConfig
+            onBegin={handleStartExam}
+            specialistAreas={specialistAreas}
+            lockedArea={lockedArea}
+          />
         </div>
       );
 

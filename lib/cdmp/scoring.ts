@@ -14,6 +14,8 @@ export interface ChapterScore {
 }
 
 export interface ExamResult {
+  examType: "fundamentals" | "specialist";
+  specialistLabel?: string; // subject label when examType === "specialist"
   totalQuestions: number;
   correctCount: number;
   percentCorrect: number;
@@ -29,8 +31,10 @@ export function scoreExam(
   answers: AnswerRecord[],
   knowledgeAreas?: KnowledgeArea[],
   passThresholds?: CdmpConfig["passThresholds"],
+  opts?: { examType?: "fundamentals" | "specialist"; specialistLabel?: string },
 ): ExamResult {
   const thresholds = passThresholds ?? { associate: 60, practitioner: 70, master: 80 };
+  const examType = opts?.examType ?? "fundamentals";
 
   const totalQuestions = answers.length;
   const correctCount = answers.filter((a) => a.isCorrect).length;
@@ -77,9 +81,16 @@ export function scoreExam(
       percentCorrect: -1,
     }));
 
-  const perChapter = [...testedChapters, ...untestedChapters];
+  // Specialist exams cover ONE chapter — don't pad the other 13 as "untested"
+  // (that 14-area breakdown is a Fundamentals concept).
+  const perChapter =
+    examType === "specialist"
+      ? testedChapters
+      : [...testedChapters, ...untestedChapters];
 
   return {
+    examType,
+    specialistLabel: opts?.specialistLabel,
     totalQuestions,
     correctCount,
     percentCorrect,

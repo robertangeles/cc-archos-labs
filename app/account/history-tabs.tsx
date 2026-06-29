@@ -10,6 +10,8 @@ interface CdmpExam {
   startedAt: Date | null;
   completedAt: Date | null;
   createdAt: Date;
+  examType: "fundamentals" | "specialist";
+  specialistLabel: string | null;
 }
 
 interface Assessment {
@@ -136,6 +138,11 @@ function CdmpHistory({ exams }: { exams: CdmpExam[] }) {
                     <span className="text-sm font-medium text-ink">
                       {exam.questionCount}-question exam
                     </span>
+                    {exam.examType === "specialist" && exam.specialistLabel && (
+                      <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                        {exam.specialistLabel}
+                      </span>
+                    )}
                     <span className="text-xs text-ink-subtle">
                       {formatDate(exam.createdAt)}
                     </span>

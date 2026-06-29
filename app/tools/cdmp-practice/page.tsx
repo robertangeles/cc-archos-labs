@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { buildPageMetadata, getSiteSettings, getSiteUrl } from "@/lib/site-config";
 import { buildCdmpPracticeExamLd } from "@/lib/schema-org";
+import { getSpecialistAreas, getSpecialistArea } from "@/lib/cdmp/specialist";
+import { isSpecialistAreaSlug } from "@/lib/cdmp/config-shared";
 import { Exam } from "./exam";
+import type { SpecialistAreaOption } from "./exam-config";
 
 export const runtime = "nodejs";
 
@@ -14,13 +17,36 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-export default async function CdmpPracticePage() {
+export default async function CdmpPracticePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string; area?: string }>;
+}) {
+  const sp = await searchParams;
   const settings = await getSiteSettings();
   const siteUrl = getSiteUrl();
   const schemas = buildCdmpPracticeExamLd({
     orgName: settings.siteName,
     siteUrl,
   });
+  const specialistAreas = (await getSpecialistAreas()).map((a) => ({
+    slug: a.slug,
+    label: a.label,
+    maxQuestions: a.maxQuestions,
+  }));
+
+  // Deep-link from a specialist landing poster: pre-lock the subject.
+  let lockedArea: SpecialistAreaOption | null = null;
+  if (sp.mode === "specialist" && sp.area && isSpecialistAreaSlug(sp.area)) {
+    const info = await getSpecialistArea(sp.area);
+    if (info && info.maxQuestions >= 20) {
+      lockedArea = {
+        slug: info.slug,
+        label: info.label,
+        maxQuestions: info.maxQuestions,
+      };
+    }
+  }
 
   return (
     <>
@@ -33,7 +59,7 @@ export default async function CdmpPracticePage() {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
         />
       ))}
-      <Exam />
+      <Exam specialistAreas={specialistAreas} lockedArea={lockedArea} />
     </>
   );
 }

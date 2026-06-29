@@ -111,3 +111,34 @@ describe("scoreExam", () => {
     expect(result.thresholds.practitioner.passed).toBe(false);
   });
 });
+
+describe("scoreExam — specialist", () => {
+  const areas = [
+    { slug: "data_quality", label: "Data Quality", weight: 0.11, chapter: "Chapter 13" },
+    { slug: "data_governance", label: "Data Governance", weight: 0.11, chapter: "Chapter 3" },
+    { slug: "metadata_management", label: "Metadata Management", weight: 0.11, chapter: "Chapter 12" },
+  ];
+
+  it("tags the result as specialist and carries the subject label", () => {
+    const result = scoreExam(makeAnswers(8, 10, "data_quality"), areas, undefined, {
+      examType: "specialist",
+      specialistLabel: "Data Quality",
+    });
+    expect(result.examType).toBe("specialist");
+    expect(result.specialistLabel).toBe("Data Quality");
+  });
+
+  it("does NOT pad the other chapters as untested (single subject)", () => {
+    const result = scoreExam(makeAnswers(8, 10, "data_quality"), areas, undefined, {
+      examType: "specialist",
+    });
+    expect(result.perChapter).toHaveLength(1);
+    expect(result.perChapter[0].slug).toBe("data_quality");
+  });
+
+  it("fundamentals still pads untested chapters (unchanged)", () => {
+    const result = scoreExam(makeAnswers(8, 10, "data_quality"), areas);
+    expect(result.examType).toBe("fundamentals");
+    expect(result.perChapter).toHaveLength(3); // 1 tested + 2 untested
+  });
+});
