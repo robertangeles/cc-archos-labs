@@ -1536,3 +1536,11 @@ End-to-end verification (local): login → GET /api/admin/settings/site → PUT 
 - Verified in-browser via /browse (config screen → nav click → resets to landing hero). tsc clean, lint 0 errors, 1150/1150 tests, build OK. CI green; pr-reviewer APPROVE + merged at `c04d582`.
 - Lesson recorded: `wiki/lessons-learned/2026-06-29-nav-link-to-current-url-noop.md`.
 - **Still pending (not blocking this PR):** PROD migrations 0029 + 0030 + chapter backfill — the only remaining work before specialist exams work for live users.
+
+## 2026-06-29 — PROD migration: CDMP specialist (0027–0030 + chapter backfill)
+
+- Migrated PROD (Render `archos_labs_pdb`) so CDMP specialist exams work for live users. Manual posture (no migrate-on-deploy hook): `pg_dump` backup → `DATABASE_URL="<PROD>" node scripts/db-apply.mjs` → `cdmp-chapter-tag.mjs --apply`.
+- **Pre-flight caught PROD was at 0026, not 0028** — Model Studio migrations 0027/0028 (`data_model*` tables) had never been applied to PROD despite the feature shipping. `db-apply.mjs` applies all untracked files, so the run applied 0027–0030 (all idempotent; FK target `project` existed). Closed that latent gap as a side effect.
+- CDMP: 0029 (`knowledge_chunk.chapter`) + 0030 (`cdmp_exam_session.exam_type`/`specialist_area`) applied; 17 existing exam rows defaulted to `fundamentals`. Backfill tagged 388/496 DMBOK chunks, supply identical to DEV; sanity gate passed; Kimball/other docs untouched.
+- Live authenticated smoke on production PASSED: 20-question Data Quality exam generated, Q1 tagged "Chapter 13 — Data Quality" with a clean 5-option SPC scenario; supply cap worked (100-question disabled, pool max 86). Fundamentals live-gen not re-tested (additive-only, embeddings untouched, DEV-verified).
+- Backup: `~/archos_prod_backup_20260629-182053.dump` (23 MB). Detail recorded in `wiki/entities/deployment-architecture.md` (2026-06-29 section).

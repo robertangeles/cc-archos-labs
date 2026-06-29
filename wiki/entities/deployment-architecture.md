@@ -2,7 +2,7 @@
 title: Deployment architecture
 category: entity
 created: 2026-05-20
-updated: 2026-06-17
+updated: 2026-06-29
 related: [[2026-05-08-render-postgres-over-neon]], [[integration-config]], [[index]], [[state]]
 ---
 
@@ -68,6 +68,19 @@ For the org/clients/projects/kanban migration (a large additive schema change �
 - **PROD** (Render `archos_labs_pdb`, Singapore): migrated 2026-06-15 — `0025` + `0026` applied (after a `pg_dump` backup) + the 9 pre-existing users backfilled a default org each (schema-only migration does not backfill; `createDefaultOrgForUser` runs only at registration). The Render URL is kept commented in `.env.local` as `DATABASE_URL_RENDER_PROD`.
 
 The org migration to PROD was a **manual** run of the idempotent `scripts/db-apply.mjs` against the PROD URL (there is no migrate-on-deploy hook; `build`/`start` are vanilla), plus a one-time existing-user org backfill. Schema is now in sync DEV↔PROD; DEV's test data is not (and must not be) copied to PROD. The single-DB posture above remains the intended steady state once the rehearsal DB is retired. **Backup:** `~/archos_prod_backup_20260615-210817.dump` (pg_restore custom format).
+
+## 2026-06-29 — CDMP specialist: PROD migrated to 0030 + chapter backfill
+
+Brought PROD up to migration `0030` and ran the DMBOK chapter backfill so the CDMP
+specialist exams work for live users. Same manual posture as the org migration:
+`pg_dump` backup → `DATABASE_URL="<PROD>" node scripts/db-apply.mjs` → `cdmp-chapter-tag.mjs`.
+
+- **Pre-flight gotcha (worth remembering):** PROD's `__drizzle_applied` was at **0026**, not 0028 — migrations `0027` + `0028` (the Model Studio `data_model*` tables) had never been applied to PROD even though the feature code shipped. `db-apply.mjs` applies *all* untracked files in order, so the one run applied `0027`–`0030`. All four are idempotent (`CREATE … IF NOT EXISTS`, FK guards), and the FK target `project` already existed, so this was safe and also closed the latent Model Studio gap. **Lesson: the manual-migration model means PROD can silently lag the migration history — always check `__drizzle_applied` before assuming what a `db-apply` run will touch.**
+- **CDMP schema:** `0029` (`knowledge_chunk.chapter` + index) and `0030` (`cdmp_exam_session.exam_type` default `'fundamentals'` NOT NULL, `specialist_area`, + index). 17 existing exam rows defaulted to `fundamentals` cleanly.
+- **Backfill:** `scripts/cdmp-chapter-tag.mjs --apply` tagged **388/496** DMBOK chunks (108 null = front/back matter), supply identical to DEV (Ch3=24, Ch5=33, Ch8=28, Ch10=29, Ch11=33, Ch12=23, Ch13=43). The script's sanity gate passed (≥12 chapters, monotonic, all specialist ≥15, >200 tagged). Embeddings/content untouched → Fundamentals (semantic search over `category='dmbok'`, ignores `chapter`) is unaffected. Kimball "Data Warehouse Toolkit" chunks (also `category='dmbok'`) stayed NULL.
+- **Smoke (live, authenticated):** generated a 20-question Data Quality specialist exam on production — Q1 came back tagged "Chapter 13 — Data Quality" with a well-formed 5-option SPC scenario. Supply cap worked (100-question option disabled; pool max = min(100, 43×2)=86). Fundamentals live-generation was NOT re-tested (additive-only change, embeddings untouched, DEV-verified) — low risk.
+- **Backup:** `~/archos_prod_backup_20260629-182053.dump` (23 MB, custom format).
+- DEV↔PROD schema in sync at 0030. Related: [[2026-06-02-cdmp-sequential-generation-slow]].
 
 ## Other services on the same posture
 
