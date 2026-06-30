@@ -3,7 +3,6 @@ import { eq } from "drizzle-orm";
 import { getDb } from "../db";
 import {
   workflowStep,
-  workflowExecutionRun,
   workflowExecutionLog,
   skill,
   skillInput,
@@ -12,6 +11,7 @@ import {
 import { executeSkill } from "../skills/execute";
 import { getEnabledRules, formatRulesForInjection } from "../rules/service";
 import { resolveLlmConfig } from "../llm/config";
+import { persistRun } from "./runs";
 import type { StepResult } from "./types";
 
 export async function executeWorkflow(
@@ -141,8 +141,9 @@ export async function executeWorkflow(
   const totalDurationMs = Date.now() - start;
   const allSucceeded = stepResults.every((r) => r.status === "success");
 
+  let runId: string | null = null;
   try {
-    await db.insert(workflowExecutionRun).values({
+    runId = await persistRun({
       workflowId,
       userId,
       inputs,
@@ -154,26 +155,28 @@ export async function executeWorkflow(
     // non-blocking
   }
 
-  try {
-    for (let i = 0; i < stepResults.length; i++) {
-      const r = stepResults[i];
-      const s = steps[i];
-      await db.insert(workflowExecutionLog).values({
-        runId: undefined as unknown as string,
-        workflowId,
-        userId,
-        stepIndex: i,
-        skillName: await getSkillName(s.skillId),
-        skillId: s.skillId,
-        model: r.model,
-        inputTokens: r.usage.inputTokens,
-        outputTokens: r.usage.outputTokens,
-        durationMs: r.durationMs,
-        status: r.status,
-      });
+  if (runId) {
+    try {
+      for (let i = 0; i < stepResults.length; i++) {
+        const r = stepResults[i];
+        const s = steps[i];
+        await db.insert(workflowExecutionLog).values({
+          runId,
+          workflowId,
+          userId,
+          stepIndex: i,
+          skillName: await getSkillName(s.skillId),
+          skillId: s.skillId,
+          model: r.model,
+          inputTokens: r.usage.inputTokens,
+          outputTokens: r.usage.outputTokens,
+          durationMs: r.durationMs,
+          status: r.status,
+        });
+      }
+    } catch {
+      // non-blocking telemetry
     }
-  } catch {
-    // non-blocking telemetry
   }
 
   return {
@@ -284,26 +287,29 @@ export async function* executeWorkflowStreaming(
   const allSucceeded = stepResults.every((r) => r.status === "success");
   const status = allSucceeded ? "completed" as const : "failed" as const;
 
+  let runId: string | null = null;
   try {
-    await db.insert(workflowExecutionRun).values({
+    runId = await persistRun({
       workflowId, userId, inputs, stepResults, status, totalDurationMs,
     });
   } catch { /* non-blocking */ }
 
-  try {
-    for (let i = 0; i < stepResults.length; i++) {
-      const r = stepResults[i];
-      const s = steps[i];
-      await db.insert(workflowExecutionLog).values({
-        runId: undefined as unknown as string,
-        workflowId, userId, stepIndex: i,
-        skillName: await getSkillName(s.skillId),
-        skillId: s.skillId, model: r.model,
-        inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens,
-        durationMs: r.durationMs, status: r.status,
-      });
-    }
-  } catch { /* non-blocking */ }
+  if (runId) {
+    try {
+      for (let i = 0; i < stepResults.length; i++) {
+        const r = stepResults[i];
+        const s = steps[i];
+        await db.insert(workflowExecutionLog).values({
+          runId,
+          workflowId, userId, stepIndex: i,
+          skillName: await getSkillName(s.skillId),
+          skillId: s.skillId, model: r.model,
+          inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens,
+          durationMs: r.durationMs, status: r.status,
+        });
+      }
+    } catch { /* non-blocking */ }
+  }
 
   yield { type: "done", status, totalDurationMs };
 }
