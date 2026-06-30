@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-06-29T04:47:45.970Z
+generated: 2026-06-30T04:31:13.319Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -84,7 +84,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/workspace/model-studio` | [app/workspace/model-studio/page.tsx](../app/workspace/model-studio/page.tsx) | 2026-06-17 |
 | `/workspace/model-studio/[id]` | [app/workspace/model-studio/[id]/page.tsx](../app/workspace/model-studio/[id]/page.tsx) | 2026-06-17 |
 
-## API endpoints (169)
+## API endpoints (171)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -257,6 +257,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/duplicate` | [app/api/workflows/[id]/duplicate/route.ts](../app/api/workflows/[id]/duplicate/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]/execute` | [app/api/workflows/[id]/execute/route.ts](../app/api/workflows/[id]/execute/route.ts) | 2026-06-07 |
 | `/api/workflows/[id]/execute-stream` | [app/api/workflows/[id]/execute-stream/route.ts](../app/api/workflows/[id]/execute-stream/route.ts) | 2026-06-14 |
+| `/api/workflows/[id]/runs` | [app/api/workflows/[id]/runs/route.ts](../app/api/workflows/[id]/runs/route.ts) | unknown |
+| `/api/workflows/[id]/runs/[runId]` | [app/api/workflows/[id]/runs/[runId]/route.ts](../app/api/workflows/[id]/runs/[runId]/route.ts) | unknown |
 
 ## Components (120)
 
@@ -300,7 +302,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/layout/footer.tsx](../components/layout/footer.tsx) | 2026-05-18 |
 | [components/layout/header.tsx](../components/layout/header.tsx) | 2026-06-15 |
 | [components/layout/lead-sign-out-button.tsx](../components/layout/lead-sign-out-button.tsx) | 2026-06-10 |
-| [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-06-14 |
+| [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-06-29 |
 | [components/model-studio/canvas/attribute-panel.tsx](../components/model-studio/canvas/attribute-panel.tsx) | 2026-06-17 |
 | [components/model-studio/canvas/delete-entity-dialog.tsx](../components/model-studio/canvas/delete-entity-dialog.tsx) | 2026-06-17 |
 | [components/model-studio/canvas/entity-dialog.tsx](../components/model-studio/canvas/entity-dialog.tsx) | 2026-06-17 |
