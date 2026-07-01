@@ -17,8 +17,12 @@ const POSTS_ENDPOINT = "https://api.linkedin.com/rest/posts";
 
 const LINKEDIN_SCOPES = ["openid", "profile", "w_member_social"];
 
-// LinkedIn API version header required by the REST API.
-const LINKEDIN_API_VERSION = "202402";
+// LinkedIn API version header required by the REST API (format: YYYYMM).
+// LinkedIn sunsets each monthly version after ~12 months, so this must be
+// kept current. Override via the LINKEDIN_API_VERSION env var to bump it
+// without a code change; the default tracks the latest active version.
+// See https://learn.microsoft.com/en-us/linkedin/marketing/versioning
+const LINKEDIN_API_VERSION = process.env.LINKEDIN_API_VERSION ?? "202606";
 
 // ---------------------------------------------------------------------------
 // Config

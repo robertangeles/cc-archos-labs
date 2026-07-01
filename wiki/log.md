@@ -1547,3 +1547,11 @@ End-to-end verification (local): login → GET /api/admin/settings/site → PUT 
 
 ## 2026-06-30 — Workflow run history (capped retention + replay)
 Added run history to Workflows: snapshots already persisted to `workflow_execution_run`, so this added (1) a 22-run-per-workflow cap (`persistRun` inserts then prunes via pure `runsToEvict`), (2) retrieval API `GET /api/workflows/[id]/runs` + `/[runId]`, (3) a "Past runs" collapsible panel in the Run tab that replays a past run's outputs through the existing `StepResultCard`. Also fixed a latent bug: `workflow_execution_log` inserts used `runId: undefined` (never persisted) — now use the real run id returned by `persistRun`. New service `lib/workflows/runs.ts`; executor refactored to call `persistRun` in both stream + non-stream paths. No DB migration (tables already live). Verified: `runsToEvict` unit tests, prune+list SQL validated against DEV Postgres (rolled back), routes 401 unauthenticated, tsc + lint + 1156 vitest + build green. New page: [[workflow-run-history]].
+
+## 2026-07-01 — Fix: LinkedIn scheduled posts failing (426 NONEXISTENT_VERSION)
+
+PROD scheduled LinkedIn auto-posts were failing; UI showed the generic "LinkedIn API returned no response". Server log confirmed the real cause: `426 NONEXISTENT_VERSION` — the hardcoded `LINKEDIN_API_VERSION = "202402"` had been sunset by LinkedIn (versions live ~12 months; latest active is 202606). Fixed in `lib/social/linkedin.ts` by making the version env-overridable with a current default: `process.env.LINKEDIN_API_VERSION ?? "202606"`. tsc clean. Recorded lesson `2026-07-01-linkedin-api-version-sunset.md`. Separate pre-existing PROD error also visible in same logs: `Pages CMS guard: RESERVED_SLUGS — [search, workspace]` (see lesson 2026-05-21) — not addressed here.
+
+## 2026-07-01 — Fix: RESERVED_SLUGS drift ([search, workspace]) causing 404→500
+
+Same class as 2026-05-21. `app/search/` + `app/workspace/` shipped without being added to `RESERVED_SLUGS`; PROD 404-class requests were 500-ing via the catch-all boot check. Added both slugs to `lib/pages/reserved-slugs.ts` + regression assertions in `reserved-slugs.test.ts` (13 pass). Bundled into the same PR as the LinkedIn 426 fix. Appended recurrence note to lesson 2026-05-21.

@@ -43,6 +43,14 @@ describe("isReservedSlug", () => {
     expect(isReservedSlug("llms.txt")).toBe(true);
     expect(isReservedSlug("llms-full.txt")).toBe(true);
   });
+
+  // Regression guard for the 2026-07-01 recurrence: app/search and
+  // app/workspace shipped as top-level routes but were missing from the
+  // set, so every 404-class request 500-ed via the catch-all boot check.
+  it("includes the search + workspace routes (2026-07-01 drift)", () => {
+    expect(isReservedSlug("search")).toBe(true);
+    expect(isReservedSlug("workspace")).toBe(true);
+  });
 });
 
 describe("listAppTopLevelRoutes (filesystem reflection)", () => {

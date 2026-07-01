@@ -30,10 +30,12 @@ export const RESERVED_SLUGS = new Set<string>([
   "contact",
   "llms-full.txt",
   "llms.txt",
+  "search",
   "share",
   "sign-in",
   "sitemap.xml",
   "tools",
+  "workspace",
 ]);
 
 /**
