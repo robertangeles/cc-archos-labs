@@ -52,3 +52,14 @@ If you see this in deploy logs, don't wait — fix the set immediately.
 - Static routes always render fine, so the home/about/contact happy path never trips the bug
 
 Future safeguard worth considering: a `health/404` route that intentionally renders an unknown path and asserts the response is 404 (not 500). Would catch this drift in CI. Out of scope for this hotfix; flag in backlog if the bug recurs.
+
+## Recurrence — 2026-07-01
+
+It recurred. `app/search/` and `app/workspace/` shipped as top-level routes
+without being added to `RESERVED_SLUGS`, so PROD logs filled with
+`Pages CMS guard: … RESERVED_SLUGS — [search, workspace]` and every 404-class
+request 500-ed again. Same one-line fix (added both to the set) plus a regression
+assertion in `reserved-slugs.test.ts`. The boot-check net did its job — it just
+isn't a substitute for updating the set in the PR that adds the route. The
+`health/404` CI safeguard mooted above is now worth building; the class has fired
+twice.
