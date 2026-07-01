@@ -1555,3 +1555,14 @@ PROD scheduled LinkedIn auto-posts were failing; UI showed the generic "LinkedIn
 ## 2026-07-01 — Fix: RESERVED_SLUGS drift ([search, workspace]) causing 404→500
 
 Same class as 2026-05-21. `app/search/` + `app/workspace/` shipped without being added to `RESERVED_SLUGS`; PROD 404-class requests were 500-ing via the catch-all boot check. Added both slugs to `lib/pages/reserved-slugs.ts` + regression assertions in `reserved-slugs.test.ts` (13 pass). Bundled into the same PR as the LinkedIn 426 fix. Appended recurrence note to lesson 2026-05-21.
+
+## 2026-07-01 — LinkedIn publishing saga (session summary)
+
+Debugging a PROD "LinkedIn API returned no response" failure surfaced a chain of issues; all code fixes merged to `main`.
+
+- **PR #174** — LinkedIn `426 NONEXISTENT_VERSION` (stale hardcoded `LINKEDIN_API_VERSION "202402"`, sunset by LinkedIn). Fixed to `process.env.LINKEDIN_API_VERSION ?? "202606"`. Also fixed the co-occurring `RESERVED_SLUGS` drift (`search`, `workspace`).
+- **PR #176** — After the version fix, posts *still* showed failed. Root cause (confirmed by LinkedIn Posts API docs): a successful create returns `201` with the post URN in the **`x-restli-id` response header**, body empty. `publishToLinkedIn()` read `res.json().id` → threw → returned null → row marked `failed` **even though LinkedIn published the post**. Fixed to read the header first. NB: the cron's 3× retry means the pre-fix bug could double/triple-post while reporting failure.
+- **Operational cleanup:** a post that is live on LinkedIn but shows `failed` locally should be **Deleted** (DELETE is DB-only, does not touch LinkedIn), **never Retried** (Retry re-publishes → duplicate).
+- **PR #175** — Unrelated but discovered mid-session: the `pr-reviewer` subagent falsely reported a PR as "already merged" when it was still open (inferred merge state from a feature-branch commit). Hardened the agent to quote `gh pr view --json state` / `gh pr checks` and never infer merge/CI state; pinned model to `claude-sonnet-4-6`. Confirmed the merge gate: the reviewer reviews, the main agent merges.
+- **Open item — disconnect failure:** user reports LinkedIn "disconnect" also fails. `app/api/social/linkedin/disconnect/route.ts` is DB-only (no LinkedIn call), so it's a *separate* cause. Undiagnosed pending the actual status code/body; leading hypothesis is a `409` "confirm cancel pending posts".
+- **Validation checkpoint:** a scheduled LinkedIn post is queued for **2026-07-01 20:00 (Melbourne)**. If it publishes and records `published`, both fixes are confirmed live in PROD. If it shows `failed` but appears on the feed, the deploy of `113cad0` (#176) hasn't landed yet.
