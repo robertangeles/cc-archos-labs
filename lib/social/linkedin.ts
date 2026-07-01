@@ -301,9 +301,16 @@ export async function publishToLinkedIn(
     return null;
   }
 
+  // A successful create returns 201 with the post URN in the `x-restli-id`
+  // response header — the body is typically empty, so do NOT rely on
+  // res.json(). Read the header first; fall back to a body `id` only if the
+  // header is absent (defensive — the documented contract is header-only).
+  const urnFromHeader = res.headers.get("x-restli-id");
+  if (urnFromHeader) return urnFromHeader;
+
   try {
     const data = (await res.json()) as LinkedInPublishResult;
-    return data.id;
+    return data.id ?? null;
   } catch {
     return null;
   }
