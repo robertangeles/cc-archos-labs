@@ -49,3 +49,23 @@ the cron re-publishes with the new header).
   from the UI string.
 - Latest active LinkedIn version + sunset policy:
   https://learn.microsoft.com/en-us/linkedin/marketing/versioning
+
+## Follow-up bug (same day): post ID is in a header, not the body
+
+After the version fix, publishing still reported "LinkedIn API returned no
+response." Root cause (confirmed by the [Posts API docs](https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api)):
+a successful create returns **`201` with the post URN in the `x-restli-id`
+response header** — the body is typically empty. `publishToLinkedIn()` read the
+ID from `res.json().id`, so `res.json()` threw on the empty body and returned
+`null` → the same generic failure **even though LinkedIn had published the post**.
+
+Because the cron retries up to 3× (`MAX_ATTEMPTS`), this could publish the same
+content up to 3 times while marking it failed — i.e. duplicate posts on the feed.
+
+Fix: read `res.headers.get("x-restli-id")` first, fall back to a body `id` only if
+the header is absent.
+
+Rule: for LinkedIn REST writes (`/rest/posts`), the created-resource URN comes back
+in the `x-restli-id` header (Rest.li convention), **not** the response body. Never
+parse the body for the new ID. This applies to any Rest.li `X-Restli-Protocol-Version: 2.0.0`
+create — the id is a header.
