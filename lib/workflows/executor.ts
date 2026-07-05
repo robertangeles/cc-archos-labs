@@ -40,7 +40,6 @@ export async function executeWorkflow(
 
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
-    const stepStart = Date.now();
     const skillName = await getSkillName(step.skillId);
 
     console.log(JSON.stringify({
@@ -52,86 +51,29 @@ export async function executeWorkflow(
       userId,
     }));
 
-    try {
-      const resolved = await resolveStepInputs(step, context);
-      const skillConfig = step.skillId
-        ? await loadSkillConfig(step.skillId)
-        : null;
+    const { result, contextPatch } = await executeStep(step, context, rulesBlock);
+    Object.assign(context, contextPatch);
+    stepResults.push(result);
 
-      const promptTemplate = skillConfig?.promptTemplate ?? step.prompt;
-      const baseSystemPrompt = (step.overrides as Record<string, unknown>)?.systemPrompt as string | undefined
-        ?? skillConfig?.systemPrompt
-        ?? undefined;
-      const systemPrompt = rulesBlock
-        ? [baseSystemPrompt, rulesBlock].filter(Boolean).join("\n\n")
-        : baseSystemPrompt;
-      const temperature = (step.overrides as Record<string, unknown>)?.temperature as number | undefined
-        ?? skillConfig?.temperature
-        ?? undefined;
-      const maxTokens = (step.overrides as Record<string, unknown>)?.maxTokens as number | undefined
-        ?? skillConfig?.maxTokens
-        ?? undefined;
-      const configuredDefault = (await resolveLlmConfig()).modelId;
-      const model = step.model || skillConfig?.defaultModel || configuredDefault;
-
-      const response = await executeSkill({
-        promptTemplate,
-        systemPrompt,
-        inputs: resolved,
-        model,
-        temperature,
-        maxTokens,
-      });
-
-      const durationMs = Date.now() - stepStart;
-      const outputKey = skillConfig?.outputKey ?? "result";
-
-      context[`step_${step.stepId}.${outputKey}`] = response.result;
-      context[`step_${step.stepId}.result`] = response.result;
-
-      const result: StepResult = {
-        stepId: step.stepId,
-        skillId: step.skillId ?? "raw",
-        outputs: { [outputKey]: response.result },
-        usage: response.usage,
-        model: response.model,
-        durationMs,
-        status: "success",
-      };
-      stepResults.push(result);
-
+    if (result.status === "success") {
       console.log(JSON.stringify({
         event: "step_complete",
         workflowId,
         stepIndex: i,
         skillName,
-        model: response.model,
-        durationMs,
+        model: result.model,
+        durationMs: result.durationMs,
         status: "success",
         userId,
       }));
-    } catch (err) {
-      const durationMs = Date.now() - stepStart;
-      const message = err instanceof Error ? err.message : "Unknown error";
-
-      stepResults.push({
-        stepId: step.stepId,
-        skillId: step.skillId ?? "raw",
-        outputs: {},
-        usage: { inputTokens: 0, outputTokens: 0 },
-        model: step.model || "unknown",
-        durationMs,
-        status: "error",
-        error: message,
-      });
-
+    } else {
       console.log(JSON.stringify({
         event: "step_error",
         workflowId,
         stepIndex: i,
         skillName,
-        error: message,
-        durationMs,
+        error: result.error,
+        durationMs: result.durationMs,
         userId,
       }));
       break;
@@ -214,73 +156,16 @@ export async function* executeWorkflowStreaming(
 
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
-    const stepStart = Date.now();
     const skillName = await getSkillName(step.skillId);
 
     yield { type: "step_start", index: i, total: steps.length, skillName };
 
-    try {
-      const resolved = await resolveStepInputs(step, context);
-      const skillConfig = step.skillId ? await loadSkillConfig(step.skillId) : null;
+    const { result, contextPatch } = await executeStep(step, context, rulesBlock);
+    Object.assign(context, contextPatch);
+    stepResults.push(result);
+    yield { type: "step_result", result };
 
-      const promptTemplate = skillConfig?.promptTemplate ?? step.prompt;
-      const baseSystemPrompt =
-        (step.overrides as Record<string, unknown>)?.systemPrompt as string | undefined ??
-        skillConfig?.systemPrompt ?? undefined;
-      const systemPrompt = rulesBlock
-        ? [baseSystemPrompt, rulesBlock].filter(Boolean).join("\n\n")
-        : baseSystemPrompt;
-      const temperature =
-        (step.overrides as Record<string, unknown>)?.temperature as number | undefined ??
-        skillConfig?.temperature ?? undefined;
-      const maxTokens =
-        (step.overrides as Record<string, unknown>)?.maxTokens as number | undefined ??
-        skillConfig?.maxTokens ?? undefined;
-      const configuredDefault = (await resolveLlmConfig()).modelId;
-      const model = step.model || skillConfig?.defaultModel || configuredDefault;
-
-      const response = await executeSkill({
-        promptTemplate,
-        systemPrompt,
-        inputs: resolved,
-        model,
-        temperature,
-        maxTokens,
-      });
-
-      const durationMs = Date.now() - stepStart;
-      const outputKey = skillConfig?.outputKey ?? "result";
-      context[`step_${step.stepId}.${outputKey}`] = response.result;
-      context[`step_${step.stepId}.result`] = response.result;
-
-      const result: StepResult = {
-        stepId: step.stepId,
-        skillId: step.skillId ?? "raw",
-        outputs: { [outputKey]: response.result },
-        usage: response.usage,
-        model: response.model,
-        durationMs,
-        status: "success",
-      };
-      stepResults.push(result);
-      yield { type: "step_result", result };
-    } catch (err) {
-      const durationMs = Date.now() - stepStart;
-      const message = err instanceof Error ? err.message : "Unknown error";
-      const result: StepResult = {
-        stepId: step.stepId,
-        skillId: step.skillId ?? "raw",
-        outputs: {},
-        usage: { inputTokens: 0, outputTokens: 0 },
-        model: step.model || "unknown",
-        durationMs,
-        status: "error",
-        error: message,
-      };
-      stepResults.push(result);
-      yield { type: "step_result", result };
-      break;
-    }
+    if (result.status === "error") break;
   }
 
   const totalDurationMs = Date.now() - start;
@@ -312,6 +197,101 @@ export async function* executeWorkflowStreaming(
   }
 
   yield { type: "done", status, totalDurationMs };
+}
+
+/**
+ * Execute ONE workflow step against a context snapshot.
+ *
+ * This is the single per-step primitive shared by executeWorkflow (eager) and
+ * executeWorkflowStreaming (SSE). It owns ONLY the per-step work — nothing about
+ * how the caller logs, streams, persists, or decides to stop. It never throws:
+ * a failed step comes back as a StepResult with status "error" so the caller
+ * chooses whether to break. The Regenerate feature (PR2) drives this same
+ * primitive to resume from an arbitrary step.
+ *
+ *   step + context ─▶ resolve inputs ─▶ load skill config ─▶ executeSkill (LLM)
+ *                                                                   │
+ *        contextPatch (step_${id}.${outputKey}, step_${id}.result) ◀┘
+ *                          │
+ *                          ▼
+ *            { result: StepResult, contextPatch }   (caller applies the patch)
+ *
+ * On error: result.status = "error", outputs {}, contextPatch {} (no keys added).
+ */
+export async function executeStep(
+  step: typeof workflowStep.$inferSelect,
+  context: Record<string, string>,
+  rulesBlock: string | null,
+): Promise<{ result: StepResult; contextPatch: Record<string, string> }> {
+  const stepStart = Date.now();
+
+  try {
+    const resolved = await resolveStepInputs(step, context);
+    const skillConfig = step.skillId
+      ? await loadSkillConfig(step.skillId)
+      : null;
+
+    const promptTemplate = skillConfig?.promptTemplate ?? step.prompt;
+    const baseSystemPrompt = (step.overrides as Record<string, unknown>)?.systemPrompt as string | undefined
+      ?? skillConfig?.systemPrompt
+      ?? undefined;
+    const systemPrompt = rulesBlock
+      ? [baseSystemPrompt, rulesBlock].filter(Boolean).join("\n\n")
+      : baseSystemPrompt;
+    const temperature = (step.overrides as Record<string, unknown>)?.temperature as number | undefined
+      ?? skillConfig?.temperature
+      ?? undefined;
+    const maxTokens = (step.overrides as Record<string, unknown>)?.maxTokens as number | undefined
+      ?? skillConfig?.maxTokens
+      ?? undefined;
+    const configuredDefault = (await resolveLlmConfig()).modelId;
+    const model = step.model || skillConfig?.defaultModel || configuredDefault;
+
+    const response = await executeSkill({
+      promptTemplate,
+      systemPrompt,
+      inputs: resolved,
+      model,
+      temperature,
+      maxTokens,
+    });
+
+    const durationMs = Date.now() - stepStart;
+    const outputKey = skillConfig?.outputKey ?? "result";
+
+    const contextPatch: Record<string, string> = {
+      [`step_${step.stepId}.${outputKey}`]: response.result,
+      [`step_${step.stepId}.result`]: response.result,
+    };
+
+    const result: StepResult = {
+      stepId: step.stepId,
+      skillId: step.skillId ?? "raw",
+      outputs: { [outputKey]: response.result },
+      usage: response.usage,
+      model: response.model,
+      durationMs,
+      status: "success",
+    };
+
+    return { result, contextPatch };
+  } catch (err) {
+    const durationMs = Date.now() - stepStart;
+    const message = err instanceof Error ? err.message : "Unknown error";
+
+    const result: StepResult = {
+      stepId: step.stepId,
+      skillId: step.skillId ?? "raw",
+      outputs: {},
+      usage: { inputTokens: 0, outputTokens: 0 },
+      model: step.model || "unknown",
+      durationMs,
+      status: "error",
+      error: message,
+    };
+
+    return { result, contextPatch: {} };
+  }
 }
 
 async function resolveStepInputs(
