@@ -79,8 +79,19 @@ export const rerunStepSchema = z.object({
 // rerunDownstream re-runs every step from the target onward so the deliverable
 // stays coherent. overrideModel is an optional one-off model for this run only,
 // distinct from the step's persisted model.
+// Strip ASCII control characters before the string reaches the model API.
+// Matches the pattern in lib/image-gen/service.ts. Not injection-proof, but
+// prevents malformed byte sequences from corrupting the system prompt.
+function stripControlChars(s: string): string {
+  return s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+}
+
 export const regenerateStepSchema = z.object({
-  feedback: z.string().max(10000).optional(),
+  feedback: z
+    .string()
+    .max(10000)
+    .transform(stripControlChars)
+    .optional(),
   rerunDownstream: z.boolean().default(false),
   overrideModel: z.string().max(100).optional(),
 });
