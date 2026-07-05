@@ -63,6 +63,34 @@ export async function persistRun(args: {
   return run?.id ?? null;
 }
 
+// Overwrite an existing run's step_results + status in place (a per-step
+// Regenerate amend). Scoped to (id, workflowId) so it can never touch another
+// workflow's run. Returns the number of rows updated: 0 means the run no longer
+// exists — it was pruned past the 22-run cap between snapshot read and amend, so
+// the caller must surface an error rather than report a phantom success (the
+// LLM was already billed). Does NOT prune; an amend never grows the run count.
+export async function amendRun(args: {
+  runId: string;
+  workflowId: string;
+  stepResults: StepResult[];
+  status: RunStatus;
+}): Promise<number> {
+  const db = getDb();
+
+  const updated = await db
+    .update(workflowExecutionRun)
+    .set({ stepResults: args.stepResults, status: args.status })
+    .where(
+      and(
+        eq(workflowExecutionRun.id, args.runId),
+        eq(workflowExecutionRun.workflowId, args.workflowId),
+      ),
+    )
+    .returning({ id: workflowExecutionRun.id });
+
+  return updated.length;
+}
+
 // Delete runs beyond the retention window for one workflow. Cascades to
 // workflow_execution_log via the run_id foreign key.
 async function pruneRuns(workflowId: string): Promise<void> {

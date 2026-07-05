@@ -9,6 +9,8 @@ import {
   Copy,
   Share2,
   RotateCcw,
+  RefreshCw,
+  AlertCircle,
   ChevronUp,
   ChevronDown,
   ChevronRight,
@@ -54,6 +56,16 @@ export function RunTab({ workflowId, fields, stepCount }: RunTabProps) {
   const [error, setError] = useState<string | null>(null);
   const [stepResults, setStepResults] = useState<StepResult[]>([]);
   const [totalDuration, setTotalDuration] = useState<number | null>(null);
+  // The persisted run id of the just-finished live run, so a step can be
+  // regenerated straight after running without first opening it from history.
+  const [liveRunId, setLiveRunId] = useState<string | null>(null);
+  // Per-step regenerate state, keyed by the step's index in the run currently on
+  // screen (live stepResults OR selectedRun). "regenerating" dims + spins the
+  // step while keeping its prior output; "error" shows a dismissible notice and
+  // the prior output is untouched (overwrite-only-on-success).
+  const [regen, setRegen] = useState<
+    Record<number, { phase: "regenerating" | "error"; error?: string }>
+  >({});
   const [skills, setSkills] = useState<SkillLookup[]>([]);
   const [publishContent, setPublishContent] = useState<string | null>(null);
   const [connectedPlatforms, setConnectedPlatforms] = useState<SocialPlatform[]>([]);
@@ -174,6 +186,8 @@ export function RunTab({ workflowId, fields, stepCount }: RunTabProps) {
     setStepResults([]);
     setTotalDuration(null);
     setRunningStep(null);
+    setLiveRunId(null);
+    setRegen({});
     setSelectedRun(null);
     setOpenStep(null);
     setFormCollapsed(true);
@@ -231,6 +245,7 @@ export function RunTab({ workflowId, fields, stepCount }: RunTabProps) {
               setTotalDuration(event.totalDurationMs);
               setStatus(event.status === "completed" ? "completed" : "failed");
               setRunningStep(null);
+              setLiveRunId(event.runId ?? null);
               loadHistory();
             } else if (event.type === "error") {
               setError(event.error);
@@ -251,7 +266,107 @@ export function RunTab({ workflowId, fields, stepCount }: RunTabProps) {
     setError(null);
     setStepResults([]);
     setTotalDuration(null);
+    setLiveRunId(null);
+    setRegen({});
     setFormCollapsed(false);
+  };
+
+  const clearRegen = (stepIndex: number) =>
+    setRegen((p) => {
+      const next = { ...p };
+      delete next[stepIndex];
+      return next;
+    });
+
+  // Regenerate one step of a persisted run. Streams the amend and patches the
+  // step in whichever run is on screen (live or a replayed one). A failed
+  // regenerate leaves the prior output in place — the server never overwrites
+  // it — so we only surface the error, never blank the card.
+  const regenerateStep = async (
+    runId: string,
+    stepIndex: number,
+    stepId: string,
+    opts: { feedback?: string; rerunDownstream: boolean },
+  ) => {
+    const patch = (idx: number, next: StepResult) => {
+      setStepResults((prev) =>
+        prev.length > idx ? prev.map((r, i) => (i === idx ? next : r)) : prev,
+      );
+      setSelectedRun((prev) =>
+        prev
+          ? { ...prev, stepResults: prev.stepResults.map((r, i) => (i === idx ? next : r)) }
+          : prev,
+      );
+    };
+    const markStale = (idxs: number[]) => {
+      const set = new Set(idxs);
+      const mapStale = (r: StepResult, i: number) =>
+        set.has(i) ? { ...r, isStale: true } : r;
+      setStepResults((prev) => prev.map(mapStale));
+      setSelectedRun((prev) =>
+        prev ? { ...prev, stepResults: prev.stepResults.map(mapStale) } : prev,
+      );
+    };
+
+    setRegen((p) => ({ ...p, [stepIndex]: { phase: "regenerating" } }));
+    try {
+      const res = await fetch(
+        `/api/workflows/${workflowId}/runs/${runId}/steps/${stepId}/regenerate`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(opts),
+        },
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setRegen((p) => ({
+          ...p,
+          [stepIndex]: {
+            phase: "error",
+            error: (data as { error?: string }).error ?? "Regeneration failed.",
+          },
+        }));
+        return;
+      }
+      const reader = res.body?.getReader();
+      if (!reader) {
+        setRegen((p) => ({ ...p, [stepIndex]: { phase: "error", error: "Streaming not supported." } }));
+        return;
+      }
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const ev = JSON.parse(line.slice(6));
+            if (ev.type === "step_result") {
+              patch(ev.stepIndex, ev.result);
+              clearRegen(ev.stepIndex);
+            } else if (ev.type === "step_error") {
+              setRegen((p) => ({ ...p, [ev.stepIndex]: { phase: "error", error: ev.error } }));
+            } else if (ev.type === "stale") {
+              markStale(ev.stepIndexes ?? []);
+            } else if (ev.type === "done") {
+              clearRegen(stepIndex);
+              loadHistory();
+            } else if (ev.type === "error") {
+              setRegen((p) => ({ ...p, [stepIndex]: { phase: "error", error: ev.error } }));
+            }
+          } catch {
+            /* skip malformed lines */
+          }
+        }
+      }
+    } catch {
+      setRegen((p) => ({ ...p, [stepIndex]: { phase: "error", error: "Connection failed. Try again." } }));
+    }
   };
 
   const hasResults =
@@ -549,6 +664,13 @@ export function RunTab({ workflowId, fields, stepCount }: RunTabProps) {
                 onPublish={
                   connectedPlatforms.length > 0 ? setPublishContent : undefined
                 }
+                isLastStep={i === selectedRun.stepResults.length - 1}
+                onRegenerate={(opts) =>
+                  regenerateStep(selectedRun.id, i, result.stepId, opts)
+                }
+                regenPhase={regen[i]?.phase}
+                regenError={regen[i]?.error}
+                onDismissRegenError={() => clearRegen(i)}
               />
             ))}
           </div>
@@ -613,6 +735,15 @@ export function RunTab({ workflowId, fields, stepCount }: RunTabProps) {
                     ? setPublishContent
                     : undefined
                 }
+                isLastStep={i === stepResults.length - 1}
+                onRegenerate={
+                  status !== "running" && liveRunId
+                    ? (opts) => regenerateStep(liveRunId, i, result.stepId, opts)
+                    : undefined
+                }
+                regenPhase={regen[i]?.phase}
+                regenError={regen[i]?.error}
+                onDismissRegenError={() => clearRegen(i)}
               />
             ))}
 
@@ -767,6 +898,11 @@ function StepResultCard({
   isOpen,
   onToggle,
   onPublish,
+  isLastStep,
+  onRegenerate,
+  regenPhase,
+  regenError,
+  onDismissRegenError,
 }: {
   result: StepResult;
   index: number;
@@ -775,10 +911,54 @@ function StepResultCard({
   isOpen: boolean;
   onToggle: () => void;
   onPublish?: (content: string) => void;
+  isLastStep?: boolean;
+  // Undefined when the step can't be regenerated (run still streaming, or no
+  // persisted run id yet). Present → the Regenerate control is shown.
+  onRegenerate?: (opts: { feedback?: string; rerunDownstream: boolean }) => void;
+  regenPhase?: "regenerating" | "error";
+  regenError?: string;
+  onDismissRegenError?: () => void;
 }) {
   const [viewMode, setViewMode] = useState<"preview" | "raw">("preview");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  // Progressive disclosure: the toolbar shows one Regenerate icon; the feedback
+  // textarea + rerun-downstream toggle live in a popover opened from it.
+  const [regenOpen, setRegenOpen] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [rerunDownstream, setRerunDownstream] = useState(false);
+  const regenPopoverRef = useRef<HTMLDivElement>(null);
   const isError = result.status === "error";
+  const isRegenerating = regenPhase === "regenerating";
+  const isStale = result.isStale === true;
+
+  // Close the popover on Escape or an outside click (a11y + expected behaviour).
+  useEffect(() => {
+    if (!regenOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setRegenOpen(false);
+    };
+    const onClick = (e: MouseEvent) => {
+      if (regenPopoverRef.current && !regenPopoverRef.current.contains(e.target as Node)) {
+        setRegenOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onClick);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onClick);
+    };
+  }, [regenOpen]);
+
+  const submitRegen = () => {
+    if (!onRegenerate) return;
+    onRegenerate({
+      feedback: feedback.trim() || undefined,
+      rerunDownstream,
+    });
+    setRegenOpen(false);
+    setFeedback("");
+  };
 
   // One-line preview shown when the step is collapsed, so each step is
   // recognisable without expanding it. Strip markdown noise to plain text.
@@ -854,6 +1034,51 @@ function StepResultCard({
         </div>
       </button>
 
+      {/* D1 — transient regenerate error. Dismissible, aria-live, and shown on
+          the NORMAL surface: the prior good output is kept (overwrite-only-on-
+          success), so we never use the red failed-step treatment here. */}
+      {regenError && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-start gap-2 border-t border-hairline/50 bg-surface-2/40 px-4 py-2.5"
+        >
+          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-semantic-error" />
+          <p className="flex-1 text-xs text-semantic-error">{regenError}</p>
+          {onDismissRegenError && (
+            <button
+              type="button"
+              onClick={onDismissRegenError}
+              aria-label="Dismiss"
+              className="-m-1 flex h-6 w-6 items-center justify-center rounded text-ink-tertiary transition-colors hover:text-ink-subtle"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* E4 — downstream stale. An earlier step was regenerated without a
+          cascade, so this output is out of date. No warning colour (single-
+          accent rule) — a quiet label plus a rerun affordance. */}
+      {isStale && !isError && (
+        <div className="flex items-center gap-2 border-t border-hairline/50 bg-surface-2/40 px-4 py-2">
+          <span className="flex-1 text-[11px] text-ink-tertiary">
+            Outdated — based on a previous version of an earlier step.
+          </span>
+          {onRegenerate && (
+            <button
+              type="button"
+              onClick={() => onRegenerate({ rerunDownstream: true })}
+              className="inline-flex min-h-[32px] items-center gap-1.5 rounded-md border border-hairline px-2.5 py-1 text-[11px] font-medium text-ink-subtle transition-colors hover:bg-surface-1 hover:text-ink"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Rerun from here
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Error body */}
       {isOpen && isError && (
         <div className="border-t border-hairline/50 px-4 py-3">
@@ -919,19 +1144,97 @@ function StepResultCard({
                       <Share2 className="h-3.5 w-3.5" />
                     </button>
                   )}
+                  {/* D2 — Regenerate: one ghost icon (peer of Copy/Publish),
+                      progressive-disclosure popover holds feedback + cascade. */}
+                  {onRegenerate && (
+                    <div ref={regenPopoverRef} className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setRegenOpen((o) => !o)}
+                        disabled={isRegenerating}
+                        aria-label="Regenerate this step"
+                        aria-expanded={regenOpen}
+                        title="Regenerate"
+                        className="flex h-8 w-8 items-center justify-center rounded-md text-ink-tertiary transition-colors hover:bg-surface-1 hover:text-ink-subtle disabled:opacity-50"
+                      >
+                        {isRegenerating ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                        ) : (
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                      {regenOpen && (
+                        <div className="absolute right-0 top-9 z-20 w-72 rounded-lg border border-hairline bg-surface-1 p-3 shadow-lg">
+                          <label
+                            htmlFor={`regen-fb-${result.stepId}`}
+                            className="block text-[11px] font-medium text-ink-subtle"
+                          >
+                            What was wrong?{" "}
+                            <span className="text-ink-tertiary">(optional)</span>
+                          </label>
+                          <textarea
+                            id={`regen-fb-${result.stepId}`}
+                            value={feedback}
+                            onChange={(e) => setFeedback(e.target.value.slice(0, 10000))}
+                            rows={3}
+                            autoFocus
+                            placeholder="e.g. too formal, missing the call to action…"
+                            className="mt-1.5 w-full resize-none rounded-md border border-hairline bg-surface-2 px-2.5 py-2 text-xs text-ink placeholder:text-ink-tertiary focus:border-primary/50 focus:outline-none"
+                          />
+                          <div className="mt-1 text-right text-[10px] text-ink-tertiary">
+                            {feedback.length}/10000
+                          </div>
+                          {!isLastStep && (
+                            <label className="mt-1 flex items-center gap-2 text-[11px] text-ink-subtle">
+                              <input
+                                type="checkbox"
+                                checked={rerunDownstream}
+                                onChange={(e) => setRerunDownstream(e.target.checked)}
+                                className="h-3.5 w-3.5 rounded border-hairline"
+                              />
+                              Also rerun the following steps
+                            </label>
+                          )}
+                          <button
+                            type="button"
+                            onClick={submitRegen}
+                            className="mt-3 flex min-h-[36px] w-full items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-on-primary transition-colors hover:bg-primary-hover"
+                          >
+                            <RefreshCw className="h-3.5 w-3.5" />
+                            Regenerate
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Output content */}
-            <div className="px-4 py-4">
-              {viewMode === "raw" ? (
-                <pre className="rounded-md border border-hairline/50 bg-surface-2 p-4 text-xs text-ink-subtle whitespace-pre-wrap font-mono leading-relaxed">
-                  {value}
-                </pre>
-              ) : (
-                <div className="rounded-md border border-hairline/50 bg-surface-2 p-5 prose prose-sm prose-invert max-w-none [&>h1]:text-base [&>h1]:font-semibold [&>h2]:text-sm [&>h2]:font-semibold [&>h3]:text-sm [&>h3]:font-semibold [&>p]:text-sm [&>p]:leading-relaxed [&>ul]:text-sm [&>ol]:text-sm [&>blockquote]:text-sm [&>blockquote]:border-primary/30">
-                  <Markdown>{value}</Markdown>
+            {/* Output content. Dimmed while regenerating (prior output stays
+                visible, never blanked) or when stale. */}
+            <div className="relative px-4 py-4">
+              <div
+                className={
+                  isRegenerating || isStale ? "opacity-60 transition-opacity" : "transition-opacity"
+                }
+              >
+                {viewMode === "raw" ? (
+                  <pre className="rounded-md border border-hairline/50 bg-surface-2 p-4 text-xs text-ink-subtle whitespace-pre-wrap font-mono leading-relaxed">
+                    {value}
+                  </pre>
+                ) : (
+                  <div className="rounded-md border border-hairline/50 bg-surface-2 p-5 prose prose-sm prose-invert max-w-none [&>h1]:text-base [&>h1]:font-semibold [&>h2]:text-sm [&>h2]:font-semibold [&>h3]:text-sm [&>h3]:font-semibold [&>p]:text-sm [&>p]:leading-relaxed [&>ul]:text-sm [&>ol]:text-sm [&>blockquote]:text-sm [&>blockquote]:border-primary/30">
+                    <Markdown>{value}</Markdown>
+                  </div>
+                )}
+              </div>
+              {isRegenerating && (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-hairline bg-surface-1/90 px-3 py-1.5 text-[11px] text-ink-subtle">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                    Regenerating…
+                  </span>
                 </div>
               )}
             </div>

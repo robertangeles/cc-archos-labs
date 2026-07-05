@@ -60,6 +60,30 @@ export interface StepResult {
   status: "success" | "error";
   error?: string;
   estimatedCost?: number | null;
+
+  // --- Regenerate provenance (set only on an amended step) ---
+  // Marks a step whose output was replaced by a per-step Regenerate. Used for
+  // measurability ("re-runs avoided", per-step regen rate) and to distinguish
+  // an amended step from an original-run step in the same JSONB array. A JSONB
+  // field, deliberately NOT the workflow_execution_log.editor_rounds column,
+  // which belongs to the dormant editor loop.
+  source?: "regenerate";
+  // ISO timestamp of the amend. The run table has no updated_at, so this is the
+  // record of when a step was last regenerated (drives an "edited" marker in
+  // history, since listRuns still orders by created_at).
+  regeneratedAt?: string;
+  // The feedback text used for this regeneration, if any (control-char-stripped,
+  // NOT injection-proof — it is appended to the step prompt).
+  feedback?: string;
+  // The prior output, stashed so a future undo can restore it without a
+  // migration. No undo UI in v1.
+  replacedOutput?: Record<string, string>;
+
+  // --- Downstream staleness (E4) ---
+  // True when this output was derived from an earlier step that has since been
+  // regenerated, but this step was NOT re-run (rerunDownstream was off). The UI
+  // dims it and offers "Rerun from here". No warning colour (single-accent rule).
+  isStale?: boolean;
 }
 
 export interface SSEStepStart {
