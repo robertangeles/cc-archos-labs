@@ -73,8 +73,32 @@ export const rerunStepSchema = z.object({
   executionContext: z.record(z.string(), z.string().max(50000)),
 });
 
+// Per-step Regenerate. The client supplies ONLY intent — never execution
+// context. The server rebuilds context from the run's own snapshot. feedback is
+// appended to the step prompt (control-char-stripped, not injection-proof).
+// rerunDownstream re-runs every step from the target onward so the deliverable
+// stays coherent. overrideModel is an optional one-off model for this run only,
+// distinct from the step's persisted model.
+// Strip ASCII control characters before the string reaches the model API.
+// Matches the pattern in lib/image-gen/service.ts. Not injection-proof, but
+// prevents malformed byte sequences from corrupting the system prompt.
+function stripControlChars(s: string): string {
+  return s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+}
+
+export const regenerateStepSchema = z.object({
+  feedback: z
+    .string()
+    .max(10000)
+    .transform(stripControlChars)
+    .optional(),
+  rerunDownstream: z.boolean().default(false),
+  overrideModel: z.string().max(100).optional(),
+});
+
 export type CreateWorkflowInput = z.infer<typeof createWorkflowSchema>;
 export type UpdateWorkflowInput = z.infer<typeof updateWorkflowSchema>;
 export type ExecuteWorkflowInput = z.infer<typeof executeWorkflowSchema>;
 export type ApproveStepInput = z.infer<typeof approveStepSchema>;
 export type RerunStepInput = z.infer<typeof rerunStepSchema>;
+export type RegenerateStepInput = z.infer<typeof regenerateStepSchema>;

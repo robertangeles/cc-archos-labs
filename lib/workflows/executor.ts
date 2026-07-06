@@ -136,7 +136,7 @@ export async function* executeWorkflowStreaming(
 ): AsyncGenerator<
   | { type: "step_start"; index: number; total: number; skillName: string }
   | { type: "step_result"; result: StepResult }
-  | { type: "done"; status: "completed" | "failed"; totalDurationMs: number }
+  | { type: "done"; status: "completed" | "failed"; totalDurationMs: number; runId: string | null }
 > {
   const db = getDb();
   const start = Date.now();
@@ -196,7 +196,7 @@ export async function* executeWorkflowStreaming(
     } catch { /* non-blocking */ }
   }
 
-  yield { type: "done", status, totalDurationMs };
+  yield { type: "done", status, totalDurationMs, runId };
 }
 
 /**
@@ -222,6 +222,7 @@ export async function executeStep(
   step: typeof workflowStep.$inferSelect,
   context: Record<string, string>,
   rulesBlock: string | null,
+  opts: { modelOverride?: string; feedbackAddendum?: string } = {},
 ): Promise<{ result: StepResult; contextPatch: Record<string, string> }> {
   const stepStart = Date.now();
 
@@ -235,9 +236,13 @@ export async function executeStep(
     const baseSystemPrompt = (step.overrides as Record<string, unknown>)?.systemPrompt as string | undefined
       ?? skillConfig?.systemPrompt
       ?? undefined;
-    const systemPrompt = rulesBlock
-      ? [baseSystemPrompt, rulesBlock].filter(Boolean).join("\n\n")
-      : baseSystemPrompt;
+    // Compose the system prompt from base + injected rules + optional regenerate
+    // feedback. filter(Boolean) drops empty/undefined parts; an all-empty result
+    // stays undefined (not ""), preserving the original no-system-prompt case.
+    const promptParts = [baseSystemPrompt, rulesBlock, opts.feedbackAddendum].filter(
+      Boolean,
+    ) as string[];
+    const systemPrompt = promptParts.length > 0 ? promptParts.join("\n\n") : undefined;
     const temperature = (step.overrides as Record<string, unknown>)?.temperature as number | undefined
       ?? skillConfig?.temperature
       ?? undefined;
@@ -245,7 +250,7 @@ export async function executeStep(
       ?? skillConfig?.maxTokens
       ?? undefined;
     const configuredDefault = (await resolveLlmConfig()).modelId;
-    const model = step.model || skillConfig?.defaultModel || configuredDefault;
+    const model = opts.modelOverride || step.model || skillConfig?.defaultModel || configuredDefault;
 
     const response = await executeSkill({
       promptTemplate,
@@ -360,7 +365,7 @@ async function loadSkillConfig(skillId: string) {
   };
 }
 
-async function getSkillName(skillId: string | null): Promise<string> {
+export async function getSkillName(skillId: string | null): Promise<string> {
   if (!skillId) return "Raw Prompt";
   const db = getDb();
   const [s] = await db
