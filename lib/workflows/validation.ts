@@ -96,6 +96,16 @@ export const regenerateStepSchema = z.object({
   overrideModel: z.string().max(100).optional(),
 });
 
+// E1 "make permanent": append this feedback to the step's persisted prompt.
+// Non-empty (there is nothing to make permanent otherwise) and stripped.
+export const appendStepPromptSchema = z.object({
+  feedback: z
+    .string()
+    .min(1, "Feedback is required")
+    .max(10000)
+    .transform(stripControlChars),
+});
+
 export type CreateWorkflowInput = z.infer<typeof createWorkflowSchema>;
 export type UpdateWorkflowInput = z.infer<typeof updateWorkflowSchema>;
 export type ExecuteWorkflowInput = z.infer<typeof executeWorkflowSchema>;

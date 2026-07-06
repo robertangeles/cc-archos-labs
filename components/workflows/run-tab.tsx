@@ -66,6 +66,15 @@ export function RunTab({ workflowId, fields, stepCount }: RunTabProps) {
   const [regen, setRegen] = useState<
     Record<number, { phase: "regenerating" | "error"; error?: string }>
   >({});
+  // E3 — models available for the per-regenerate override picker (admin-enabled
+  // list). Fetched once; empty until loaded (the picker just shows the default).
+  const [models, setModels] = useState<
+    { id: string; name: string; provider: string }[]
+  >([]);
+  // E1 — after a successful regenerate WITH feedback, the feedback is offered to
+  // be made permanent (appended to the step's prompt). Keyed by step index.
+  const [permanentOffer, setPermanentOffer] = useState<Record<number, string>>({});
+  const [permanentSaved, setPermanentSaved] = useState<Record<number, boolean>>({});
   const [skills, setSkills] = useState<SkillLookup[]>([]);
   const [publishContent, setPublishContent] = useState<string | null>(null);
   const [connectedPlatforms, setConnectedPlatforms] = useState<SocialPlatform[]>([]);
@@ -95,6 +104,13 @@ export function RunTab({ workflowId, fields, stepCount }: RunTabProps) {
   useEffect(() => {
     loadHistory();
   }, [loadHistory]);
+
+  useEffect(() => {
+    fetch("/api/skills/models")
+      .then((r) => (r.ok ? r.json() : { models: [] }))
+      .then((d) => setModels(d.models ?? []))
+      .catch(() => {});
+  }, []);
 
   const openRun = async (runId: string) => {
     setLoadingRun(true);
@@ -286,7 +302,7 @@ export function RunTab({ workflowId, fields, stepCount }: RunTabProps) {
     runId: string,
     stepIndex: number,
     stepId: string,
-    opts: { feedback?: string; rerunDownstream: boolean },
+    opts: { feedback?: string; rerunDownstream: boolean; overrideModel?: string },
   ) => {
     const patch = (idx: number, next: StepResult) => {
       setStepResults((prev) =>
@@ -309,6 +325,18 @@ export function RunTab({ workflowId, fields, stepCount }: RunTabProps) {
     };
 
     setRegen((p) => ({ ...p, [stepIndex]: { phase: "regenerating" } }));
+    // A fresh regenerate supersedes any prior make-permanent offer for this step.
+    setPermanentOffer((p) => {
+      const n = { ...p };
+      delete n[stepIndex];
+      return n;
+    });
+    setPermanentSaved((p) => {
+      const n = { ...p };
+      delete n[stepIndex];
+      return n;
+    });
+    let sawError = false;
     try {
       const res = await fetch(
         `/api/workflows/${workflowId}/runs/${runId}/steps/${stepId}/regenerate`,
@@ -350,13 +378,20 @@ export function RunTab({ workflowId, fields, stepCount }: RunTabProps) {
               patch(ev.stepIndex, ev.result);
               clearRegen(ev.stepIndex);
             } else if (ev.type === "step_error") {
+              sawError = true;
               setRegen((p) => ({ ...p, [ev.stepIndex]: { phase: "error", error: ev.error } }));
             } else if (ev.type === "stale") {
               markStale(ev.stepIndexes ?? []);
             } else if (ev.type === "done") {
               clearRegen(stepIndex);
+              // E1: the target regenerated cleanly with feedback — offer to make
+              // that feedback a permanent part of the step's prompt.
+              if (!sawError && opts.feedback) {
+                setPermanentOffer((p) => ({ ...p, [stepIndex]: opts.feedback! }));
+              }
               loadHistory();
             } else if (ev.type === "error") {
+              sawError = true;
               setRegen((p) => ({ ...p, [stepIndex]: { phase: "error", error: ev.error } }));
             }
           } catch {
@@ -366,6 +401,28 @@ export function RunTab({ workflowId, fields, stepCount }: RunTabProps) {
       }
     } catch {
       setRegen((p) => ({ ...p, [stepIndex]: { phase: "error", error: "Connection failed. Try again." } }));
+    }
+  };
+
+  // E1 — append the just-used feedback to the step's persisted prompt so future
+  // runs inherit it. A workflow-definition change, so it's confirmed in the UI.
+  const makePermanent = async (stepIndex: number, stepId: string, feedback: string) => {
+    try {
+      const res = await fetch(`/api/workflows/${workflowId}/steps/${stepId}/prompt`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feedback }),
+      });
+      if (res.ok) {
+        setPermanentSaved((p) => ({ ...p, [stepIndex]: true }));
+        setPermanentOffer((p) => {
+          const n = { ...p };
+          delete n[stepIndex];
+          return n;
+        });
+      }
+    } catch {
+      /* best-effort — leave the offer so the user can retry */
     }
   };
 
@@ -671,6 +728,10 @@ export function RunTab({ workflowId, fields, stepCount }: RunTabProps) {
                 regenPhase={regen[i]?.phase}
                 regenError={regen[i]?.error}
                 onDismissRegenError={() => clearRegen(i)}
+                models={models}
+                onMakePermanent={(fb) => makePermanent(i, result.stepId, fb)}
+                permanentFeedback={permanentOffer[i]}
+                permanentSaved={permanentSaved[i]}
               />
             ))}
           </div>
@@ -744,6 +805,12 @@ export function RunTab({ workflowId, fields, stepCount }: RunTabProps) {
                 regenPhase={regen[i]?.phase}
                 regenError={regen[i]?.error}
                 onDismissRegenError={() => clearRegen(i)}
+                models={models}
+                onMakePermanent={
+                  liveRunId ? (fb) => makePermanent(i, result.stepId, fb) : undefined
+                }
+                permanentFeedback={permanentOffer[i]}
+                permanentSaved={permanentSaved[i]}
               />
             ))}
 
@@ -903,6 +970,10 @@ function StepResultCard({
   regenPhase,
   regenError,
   onDismissRegenError,
+  models,
+  onMakePermanent,
+  permanentFeedback,
+  permanentSaved,
 }: {
   result: StepResult;
   index: number;
@@ -914,18 +985,30 @@ function StepResultCard({
   isLastStep?: boolean;
   // Undefined when the step can't be regenerated (run still streaming, or no
   // persisted run id yet). Present → the Regenerate control is shown.
-  onRegenerate?: (opts: { feedback?: string; rerunDownstream: boolean }) => void;
+  onRegenerate?: (opts: {
+    feedback?: string;
+    rerunDownstream: boolean;
+    overrideModel?: string;
+  }) => void;
   regenPhase?: "regenerating" | "error";
   regenError?: string;
   onDismissRegenError?: () => void;
+  models?: { id: string; name: string; provider: string }[];
+  // E1 — present the just-used feedback to be made a permanent part of the step.
+  onMakePermanent?: (feedback: string) => void;
+  permanentFeedback?: string;
+  permanentSaved?: boolean;
 }) {
   const [viewMode, setViewMode] = useState<"preview" | "raw">("preview");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   // Progressive disclosure: the toolbar shows one Regenerate icon; the feedback
-  // textarea + rerun-downstream toggle live in a popover opened from it.
+  // textarea + model override + rerun-downstream toggle live in a popover.
   const [regenOpen, setRegenOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [rerunDownstream, setRerunDownstream] = useState(false);
+  // "" = use the step's configured model; otherwise a one-off override.
+  const [overrideModel, setOverrideModel] = useState("");
+  const [confirmPermanent, setConfirmPermanent] = useState(false);
   const regenPopoverRef = useRef<HTMLDivElement>(null);
   const isError = result.status === "error";
   const isRegenerating = regenPhase === "regenerating";
@@ -955,9 +1038,11 @@ function StepResultCard({
     onRegenerate({
       feedback: feedback.trim() || undefined,
       rerunDownstream,
+      overrideModel: overrideModel || undefined,
     });
     setRegenOpen(false);
     setFeedback("");
+    setOverrideModel("");
   };
 
   // One-line preview shown when the step is collapsed, so each step is
@@ -1079,6 +1164,59 @@ function StepResultCard({
         </div>
       )}
 
+      {/* E1 — after a clean regenerate with feedback, offer to make that feedback
+          a permanent part of the step's prompt. A workflow-definition change, so
+          it takes a second, explicit confirm. */}
+      {onMakePermanent && permanentFeedback && !permanentSaved && (
+        <div className="flex items-center gap-2 border-t border-hairline/50 bg-primary/5 px-4 py-2">
+          {confirmPermanent ? (
+            <>
+              <span className="flex-1 text-[11px] text-ink-subtle">
+                Save to the step&apos;s prompt? This changes every future run.
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  onMakePermanent(permanentFeedback);
+                  setConfirmPermanent(false);
+                }}
+                className="inline-flex min-h-[32px] items-center rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-on-primary transition-colors hover:bg-primary-hover"
+              >
+                Confirm
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmPermanent(false)}
+                className="inline-flex min-h-[32px] items-center rounded-md border border-hairline px-2.5 py-1 text-[11px] font-medium text-ink-subtle transition-colors hover:bg-surface-1 hover:text-ink"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="flex-1 text-[11px] text-ink-subtle">
+                Worked well? Make this feedback part of the step.
+              </span>
+              <button
+                type="button"
+                onClick={() => setConfirmPermanent(true)}
+                className="inline-flex min-h-[32px] items-center gap-1.5 rounded-md border border-hairline px-2.5 py-1 text-[11px] font-medium text-ink-subtle transition-colors hover:bg-surface-1 hover:text-ink"
+              >
+                Save to prompt
+              </button>
+            </>
+          )}
+        </div>
+      )}
+      {permanentSaved && (
+        <div className="flex items-center gap-2 border-t border-hairline/50 bg-semantic-success/8 px-4 py-2">
+          <Check className="h-3.5 w-3.5 text-semantic-success" />
+          <span className="text-[11px] text-semantic-success">
+            Saved to the step&apos;s prompt — future runs will include it.
+          </span>
+        </div>
+      )}
+
       {/* Error body */}
       {isOpen && isError && (
         <div className="border-t border-hairline/50 px-4 py-3">
@@ -1184,6 +1322,32 @@ function StepResultCard({
                           <div className="mt-1 text-right text-[10px] text-ink-tertiary">
                             {feedback.length}/10000
                           </div>
+                          {models && models.length > 0 && (
+                            <div className="mt-1.5">
+                              <label
+                                htmlFor={`regen-model-${result.stepId}`}
+                                className="block text-[11px] font-medium text-ink-subtle"
+                              >
+                                Model{" "}
+                                <span className="text-ink-tertiary">
+                                  (this run only)
+                                </span>
+                              </label>
+                              <select
+                                id={`regen-model-${result.stepId}`}
+                                value={overrideModel}
+                                onChange={(e) => setOverrideModel(e.target.value)}
+                                className="mt-1 w-full rounded-md border border-hairline bg-surface-2 px-2 py-1.5 text-xs text-ink focus:border-primary/50 focus:outline-none"
+                              >
+                                <option value="">Step default</option>
+                                {models.map((m) => (
+                                  <option key={m.id} value={m.id}>
+                                    {m.name} ({m.provider})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
                           {!isLastStep && (
                             <label className="mt-1 flex items-center gap-2 text-[11px] text-ink-subtle">
                               <input

@@ -51,6 +51,49 @@ export async function getWorkflow(workflowId: string, userId: string) {
   return { ...row, fields, steps };
 }
 
+// E1 "make permanent" — append a piece of regenerate feedback to ONE step's
+// persisted prompt so future runs inherit it. Surgical single-row update: it
+// does NOT go through updateWorkflow/syncWorkflowSteps (which deletes and
+// re-inserts every step row). Ownership is enforced by getWorkflow (returns a
+// workflow only when userId owns it); the UPDATE is then scoped to
+// (stepId, workflowId). Returns "not_found" when the workflow isn't owned or
+// the step isn't in it.
+export async function appendStepPrompt(
+  workflowId: string,
+  stepId: string,
+  userId: string,
+  feedback: string,
+): Promise<"ok" | "not_found"> {
+  const db = getDb();
+
+  // Ownership: the workflow must belong to this user.
+  const [owned] = await db
+    .select({ id: workflow.id })
+    .from(workflow)
+    .where(and(eq(workflow.id, workflowId), eq(workflow.userId, userId)))
+    .limit(1);
+  if (!owned) return "not_found";
+
+  // The step must exist in this workflow.
+  const [step] = await db
+    .select({ prompt: workflowStep.prompt })
+    .from(workflowStep)
+    .where(and(eq(workflowStep.stepId, stepId), eq(workflowStep.workflowId, workflowId)))
+    .limit(1);
+  if (!step) return "not_found";
+
+  const addition = `\n\n---\nRefinement (from feedback): ${feedback}`;
+  const nextPrompt = `${step.prompt ?? ""}${addition}`.slice(0, 50000);
+
+  // Owner-scoped by the (already-verified) workflowId; touches only this step.
+  await db
+    .update(workflowStep)
+    .set({ prompt: nextPrompt })
+    .where(and(eq(workflowStep.stepId, stepId), eq(workflowStep.workflowId, workflowId)));
+
+  return "ok";
+}
+
 export async function createWorkflow(
   data: CreateWorkflowInput,
   userId: string,

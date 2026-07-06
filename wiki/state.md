@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-05T23:24:26.645Z
+generated: 2026-07-06T01:20:21.269Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -84,7 +84,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/workspace/model-studio` | [app/workspace/model-studio/page.tsx](../app/workspace/model-studio/page.tsx) | 2026-06-17 |
 | `/workspace/model-studio/[id]` | [app/workspace/model-studio/[id]/page.tsx](../app/workspace/model-studio/[id]/page.tsx) | 2026-06-17 |
 
-## API endpoints (172)
+## API endpoints (173)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -259,7 +259,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/execute-stream` | [app/api/workflows/[id]/execute-stream/route.ts](../app/api/workflows/[id]/execute-stream/route.ts) | 2026-06-14 |
 | `/api/workflows/[id]/runs` | [app/api/workflows/[id]/runs/route.ts](../app/api/workflows/[id]/runs/route.ts) | 2026-06-30 |
 | `/api/workflows/[id]/runs/[runId]` | [app/api/workflows/[id]/runs/[runId]/route.ts](../app/api/workflows/[id]/runs/[runId]/route.ts) | 2026-06-30 |
-| `/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate` | [app/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate/route.ts](../app/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate/route.ts) | unknown |
+| `/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate` | [app/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate/route.ts](../app/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate/route.ts) | 2026-07-06 |
+| `/api/workflows/[id]/steps/[stepId]/prompt` | [app/api/workflows/[id]/steps/[stepId]/prompt/route.ts](../app/api/workflows/[id]/steps/[stepId]/prompt/route.ts) | unknown |
 
 ## Components (120)
 
@@ -376,7 +377,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/ui/field.tsx](../components/ui/field.tsx) | 2026-05-15 |
 | [components/ui/pill.tsx](../components/ui/pill.tsx) | 2026-05-15 |
 | [components/workflows/field-builder.tsx](../components/workflows/field-builder.tsx) | 2026-06-07 |
-| [components/workflows/run-tab.tsx](../components/workflows/run-tab.tsx) | 2026-06-30 |
+| [components/workflows/run-tab.tsx](../components/workflows/run-tab.tsx) | 2026-07-06 |
 | [components/workflows/step-designer.tsx](../components/workflows/step-designer.tsx) | 2026-06-07 |
 | [components/workflows/workflow-builder.tsx](../components/workflows/workflow-builder.tsx) | 2026-06-07 |
 | [components/workflows/workflow-creator.tsx](../components/workflows/workflow-creator.tsx) | 2026-06-07 |
