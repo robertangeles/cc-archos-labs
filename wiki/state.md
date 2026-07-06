@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-06T01:20:21.269Z
+generated: 2026-07-06T02:06:30.444Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -260,7 +260,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/runs` | [app/api/workflows/[id]/runs/route.ts](../app/api/workflows/[id]/runs/route.ts) | 2026-06-30 |
 | `/api/workflows/[id]/runs/[runId]` | [app/api/workflows/[id]/runs/[runId]/route.ts](../app/api/workflows/[id]/runs/[runId]/route.ts) | 2026-06-30 |
 | `/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate` | [app/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate/route.ts](../app/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate/route.ts) | 2026-07-06 |
-| `/api/workflows/[id]/steps/[stepId]/prompt` | [app/api/workflows/[id]/steps/[stepId]/prompt/route.ts](../app/api/workflows/[id]/steps/[stepId]/prompt/route.ts) | unknown |
+| `/api/workflows/[id]/steps/[stepId]/prompt` | [app/api/workflows/[id]/steps/[stepId]/prompt/route.ts](../app/api/workflows/[id]/steps/[stepId]/prompt/route.ts) | 2026-07-06 |
 
 ## Components (120)
 

@@ -1009,6 +1009,10 @@ function StepResultCard({
   // "" = use the step's configured model; otherwise a one-off override.
   const [overrideModel, setOverrideModel] = useState("");
   const [confirmPermanent, setConfirmPermanent] = useState(false);
+  // When permanentFeedback disappears (new regen started) the offer is withdrawn.
+  // Derive effective confirm so a returning offer always starts at "Save to prompt"
+  // rather than jumping straight to the Confirm/Cancel row.
+  const effectiveConfirmPermanent = confirmPermanent && !!permanentFeedback;
   const regenPopoverRef = useRef<HTMLDivElement>(null);
   const isError = result.status === "error";
   const isRegenerating = regenPhase === "regenerating";
@@ -1169,7 +1173,7 @@ function StepResultCard({
           it takes a second, explicit confirm. */}
       {onMakePermanent && permanentFeedback && !permanentSaved && (
         <div className="flex items-center gap-2 border-t border-hairline/50 bg-primary/5 px-4 py-2">
-          {confirmPermanent ? (
+          {effectiveConfirmPermanent ? (
             <>
               <span className="flex-1 text-[11px] text-ink-subtle">
                 Save to the step&apos;s prompt? This changes every future run.
