@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "../db";
 import {
   workflow,
@@ -74,24 +74,18 @@ export async function appendStepPrompt(
     .limit(1);
   if (!owned) return "not_found";
 
-  // The step must exist in this workflow.
-  const [step] = await db
-    .select({ prompt: workflowStep.prompt })
-    .from(workflowStep)
-    .where(and(eq(workflowStep.stepId, stepId), eq(workflowStep.workflowId, workflowId)))
-    .limit(1);
-  if (!step) return "not_found";
-
   const addition = `\n\n---\nRefinement (from feedback): ${feedback}`;
-  const nextPrompt = `${step.prompt ?? ""}${addition}`.slice(0, 50000);
 
-  // Owner-scoped by the (already-verified) workflowId; touches only this step.
-  await db
+  // Atomic append (no read-then-write race): concatenate in SQL, capped at the
+  // prompt max. Scoped to (stepId, workflowId) on the already-verified workflow;
+  // rows-affected == 0 means the step isn't in this workflow.
+  const updated = await db
     .update(workflowStep)
-    .set({ prompt: nextPrompt })
-    .where(and(eq(workflowStep.stepId, stepId), eq(workflowStep.workflowId, workflowId)));
+    .set({ prompt: sql`left(${workflowStep.prompt} || ${addition}, 50000)` })
+    .where(and(eq(workflowStep.stepId, stepId), eq(workflowStep.workflowId, workflowId)))
+    .returning({ id: workflowStep.id });
 
-  return "ok";
+  return updated.length > 0 ? "ok" : "not_found";
 }
 
 export async function createWorkflow(
