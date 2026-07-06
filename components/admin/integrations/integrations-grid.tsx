@@ -73,6 +73,13 @@ export function IntegrationsGrid({
         "File storage for project card attachments and cover images. Signed uploads.",
       status: redactedSecretToStatus(config.cloudinaryApiSecret),
     },
+    {
+      slug: "chat-documents",
+      title: "Chat Documents (Cloudflare R2)",
+      description:
+        "Private R2 bucket for chat file attachments. Confidential docs served only via authz'd proxy.",
+      status: redactedSecretToStatus(config.r2ChatSecretAccessKey),
+    },
   ];
 
   return (

@@ -53,6 +53,10 @@ const PATCH_FIELDS = [
   "cloudinaryApiKey",
   "cloudinaryApiSecret",
   "cloudinaryUploadFolder",
+  "r2ChatAccountId",
+  "r2ChatAccessKeyId",
+  "r2ChatSecretAccessKey",
+  "r2ChatBucketName",
 ] as const;
 
 const PatchSchema = z.object({
