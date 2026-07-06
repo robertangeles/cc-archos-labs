@@ -2,11 +2,11 @@
 title: Workflow run history (capped retention + replay)
 category: concept
 created: 2026-06-30
-updated: 2026-06-30
-related: [[org-consulting-workspace]]
+updated: 2026-07-06
+related: [[org-consulting-workspace]], [[workflow-step-regeneration]]
 ---
 
-Every workflow execution is snapshotted to `workflow_execution_run`, the most recent 22 runs per workflow are kept, and past runs are browsable + replayable from the Run tab.
+Every workflow execution is snapshotted to `workflow_execution_run`, the most recent 22 runs per workflow are kept, and past runs are browsable, replayable, and **per-step regenerable** from the Run tab. Replay is no longer read-only — see [[workflow-step-regeneration]] for how one step of a saved run is re-run in place.
 
 ## What it does
 
@@ -14,6 +14,7 @@ Every workflow execution is snapshotted to `workflow_execution_run`, the most re
 - **Cap at 22 per workflow** — after each run is inserted, older runs beyond the 22 most recent for that workflow are deleted. Cascade on `run_id` removes the matching `workflow_execution_log` rows too. Scope is **per workflow**, not per user.
 - **Retrieve** — `GET /api/workflows/[id]/runs` lists run summaries (no heavy blob); `GET /api/workflows/[id]/runs/[runId]` returns the full snapshot including step outputs.
 - **Replay UI** — the Run tab has a collapsible "Past runs" panel. Selecting a run loads its snapshot and renders each step via the same `StepResultCard` used for live runs, with a "Back to live" affordance.
+- **Regenerate (2026-07-06)** — a saved run is no longer immutable: any step can be re-run in place with optional feedback and an optional one-off model, optionally cascading downstream, and the run's `step_results` is amended (`amendRun`). Full detail in [[workflow-step-regeneration]].
 
 ## UX (the obsession-virus pass)
 
@@ -29,7 +30,7 @@ The first cut was functional but generic. The shipped version is built so a user
 
 ## Where it lives
 
-- `lib/workflows/runs.ts` — `persistRun` (insert + prune), `runsToEvict` (pure cap-decision, unit-tested), `listRuns`, `getRun`, `MAX_RUNS_PER_WORKFLOW = 22`.
+- `lib/workflows/runs.ts` — `persistRun` (insert + prune), `runsToEvict` (pure cap-decision, unit-tested), `listRuns`, `getRun`, `amendRun` (in-place regenerate write, evict-race + owner scoped), `MAX_RUNS_PER_WORKFLOW = 22`.
 - `lib/workflows/executor.ts` — both `executeWorkflow` and `executeWorkflowStreaming` call `persistRun` and use its returned run id for the per-step `workflow_execution_log` inserts (previously the log `runId` was `undefined`, so telemetry never persisted — fixed as part of this change).
 - `app/api/workflows/[id]/runs/route.ts` and `app/api/workflows/[id]/runs/[runId]/route.ts` — auth → verify workflow ownership via `getWorkflow` → list/get.
 - `components/workflows/run-tab.tsx` — "Past runs" panel + historical replay view.

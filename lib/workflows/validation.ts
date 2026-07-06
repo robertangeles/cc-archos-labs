@@ -68,11 +68,6 @@ export const approveStepSchema = z.object({
   feedback: z.string().max(10000).optional(),
 });
 
-export const rerunStepSchema = z.object({
-  stepIndex: z.number().int().min(0),
-  executionContext: z.record(z.string(), z.string().max(50000)),
-});
-
 // Per-step Regenerate. The client supplies ONLY intent — never execution
 // context. The server rebuilds context from the run's own snapshot. feedback is
 // appended to the step prompt (control-char-stripped, not injection-proof).
@@ -110,5 +105,4 @@ export type CreateWorkflowInput = z.infer<typeof createWorkflowSchema>;
 export type UpdateWorkflowInput = z.infer<typeof updateWorkflowSchema>;
 export type ExecuteWorkflowInput = z.infer<typeof executeWorkflowSchema>;
 export type ApproveStepInput = z.infer<typeof approveStepSchema>;
-export type RerunStepInput = z.infer<typeof rerunStepSchema>;
 export type RegenerateStepInput = z.infer<typeof regenerateStepSchema>;
