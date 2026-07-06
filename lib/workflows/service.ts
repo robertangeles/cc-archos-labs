@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "../db";
 import {
   workflow,
@@ -49,6 +49,43 @@ export async function getWorkflow(workflowId: string, userId: string) {
     .orderBy(workflowStep.sortOrder);
 
   return { ...row, fields, steps };
+}
+
+// E1 "make permanent" — append a piece of regenerate feedback to ONE step's
+// persisted prompt so future runs inherit it. Surgical single-row update: it
+// does NOT go through updateWorkflow/syncWorkflowSteps (which deletes and
+// re-inserts every step row). Ownership is enforced by getWorkflow (returns a
+// workflow only when userId owns it); the UPDATE is then scoped to
+// (stepId, workflowId). Returns "not_found" when the workflow isn't owned or
+// the step isn't in it.
+export async function appendStepPrompt(
+  workflowId: string,
+  stepId: string,
+  userId: string,
+  feedback: string,
+): Promise<"ok" | "not_found"> {
+  const db = getDb();
+
+  // Ownership: the workflow must belong to this user.
+  const [owned] = await db
+    .select({ id: workflow.id })
+    .from(workflow)
+    .where(and(eq(workflow.id, workflowId), eq(workflow.userId, userId)))
+    .limit(1);
+  if (!owned) return "not_found";
+
+  const addition = `\n\n---\nRefinement (from feedback): ${feedback}`;
+
+  // Atomic append (no read-then-write race): concatenate in SQL, capped at the
+  // prompt max. Scoped to (stepId, workflowId) on the already-verified workflow;
+  // rows-affected == 0 means the step isn't in this workflow.
+  const updated = await db
+    .update(workflowStep)
+    .set({ prompt: sql`left(${workflowStep.prompt} || ${addition}, 50000)` })
+    .where(and(eq(workflowStep.stepId, stepId), eq(workflowStep.workflowId, workflowId)))
+    .returning({ id: workflowStep.id });
+
+  return updated.length > 0 ? "ok" : "not_found";
 }
 
 export async function createWorkflow(
