@@ -2907,6 +2907,105 @@ export const conversationShare = pgTable(
 export type ConversationShare = typeof conversationShare.$inferSelect;
 export type NewConversationShare = typeof conversationShare.$inferInsert;
 
+// ============================================================================
+// document — User-owned uploaded documents (Chat Attach Files)
+// ============================================================================
+// One row per uploaded file, owned by a user. The extracted text is injected
+// into a conversation's context; the original bytes live in a PRIVATE R2
+// bucket keyed by this row's id (never a public URL — served only through the
+// authz'd /file proxy). A document is attached to conversations via the
+// conversation_document join, so the same file can be reused across chats
+// (reuse-picker UI deferred; v1 attaches 1:1).
+//
+// Normal form: 2NF. content_hash is a sha-256 hex digest of the bytes (per-user
+// dedup key; NOT uniquely constrained in v1 so identical bytes under a new
+// filename never silently alias to the old row). extracted_text is a scalar
+// column (the injected content), not JSONB.
+//
+// storage_key is nullable: a failed/unsupported upload (e.g. a scanned PDF)
+// records the failure without storing bytes.
+
+export const document = pgTable(
+  "document",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    fileName: varchar("file_name", { length: 255 }).notNull(),
+    fileType: varchar("file_type", { length: 100 }).notNull(),
+    byteSize: integer("byte_size").notNull(),
+    // sha-256 hex digest of the raw bytes — per-user dedup key.
+    contentHash: varchar("content_hash", { length: 64 }).notNull(),
+    // Private R2 object key. Null until bytes are stored (or on a failed upload).
+    storageKey: text("storage_key"),
+    // The extracted text injected into conversation context.
+    extractedText: text("extracted_text"),
+    charCount: integer("char_count").notNull().default(0),
+    // 'processing' | 'ready' | 'failed' | 'unsupported'
+    status: varchar("status", { length: 20 }).notNull().default("processing"),
+    // 'scanned_pdf' | 'too_large' | 'extract_failed' | 'unsupported_type'
+    errorReason: text("error_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // List a user's documents, newest first (owner scope + reuse picker).
+    index("document_user_id_idx").on(table.userId),
+    // Per-user dedup lookup by content hash. NON-unique in v1 (see #7): we do
+    // not dedup-attach in v1, so identical bytes never alias to a stale filename.
+    index("document_user_id_content_hash_idx").on(
+      table.userId,
+      table.contentHash,
+    ),
+  ],
+);
+
+export type Document = typeof document.$inferSelect;
+export type NewDocument = typeof document.$inferInsert;
+
+// ============================================================================
+// conversation_document — which documents are attached to which conversation
+// ============================================================================
+// Junction between conversation and document (both entity names, alphabetical
+// per naming standard). A document attaches once per conversation. Deleting a
+// conversation CASCADEs these join rows only; the document (and its R2 object)
+// is cleaned up separately by the app when its ref-count hits zero — Postgres
+// cannot delete R2 objects.
+//
+// Normal form: 2NF. No non-key attributes beyond created_at.
+
+export const conversationDocument = pgTable(
+  "conversation_document",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => conversation.id, { onDelete: "cascade" }),
+    documentId: uuid("document_id")
+      .notNull()
+      .references(() => document.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // Load a conversation's attached documents (the injection hot path).
+    index("conversation_document_conversation_id_idx").on(table.conversationId),
+    // Reverse lookup: which conversations reference a document (ref-count).
+    index("conversation_document_document_id_idx").on(table.documentId),
+    // A document attaches at most once per conversation.
+    uniqueIndex("conversation_document_conversation_id_document_id_key").on(
+      table.conversationId,
+      table.documentId,
+    ),
+  ],
+);
+
+export type ConversationDocument = typeof conversationDocument.$inferSelect;
+export type NewConversationDocument = typeof conversationDocument.$inferInsert;
+
 // Relations for chat tables
 
 export const conversationRelations = relations(
