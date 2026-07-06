@@ -72,6 +72,7 @@ export async function persistRun(args: {
 export async function amendRun(args: {
   runId: string;
   workflowId: string;
+  userId: string;
   stepResults: StepResult[];
   status: RunStatus;
 }): Promise<number> {
@@ -84,6 +85,7 @@ export async function amendRun(args: {
       and(
         eq(workflowExecutionRun.id, args.runId),
         eq(workflowExecutionRun.workflowId, args.workflowId),
+        eq(workflowExecutionRun.userId, args.userId),
       ),
     )
     .returning({ id: workflowExecutionRun.id });

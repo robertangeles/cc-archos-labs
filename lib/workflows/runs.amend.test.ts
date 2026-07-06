@@ -33,6 +33,8 @@ function sr(stepId: string, result: string): StepResult {
 
 const WID = "11111111-1111-1111-1111-111111111111";
 const OTHER_WID = "22222222-2222-2222-2222-222222222222";
+const UID = "44444444-4444-4444-4444-444444444444";
+const OTHER_UID = "55555555-5555-5555-5555-555555555555";
 
 beforeEach(async () => {
   client = new PGlite();
@@ -60,7 +62,7 @@ async function seedRun(steps: StepResult[], status = "completed"): Promise<strin
     .insert(workflowExecutionRun)
     .values({
       workflowId: WID,
-      userId: null,
+      userId: UID,
       inputs: {},
       stepResults: steps,
       status,
@@ -76,6 +78,7 @@ describe("amendRun (real pglite)", () => {
     const n = await amendRun({
       runId: id,
       workflowId: WID,
+      userId: UID,
       stepResults: [sr("a", "NEW")],
       status: "completed",
     });
@@ -88,6 +91,7 @@ describe("amendRun (real pglite)", () => {
     const n = await amendRun({
       runId: "33333333-3333-3333-3333-333333333333",
       workflowId: WID,
+      userId: UID,
       stepResults: [],
       status: "failed",
     });
@@ -99,6 +103,21 @@ describe("amendRun (real pglite)", () => {
     const n = await amendRun({
       runId: id,
       workflowId: OTHER_WID,
+      userId: UID,
+      stepResults: [sr("a", "HACK")],
+      status: "completed",
+    });
+    expect(n).toBe(0);
+    const after = await getRun(id, WID);
+    expect(after?.stepResults[0].outputs.result).toBe("OLD");
+  });
+
+  it("is scoped to userId: a wrong userId updates nothing and leaves the output intact", async () => {
+    const id = await seedRun([sr("a", "OLD")]);
+    const n = await amendRun({
+      runId: id,
+      workflowId: WID,
+      userId: OTHER_UID,
       stepResults: [sr("a", "HACK")],
       status: "completed",
     });

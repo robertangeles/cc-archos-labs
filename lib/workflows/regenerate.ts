@@ -272,7 +272,7 @@ export async function* regenerateStream(args: {
     }
 
     const status = computeStatus();
-    const rows = await amendRun({ runId, workflowId, stepResults: amended, status });
+    const rows = await amendRun({ runId, workflowId, userId: args.userId, stepResults: amended, status });
     persisted = true;
     if (rows === 0) {
       yield {
@@ -287,7 +287,7 @@ export async function* regenerateStream(args: {
       // Client disconnected mid-regenerate: persist what completed so a billed
       // result is never lost. Best-effort — we can no longer yield to the client.
       try {
-        await amendRun({ runId, workflowId, stepResults: amended, status: computeStatus() });
+        await amendRun({ runId, workflowId, userId: args.userId, stepResults: amended, status: computeStatus() });
       } catch {
         /* swallow — nothing we can surface after the stream is gone */
       }
