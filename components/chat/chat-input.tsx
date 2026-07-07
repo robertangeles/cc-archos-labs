@@ -1,8 +1,17 @@
 "use client";
 
 import { useRef, useEffect, useState, KeyboardEvent, type ReactNode } from "react";
-import { ArrowUp, Plus, Search, Globe, Image as ImageIcon, X, Paperclip, Check } from "lucide-react";
+import { ArrowUp, Plus, Search, Globe, Image as ImageIcon, X, Paperclip, Check, FileText, Loader2, AlertCircle } from "lucide-react";
 import { CHAT_MODE_CONFIG, type ChatMode } from "@/lib/chat/modes";
+
+// One attached document as the input renders it. `id` is a temporary client id
+// while uploading, then the real document id once ready.
+export interface AttachedFile {
+  id: string;
+  fileName: string;
+  status: "uploading" | "ready" | "error";
+  error?: string;
+}
 
 interface ChatInputProps {
   value: string;
@@ -14,6 +23,9 @@ interface ChatInputProps {
   onToolSelect?: (tool: string) => void;
   activeMode?: ChatMode;
   onClearMode?: () => void;
+  attachments?: AttachedFile[];
+  onAttachFiles?: (files: FileList) => void;
+  onRemoveAttachment?: (id: string) => void;
 }
 
 const TOOLS = [
@@ -32,8 +44,12 @@ export function ChatInput({
   onToolSelect,
   activeMode,
   onClearMode,
+  attachments = [],
+  onAttachFiles,
+  onRemoveAttachment,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
   const toolsRef = useRef<HTMLDivElement>(null);
 
@@ -106,14 +122,61 @@ export function ChatInput({
           </div>
         </div>
       )}
+      {attachments.length > 0 && (
+        <ul
+          className="flex flex-wrap gap-1.5 px-3 pb-1.5"
+          aria-label="Attached documents"
+        >
+          {attachments.map((att) => (
+            <li
+              key={att.id}
+              className="flex items-center gap-1.5 rounded-md border border-hairline bg-surface-2 px-2 py-1 text-[12px] text-ink-muted"
+              title={att.status === "error" ? att.error : att.fileName}
+            >
+              {att.status === "uploading" ? (
+                <Loader2 className="h-3 w-3 shrink-0 animate-spin text-ink-subtle" />
+              ) : att.status === "error" ? (
+                <AlertCircle className="h-3 w-3 shrink-0 text-ink-subtle" />
+              ) : (
+                <FileText className="h-3 w-3 shrink-0 text-ink-subtle" />
+              )}
+              <span className="max-w-[180px] truncate">
+                {att.status === "error" ? (att.error ?? att.fileName) : att.fileName}
+              </span>
+              <button
+                type="button"
+                onClick={() => onRemoveAttachment?.(att.id)}
+                className="ml-0.5 rounded-full p-0.5 text-ink-tertiary transition-colors hover:bg-white/10 hover:text-ink-subtle"
+                aria-label={`Remove ${att.fileName}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       <div className="flex items-center justify-between px-3 pb-2.5">
         {/* Left: attach + tools */}
         <div className="flex items-center gap-1">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.txt,.md,.docx"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files && e.target.files.length > 0) {
+              onAttachFiles?.(e.target.files);
+            }
+            e.target.value = ""; // allow re-selecting the same file
+          }}
+        />
         <button
           type="button"
-          title="Attach files (coming soon)"
+          title="Attach files"
+          aria-label="Attach files"
           className="flex h-7 w-7 items-center justify-center rounded-md text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink-subtle"
-          onClick={() => {}}
+          onClick={() => fileInputRef.current?.click()}
         >
           <Paperclip className="h-4 w-4" />
         </button>

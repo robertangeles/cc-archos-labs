@@ -25,6 +25,7 @@ const VALID_SLUGS: ReadonlyArray<IntegrationSlug> = [
   "google-calendar",
   "anti-spam",
   "media-storage",
+  "chat-documents",
 ];
 
 const TITLES: Record<IntegrationSlug, string> = {
@@ -34,6 +35,7 @@ const TITLES: Record<IntegrationSlug, string> = {
   "google-calendar": "Google Calendar",
   "anti-spam": "Anti-spam (Turnstile)",
   "media-storage": "Media Storage (Cloudinary)",
+  "chat-documents": "Chat Documents (Cloudflare R2)",
 };
 
 const SUBTITLES: Record<IntegrationSlug, string> = {
@@ -49,6 +51,8 @@ const SUBTITLES: Record<IntegrationSlug, string> = {
     "Cloudflare Turnstile site + secret keys. Required to enable bot protection on the public booking form.",
   "media-storage":
     "Cloudinary cloud name, API key + secret. Required for project card attachments and cover-image uploads.",
+  "chat-documents":
+    "Private Cloudflare R2 bucket for chat file attachments. Confidential client documents are served only through an authz'd proxy — never a public URL.",
 };
 
 interface PageProps {

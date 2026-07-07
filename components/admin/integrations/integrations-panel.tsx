@@ -41,6 +41,12 @@ export interface RedactedConfig {
   cloudinaryApiKey: string | null;
   cloudinaryApiSecret: string;
   cloudinaryUploadFolder: string | null;
+  // Private Cloudflare R2 (Chat Attach Files). Account id, access key id, and
+  // bucket name are identifier-grade (plaintext); the secret is always redacted.
+  r2ChatAccountId: string | null;
+  r2ChatAccessKeyId: string | null;
+  r2ChatSecretAccessKey: string;
+  r2ChatBucketName: string | null;
 }
 
 export interface AuditRow {
@@ -63,6 +69,7 @@ const ENCRYPTED_FIELDS: ReadonlyArray<FieldKey> = [
   "twitterClientSecret",
   "linkedinClientSecret",
   "cloudinaryApiSecret",
+  "r2ChatSecretAccessKey",
 ];
 
 // Fields that accept null (empty string in the form clears them).
@@ -83,6 +90,10 @@ const NULLABLE_FIELDS: ReadonlyArray<FieldKey> = [
   "cloudinaryApiKey",
   "cloudinaryApiSecret",
   "cloudinaryUploadFolder",
+  "r2ChatAccountId",
+  "r2ChatAccessKeyId",
+  "r2ChatSecretAccessKey",
+  "r2ChatBucketName",
 ];
 
 function isEncrypted(field: FieldKey): boolean {
@@ -124,7 +135,8 @@ export type IntegrationSlug =
   | "authentication"
   | "google-calendar"
   | "anti-spam"
-  | "media-storage";
+  | "media-storage"
+  | "chat-documents";
 
 // Google-specific extras passed in only when view === 'google-calendar'.
 // Coming from the page server component which reads the consultant row.
@@ -172,6 +184,7 @@ export function IntegrationsPanel({
   const [testOpenrouter, setTestOpenrouter] = useState<TestStatus>({
     kind: "idle",
   });
+  const [testR2Chat, setTestR2Chat] = useState<TestStatus>({ kind: "idle" });
 
   // Rotate-master-key modal state.
   const [showRotate, setShowRotate] = useState(false);
@@ -296,8 +309,13 @@ export function IntegrationsPanel({
     });
   }
 
-  async function handleTest(provider: "resend" | "openrouter") {
-    const setter = provider === "resend" ? setTestResend : setTestOpenrouter;
+  async function handleTest(provider: "resend" | "openrouter" | "r2-chat") {
+    const setter =
+      provider === "resend"
+        ? setTestResend
+        : provider === "openrouter"
+          ? setTestOpenrouter
+          : setTestR2Chat;
     setter({ kind: "testing" });
     try {
       const resp = await fetch(
@@ -626,6 +644,80 @@ export function IntegrationsPanel({
               setEditing((e) => ({ ...e, cloudinaryUploadFolder: v }))
             }
             onSave={() => handleSave("cloudinaryUploadFolder")}
+          />
+        </Section>
+      )}
+
+      {view === "chat-documents" && (
+        <Section title="Chat Documents (Cloudflare R2)">
+          <p className="text-[12px] text-ink-subtle">
+            A private R2 bucket for chat file attachments. Confidential client
+            documents are stored here and served only through the authz proxy,
+            never a public URL. In the{" "}
+            <a
+              href="https://dash.cloudflare.com/?to=/:account/r2"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-ink"
+            >
+              Cloudflare R2 dashboard
+            </a>
+            : create a bucket with public access OFF, then a bucket-scoped API
+            token (Object Read and Write) for its Access Key ID and Secret. The
+            secret is encrypted at rest and never reaches the browser.
+          </p>
+          <ConfigField
+            field="r2ChatAccountId"
+            label="Account ID"
+            hint="Cloudflare account ID (R2 overview page) — same account as the media bucket."
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus["r2ChatAccountId"]}
+            onEdit={(v) => setEditing((e) => ({ ...e, r2ChatAccountId: v }))}
+            onSave={() => handleSave("r2ChatAccountId")}
+          />
+          <ConfigField
+            field="r2ChatBucketName"
+            label="Bucket name"
+            hint="e.g. archos-labs-chat-docs. Must have public access disabled."
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus["r2ChatBucketName"]}
+            onEdit={(v) => setEditing((e) => ({ ...e, r2ChatBucketName: v }))}
+            onSave={() => handleSave("r2ChatBucketName")}
+          />
+          <ConfigField
+            field="r2ChatAccessKeyId"
+            label="Access Key ID"
+            hint="From the bucket-scoped R2 API token."
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus["r2ChatAccessKeyId"]}
+            onEdit={(v) => setEditing((e) => ({ ...e, r2ChatAccessKeyId: v }))}
+            onSave={() => handleSave("r2ChatAccessKeyId")}
+          />
+          <ConfigField
+            field="r2ChatSecretAccessKey"
+            label="Secret Access Key"
+            hint="The bucket token's secret. Encrypted at rest. Leave blank to keep the current value."
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus["r2ChatSecretAccessKey"]}
+            onEdit={(v) =>
+              setEditing((e) => ({ ...e, r2ChatSecretAccessKey: v }))
+            }
+            onSave={() => handleSave("r2ChatSecretAccessKey")}
+            onReveal={() => handleReveal("r2ChatSecretAccessKey")}
+            onHide={() => handleHide("r2ChatSecretAccessKey")}
+          />
+          <TestRow
+            provider="r2-chat"
+            status={testR2Chat}
+            onClick={() => handleTest("r2-chat")}
           />
         </Section>
       )}
@@ -1003,17 +1095,22 @@ function TestRow({
   status,
   onClick,
 }: {
-  provider: "resend" | "openrouter";
+  provider: "resend" | "openrouter" | "r2-chat";
   status: TestStatus;
   onClick: () => void;
 }) {
-  const providerLabel = provider === "resend" ? "Resend" : "OpenRouter";
+  const providerLabel =
+    provider === "resend"
+      ? "Resend"
+      : provider === "openrouter"
+        ? "OpenRouter"
+        : "R2 storage";
   return (
     <div className="border-t border-hairline pt-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-ink-subtle">
-          Verify the current {providerLabel} API key works without sending an
-          email or consuming tokens.
+          Verify the current {providerLabel} credentials work without making any
+          changes.
         </p>
         <button
           type="button"
@@ -1073,6 +1170,10 @@ function RevealAuthModal({
     cloudinaryApiKey: "",
     cloudinaryApiSecret: "Cloudinary API Secret",
     cloudinaryUploadFolder: "",
+    r2ChatAccountId: "",
+    r2ChatAccessKeyId: "",
+    r2ChatSecretAccessKey: "R2 Chat Secret Access Key",
+    r2ChatBucketName: "",
   };
 
   return (

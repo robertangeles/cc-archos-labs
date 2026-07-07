@@ -86,6 +86,7 @@ describe("integration-config-shared", () => {
         "twitterClientSecret",
         "linkedinClientSecret",
         "cloudinaryApiSecret",
+        "r2ChatSecretAccessKey",
       ]);
     });
 
@@ -129,6 +130,10 @@ describe("integration-config-shared", () => {
         cloudinaryApiKey: null,
         cloudinaryApiSecret: null,
         cloudinaryUploadFolder: null,
+        r2ChatAccountId: null,
+        r2ChatAccessKeyId: null,
+        r2ChatSecretAccessKey: null,
+        r2ChatBucketName: null,
       };
       expect(IntegrationConfigSchema.safeParse(valid).success).toBe(true);
     });
@@ -185,6 +190,10 @@ describe("integration-config-shared", () => {
         cloudinaryApiKey: null,
         cloudinaryApiSecret: null,
         cloudinaryUploadFolder: null,
+        r2ChatAccountId: null,
+        r2ChatAccessKeyId: null,
+        r2ChatSecretAccessKey: null,
+        r2ChatBucketName: null,
       };
       const parsed = IntegrationConfigSchema.safeParse(valid);
       expect(parsed.success).toBe(true);
@@ -218,6 +227,10 @@ describe("integration-config-shared", () => {
         cloudinaryApiKey: null,
         cloudinaryApiSecret: null,
         cloudinaryUploadFolder: null,
+        r2ChatAccountId: null,
+        r2ChatAccessKeyId: null,
+        r2ChatSecretAccessKey: null,
+        r2ChatBucketName: null,
       };
       const parsed = IntegrationConfigSchema.safeParse(valid);
       expect(parsed.success).toBe(true);

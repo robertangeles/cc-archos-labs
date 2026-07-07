@@ -104,6 +104,18 @@ export const IntegrationConfigSchema = z.object({
   cloudinaryApiKey: z.string().min(1).nullable(),
   cloudinaryApiSecret: z.string().min(1).nullable(),
   cloudinaryUploadFolder: z.string().min(1).nullable(),
+
+  // Private Cloudflare R2 bucket for Chat Attach Files (confidential client
+  // documents). Account id, access key id, and bucket name are
+  // identifier-grade (plaintext); the secret access key is the real
+  // credential and lives in ENCRYPTED_FIELDS. All nullable so the
+  // chat-attachments upload route returns a 503 with a plain message when
+  // unconfigured. There is intentionally NO public URL — objects are served
+  // only through the authz'd /api/chat/documents/[id]/file proxy.
+  r2ChatAccountId: z.string().min(1).nullable(),
+  r2ChatAccessKeyId: z.string().min(1).nullable(),
+  r2ChatSecretAccessKey: z.string().min(1).nullable(),
+  r2ChatBucketName: z.string().min(1).nullable(),
 });
 
 export type IntegrationConfig = z.infer<typeof IntegrationConfigSchema>;
@@ -121,6 +133,7 @@ export const ENCRYPTED_FIELDS = [
   "twitterClientSecret",
   "linkedinClientSecret",
   "cloudinaryApiSecret",
+  "r2ChatSecretAccessKey",
 ] as const satisfies ReadonlyArray<keyof IntegrationConfig>;
 
 export type EncryptedField = (typeof ENCRYPTED_FIELDS)[number];
@@ -164,9 +177,13 @@ export const CONFIG_DEFAULTS = {
   cloudinaryApiKey: null,
   cloudinaryApiSecret: null,
   cloudinaryUploadFolder: null,
+  r2ChatAccountId: null,
+  r2ChatAccessKeyId: null,
+  r2ChatSecretAccessKey: null,
+  r2ChatBucketName: null,
 } as const satisfies Pick<
   IntegrationConfig,
-  "contactRecipientEmail" | "resendFromEmail" | "llmModelId" | "llmEnabledModels" | "llmCustomModels" | "gbrainUrl" | "gbrainAdminToken" | "twitterClientId" | "twitterClientSecret" | "twitterEnabled" | "linkedinClientId" | "linkedinClientSecret" | "linkedinEnabled" | "blueskyEnabled" | "cloudinaryCloudName" | "cloudinaryApiKey" | "cloudinaryApiSecret" | "cloudinaryUploadFolder"
+  "contactRecipientEmail" | "resendFromEmail" | "llmModelId" | "llmEnabledModels" | "llmCustomModels" | "gbrainUrl" | "gbrainAdminToken" | "twitterClientId" | "twitterClientSecret" | "twitterEnabled" | "linkedinClientId" | "linkedinClientSecret" | "linkedinEnabled" | "blueskyEnabled" | "cloudinaryCloudName" | "cloudinaryApiKey" | "cloudinaryApiSecret" | "cloudinaryUploadFolder" | "r2ChatAccountId" | "r2ChatAccessKeyId" | "r2ChatSecretAccessKey" | "r2ChatBucketName"
 >;
 
 // Storage shape inside site_setting.value for key='integration_secrets'.
@@ -218,6 +235,13 @@ export const StoredIntegrationConfigSchema = z.object({
   cloudinaryApiKey: z.string().min(1).nullish(),
   cloudinaryApiSecret: z.string().min(1).nullish(),
   cloudinaryUploadFolder: z.string().min(1).nullish(),
+
+  // Private Cloudflare R2 (Chat Attach Files). `.nullish()` so a blob written
+  // before these fields existed still parses (missing → undefined → null).
+  r2ChatAccountId: z.string().min(1).nullish(),
+  r2ChatAccessKeyId: z.string().min(1).nullish(),
+  r2ChatSecretAccessKey: z.string().min(1).nullish(),
+  r2ChatBucketName: z.string().min(1).nullish(),
 });
 
 export type StoredIntegrationConfig = z.infer<

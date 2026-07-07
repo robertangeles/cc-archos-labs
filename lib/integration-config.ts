@@ -196,6 +196,17 @@ function decryptAndValidate(rawValue: unknown): IntegrationConfig {
   if (decrypted.cloudinaryUploadFolder === undefined) {
     decrypted.cloudinaryUploadFolder = null;
   }
+  // R2 chat-documents plaintext fields (the secret is normalised in the
+  // encrypted loop above). undefined → null for pre-existing blobs.
+  if (decrypted.r2ChatAccountId === undefined) {
+    decrypted.r2ChatAccountId = null;
+  }
+  if (decrypted.r2ChatAccessKeyId === undefined) {
+    decrypted.r2ChatAccessKeyId = null;
+  }
+  if (decrypted.r2ChatBucketName === undefined) {
+    decrypted.r2ChatBucketName = null;
+  }
 
   const parsed = IntegrationConfigSchema.safeParse(decrypted);
   if (!parsed.success) {
@@ -254,6 +265,12 @@ function readFromEnv(): IntegrationConfig {
     cloudinaryApiKey: process.env.CLOUDINARY_API_KEY || null,
     cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || null,
     cloudinaryUploadFolder: process.env.CLOUDINARY_UPLOAD_FOLDER || null,
+    // R2 chat-documents env fallback. Account id reuses the existing R2_ACCOUNT_ID
+    // (same Cloudflare account); the rest use dedicated R2_CHAT_* vars.
+    r2ChatAccountId: process.env.R2_ACCOUNT_ID || null,
+    r2ChatAccessKeyId: process.env.R2_CHAT_ACCESS_KEY_ID || null,
+    r2ChatSecretAccessKey: process.env.R2_CHAT_SECRET_ACCESS_KEY || null,
+    r2ChatBucketName: process.env.R2_CHAT_BUCKET || null,
   };
 
   const parsed = IntegrationConfigSchema.safeParse(config);
@@ -415,6 +432,10 @@ export async function migrateEnvToDB(): Promise<{
     cloudinaryApiKey: process.env.CLOUDINARY_API_KEY ?? null,
     cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET ?? null,
     cloudinaryUploadFolder: process.env.CLOUDINARY_UPLOAD_FOLDER ?? null,
+    r2ChatAccountId: process.env.R2_ACCOUNT_ID ?? null,
+    r2ChatAccessKeyId: process.env.R2_CHAT_ACCESS_KEY_ID ?? null,
+    r2ChatSecretAccessKey: process.env.R2_CHAT_SECRET_ACCESS_KEY ?? null,
+    r2ChatBucketName: process.env.R2_CHAT_BUCKET ?? null,
   };
 
   const written: Array<keyof IntegrationConfig> = [];
@@ -614,6 +635,10 @@ export async function getIntegrationConfigRedacted(): Promise<{
   cloudinaryApiKey: string | null;
   cloudinaryApiSecret: string;
   cloudinaryUploadFolder: string | null;
+  r2ChatAccountId: string | null;
+  r2ChatAccessKeyId: string | null;
+  r2ChatSecretAccessKey: string;
+  r2ChatBucketName: string | null;
 }> {
   const config = await getIntegrationConfig();
   return {
@@ -642,6 +667,10 @@ export async function getIntegrationConfigRedacted(): Promise<{
     cloudinaryApiKey: config.cloudinaryApiKey,
     cloudinaryApiSecret: redactSecret(config.cloudinaryApiSecret ?? ""),
     cloudinaryUploadFolder: config.cloudinaryUploadFolder,
+    r2ChatAccountId: config.r2ChatAccountId,
+    r2ChatAccessKeyId: config.r2ChatAccessKeyId,
+    r2ChatSecretAccessKey: redactSecret(config.r2ChatSecretAccessKey ?? ""),
+    r2ChatBucketName: config.r2ChatBucketName,
   };
 }
 
