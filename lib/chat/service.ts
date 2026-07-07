@@ -5,7 +5,9 @@ import {
   conversation,
   message,
   conversationShare,
+  conversationDocument,
 } from "../db/schema";
+import { cleanupConversationDocuments } from "./attachments/service";
 
 const MESSAGE_PAGE_SIZE = 100;
 
@@ -120,9 +122,24 @@ export async function deleteConversation(
 
   if (!existing) return false;
 
+  // Capture attached document ids BEFORE the delete — the row cascade removes
+  // the conversation_document join rows but cannot delete the R2 objects, and
+  // documents cascade from users (not from conversation). Without this, every
+  // deleted conversation orphans confidential bytes (OV #1).
+  const attached = await db
+    .select({ documentId: conversationDocument.documentId })
+    .from(conversationDocument)
+    .where(eq(conversationDocument.conversationId, conversationId));
+
   await db
     .delete(conversation)
     .where(eq(conversation.id, conversationId));
+
+  await cleanupConversationDocuments(
+    conversationId,
+    userId,
+    attached.map((a) => a.documentId),
+  );
   return true;
 }
 
