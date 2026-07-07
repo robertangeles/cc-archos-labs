@@ -10,6 +10,9 @@ import { getEnabledRules } from "../rules/service";
 import { vectorSearch } from "../knowledge/search";
 import { recallMemories, formatRecallContext } from "../brain/recall";
 import { extractMemories } from "../brain/extract";
+import { loadConversationDocuments } from "./attachments/service";
+import { getModelContextWindow, fitContext } from "./attachments/budget";
+import { logAttachmentEvent } from "./attachments/observability";
 
 interface StreamMessageArgs {
   conversationId: string;
@@ -75,11 +78,54 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     : "";
 
   const systemParts = [corePrompt, brainContext, ragContext, args.systemPrompt ?? "", rulesBlock].filter(Boolean);
-  const systemMessage = systemParts.length > 0
-    ? [{ role: "system" as const, content: systemParts.join("\n\n") }]
+  const systemText = systemParts.join("\n\n");
+
+  // Attached documents (Attach Files). Graceful degrade: a missing table (deploy
+  // before PROD migrate) or a DB blip must NEVER abort the stream — mirror how
+  // ragContext/brainContext fail soft above.
+  let attachedDocs: Array<{ fileName: string; extractedText: string }> = [];
+  try {
+    attachedDocs = await loadConversationDocuments(
+      args.conversationId,
+      args.userId,
+    );
+  } catch {
+    // No attachments on failure — chat continues normally.
+  }
+
+  const historyRaw = await loadConversationHistory(
+    args.conversationId,
+    args.userId,
+  );
+
+  // Fit system + attachments + history inside the CONFIGURED model's window
+  // (total-overflow guard). Trims oldest history and omits low-priority docs.
+  const modelWindow = await getModelContextWindow(modelId);
+  const fit = fitContext({
+    windowTokens: modelWindow,
+    systemText,
+    attachments: attachedDocs,
+    history: historyRaw,
+  });
+  if (fit.omittedDocNames.length > 0) {
+    logAttachmentEvent({
+      event: "budget_omitted",
+      conversationId: args.conversationId,
+      userId: args.userId,
+      omittedCount: fit.omittedDocNames.length,
+    });
+  }
+
+  const finalSystemContent = fit.attachmentBlock
+    ? systemText
+      ? `${systemText}\n\n${fit.attachmentBlock}`
+      : fit.attachmentBlock
+    : systemText;
+  const systemMessage = finalSystemContent
+    ? [{ role: "system" as const, content: finalSystemContent }]
     : [];
 
-  const priorMessages = await loadConversationHistory(args.conversationId, args.userId);
+  const priorMessages = fit.history;
 
   // Web search mode: use Responses API for url_citation annotations
   if (args.webSearch) {
