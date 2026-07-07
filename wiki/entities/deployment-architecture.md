@@ -2,8 +2,8 @@
 title: Deployment architecture
 category: entity
 created: 2026-05-20
-updated: 2026-06-29
-related: [[2026-05-08-render-postgres-over-neon]], [[integration-config]], [[index]], [[state]]
+updated: 2026-07-07
+related: [[2026-05-08-render-postgres-over-neon]], [[integration-config]], [[index]], [[state]], [[chat-attach-files]]
 ---
 
 The runtime topology of Archos Labs.
@@ -81,6 +81,18 @@ specialist exams work for live users. Same manual posture as the org migration:
 - **Smoke (live, authenticated):** generated a 20-question Data Quality specialist exam on production — Q1 came back tagged "Chapter 13 — Data Quality" with a well-formed 5-option SPC scenario. Supply cap worked (100-question option disabled; pool max = min(100, 43×2)=86). Fundamentals live-generation was NOT re-tested (additive-only change, embeddings untouched, DEV-verified) — low risk.
 - **Backup:** `~/archos_prod_backup_20260629-182053.dump` (23 MB, custom format).
 - DEV↔PROD schema in sync at 0030. Related: [[2026-06-02-cdmp-sequential-generation-slow]].
+
+## 2026-07-07 — Attach Files: PROD migrated to 0031 + R2 chat integration
+
+Brought PROD to migration `0031` for the chat Attach Files feature (see
+[[chat-attach-files]]). Same manual posture: `pg_dump` backup →
+`DATABASE_URL="<PROD>" node scripts/db-apply.mjs`.
+
+- **Pre-flight:** PROD's `__drizzle_applied` was at `0030` (in sync with DEV), so the one run applied only `0031` — 2 new tables (`document`, `conversation_document`), 5 indexes, all `CREATE … IF NOT EXISTS` with inline FKs. Additive-only; touches nothing existing. (Unlike the 2026-06-29 CDMP run, PROD was NOT lagging this time — but the `__drizzle_applied` check was still run first per that lesson.)
+- **Verified:** both tables present in PROD, 7 indexes, 12 columns on `document`.
+- **R2 secrets are per-env — NOT migrated.** The new "Chat Documents (Cloudflare R2)" integration was configured **separately in the PROD admin panel**. Integration secrets live in `site_setting.integration_secrets`, AES-GCM-encrypted with the env-rooted master key, and are NOT copied DEV→PROD — **schema migrates, data (incl. secrets) does not.** Same private bucket (`archos-labs-chat-docs`) + bucket-scoped token as DEV; PROD "Test R2 storage" green. (This is the general rule, not a one-off: the whole point of the encrypted per-env store is that each environment is configured once.)
+- **Backup:** `~/archos-prod-backup-before-0031-20260707-181056.dump` (23 MB, custom format).
+- DEV↔PROD schema in sync at `0031`. Related: [[chat-attach-files]].
 
 ## Other services on the same posture
 

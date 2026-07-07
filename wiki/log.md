@@ -1579,3 +1579,15 @@ Built and shipped the per-step **Regenerate** feature end to end via the full pl
 - **Cleanup (this entry)** — retired the dead `rerunStepSchema` (superseded by the server-rebuild approach), and updated the wiki: [[workflow-run-history]] (replay is no longer read-only) + new [[workflow-step-regeneration]] concept page.
 - **Deploy:** Render auto-deployed all three merges; no DB migration (JSONB reuse). Both new routes return 401 on `archoslabs.xyz` — live in PROD.
 - **Deferred (org-migration-tied):** undo of `replacedOutput`, prompt-edit version history, multi-user regeneration locking.
+
+## 2026-07-07 — Chat Attach Files v1 (shipped, live in PROD)
+
+Built and shipped **Attach Files** in the Metis chat end to end via the full plan pipeline: `/plan-ceo-review` (with `/office-hours` run inline first — no design doc existed) → `/plan-eng-review` → `/plan-design-review`, then implementation, live smoke test, `pr-reviewer` gate, ship, and PROD migration. New page: [[chat-attach-files]].
+
+- **The wedge:** attach a text-extractable doc (pdf/txt/md/docx); its text is injected into the conversation as context. Full-text injection (not RAG) is the right default for the single-doc case — RAG is the later scale path. Images/scans are a deferred fast-follow (separate vision pipeline).
+- **Storage:** a **private** Cloudflare R2 bucket (`archos-labs-chat-docs`) wired through a NEW DB-backed admin integration ("Chat Documents (Cloudflare R2)") — matches the Cloudinary precedent, encrypted at rest, NOT env vars. The existing `lib/r2.ts` + `lib/cloudinary.ts` helpers were unusable as-is (public-URL only); built `lib/r2-chat-documents.ts` + an authz'd streaming proxy (never a public URL).
+- **Two outside-voice passes earned their keep:** caught (1) a total-context-budget overflow the section reviews missed (added `lib/chat/attachments/budget.ts` reading the model's real `context_length` from OpenRouter), (2) confidential-byte orphans on conversation-delete + account-delete (Postgres can't delete R2 objects), and (3) a deploy-before-migrate whole-chat-outage risk (graceful-degrade the injection load). The `pr-reviewer` gate then caught a filename prompt-injection into the `<attached_documents>` block (sanitized + regression-tested).
+- **PR #183** — schema (`document` + `conversation_document`, migration `0031`), storage integration, extraction (+15s timeout, scanned-detect), budget guard, 4 routes, `stream.ts` injection, UI (paperclip → chips), tests. `pr-reviewer` review gate + green CI, merged.
+- **Verified:** `tsc`/`eslint` clean, full suite 1187/1187, and a live DEV smoke test (attached a doc, the model returned all distinctive facts from it).
+- **PROD:** migration `0031` applied to PROD (backup first, per [[deployment-architecture]]); the R2 integration configured separately in the PROD panel (secrets are per-env — **schema migrates, data does not**). PROD "Test R2 storage" green.
+- **Deferred (PR2 / fast-follow):** drag/paste (E1), extraction preview (E2), in-tab doc preview (E3), a11y polish (F4); images/scans (vision); reuse-across-conversations picker; prompt caching (needs a systemParts reorder to actually cache).
