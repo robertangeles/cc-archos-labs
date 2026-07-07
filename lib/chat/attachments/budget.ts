@@ -74,8 +74,14 @@ export interface FitResult {
   history: HistoryMsg[];
 }
 
+// Strip characters that could break the --- header line or escape the
+// <attached_documents> block via structural injection through a crafted filename.
+function sanitizeDocName(name: string): string {
+  return name.replace(/[\r\n<>]/g, " ").slice(0, 255) || "document";
+}
+
 function wrapDoc(doc: AttachmentInput): string {
-  return `--- ${doc.fileName} ---\n${doc.extractedText}`;
+  return `--- ${sanitizeDocName(doc.fileName)} ---\n${doc.extractedText}`;
 }
 
 /**
@@ -118,7 +124,7 @@ export function fitContext(params: {
     const parts = kept.map(wrapDoc);
     if (omitted.length > 0) {
       parts.push(
-        `Note: ${omitted.join(", ")} was not included due to context limits.`,
+        `Note: ${omitted.map(sanitizeDocName).join(", ")} was not included due to context limits.`,
       );
     }
     attachmentBlock =
