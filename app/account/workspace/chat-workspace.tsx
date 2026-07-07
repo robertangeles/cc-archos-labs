@@ -80,6 +80,10 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
   const [publishContent, setPublishContent] = useState<string | null>(null);
   const [connectedPlatforms, setConnectedPlatforms] = useState<SocialPlatform[]>([]);
   const [attachments, setAttachments] = useState<AttachedFile[]>([]);
+  // When attaching creates the conversation, its first attachments-load is a
+  // pointless empty fetch that races the in-flight upload. Skip exactly that one
+  // load (consume-once); genuine conversation switches still reload from server.
+  const skipAttachLoadRef = useRef<string | null>(null);
 
   useEffect(() => {
     Promise.all(
@@ -129,6 +133,12 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
   const activeConversationId = activeConversation?.id ?? null;
   useEffect(() => {
     if (!activeConversationId) return;
+    // Skip the racing first-load for a conversation we just created via attach —
+    // the client is authoritative for it; the server has nothing to add yet.
+    if (skipAttachLoadRef.current === activeConversationId) {
+      skipAttachLoadRef.current = null;
+      return;
+    }
     let cancelled = false;
     fetch(`/api/chat/conversations/${activeConversationId}/attachments`, {
       credentials: "same-origin",
@@ -138,13 +148,20 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
         if (cancelled) return;
         const list =
           data?.ok && Array.isArray(data.attachments)
-            ? (data.attachments as Array<{ id: string; fileName: string }>).map(
-                (a) => ({
-                  id: a.id,
-                  fileName: a.fileName,
-                  status: "ready" as const,
-                }),
-              )
+            ? (
+                data.attachments as Array<{
+                  id: string;
+                  fileName: string;
+                  charCount?: number;
+                  snippet?: string | null;
+                }>
+              ).map((a) => ({
+                id: a.id,
+                fileName: a.fileName,
+                status: "ready" as const,
+                charCount: a.charCount,
+                snippet: a.snippet ?? undefined,
+              }))
             : [];
         setAttachments(list);
       })
@@ -155,15 +172,21 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
   }, [activeConversationId]);
 
   async function handleAttachFiles(files: FileList) {
+    // Snapshot the files BEFORE any await: the <input> is cleared (value = "")
+    // synchronously after onChange, which empties the LIVE FileList — so reading
+    // it after `await newChat()` would find zero files (fresh-conversation bug).
+    const fileArr = Array.from(files);
     // Attaching starts a conversation if there isn't one yet (like sending does).
     let convoId = activeConversation?.id ?? null;
     if (!convoId) {
       const created = await newChat();
       convoId = created?.id ?? null;
+      // Suppress the racing empty attachments-load for this new conversation.
+      if (convoId) skipAttachLoadRef.current = convoId;
     }
     if (!convoId) return;
 
-    for (const file of Array.from(files)) {
+    for (const file of fileArr) {
       const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       setAttachments((prev) => [
         ...prev,
@@ -185,6 +208,9 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
                     id: data.document.id as string,
                     fileName: data.document.fileName as string,
                     status: "ready" as const,
+                    charCount: data.document.charCount as number | undefined,
+                    snippet:
+                      (data.document.snippet as string | undefined) ?? undefined,
                   }
                 : a,
             ),
