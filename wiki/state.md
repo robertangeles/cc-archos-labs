@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-07T04:12:32.749Z
+generated: 2026-07-07T12:39:18.032Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -287,7 +287,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/blog/toc.tsx](../components/blog/toc.tsx) | 2026-05-20 |
 | [components/booking/calendar-picker.tsx](../components/booking/calendar-picker.tsx) | 2026-05-17 |
 | [components/chat/chat-empty-state.tsx](../components/chat/chat-empty-state.tsx) | 2026-06-08 |
-| [components/chat/chat-input.tsx](../components/chat/chat-input.tsx) | 2026-06-10 |
+| [components/chat/chat-input.tsx](../components/chat/chat-input.tsx) | 2026-07-07 |
 | [components/chat/chat-message.tsx](../components/chat/chat-message.tsx) | 2026-06-14 |
 | [components/chat/chat-model-picker.tsx](../components/chat/chat-model-picker.tsx) | 2026-06-09 |
 | [components/chat/chat-sidebar.tsx](../components/chat/chat-sidebar.tsx) | 2026-06-15 |

@@ -195,6 +195,9 @@ export async function listAttachments(userId: string, conversationId: string) {
       fileType: document.fileType,
       byteSize: document.byteSize,
       charCount: document.charCount,
+      // First ~300 chars of the extracted text for the E2 preview tooltip
+      // (SQL-side slice — never load the full text just to preview it).
+      snippet: sql<string | null>`left(${document.extractedText}, 300)`,
       status: document.status,
       createdAt: document.createdAt,
     })

@@ -1,16 +1,31 @@
 "use client";
 
-import { useRef, useEffect, useState, KeyboardEvent, type ReactNode } from "react";
+import {
+  useRef,
+  useEffect,
+  useState,
+  type KeyboardEvent,
+  type DragEvent,
+  type ClipboardEvent,
+  type ReactNode,
+} from "react";
 import { ArrowUp, Plus, Search, Globe, Image as ImageIcon, X, Paperclip, Check, FileText, Loader2, AlertCircle } from "lucide-react";
 import { CHAT_MODE_CONFIG, type ChatMode } from "@/lib/chat/modes";
 
 // One attached document as the input renders it. `id` is a temporary client id
-// while uploading, then the real document id once ready.
+// while uploading, then the real document id once ready. charCount + snippet
+// (present once ready) power the extraction preview.
 export interface AttachedFile {
   id: string;
   fileName: string;
   status: "uploading" | "ready" | "error";
   error?: string;
+  charCount?: number;
+  snippet?: string;
+}
+
+function formatCount(n: number): string {
+  return n >= 1000 ? `${(n / 1000).toFixed(1)}k chars` : `${n} chars`;
 }
 
 interface ChatInputProps {
@@ -51,7 +66,31 @@ export function ChatInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const toolsRef = useRef<HTMLDivElement>(null);
+
+  // E1: drag-and-drop + paste-to-attach, routed to the same upload path.
+  function handleDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files?.length) onAttachFiles?.(e.dataTransfer.files);
+  }
+  function handleDragOver(e: DragEvent<HTMLDivElement>) {
+    if (e.dataTransfer.types.includes("Files")) {
+      e.preventDefault();
+      setIsDragging(true);
+    }
+  }
+  function handleDragLeave(e: DragEvent<HTMLDivElement>) {
+    if (e.currentTarget === e.target) setIsDragging(false);
+  }
+  function handlePaste(e: ClipboardEvent<HTMLTextAreaElement>) {
+    const files = e.clipboardData?.files;
+    if (files?.length && Array.from(files).some((f) => f.size > 0)) {
+      e.preventDefault();
+      onAttachFiles?.(files);
+    }
+  }
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -84,12 +123,33 @@ export function ChatInput({
   const canSend = !disabled && value.trim().length > 0;
 
   return (
-    <div className="rounded-xl border border-hairline bg-surface-1 transition-colors focus-within:border-primary/50">
+    <div
+      className={`relative rounded-xl border bg-surface-1 transition-colors ${
+        isDragging
+          ? "border-primary/70"
+          : "border-hairline focus-within:border-primary/50"
+      }`}
+      onDrop={onAttachFiles ? handleDrop : undefined}
+      onDragOver={onAttachFiles ? handleDragOver : undefined}
+      onDragLeave={onAttachFiles ? handleDragLeave : undefined}
+    >
+      {isDragging && (
+        <div
+          className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-surface-1/90"
+          aria-hidden="true"
+        >
+          <div className="flex items-center gap-2 text-[13px] font-medium text-ink-muted">
+            <Paperclip className="h-4 w-4" />
+            Drop to attach
+          </div>
+        </div>
+      )}
       <textarea
         ref={textareaRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
+        onPaste={onAttachFiles ? handlePaste : undefined}
         placeholder={placeholder}
         disabled={disabled}
         rows={1}
@@ -126,12 +186,12 @@ export function ChatInput({
         <ul
           className="flex flex-wrap gap-1.5 px-3 pb-1.5"
           aria-label="Attached documents"
+          aria-live="polite"
         >
           {attachments.map((att) => (
             <li
               key={att.id}
               className="flex items-center gap-1.5 rounded-md border border-hairline bg-surface-2 px-2 py-1 text-[12px] text-ink-muted"
-              title={att.status === "error" ? att.error : att.fileName}
             >
               {att.status === "uploading" ? (
                 <Loader2 className="h-3 w-3 shrink-0 animate-spin text-ink-subtle" />
@@ -140,13 +200,44 @@ export function ChatInput({
               ) : (
                 <FileText className="h-3 w-3 shrink-0 text-ink-subtle" />
               )}
-              <span className="max-w-[180px] truncate">
-                {att.status === "error" ? (att.error ?? att.fileName) : att.fileName}
-              </span>
+              {att.status === "ready" ? (
+                // E3: open the document in a new tab via the authz'd proxy.
+                // E2: the extracted-text snippet + char count on hover.
+                <button
+                  type="button"
+                  onClick={() =>
+                    window.open(
+                      `/api/chat/documents/${att.id}/file`,
+                      "_blank",
+                      "noopener,noreferrer",
+                    )
+                  }
+                  title={
+                    att.snippet
+                      ? `Preview: ${att.snippet}${att.snippet.length >= 300 ? "…" : ""}`
+                      : "Open document"
+                  }
+                  className="flex max-w-[220px] items-center gap-1 truncate rounded text-ink-muted hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/60"
+                >
+                  <span className="truncate">{att.fileName}</span>
+                  {att.charCount != null && (
+                    <span className="shrink-0 text-ink-subtle">
+                      · {formatCount(att.charCount)}
+                    </span>
+                  )}
+                </button>
+              ) : (
+                <span
+                  className="max-w-[220px] truncate"
+                  title={att.status === "error" ? att.error : att.fileName}
+                >
+                  {att.status === "error" ? (att.error ?? att.fileName) : att.fileName}
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => onRemoveAttachment?.(att.id)}
-                className="ml-0.5 rounded-full p-0.5 text-ink-tertiary transition-colors hover:bg-white/10 hover:text-ink-subtle"
+                className="ml-0.5 rounded-full p-0.5 text-ink-tertiary transition-colors hover:bg-white/10 hover:text-ink-subtle focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/60"
                 aria-label={`Remove ${att.fileName}`}
               >
                 <X className="h-3 w-3" />
@@ -175,7 +266,7 @@ export function ChatInput({
           type="button"
           title="Attach files"
           aria-label="Attach files"
-          className="flex h-7 w-7 items-center justify-center rounded-md text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink-subtle"
+          className="flex h-7 w-7 items-center justify-center rounded-md text-ink-tertiary transition-colors hover:bg-surface-2 hover:text-ink-subtle focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/60"
           onClick={() => fileInputRef.current?.click()}
         >
           <Paperclip className="h-4 w-4" />

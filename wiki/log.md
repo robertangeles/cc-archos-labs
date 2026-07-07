@@ -2,11 +2,19 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-06-17
+updated: 2026-07-07
 related:
 ---
 
 Append-only log of sessions. Newest entry at the top.
+
+## 2026-07-07 — Chat Attach Files PR2: UI enhancements + two race fixes
+
+Shipped the PR2 enhancement set on `feature/chat-attach-files-ui`: drag-and-drop + paste-to-attach with a "Drop to attach" overlay (E1), a char-count + text-snippet trust preview on ready chips (E2, `listAttachments` now returns a SQL-side `left(extracted_text, 300)` snippet), click-the-filename to open the doc in a new tab via the authz'd proxy (E3), and a11y polish — `aria-live` chip list + focus-visible rings (F4). Files: `components/chat/chat-input.tsx`, `app/account/workspace/chat-workspace.tsx`, `lib/chat/attachments/service.ts`.
+
+Added a Playwright E2E (`tests/e2e/chat-attach-files.spec.ts` + fixture) that registers a fresh user and asserts the ready chip. It surfaced **two latent races from PR1** that only fire when attaching to a *brand-new* conversation (the manual PR1 smoke test used an existing one): (1) reading the live `input.files` FileList after `await newChat()` — the input clears `value=""` and empties it → snapshot before the await; (2) the just-created conversation's empty attachments-load raced + clobbered the optimistic chip → consume-once `skipAttachLoadRef`. Fix verified by running the E2E 3× consecutively (green each time). Full lesson: [[2026-07-07-attach-fresh-conversation-races]].
+
+Verification: `tsc` + `eslint` clean; unit suite 1188/1188 green. (Local register endpoint hit its 5/IP/hr cap during the debug loop, so the fix was re-verified via login; the committed E2E stays register-based/self-contained.)
 
 ## 2026-06-17 — Scheduled social posts: editable content + confirmed hard delete
 
