@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Menu } from "lucide-react";
 import { useChat } from "@/hooks/use-chat";
 import { ChatMessage } from "@/components/chat/chat-message";
-import { ChatInput } from "@/components/chat/chat-input";
+import { ChatInput, type AttachedFile } from "@/components/chat/chat-input";
 import { ChatEmptyState } from "@/components/chat/chat-empty-state";
 import { ChatSidebar } from "@/components/chat/chat-sidebar";
 import { ChatSkillForm } from "@/components/chat/chat-skill-form";
@@ -50,6 +50,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
     refreshConversations,
     loadConversation,
     loadMore,
+    newChat,
     sendMessage,
     deleteConversation,
     clearActive,
@@ -78,6 +79,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
   const [brainProvisioned, setBrainProvisioned] = useState(false);
   const [publishContent, setPublishContent] = useState<string | null>(null);
   const [connectedPlatforms, setConnectedPlatforms] = useState<SocialPlatform[]>([]);
+  const [attachments, setAttachments] = useState<AttachedFile[]>([]);
 
   useEffect(() => {
     Promise.all(
@@ -122,6 +124,108 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingContent]);
+
+  // Load the active conversation's attached documents; clear on new chat.
+  const activeConversationId = activeConversation?.id ?? null;
+  useEffect(() => {
+    if (!activeConversationId) return;
+    let cancelled = false;
+    fetch(`/api/chat/conversations/${activeConversationId}/attachments`, {
+      credentials: "same-origin",
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        const list =
+          data?.ok && Array.isArray(data.attachments)
+            ? (data.attachments as Array<{ id: string; fileName: string }>).map(
+                (a) => ({
+                  id: a.id,
+                  fileName: a.fileName,
+                  status: "ready" as const,
+                }),
+              )
+            : [];
+        setAttachments(list);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [activeConversationId]);
+
+  async function handleAttachFiles(files: FileList) {
+    // Attaching starts a conversation if there isn't one yet (like sending does).
+    let convoId = activeConversation?.id ?? null;
+    if (!convoId) {
+      const created = await newChat();
+      convoId = created?.id ?? null;
+    }
+    if (!convoId) return;
+
+    for (const file of Array.from(files)) {
+      const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      setAttachments((prev) => [
+        ...prev,
+        { id: tempId, fileName: file.name, status: "uploading" },
+      ]);
+      try {
+        const form = new FormData();
+        form.append("file", file);
+        const res = await fetch(
+          `/api/chat/conversations/${convoId}/attachments`,
+          { method: "POST", body: form, credentials: "same-origin" },
+        );
+        const data = await res.json().catch(() => null);
+        if (res.ok && data?.ok && data.document) {
+          setAttachments((prev) =>
+            prev.map((a) =>
+              a.id === tempId
+                ? {
+                    id: data.document.id as string,
+                    fileName: data.document.fileName as string,
+                    status: "ready" as const,
+                  }
+                : a,
+            ),
+          );
+        } else {
+          setAttachments((prev) =>
+            prev.map((a) =>
+              a.id === tempId
+                ? {
+                    ...a,
+                    status: "error" as const,
+                    error: (data?.error as string) ?? "Upload failed",
+                  }
+                : a,
+            ),
+          );
+        }
+      } catch {
+        setAttachments((prev) =>
+          prev.map((a) =>
+            a.id === tempId
+              ? { ...a, status: "error" as const, error: "Upload failed" }
+              : a,
+          ),
+        );
+      }
+    }
+  }
+
+  async function handleRemoveAttachment(id: string) {
+    const target = attachments.find((a) => a.id === id);
+    setAttachments((prev) => prev.filter((a) => a.id !== id));
+    const convoId = activeConversation?.id;
+    // Only ready docs (real ids) have a server row to delete.
+    if (target && target.status === "ready" && convoId) {
+      await fetch(`/api/chat/conversations/${convoId}/attachments/${id}`, {
+        method: "DELETE",
+        credentials: "same-origin",
+      }).catch(() => {});
+    }
+  }
 
   async function handleSend() {
     if (!input.trim() || isSending) return;
@@ -399,6 +503,9 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
               }
               activeMode={chatMode}
               onClearMode={() => setChatMode(null)}
+              attachments={activeConversationId ? attachments : []}
+              onAttachFiles={handleAttachFiles}
+              onRemoveAttachment={handleRemoveAttachment}
               onToolSelect={(tool) => {
                 if (tool === "generate-image") {
                   setChatMode("generate-image");

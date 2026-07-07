@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-07T00:21:34.410Z
+generated: 2026-07-07T04:12:32.749Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -167,12 +167,12 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/cdmp/start` | [app/api/cdmp/start/route.ts](../app/api/cdmp/start/route.ts) | 2026-06-29 |
 | `/api/chat/conversations` | [app/api/chat/conversations/route.ts](../app/api/chat/conversations/route.ts) | 2026-06-08 |
 | `/api/chat/conversations/[id]` | [app/api/chat/conversations/[id]/route.ts](../app/api/chat/conversations/[id]/route.ts) | 2026-06-08 |
-| `/api/chat/conversations/[id]/attachments` | [app/api/chat/conversations/[id]/attachments/route.ts](../app/api/chat/conversations/[id]/attachments/route.ts) | unknown |
-| `/api/chat/conversations/[id]/attachments/[documentId]` | [app/api/chat/conversations/[id]/attachments/[documentId]/route.ts](../app/api/chat/conversations/[id]/attachments/[documentId]/route.ts) | unknown |
+| `/api/chat/conversations/[id]/attachments` | [app/api/chat/conversations/[id]/attachments/route.ts](../app/api/chat/conversations/[id]/attachments/route.ts) | 2026-07-07 |
+| `/api/chat/conversations/[id]/attachments/[documentId]` | [app/api/chat/conversations/[id]/attachments/[documentId]/route.ts](../app/api/chat/conversations/[id]/attachments/[documentId]/route.ts) | 2026-07-07 |
 | `/api/chat/conversations/[id]/messages` | [app/api/chat/conversations/[id]/messages/route.ts](../app/api/chat/conversations/[id]/messages/route.ts) | 2026-06-09 |
 | `/api/chat/conversations/[id]/share` | [app/api/chat/conversations/[id]/share/route.ts](../app/api/chat/conversations/[id]/share/route.ts) | 2026-06-08 |
 | `/api/chat/conversations/search` | [app/api/chat/conversations/search/route.ts](../app/api/chat/conversations/search/route.ts) | 2026-06-08 |
-| `/api/chat/documents/[documentId]/file` | [app/api/chat/documents/[documentId]/file/route.ts](../app/api/chat/documents/[documentId]/file/route.ts) | unknown |
+| `/api/chat/documents/[documentId]/file` | [app/api/chat/documents/[documentId]/file/route.ts](../app/api/chat/documents/[documentId]/file/route.ts) | 2026-07-07 |
 | `/api/chat/image` | [app/api/chat/image/route.ts](../app/api/chat/image/route.ts) | 2026-06-09 |
 | `/api/chat/slash-command` | [app/api/chat/slash-command/route.ts](../app/api/chat/slash-command/route.ts) | 2026-06-08 |
 | `/api/clients` | [app/api/clients/route.ts](../app/api/clients/route.ts) | 2026-06-15 |
