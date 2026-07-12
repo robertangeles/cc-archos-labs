@@ -3,7 +3,7 @@ title: "Crawled – currently not indexed" is mostly domain trust, but hygiene b
 category: synthesis
 created: 2026-07-12
 updated: 2026-07-12
-related: [[seo-aieo-strategy]], [[report-generation-architecture]]
+related: [[2026-06-05-seo-crawl-budget-pagination-fix]], [[2026-05-21-sitemap-aieo-fixes]], [[translation-layer]]
 ---
 
 GSC "Crawled – currently not indexed" on a young domain is dominated by domain-authority/content-quality (Google's discretion, not a code error) — but several latent code gremlins were actively adding noise, and those we can fix.
