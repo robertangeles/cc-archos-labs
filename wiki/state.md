@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-12T06:37:26.030Z
+generated: 2026-07-12T07:08:24.484Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -81,7 +81,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-06-29 |
 | `/tools/cdmp-practice/history/[sessionId]` | [app/tools/cdmp-practice/history/[sessionId]/page.tsx](../app/tools/cdmp-practice/history/[sessionId]/page.tsx) | 2026-06-03 |
 | `/tools/cdmp-practice/specialist/[area]` | [app/tools/cdmp-practice/specialist/[area]/page.tsx](../app/tools/cdmp-practice/specialist/[area]/page.tsx) | 2026-06-29 |
-| `/workspace/model-studio` | [app/workspace/model-studio/page.tsx](../app/workspace/model-studio/page.tsx) | 2026-06-17 |
+| `/workspace/model-studio` | [app/workspace/model-studio/page.tsx](../app/workspace/model-studio/page.tsx) | 2026-07-12 |
 | `/workspace/model-studio/[id]` | [app/workspace/model-studio/[id]/page.tsx](../app/workspace/model-studio/[id]/page.tsx) | 2026-06-17 |
 
 ## API endpoints (177)

@@ -59,6 +59,11 @@ export default async function BlogIndexPage({
     listAllCategories(),
   ]);
 
+  // Out-of-range page (e.g. ?page=99) served HTTP 200 with an empty body —
+  // a soft 404 Google buckets as "Crawled – currently not indexed". Same fix
+  // as /blog/category/[slug]. Page 1 can't trip this (totalPages is >= 1).
+  if (page > totalPages) notFound();
+
   return (
     <main className="flex flex-1 flex-col bg-canvas">
       <div className="mx-auto w-full max-w-[1080px] px-6 pt-24 pb-32 md:px-12">

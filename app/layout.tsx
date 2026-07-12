@@ -9,6 +9,7 @@ import {
   getSiteSettings,
   getSiteUrl,
 } from "../lib/site-config";
+import { jsonLdScript } from "../lib/structured-data";
 import "./globals.css";
 
 // Geist Sans + Geist Mono — DESIGN.md §347 lists Geist Sans as a viable
@@ -91,11 +92,11 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col bg-canvas text-ink font-sans">
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
+          dangerouslySetInnerHTML={{ __html: jsonLdScript(orgSchema) }}
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+          dangerouslySetInnerHTML={{ __html: jsonLdScript(websiteSchema) }}
         />
         <SearchProvider>
           <Header
