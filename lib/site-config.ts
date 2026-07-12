@@ -117,6 +117,9 @@ export async function buildPageMetadata({
   const fullUrl = path
     ? `${siteUrl}${path.startsWith("/") ? path : `/${path}`}`
     : siteUrl;
+  // Pass a BRAND-FREE `title` (e.g. "Contact", not "Contact — Archos Labs").
+  // The site name is appended once here for OG/Twitter, and once by the root
+  // layout's title template for <title>. Embedding the brand doubles it.
   const effectiveTitle = title
     ? `${title} — ${settings.siteName}`
     : `${settings.siteName} — ${settings.tagline}`;

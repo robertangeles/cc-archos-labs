@@ -40,7 +40,8 @@ import { SOCIAL_LINKS } from "../../lib/social-links";
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
-    title: "Rob Angeles — Fractional Data Architect | Archos Labs",
+    // Brand-free: the layout template appends " — Archos Labs" (see app/page.tsx).
+    title: "Rob Angeles, Fractional Data Architect",
     description:
       "25 years of data architecture and AI delivery. Rob Angeles works with startups and SMBs as their fractional data person or on short-term gigs. No full-time hire needed. Melbourne, Australia.",
     path: "/about",
