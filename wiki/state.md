@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-12T06:32:12.305Z
+generated: 2026-07-12T06:37:26.030Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -13,13 +13,13 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 
 | Route | File | Last shipped |
 |-------|------|--------------|
-| `/` | [app/page.tsx](../app/page.tsx) | 2026-05-27 |
+| `/` | [app/page.tsx](../app/page.tsx) | 2026-07-12 |
 | `/(auth)/auth/password-reset/[token]` | [app/(auth)/auth/password-reset/[token]/page.tsx](../app/(auth)/auth/password-reset/[token]/page.tsx) | 2026-06-03 |
 | `/(auth)/forgot-password` | [app/(auth)/forgot-password/page.tsx](../app/(auth)/forgot-password/page.tsx) | 2026-06-03 |
 | `/(auth)/login` | [app/(auth)/login/page.tsx](../app/(auth)/login/page.tsx) | 2026-06-03 |
 | `/(auth)/register` | [app/(auth)/register/page.tsx](../app/(auth)/register/page.tsx) | 2026-06-03 |
 | `/[...slug]` | [app/[...slug]/page.tsx](../app/[...slug]/page.tsx) | 2026-05-18 |
-| `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-05-27 |
+| `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-07-12 |
 | `/account` | [app/account/page.tsx](../app/account/page.tsx) | 2026-06-07 |
 | `/account/brain` | [app/account/brain/page.tsx](../app/account/brain/page.tsx) | 2026-06-10 |
 | `/account/clients` | [app/account/clients/page.tsx](../app/account/clients/page.tsx) | 2026-06-15 |
@@ -69,7 +69,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/book/[slug]/confirmation/[bookingId]` | [app/book/[slug]/confirmation/[bookingId]/page.tsx](../app/book/[slug]/confirmation/[bookingId]/page.tsx) | 2026-05-17 |
 | `/book/manage/[token]` | [app/book/manage/[token]/page.tsx](../app/book/manage/[token]/page.tsx) | 2026-05-17 |
 | `/book/manage/[token]/reschedule` | [app/book/manage/[token]/reschedule/page.tsx](../app/book/manage/[token]/reschedule/page.tsx) | 2026-05-17 |
-| `/consulting` | [app/consulting/page.tsx](../app/consulting/page.tsx) | 2026-05-27 |
+| `/consulting` | [app/consulting/page.tsx](../app/consulting/page.tsx) | 2026-07-12 |
 | `/contact` | [app/contact/page.tsx](../app/contact/page.tsx) | 2026-05-22 |
 | `/search` | [app/search/page.tsx](../app/search/page.tsx) | 2026-06-14 |
 | `/share/chat/[token]` | [app/share/chat/[token]/page.tsx](../app/share/chat/[token]/page.tsx) | 2026-06-08 |

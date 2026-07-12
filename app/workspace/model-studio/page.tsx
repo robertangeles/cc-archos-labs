@@ -8,12 +8,14 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return buildPageMetadata({
+  const meta = await buildPageMetadata({
     title: "Model Studio",
     description:
       "A thinking surface for data architects — conceptual, logical, and physical layers, linked not duplicated.",
     path: "/workspace/model-studio",
   });
+  // Auth-gated app surface — never index (mirrors /account + report pages).
+  return { ...meta, robots: { index: false, follow: false } };
 }
 
 // /workspace has no shared layout (unlike /account), so this page guards auth
