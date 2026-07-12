@@ -10,7 +10,11 @@ import { buildLlmsTxt } from "../../lib/llms-txt";
 import { listAllPostsForFeeds } from "../../lib/posts";
 import { getSiteSettings, getSiteUrl } from "../../lib/site-config";
 
-export const dynamic = "force-dynamic";
+// ISR, not force-dynamic: the corpus changes on a days cadence, so serve a
+// cached copy and rebuild hourly instead of hitting the DB on every AI-bot
+// fetch. Mirrors app/blog/feed.xml. isBlogEnabled() fails closed, so a
+// DB-less CI build prerenders the 404 branch without crashing.
+export const revalidate = 3600;
 
 export async function GET() {
   const enabled = await isBlogEnabled();
