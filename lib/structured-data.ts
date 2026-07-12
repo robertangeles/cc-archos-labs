@@ -117,7 +117,7 @@ export function articleSchema(
     dateModified,
     inLanguage: "en-AU",
     wordCount: post.wordCount,
-    ...(post.ogImagePath
+    ...(post.ogImagePath && !post.ogImageDeletedAt
       ? {
           image: post.ogImagePath.startsWith("http")
             ? post.ogImagePath

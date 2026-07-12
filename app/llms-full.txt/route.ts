@@ -7,7 +7,11 @@ import { buildLlmsFullTxt } from "../../lib/llms-txt";
 import { listAllPostsForLlmsFull } from "../../lib/posts";
 import { getSiteSettings, getSiteUrl } from "../../lib/site-config";
 
-export const dynamic = "force-dynamic";
+// ISR, not force-dynamic: the header comment already promised hourly edge
+// caching, but force-dynamic defeated origin caching and hit the DB (full
+// post bodies) on every fetch. Mirrors app/blog/feed.xml. isBlogEnabled()
+// fails closed, so a DB-less CI build prerenders the 404 branch safely.
+export const revalidate = 3600;
 
 export async function GET() {
   const enabled = await isBlogEnabled();

@@ -39,7 +39,10 @@ export async function GET() {
     ];
     if (p.excerpt) {
       parts.push(
-        `      <description><![CDATA[${p.excerpt.replace(/&/g, "&amp;")}]]></description>`,
+        // Inside CDATA, `&` is literal — escaping it produced `&amp;amp;` in
+        // readers. The only sequence that must be escaped is `]]>`, which would
+        // close the CDATA block early.
+        `      <description><![CDATA[${p.excerpt.split("]]>").join("]]]]><![CDATA[>")}]]></description>`,
       );
     }
     if (p.publishedAt) {

@@ -32,8 +32,9 @@ import {
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
-    title:
-      "Archos Labs — Your Fractional Data Team | Startups & SMBs",
+    // Brand-free: buildPageMetadata appends " — Archos Labs" via the layout
+    // title template. Embedding the brand here doubled it in <title> and og:title.
+    title: "Your Fractional Data Team for Startups & SMBs",
     description:
       "No data team? Rob Angeles works with startup founders and SMBs as their fractional data person. Fixed-fee. No retainer. Melbourne, Australia.",
     path: "/",

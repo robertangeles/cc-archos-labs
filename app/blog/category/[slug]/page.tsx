@@ -69,6 +69,12 @@ export default async function CategoryPage({
     listAllCategories(),
   ]);
 
+  // Out-of-range page (e.g. ?page=6 when only 2 pages exist) is a soft 404:
+  // it served HTTP 200 with an empty "No posts" body, which Google buckets as
+  // "Crawled – currently not indexed". Return a real 404 so the crawler drops
+  // it. page 1 of a genuinely empty category is untouched (totalPages is >= 1).
+  if (page > totalPages) notFound();
+
   return (
     <main className="flex flex-1 flex-col bg-canvas">
       <div className="mx-auto w-full max-w-[1080px] px-6 pt-24 pb-32 md:px-12">

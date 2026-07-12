@@ -2,7 +2,7 @@
 title: Archos Labs HQ — Build Backlog
 category: synthesis
 created: 2026-05-07
-updated: 2026-06-17
+updated: 2026-07-12
 related: [[index]], [[log]], [[state]], [[shipped]], [[model-studio-canvas]], [[2026-05-08-phase2-ceo-review]], [[2026-05-20-translation-layer-public-render]], [[2026-05-20-phase-c-cutover]]
 ---
 
@@ -312,6 +312,7 @@ Not surfaced in the (future "Metis") workspace until the platform scope lands. T
 
 ## Tech debt
 
+- **▢ Public routes are `force-dynamic` → ISR migration (SEO crawl budget)** — every indexable route (`/blog/[slug]`, `/blog`, `/blog/category/[slug]`, `/[...slug]` CMS pages, and `/` `/about` `/consulting` via `?name=`) renders dynamically, so every Googlebot fetch is a cold DB round-trip; `/blog/[slug]` even has a vector-similarity "read next" query in the critical path. Slow TTFB throttles crawl on a young domain. Deferred from the 2026-07-12 SEO cleanup ([[2026-07-12-seo-crawl-not-indexed-hygiene]]) as its own PR because the fix isn't mechanical: (1) blog post/index/category → `revalidate` + `generateStaticParams`, **plus wire `revalidatePath` into the admin publish/save flow** or published content goes stale up to 1h (the `/blog` page comment already flags this as deferred "Phase D"); (2) CMS `/[...slug]` reads an auth cookie (`viewerIsAdmin`) for draft preview which forces dynamic — move preview to a token-gated URL; (3) home/about/consulting `?name=` personalization → extract to a `useSearchParams()` client component so the base page is static. Reference implementation already shipped: `app/sitemap.xml/route.ts` + `app/blog/feed.xml/route.ts` (ISR with `isBlogEnabled()` failing closed for DB-less CI builds). **Verify:** the four route groups render as `○ (Static)`/ISR in `pnpm build` output, a freshly-published post appears within seconds (not 1h) via on-demand revalidation, and admin preview still works.
 - **▢ Twitter content-length ceiling mismatch** ([issue #160](https://github.com/robertangeles/cc-archos-labs/issues/160)) — server (POST + PATCH on `scheduled`) validates Twitter against `PLATFORM_MAX_CHAR_LIMITS` (25 000) while the client enforces an X-Premium-aware `effectiveLimit` (280 / 25 000) and the publisher enforces nothing. A non-premium row of 281–25 000 chars persists and then fails at publish. Premium state is client-only, so the fix is system-wide (persist a per-post long-form flag, or tighten uniformly, plus a cron-side length guard). Surfaced by PR #159; out of scope there. **Verify:** a non-premium 300-char tweet is rejected at create/edit, or fails fast in cron with a clear message — not after 3 silent retries.
 
 ---

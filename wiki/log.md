@@ -1599,3 +1599,15 @@ Built and shipped **Attach Files** in the Metis chat end to end via the full pla
 - **Verified:** `tsc`/`eslint` clean, full suite 1187/1187, and a live DEV smoke test (attached a doc, the model returned all distinctive facts from it).
 - **PROD:** migration `0031` applied to PROD (backup first, per [[deployment-architecture]]); the R2 integration configured separately in the PROD panel (secrets are per-env — **schema migrates, data does not**). PROD "Test R2 storage" green.
 - **Deferred (PR2 / fast-follow):** drag/paste (E1), extraction preview (E2), in-tab doc preview (E3), a11y polish (F4); images/scans (vision); reuse-across-conversations picker; prompt caching (needs a systemParts reorder to actually cache).
+
+## 2026-07-12 — SEO "Crawled – currently not indexed" audit + hygiene fixes (branch, not yet merged)
+
+Investigated a GSC "Crawled – currently not indexed" report (~20 blog/category URLs, flat since mid-June). Root cause of the *bucket* is young-domain trust + AI-authored content cadence — a content/backlinks problem, not a code bug. But a 3-agent parallel audit (metadata/canonicals, rendering/crawl-budget, structured-data/feeds/dupes) surfaced real latent hygiene gremlins. Fixes shipped to branch `fix/seo-crawl-cleanup` (6 commits, build + tsc + lint green), each verified against the actual code before acting:
+
+- **Soft-404 → 404** on out-of-range `?page=N` for both `/blog/category/[slug]` and `/blog` (index had been missed).
+- **Title brand-doubling** on `/`, `/about`, `/consulting` (layout template + `effectiveTitle` both append the brand) — stripped embedded brand + documented the convention in `lib/site-config.ts`.
+- **`/llms.txt` + `/llms-full.txt` force-dynamic → ISR** (matched `feed.xml`).
+- **Layout JSON-LD** via `jsonLdScript()` not bare `JSON.stringify` (script-breakout/injection); **Article JSON-LD** image gated on `!ogImageDeletedAt`; **RSS excerpt** CDATA no longer double-escapes `&`.
+- **`/search` + `/workspace/model-studio` noindex** (`/search` was inheriting the homepage canonical).
+
+New lessons page: [[2026-07-12-seo-crawl-not-indexed-hygiene]]. **Three items deferred pending Rob's decision:** site-wide `force-dynamic` → ISR (biggest crawl-budget lever, needs `revalidatePath`-on-publish + preview-cookie refactor), unlisted-post indexability (SEO-strategy call), and the `/ai-readiness-assessment` vs `/tools/ai-readiness` duplicate-title collision.

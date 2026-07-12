@@ -34,8 +34,8 @@ import {
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
-    title:
-      "Consulting — Archos Labs | Fractional Data & AI for Startups",
+    // Brand-free: the layout template appends " — Archos Labs" (see app/page.tsx).
+    title: "Fractional Data & AI Consulting for Startups",
     description:
       "Fractional data leadership, short-term gigs, and AI readiness diagnostics for startups and SMBs. Fixed-fee. No retainer. Melbourne, Australia.",
     path: "/consulting",
