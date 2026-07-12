@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-12T07:08:24.484Z
+generated: 2026-07-12T07:48:38.968Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -62,7 +62,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/admin/blog/posts/[id]/preview` | [app/admin/blog/posts/[id]/preview/page.tsx](../app/admin/blog/posts/[id]/preview/page.tsx) | 2026-05-24 |
 | `/admin/login` | [app/admin/login/page.tsx](../app/admin/login/page.tsx) | 2026-05-15 |
 | `/ai-readiness-assessment` | [app/ai-readiness-assessment/page.tsx](../app/ai-readiness-assessment/page.tsx) | 2026-05-15 |
-| `/blog` | [app/blog/page.tsx](../app/blog/page.tsx) | 2026-06-05 |
+| `/blog` | [app/blog/page.tsx](../app/blog/page.tsx) | 2026-07-12 |
 | `/blog/[slug]` | [app/blog/[slug]/page.tsx](../app/blog/[slug]/page.tsx) | 2026-05-25 |
 | `/blog/category/[slug]` | [app/blog/category/[slug]/page.tsx](../app/blog/category/[slug]/page.tsx) | 2026-07-12 |
 | `/book/[slug]` | [app/book/[slug]/page.tsx](../app/book/[slug]/page.tsx) | 2026-05-22 |
