@@ -2,8 +2,8 @@
 // table, so no user experiences "Metis forgot me" at cutover.
 //
 // For each provisioned user (a user_brain row), this fetches their GBrain
-// pages over MCP, re-embeds each with the same OpenRouter model the live
-// recall path uses, and inserts them into user_memory.
+// pages over MCP, distills each page into clean atomic facts (extract +
+// consolidate, same as live capture), and stores those in user_memory.
 //
 //   Dry-run (default, writes nothing):
 //     node --env-file=.env.local --conditions=react-server --import tsx \
@@ -26,7 +26,7 @@ import { getDb } from "@/lib/db";
 import { userBrain, userMemory } from "@/lib/db/schema";
 import { getBrainToken } from "@/lib/brain/provision";
 import { callMcp } from "@/lib/brain/client";
-import { embedText } from "@/lib/embeddings";
+import { extractFacts, consolidateAndApply } from "@/lib/brain/distill";
 
 const APPLY = process.argv.includes("--apply");
 const FORCE = process.argv.includes("--force");
@@ -135,22 +135,17 @@ async function main() {
     for (const page of pages) {
       const body = page.body.slice(0, MAX_BODY_CHARS);
       if (!body.trim()) continue;
-      let embedding: number[];
       try {
-        embedding = await embedText(body);
+        // Distill each GBrain page into clean facts + consolidate, so
+        // migrated memories land in the new format — not as raw pages.
+        const facts = await extractFacts(body);
+        if (facts.length === 0) continue;
+        await consolidateAndApply(userId, facts, null);
+        memoriesMigrated += facts.length;
       } catch {
-        console.warn(`  embed failed — skipped one page for ${userId}`);
+        console.warn(`  distill failed — skipped one page for ${userId}`);
         embedFailures++;
-        continue;
       }
-      await db.insert(userMemory).values({
-        userId,
-        sourceType: "chat",
-        title: page.title,
-        body,
-        embedding,
-      });
-      memoriesMigrated++;
     }
     usersMigrated++;
   }
