@@ -1647,3 +1647,9 @@ Honesty flags from the research: mem0's famous ADD/UPDATE/DELETE/NOOP model did 
 Ran /plan-ceo-review then /plan-eng-review on the distillation layer (off [[conversational-memory-design]]). Locked spec: [[brain-distillation-layer]].
 
 Decisions: approach = extract + consolidate (not extract-only, not the full worker/decay build); mode = HOLD SCOPE; consolidation = batched Haiku LLM judge (insert/skip/replace) — the only option that supersedes conflicts (staleness = top failure mode in the research); timing = synchronous in the existing fire-and-forget path (no worker); deferred = decay/eviction, memory-type taxonomy, worker, graph DB. Schema: +`is_active`/`superseded_at`/`source_conversation_id` on `user_memory`, partial unique `(user_id, md5(body)) WHERE is_active` to kill the double-insert race. Effort ~1 day human / ~30–45 min CC on `feature/brain-distillation`. Independent of shipping the migration.
+
+## 2026-07-19 — Shipped: brain migration (#187) + built brain distillation layer
+
+Two-phase brain work. **Phase 1:** shipped the in-app pgvector backend (PR #187 merged) — flag-gated (`MEMORY_BACKEND`, default gbrain), CI green, pr-reviewer approved, plus a reviewer-flagged 10s recall budget fix. **Phase 2:** built the distillation layer on `feature/brain-distillation` (see [[2026-07-19-brain-distillation-layer]]).
+
+Distillation: capture = extract atomic facts (Haiku, user message only) → consolidate (embed → cosine neighbors → 1 Haiku judge → insert/skip/replace) → soft-delete supersede. Migration 0033 (`is_active`/`superseded_at`/`source_conversation_id` + partial index + `(user_id, md5(body))` unique guard). Verified: full suite 1218 green, tsc clean, live eval (clean facts, dedup, DMBOK→DCAM supersede, greetings ignored), Playwright e2e distilled + isolated through the real chat path. A unit test caught + fixed a fail-closed `parseFacts` bug.
