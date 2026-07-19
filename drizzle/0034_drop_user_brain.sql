@@ -1,3 +1,4 @@
+-- safety: verified against origin/main on 2026-07-19 by pr-reviewer
 -- Drop the legacy GBrain per-user OAuth table.
 --
 -- The external GBrain service is decommissioned; per-user chat memory now lives
