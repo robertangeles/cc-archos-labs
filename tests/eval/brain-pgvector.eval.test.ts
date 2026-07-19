@@ -68,24 +68,17 @@ describe("in-app pgvector brain (live)", () => {
     await captureToDb(
       userA,
       "We are migrating Westpac's customer data platform to a lakehouse this quarter",
-      "Understood — I'll remember your Westpac lakehouse migration.",
     );
-    await captureToDb(
-      userA,
-      "My name is Rob and I prefer concise, direct answers",
-      "Noted, Rob.",
-    );
+    await captureToDb(userA, "My name is Rob and I prefer concise, direct answers");
     await captureToDb(
       userB,
       "Our secret negotiated supplier rates are 40 percent below market",
-      "Understood.",
     );
 
-    // Status + listing reflect A's two memories.
+    // Status + listing reflect A's distilled facts (count varies by extraction).
     const statusA = await getMemoryStatusFromDb(userA);
     expect(statusA.hasMemory).toBe(true);
-    const listA = await listMemoriesFromDb(userA);
-    expect(listA).toHaveLength(2);
+    expect((await listMemoriesFromDb(userA)).length).toBeGreaterThan(0);
 
     // Recall — A asks about the Westpac project; the relevant memory surfaces.
     const recallA = await recallFromDb(
@@ -114,15 +107,17 @@ describe("in-app pgvector brain (live)", () => {
     if (!isLocalDev) return;
 
     const listA = await listMemoriesFromDb(userA);
+    const before = listA.length;
+    expect(before).toBeGreaterThan(0);
     const target = listA[0].id;
 
     // Cross-user delete is a no-op and leaves A's data intact.
     expect(await deleteMemoryFromDb(userB, target)).toBe(false);
-    expect(await listMemoriesFromDb(userA)).toHaveLength(2);
+    expect((await listMemoriesFromDb(userA)).length).toBe(before);
 
     // Owner delete works.
     expect(await deleteMemoryFromDb(userA, target)).toBe(true);
-    expect(await listMemoriesFromDb(userA)).toHaveLength(1);
+    expect((await listMemoriesFromDb(userA)).length).toBe(before - 1);
 
     // Bulk delete clears the rest.
     expect(await deleteAllMemoriesFromDb(userA)).toBeGreaterThan(0);
