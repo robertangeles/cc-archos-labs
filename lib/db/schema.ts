@@ -1471,6 +1471,66 @@ export const userMemoryRelations = relations(userMemory, ({ one }) => ({
 export type UserMemory = typeof userMemory.$inferSelect;
 export type NewUserMemory = typeof userMemory.$inferInsert;
 
+// Workspace memory (Phase 1 of workspace-memory). The ORG-scoped shared tier —
+// the counterpart to per-user user_memory. Workspace entities (projects,
+// clients, social posts, skills, kanban cards) are distilled into atomic facts
+// and embedded here so chat recall grounds in the whole org's book of work.
+// OLTP, 2NF; `embedding` is the documented pgvector exception.
+//
+// Unlike user_memory (tiny per-user slices → exact cosine scan, NO ANN index),
+// this shared tier spans many entities across a team, so it gets an HNSW ANN
+// index (declared in migration SQL — matches post.embedding). Recall filters by
+// organisation_id (the isolation boundary) + is_active.
+export const workspaceMemory = pgTable(
+  "workspace_memory",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id")
+      .notNull()
+      .references(() => organisation.id, { onDelete: "cascade" }),
+    // Which kind of entity this fact came from: 'project' | 'client' |
+    // 'social_post' | 'skill' | 'kanban_card' | ...
+    sourceType: text("source_type").notNull(),
+    // The source entity's id — soft reference (polymorphic across entity types,
+    // so no single FK). Used to supersede/deactivate an entity's facts on
+    // update/delete and to render E1 provenance.
+    sourceEntityId: uuid("source_entity_id"),
+    title: text("title"),
+    body: text("body").notNull(),
+    embedding: vector("embedding", { dimensions: 1024 }),
+    // Supersede-on-conflict, same as user_memory: a fact is soft-deleted, not
+    // removed, when a newer fact replaces it or its source entity is deleted.
+    isActive: boolean("is_active").notNull().default(true),
+    supersededAt: timestamp("superseded_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // FK-backed recall pre-filter: WHERE organisation_id = $1.
+    index("workspace_memory_org_id_idx").on(table.organisationId),
+    // Recall/list over LIVE facts only: WHERE organisation_id = $1 AND is_active.
+    index("workspace_memory_org_active_idx")
+      .on(table.organisationId)
+      .where(sql`is_active`),
+    // Ingest hook lookup: find an entity's facts to supersede/deactivate on
+    // source update/delete — WHERE source_type = $1 AND source_entity_id = $2.
+    index("workspace_memory_source_idx").on(
+      table.sourceType,
+      table.sourceEntityId,
+    ),
+    // HNSW ANN index + the partial UNIQUE (organisation_id, md5(body)) WHERE
+    // is_active dedup guard are expression/opclass indexes declared in the
+    // migration SQL — see drizzle/0035_workspace_memory.sql.
+  ],
+);
+
+export type WorkspaceMemory = typeof workspaceMemory.$inferSelect;
+export type NewWorkspaceMemory = typeof workspaceMemory.$inferInsert;
+
 export const post = pgTable(
   "post",
   {
