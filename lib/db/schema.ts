@@ -1528,6 +1528,13 @@ export const workspaceMemory = pgTable(
   ],
 );
 
+export const workspaceMemoryRelations = relations(workspaceMemory, ({ one }) => ({
+  organisation: one(organisation, {
+    fields: [workspaceMemory.organisationId],
+    references: [organisation.id],
+  }),
+}));
+
 export type WorkspaceMemory = typeof workspaceMemory.$inferSelect;
 export type NewWorkspaceMemory = typeof workspaceMemory.$inferInsert;
 
