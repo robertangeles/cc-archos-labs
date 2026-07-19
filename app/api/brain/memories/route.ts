@@ -3,6 +3,11 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { getBrainToken } from "@/lib/brain/provision";
 import { callMcp } from "@/lib/brain/client";
 import { rateLimit } from "@/lib/rate-limit";
+import {
+  memoryBackend,
+  listMemoriesFromDb,
+  deleteMemoryFromDb,
+} from "@/lib/brain/memory";
 
 export const runtime = "nodejs";
 
@@ -13,6 +18,20 @@ export async function GET() {
       { error: "Authentication required" },
       { status: 401 },
     );
+  }
+
+  if (memoryBackend() === "pgvector") {
+    const items = await listMemoriesFromDb(auth.user.id);
+    // `slug` mirrors the legacy GBrain contract the client already speaks —
+    // here it carries the row id, which DELETE uses to scope the delete.
+    return NextResponse.json({
+      memories: items.map((m) => ({
+        slug: m.id,
+        title: m.title,
+        content: m.content,
+        updatedAt: m.updatedAt,
+      })),
+    });
   }
 
   const token = await getBrainToken(auth.user.id);
@@ -81,6 +100,14 @@ export async function DELETE(request: Request) {
       { error: "Invalid slug" },
       { status: 400 },
     );
+  }
+
+  if (memoryBackend() === "pgvector") {
+    const deleted = await deleteMemoryFromDb(auth.user.id, slug);
+    if (!deleted) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    return NextResponse.json({ deleted: true });
   }
 
   const token = await getBrainToken(auth.user.id);

@@ -8,6 +8,8 @@ related: [[deployment-architecture]]
 
 How we gave every Archos Labs user a persistent AI brain — the architecture decisions, the failures, and what we learned.
 
+> **Superseded (2026-07-16):** the external-service architecture described here was retired once Render added pgvector support. Memory now lives in an in-app `user_memory` pgvector table — see [[2026-07-16-brain-inapp-pgvector-migration]]. The GBrain code path still ships behind the `MEMORY_BACKEND` flag until the follow-up decommission PR. This page is kept as the historical record of why the two-service design existed.
+
 ## The Problem
 
 The Archos Labs workspace chat was stateless. Every session started cold. A user who discussed their Westpac project last week started from zero this week. Rob, doing consulting delivery, lost context between client sessions. CDMP exam learners couldn't build on what they'd studied before.

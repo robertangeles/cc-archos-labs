@@ -1452,6 +1452,46 @@ export const userBrainRelations = relations(userBrain, ({ one }) => ({
   }),
 }));
 
+// ── In-app per-user chat memory (pgvector) ─────────────────────────
+// Replaces the external GBrain service. OLTP, 2NF: every non-key column
+// depends only on `id`. `embedding` is the documented pgvector exception.
+// Recall is an exact cosine scan over one user's slice — deliberately NO
+// ANN index (a tenant-filtered HNSW under-recalls; per-user slices are
+// small). The only index is the FK btree on user_id.
+export const userMemory = pgTable(
+  "user_memory",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sourceType: text("source_type").notNull().default("chat"),
+    title: text("title"),
+    body: text("body").notNull(),
+    embedding: vector("embedding", { dimensions: 1024 }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // Recall pre-filter + Brain-page listing: WHERE user_id = $1.
+    index("user_memory_user_id_idx").on(table.userId),
+  ],
+);
+
+export const userMemoryRelations = relations(userMemory, ({ one }) => ({
+  user: one(users, {
+    fields: [userMemory.userId],
+    references: [users.id],
+  }),
+}));
+
+export type UserMemory = typeof userMemory.$inferSelect;
+export type NewUserMemory = typeof userMemory.$inferInsert;
+
 export const post = pgTable(
   "post",
   {

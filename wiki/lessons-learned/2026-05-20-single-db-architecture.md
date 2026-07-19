@@ -24,7 +24,7 @@ PR #66 stripped the entire prod-target plumbing back to single-DB reality. Net d
 
 ## Fix
 
-**Read `wiki/entities/deployment-architecture.md` at the start of any session that involves the words "migration", "deploy", "environment", "staging", "prod cutover", "promote", or "release."** That page explicitly states the project is a single-environment, single-database setup. If the page disagrees with the assistant's assumed architecture, the page is right and the assumption is wrong.
+**Read `wiki/entities/deployment-architecture.md` at the start of any session that involves the words "migration", "deploy", "environment", "staging", "prod cutover", "promote", or "release."** That page is the source of truth for the *current* topology (as of 2026-06-15: two databases — local DEV + Render PROD, schema synced by hand; the single-DB setup this post-mortem describes is historical). The enduring rule is unchanged: if the page disagrees with the assistant's assumed architecture, the page is right and the assumption is wrong.
 
 When the user contradicts the assistant's mental model with an architectural statement (e.g. "DEV and PROD DB are the same", "we don't have staging", "X is already deployed"), treat that statement as the architecture rewriting itself. Do NOT try to fit the user's words into the existing assumed pattern. Do NOT escalate to defensive scaffolding that "supports" the conventional pattern. Stop, ask "tell me about the deployment topology", and update the mental model.
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { rateLimit } from "@/lib/rate-limit";
 import { warmBrain } from "@/lib/brain/warm";
+import { memoryBackend } from "@/lib/brain/memory";
 
 export const runtime = "nodejs";
 
@@ -27,6 +28,11 @@ export async function POST() {
   const limit = rateLimit(`brain-warm:${auth.user.id}`, WARM_PER_USER_PER_HOUR);
   if (!limit.ok) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+  }
+
+  // pgvector backend has no external cold start to warm — no-op success.
+  if (memoryBackend() === "pgvector") {
+    return NextResponse.json({ warmed: true });
   }
 
   await warmBrain(auth.user.id);

@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-12T07:48:38.968Z
+generated: 2026-07-19T02:24:23.426Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -75,7 +75,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/share/chat/[token]` | [app/share/chat/[token]/page.tsx](../app/share/chat/[token]/page.tsx) | 2026-06-08 |
 | `/sign-in` | [app/sign-in/page.tsx](../app/sign-in/page.tsx) | 2026-05-12 |
 | `/sign-in/check-email` | [app/sign-in/check-email/page.tsx](../app/sign-in/check-email/page.tsx) | 2026-05-15 |
-| `/tools/ai-readiness` | [app/tools/ai-readiness/page.tsx](../app/tools/ai-readiness/page.tsx) | 2026-06-03 |
+| `/tools/ai-readiness` | [app/tools/ai-readiness/page.tsx](../app/tools/ai-readiness/page.tsx) | 2026-07-12 |
 | `/tools/ai-readiness/report/[sessionId]` | [app/tools/ai-readiness/report/[sessionId]/page.tsx](../app/tools/ai-readiness/report/[sessionId]/page.tsx) | 2026-06-03 |
 | `/tools/ai-readiness/share/[token]` | [app/tools/ai-readiness/share/[token]/page.tsx](../app/tools/ai-readiness/share/[token]/page.tsx) | 2026-05-13 |
 | `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-06-29 |
@@ -154,11 +154,11 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/booking/cancel` | [app/api/booking/cancel/route.ts](../app/api/booking/cancel/route.ts) | 2026-05-17 |
 | `/api/booking/intake-followup` | [app/api/booking/intake-followup/route.ts](../app/api/booking/intake-followup/route.ts) | 2026-05-17 |
 | `/api/booking/reschedule` | [app/api/booking/reschedule/route.ts](../app/api/booking/reschedule/route.ts) | 2026-05-17 |
-| `/api/brain` | [app/api/brain/route.ts](../app/api/brain/route.ts) | 2026-06-10 |
-| `/api/brain/memories` | [app/api/brain/memories/route.ts](../app/api/brain/memories/route.ts) | 2026-06-10 |
-| `/api/brain/provision` | [app/api/brain/provision/route.ts](../app/api/brain/provision/route.ts) | 2026-06-23 |
-| `/api/brain/status` | [app/api/brain/status/route.ts](../app/api/brain/status/route.ts) | 2026-06-23 |
-| `/api/brain/warm` | [app/api/brain/warm/route.ts](../app/api/brain/warm/route.ts) | 2026-06-23 |
+| `/api/brain` | [app/api/brain/route.ts](../app/api/brain/route.ts) | 2026-07-19 |
+| `/api/brain/memories` | [app/api/brain/memories/route.ts](../app/api/brain/memories/route.ts) | 2026-07-19 |
+| `/api/brain/provision` | [app/api/brain/provision/route.ts](../app/api/brain/provision/route.ts) | 2026-07-19 |
+| `/api/brain/status` | [app/api/brain/status/route.ts](../app/api/brain/status/route.ts) | 2026-07-19 |
+| `/api/brain/warm` | [app/api/brain/warm/route.ts](../app/api/brain/warm/route.ts) | 2026-07-19 |
 | `/api/cdmp/answer` | [app/api/cdmp/answer/route.ts](../app/api/cdmp/answer/route.ts) | 2026-06-03 |
 | `/api/cdmp/complete` | [app/api/cdmp/complete/route.ts](../app/api/cdmp/complete/route.ts) | 2026-06-29 |
 | `/api/cdmp/flag` | [app/api/cdmp/flag/route.ts](../app/api/cdmp/flag/route.ts) | 2026-06-03 |

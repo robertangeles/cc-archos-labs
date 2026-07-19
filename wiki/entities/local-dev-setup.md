@@ -10,7 +10,7 @@ How to bring the Archos Labs app up for local development on a new machine. `.en
 
 ## Architecture reminder
 
-Single environment, single database — `.env.local` and Render point at the **same** prod Postgres ([[2026-05-20-single-db-architecture]]). There is no dev/staging DB. Running the app read-only locally is fine; any `db:migrate`/seed mutates **production data**.
+**Two databases** (since 2026-06-15): `.env.local` points at a **local DEV Postgres** (`archos_labs_dev`, `127.0.0.1`, PG18, no SSL); the Render runtime uses the separate **PROD** Render Postgres (`archos_labs_pdb`). Anything you run locally via `.env.local` (`db:migrate`, seeds, ad-hoc SQL) hits **DEV only** — it does NOT touch production. PROD is migrated separately by hand (`pg_dump` → `db-apply.mjs`). See [[deployment-architecture]].
 
 ## Steps
 

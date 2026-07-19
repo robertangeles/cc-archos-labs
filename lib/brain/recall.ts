@@ -1,6 +1,7 @@
 import { callMcp } from "./client";
 import { getBrainToken, getUserBrain, provisionBrain } from "./provision";
 import { getIntegrationConfig } from "@/lib/integration-config";
+import { memoryBackend, recallFromDb } from "./memory";
 
 export interface RecallResult {
   memories: string[];
@@ -20,6 +21,21 @@ export async function recallMemories(
   query: string,
 ): Promise<RecallResult> {
   const empty: RecallResult = { memories: [], source: "none", count: 0 };
+
+  // In-app pgvector backend (cutover flag). Delegates to a local DB scan,
+  // bounded to a recall budget so a hung embed API (embedText retries up to
+  // ~90s) can never freeze the reply — recall is awaited before streaming.
+  // Parity with the GBrain path's 10s ceiling; the loser keeps running
+  // (wasted work, not cancelled) but the reply proceeds ungrounded.
+  if (memoryBackend() === "pgvector") {
+    const RECALL_BUDGET_MS = 10000;
+    return Promise.race([
+      recallFromDb(userId, query),
+      new Promise<RecallResult>((resolve) =>
+        setTimeout(() => resolve(empty), RECALL_BUDGET_MS),
+      ),
+    ]);
+  }
 
   const config = await getIntegrationConfig();
   if (!config.gbrainUrl || !config.gbrainAdminToken) {

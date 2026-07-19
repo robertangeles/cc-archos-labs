@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { rateLimit } from "@/lib/rate-limit";
 import { getUserBrain } from "@/lib/brain/provision";
 import { checkHealth } from "@/lib/brain/client";
+import { memoryBackend, getMemoryStatusFromDb } from "@/lib/brain/memory";
 
 export const runtime = "nodejs";
 
@@ -27,6 +28,18 @@ export async function GET() {
   );
   if (!limit.ok) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+  }
+
+  if (memoryBackend() === "pgvector") {
+    // No external service and no provisioning step: "provisioned" means the
+    // user has accumulated at least one memory, and the DB is always healthy
+    // relative to the app (if it's down, nothing works anyway).
+    const status = await getMemoryStatusFromDb(auth.user.id);
+    return NextResponse.json({
+      provisioned: status.hasMemory,
+      serviceHealthy: true,
+      lastActiveAt: status.lastActiveAt,
+    });
   }
 
   const [brain, health] = await Promise.all([

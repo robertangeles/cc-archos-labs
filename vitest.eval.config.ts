@@ -35,6 +35,10 @@ export default defineConfig({
       "server-only": fileURLToPath(
         new URL("./tests/stubs/server-only.ts", import.meta.url),
       ),
+      // Eval suites now exercise app modules (lib/brain/*) that use the
+      // `@/` path alias internally — mirror the main config so those
+      // imports resolve.
+      "@/": fileURLToPath(new URL("./", import.meta.url)),
     },
   },
 });

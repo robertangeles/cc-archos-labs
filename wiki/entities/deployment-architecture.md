@@ -2,7 +2,7 @@
 title: Deployment architecture
 category: entity
 created: 2026-05-20
-updated: 2026-07-07
+updated: 2026-07-16
 related: [[2026-05-08-render-postgres-over-neon]], [[integration-config]], [[index]], [[state]], [[chat-attach-files]]
 ---
 
@@ -44,30 +44,43 @@ The runtime topology of Archos Labs.
 └────────────────────────────────────────────────────────────────────┘
 ```
 
-`.env.local` and Render's environment configuration point at the **same** Render Postgres connection string. Local migrations, local seed scripts, local `pnpm db:studio` — all read and write production data directly. There is no staging schema, no separate database, no preview branches.
+> **The ASCII diagram above is the ORIGINAL single-DB topology (2026-05-20) and is kept only as history.** Since 2026-06-15 there are two databases — see the banner at the top and the corrected model below.
+
+**Current model — two databases, told apart by which `DATABASE_URL` is in play:**
+
+```
+Render web service (prod)  ──DATABASE_URL (Render env)──▶  PROD  Render Postgres archos_labs_pdb
+                                                                 host *.singapore-postgres.render.com · SSL
+
+Local dev (pnpm dev)       ──DATABASE_URL (.env.local)──▶  DEV   local Postgres archos_labs_dev
+                                                                 host 127.0.0.1 · PG18 · no SSL
+                                                                 (PROD URL kept commented as DATABASE_URL_RENDER_PROD)
+```
+
+The Render runtime reads PROD; local `pnpm dev` reads DEV. The fastest way to know which one you are touching: **check the `DATABASE_URL` host — `127.0.0.1` / no-SSL is DEV, a `*.render.com` / SSL host is PROD.** Schema is kept in sync DEV↔PROD by hand; data is not — DEV test data and per-env secrets never copy to PROD. The web service, R2 bucket, Resend, OpenRouter, and OAuth clients remain **single-instance** (one each), so "single" still describes the service layer; it is only the **database** that is now two.
 
 ## What this means for tooling
 
-- **Migrations** run from `pnpm db:migrate` are immediately live. There is no "dev → prod migration step". The first run is the only run.
-- **`scripts/migrate-wp/`** writes to the same Postgres the web service serves from. The May 2026 WP migration of 253 posts ran from Rob's laptop and lit up the prod /blog the moment it completed.
-- **`scripts/seed/*`** scripts target prod by definition. The `blog-author-backfill` script writes the author byline that the prod /blog renders.
-- **Schema changes** ship through normal PR flow: PR merges → Render redeploys → first request hits the new code, which reads/writes the same DB. There is no separate `drizzle-kit push --target=prod` step.
-- **Feature flags** (e.g. `site_setting.blog_enabled`) are the only mechanism for shipping code-but-hiding-feature. A new public surface lands code-merged-flag-off, and a single SQL UPDATE or admin toggle flips it on.
+- **Local `pnpm db:migrate` / `db:push` / seeds / ad-hoc SQL hit DEV only.** They read `.env.local` → `archos_labs_dev`. They do NOT touch production.
+- **PROD is migrated by hand, one deliberate run per release:** `pg_dump` backup → `DATABASE_URL="<PROD>" node scripts/db-apply.mjs` (idempotent — applies every untracked migration in order). There is **no migrate-on-deploy hook**; `build`/`start` are vanilla. Merging a PR ships *code* to PROD but does NOT migrate PROD's *schema*.
+- **PROD can silently lag the migration history.** Because migration is manual, PROD's `__drizzle_applied` may trail DEV (this bit us on 2026-06-29 — PROD sat at `0026` while the code assumed `0028`). **Always check `__drizzle_applied` on PROD before a `db-apply` run.**
+- **`scripts/migrate-wp/`, `scripts/seed/*`, `db:studio`** all target whatever `DATABASE_URL` is set — DEV by default. Point them at PROD only with an explicit `DATABASE_URL="<PROD>"` override.
+- **Feature flags** (`site_setting.*`, or env like `MEMORY_BACKEND`) are the way to ship code-but-hide-feature; each DB carries its own flag values.
 
 ## What this means for sessions
 
-When the user mentions deployment, migration, staging, prod cutover, environment promotion, or "running against prod" — **stop and re-read this page** before suggesting a runbook. The conventional pattern is two or three environments; this project has one. Solutions like `PROD_DATABASE_URL` shell-env-override safety gates are solving an imaginary problem and add noise to the codebase.
+When the user mentions deployment, migration, staging, prod cutover, or "running against prod" — **re-read this page first.** The model: two databases (DEV local, PROD Render), schema synced manually, `.env.local` = DEV. Before claiming where any data lives, check the `DATABASE_URL` host.
 
-When the user says something architectural that doesn't fit the conventional multi-env mental model (e.g. "Database URL is in our settings", "DEV and PROD DB are the same"), accept it at face value. Don't reinterpret it through a conventional lens.
+The `DATABASE_URL="<PROD>" scripts/db-apply.mjs` + `pg_dump`-first posture is the REAL, in-use PROD-migration path (see the dated log below) — not hypothetical. If the user says something architectural that doesn't fit your assumption (e.g. "DEV and PROD are separate now", "we migrate PROD by hand"), treat their statement as the architecture rewriting itself and update this page — don't reinterpret it through a conventional lens.
 
 ## 2026-06-15 — temporary local DEV clone for the org migration
 
-For the org/clients/projects/kanban migration (a large additive schema change — see [[org-consulting-workspace]]) a **local DEV Postgres** (`archos_labs_dev`, PG18) was created as a clone of PROD, and `.env.local` was repointed at it. This is exactly the "separate DB for a schema change that warrants a rehearsal" case anticipated above — not a permanent move to multi-env.
+For the org/clients/projects/kanban migration (a large additive schema change — see [[org-consulting-workspace]]) a **local DEV Postgres** (`archos_labs_dev`, PG18) was created as a clone of PROD, and `.env.local` was repointed at it. Framed at the time as a temporary rehearsal, it **became the standing operating model**: every release since (0029–0031 below) migrates PROD separately by hand, and `.env.local` still points at DEV. The single-DB posture is retired — DEV/PROD are two databases now.
 
 - **DEV** (local `archos_labs_dev`): migrations `0025` + `0026` applied + default-org backfill + session test data. `.env.local` → DEV.
 - **PROD** (Render `archos_labs_pdb`, Singapore): migrated 2026-06-15 — `0025` + `0026` applied (after a `pg_dump` backup) + the 9 pre-existing users backfilled a default org each (schema-only migration does not backfill; `createDefaultOrgForUser` runs only at registration). The Render URL is kept commented in `.env.local` as `DATABASE_URL_RENDER_PROD`.
 
-The org migration to PROD was a **manual** run of the idempotent `scripts/db-apply.mjs` against the PROD URL (there is no migrate-on-deploy hook; `build`/`start` are vanilla), plus a one-time existing-user org backfill. Schema is now in sync DEV↔PROD; DEV's test data is not (and must not be) copied to PROD. The single-DB posture above remains the intended steady state once the rehearsal DB is retired. **Backup:** `~/archos_prod_backup_20260615-210817.dump` (pg_restore custom format).
+The org migration to PROD was a **manual** run of the idempotent `scripts/db-apply.mjs` against the PROD URL (there is no migrate-on-deploy hook; `build`/`start` are vanilla), plus a one-time existing-user org backfill. Schema is now in sync DEV↔PROD; DEV's test data is not (and must not be) copied to PROD. This manual DEV→PROD posture is now the standard for every release. **Backup:** `~/archos_prod_backup_20260615-210817.dump` (pg_restore custom format).
 
 ## 2026-06-29 — CDMP specialist: PROD migrated to 0030 + chapter backfill
 
@@ -104,13 +117,13 @@ Brought PROD to migration `0031` for the chat Attach Files feature (see
 | Google Calendar OAuth | 1 client | Redirect URI is the only env-specific value (localhost vs prod URL). |
 | Cloudflare Turnstile | 1 site key + 1 secret | Single environment binding. |
 
-The integration-secrets pattern ([[integration-config]]) stores all of the above in `site_setting.integration_secrets` (AES-GCM-encrypted at rest with the env-rooted master key). That row is part of the same single DB — there is no separate "prod secrets vault" to reach for.
+The integration-secrets pattern ([[integration-config]]) stores all of the above in `site_setting.integration_secrets` (AES-GCM-encrypted at rest with the env-rooted master key). **Each database has its own row** — secrets are configured per-environment and never copied DEV→PROD (schema migrates, data does not). DEV secrets ≠ PROD secrets; there is no shared "prod secrets vault."
 
 ## Why the project is wired this way
 
-Pre-launch posture for a solo operator with an 11-day revenue deadline (May 2026 — consulting is the only immediate revenue path): one environment, one DB, ship credibly fast, harden later. The single-env decision was implicit in the bootstrap — there is no decision doc framing it because no alternative was ever considered. This wiki page is the after-the-fact record.
+**At bootstrap (May 2026)** the posture was one environment, one DB: a solo operator with an 11-day revenue deadline, shipping credibly fast, hardening later. The single-env decision was implicit — no decision doc framed it because no alternative was considered.
 
-If/when the project ever needs a staging environment (scale: a second contributor, or a destructive schema change that warrants a rehearsal), the right move is a separate Render Postgres + a `PROD_DATABASE_URL` pattern. **Until that moment, don't pre-build for it.**
+**Since 2026-06-15** that changed. The org migration needed a rehearsal DB, so a local DEV Postgres was created and `.env.local` repointed at it — and the manual `pg_dump` → `db-apply.mjs` PROD path became the standing model for every release. So the project now runs exactly the "separate Render Postgres + explicit PROD `DATABASE_URL`" pattern that this section once said to defer. What is still *not* built (and still not needed): an automated migrate-on-deploy pipeline, preview branches, or a third staging tier. PROD migrations stay manual and deliberate, backup-first.
 
 ## Operational runbooks
 
@@ -157,6 +170,6 @@ After merging any PR that adds a new cron endpoint, verify:
 ## Related
 
 - [[2026-05-08-render-postgres-over-neon]] — why Render Postgres in the first place
-- [[integration-config]] — the shared secrets-at-rest store sitting in this single DB
+- [[integration-config]] — the per-environment secrets-at-rest store (each DB has its own `integration_secrets` row; secrets never copy DEV→PROD)
 - [[state]] — auto-generated register of what's actually shipped (always read this first)
 - [[2026-05-20-posts-admin-phase-d-backend]] — the second cron (`process-scheduled-posts`) shipped here

@@ -1611,3 +1611,39 @@ Investigated a GSC "Crawled – currently not indexed" report (~20 blog/category
 - **`/search` + `/workspace/model-studio` noindex** (`/search` was inheriting the homepage canonical).
 
 New lessons page: [[2026-07-12-seo-crawl-not-indexed-hygiene]]. **Three items deferred pending Rob's decision:** site-wide `force-dynamic` → ISR (biggest crawl-budget lever, needs `revalidatePath`-on-publish + preview-cookie refactor), unlisted-post indexability (SEO-strategy call), and the `/ai-readiness-assessment` vs `/tools/ai-readiness` duplicate-title collision.
+
+## 2026-07-16 — Brain migration: external GBrain → in-app pgvector
+
+Migrated Metis per-user memory off the external GBrain Render service onto an in-app `user_memory` pgvector table, reusing the OpenRouter embeddings + pgvector already running for blog/knowledge RAG. Driven by CEO plan review: the "Render blocks pgvector" constraint that forced the two-service design is gone.
+
+- **Schema:** migration `0032_user_memory.sql` + `userMemory` in `lib/db/schema.ts`. `vector(1024)`, FK btree on `user_id`, **no ANN index** (exact cosine over per-user slice).
+- **Backend:** `lib/brain/memory.ts` — `recallFromDb`/`captureToDb` + management fns + pure `rankMemories` (0.7·sim + 0.2·recency). `recall.ts`/`extract.ts` gained a one-line `memoryBackend()` branch so `lib/chat/stream.ts` is untouched. All five `/api/brain/*` routes branch the same way; UI contract preserved.
+- **Cutover:** env flag `MEMORY_BACKEND` (default gbrain), mirroring `INTEGRATION_FALLBACK_ENABLED`. Backfill script `scripts/backfill-brain-to-pgvector.ts` (idempotent, dry-run default).
+- **Verification:** full suite 1205 tests green + tsc clean. New unit + pgvector route tests; existing GBrain route tests still pass (no regression). Live e2e eval (`tests/eval/brain-pgvector.eval.test.ts`) proved capture→embed→recall + the **A∥B isolation canary** with real embeddings. Backfill `--apply` validated on real DEV GBrain data (20 memories, recalled, cleaned up).
+
+New decision page: [[2026-07-16-brain-inapp-pgvector-migration]]. Follow-up PR will remove the GBrain client/provision/warm code, drop `user_brain`, and decommission the service.
+
+## 2026-07-16 — Wiki reconcile: retire the stale single-DB framing
+
+The topology docs still described a single shared DB as *current* even though the DEV/PROD split landed 2026-06-15. Reconciled the wiki to the two-database reality (local DEV via `.env.local` + Render PROD, schema synced by hand), preserving the historical record.
+
+- `entities/deployment-architecture.md`: labelled the original single-DB ASCII diagram historical + added a two-DB diagram; rewrote "tooling" (local `db:migrate` hits DEV only; PROD is a manual `pg_dump` → `db-apply.mjs` run), "sessions", the 2026-06-15 "temporary rehearsal" framing (it became the standing model), the per-env secrets note, and "why wired this way".
+- `index.md` (lines 9 + 15): two-DB summary.
+- `entities/local-dev-setup.md`: fixed the dangerous "any `db:migrate`/seed mutates production" line — it hits DEV only now.
+- `lessons-learned/2026-05-20-single-db-architecture.md` + `synthesis/2026-05-26-auth-roles-port-status.md`: marked their single-DB claims as historical (the meta-rule "read the page, the page is right" still stands).
+
+Also added `runbooks/brain-pgvector-uat-checklist.md` (local UAT for the brain migration).
+
+## 2026-07-19 — Deep research: how to build the brain properly
+
+Ran the deep-research harness (26 sources, adversarially verified) on how production LLM memory systems build per-user memory, prompted by the "Your Brain" page showing polluted memories (greetings + raw turns stored verbatim). Wrote the synthesis to [[conversational-memory-design]].
+
+Verified convergent pattern: **extract atomic facts → consolidate (dedup/update/supersede) → multi-signal retrieve**; distilled memory is a thin layer, transcript kept separately. Our brain does none of the first three — it stores whole turns. Recall + isolation are already sound; the gap is capture quality.
+
+Honesty flags from the research: mem0's famous ADD/UPDATE/DELETE/NOOP model did NOT verify against the primary paper; forgetting/decay is unsolved field-wide (ship supersede-on-conflict, defer eviction); extraction memory trades accuracy for cost/latency (long-context beats it by 33+ pts on LongMemEval). Target: a pgvector-only distillation layer (Haiku extraction at capture + `is_active`/`superseded_at` consolidation), no graph DB. Next: /plan-ceo-review to scope it.
+
+## 2026-07-19 — CEO + eng review: brain distillation layer scoped
+
+Ran /plan-ceo-review then /plan-eng-review on the distillation layer (off [[conversational-memory-design]]). Locked spec: [[brain-distillation-layer]].
+
+Decisions: approach = extract + consolidate (not extract-only, not the full worker/decay build); mode = HOLD SCOPE; consolidation = batched Haiku LLM judge (insert/skip/replace) — the only option that supersedes conflicts (staleness = top failure mode in the research); timing = synchronous in the existing fire-and-forget path (no worker); deferred = decay/eviction, memory-type taxonomy, worker, graph DB. Schema: +`is_active`/`superseded_at`/`source_conversation_id` on `user_memory`, partial unique `(user_id, md5(body)) WHERE is_active` to kill the double-insert race. Effort ~1 day human / ~30–45 min CC on `feature/brain-distillation`. Independent of shipping the migration.

@@ -92,6 +92,6 @@ All the API plumbing already exists. T12 is pure UI work.
 
 ## Operational notes
 
-- The migration target is **prod DB** — Archos Labs runs single-environment single-DB (see [[deployment-architecture]]). Any `pnpm db:migrate` writes to live data; the user has been explicitly confirming each migration.
+- The migration target is **prod DB** — at the time of this port (2026-05-26) Archos Labs ran single-environment single-DB, so any `pnpm db:migrate` wrote to live data. **This changed on 2026-06-15**: there are now two databases and local `db:migrate` hits DEV only (see [[deployment-architecture]]).
 - `BOOKING_ENCRYPTION_KEY` env var is reused for auth_setting secret encryption (Turnstile secret, Google client secret). Both go through `lib/booking-crypto.ts` AES-256-GCM.
 - Admin login still uses the OLD JWT model (`archos_admin_session` cookie, `{ admin: true }` payload). The Users & Roles admin actions look up the actor as `users.email='admin'`. T10 unifies this and lets `getCurrentUser()` resolve the actor properly.

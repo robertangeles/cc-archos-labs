@@ -2,12 +2,19 @@ import { callMcp } from "./client";
 import { getBrainToken } from "./provision";
 import { getIntegrationConfig } from "@/lib/integration-config";
 import { sanitizeForBrain } from "./sanitize";
+import { memoryBackend, captureToDb } from "./memory";
 
 export async function extractMemories(
   userId: string,
   userMessage: string,
   assistantResponse: string,
 ): Promise<void> {
+  // In-app pgvector backend (cutover flag). Delegates to a local DB insert;
+  // the GBrain MCP path below is the legacy default.
+  if (memoryBackend() === "pgvector") {
+    return captureToDb(userId, userMessage, assistantResponse);
+  }
+
   const config = await getIntegrationConfig();
   if (!config.gbrainUrl) return;
 
