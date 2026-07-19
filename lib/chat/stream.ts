@@ -10,6 +10,7 @@ import { getEnabledRules } from "../rules/service";
 import { vectorSearch } from "../knowledge/search";
 import { recallMemories, formatRecallContext } from "../brain/recall";
 import { extractMemories } from "../brain/extract";
+import { buildWorkspaceContext } from "./workspace-context";
 import { loadConversationDocuments } from "./attachments/service";
 import { getModelContextWindow, fitContext } from "./attachments/budget";
 import { logAttachmentEvent } from "./attachments/observability";
@@ -72,12 +73,16 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     // Brain recall failed — continue without memory enrichment
   }
 
+  // Phase 0 workspace memory: inject a snapshot of the user's active-org
+  // projects/clients. Fail-soft internally (returns "" on any error).
+  const workspaceContext = await buildWorkspaceContext(args.userId);
+
   const rules = await getEnabledRules(args.userId);
   const rulesBlock = rules.length > 0
     ? rules.map((r) => r.content).join("\n\n")
     : "";
 
-  const systemParts = [corePrompt, brainContext, ragContext, args.systemPrompt ?? "", rulesBlock].filter(Boolean);
+  const systemParts = [corePrompt, brainContext, workspaceContext, ragContext, args.systemPrompt ?? "", rulesBlock].filter(Boolean);
   const systemText = systemParts.join("\n\n");
 
   // Attached documents (Attach Files). Graceful degrade: a missing table (deploy
