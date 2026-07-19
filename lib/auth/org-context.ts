@@ -46,7 +46,6 @@ export const SHARED_TIER_TABLES = [
 ] as const;
 export const PRIVATE_TIER_TABLES = [
   "conversation",
-  "user_brain",
   "user_rule",
 ] as const;
 

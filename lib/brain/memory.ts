@@ -6,20 +6,9 @@ import { embedText } from "@/lib/embeddings";
 import { extractFacts, consolidateAndApply } from "./distill";
 import type { RecallResult } from "./recall";
 
-// In-app pgvector memory backend. Replaces the external GBrain MCP calls
-// with local Drizzle queries against the `user_memory` table. Selected when
-// MEMORY_BACKEND=pgvector. Every path here fails soft (returns empty / drops
-// the write) — memory is best-effort enrichment and must never break chat.
-
-/**
- * Which memory backend is active. Env-var cutover flag, mirroring the
- * existing transitional `INTEGRATION_FALLBACK_ENABLED` pattern
- * (lib/integration-config.ts). Defaults to the legacy GBrain path so an
- * unset env changes nothing. Removed once GBrain is decommissioned.
- */
-export function memoryBackend(): "pgvector" | "gbrain" {
-  return process.env.MEMORY_BACKEND === "pgvector" ? "pgvector" : "gbrain";
-}
+// In-app pgvector memory backend: local Drizzle queries against the
+// `user_memory` table. Every path here fails soft (returns empty / drops the
+// write) — memory is best-effort enrichment and must never break chat.
 
 // Recall tuning — mirrors the values proven in the CulinAIre brain.
 const CANDIDATE_LIMIT = 30; // rows pulled by the cosine scan before re-rank

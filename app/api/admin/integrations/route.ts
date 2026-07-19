@@ -40,8 +40,6 @@ const PATCH_FIELDS = [
   "googleOauthClientSecret",
   "turnstileSiteKey",
   "turnstileSecretKey",
-  "gbrainUrl",
-  "gbrainAdminToken",
   "twitterClientId",
   "twitterClientSecret",
   "twitterEnabled",

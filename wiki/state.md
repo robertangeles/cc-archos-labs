@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-19T02:24:23.426Z
+generated: 2026-07-19T08:54:58.944Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -84,7 +84,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/workspace/model-studio` | [app/workspace/model-studio/page.tsx](../app/workspace/model-studio/page.tsx) | 2026-07-12 |
 | `/workspace/model-studio/[id]` | [app/workspace/model-studio/[id]/page.tsx](../app/workspace/model-studio/[id]/page.tsx) | 2026-06-17 |
 
-## API endpoints (177)
+## API endpoints (175)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -156,9 +156,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/booking/reschedule` | [app/api/booking/reschedule/route.ts](../app/api/booking/reschedule/route.ts) | 2026-05-17 |
 | `/api/brain` | [app/api/brain/route.ts](../app/api/brain/route.ts) | 2026-07-19 |
 | `/api/brain/memories` | [app/api/brain/memories/route.ts](../app/api/brain/memories/route.ts) | 2026-07-19 |
-| `/api/brain/provision` | [app/api/brain/provision/route.ts](../app/api/brain/provision/route.ts) | 2026-07-19 |
 | `/api/brain/status` | [app/api/brain/status/route.ts](../app/api/brain/status/route.ts) | 2026-07-19 |
-| `/api/brain/warm` | [app/api/brain/warm/route.ts](../app/api/brain/warm/route.ts) | 2026-07-19 |
 | `/api/cdmp/answer` | [app/api/cdmp/answer/route.ts](../app/api/cdmp/answer/route.ts) | 2026-06-03 |
 | `/api/cdmp/complete` | [app/api/cdmp/complete/route.ts](../app/api/cdmp/complete/route.ts) | 2026-06-29 |
 | `/api/cdmp/flag` | [app/api/cdmp/flag/route.ts](../app/api/cdmp/flag/route.ts) | 2026-06-03 |

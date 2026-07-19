@@ -2,8 +2,8 @@
 title: Deployment architecture
 category: entity
 created: 2026-05-20
-updated: 2026-07-16
-related: [[2026-05-08-render-postgres-over-neon]], [[integration-config]], [[index]], [[state]], [[chat-attach-files]]
+updated: 2026-07-19
+related: [[2026-05-08-render-postgres-over-neon]], [[integration-config]], [[index]], [[state]], [[chat-attach-files]], [[2026-07-19-gbrain-decommission]]
 ---
 
 The runtime topology of Archos Labs.
@@ -65,7 +65,7 @@ The Render runtime reads PROD; local `pnpm dev` reads DEV. The fastest way to kn
 - **PROD is migrated by hand, one deliberate run per release:** `pg_dump` backup → `DATABASE_URL="<PROD>" node scripts/db-apply.mjs` (idempotent — applies every untracked migration in order). There is **no migrate-on-deploy hook**; `build`/`start` are vanilla. Merging a PR ships *code* to PROD but does NOT migrate PROD's *schema*.
 - **PROD can silently lag the migration history.** Because migration is manual, PROD's `__drizzle_applied` may trail DEV (this bit us on 2026-06-29 — PROD sat at `0026` while the code assumed `0028`). **Always check `__drizzle_applied` on PROD before a `db-apply` run.**
 - **`scripts/migrate-wp/`, `scripts/seed/*`, `db:studio`** all target whatever `DATABASE_URL` is set — DEV by default. Point them at PROD only with an explicit `DATABASE_URL="<PROD>"` override.
-- **Feature flags** (`site_setting.*`, or env like `MEMORY_BACKEND`) are the way to ship code-but-hide-feature; each DB carries its own flag values.
+- **Feature flags** (`site_setting.*`) are the way to ship code-but-hide-feature; each DB carries its own flag values. Note: the `MEMORY_BACKEND` env flag was removed in the GBrain decommission (2026-07-19) — pgvector is now unconditional.
 
 ## What this means for sessions
 
@@ -106,6 +106,21 @@ Brought PROD to migration `0031` for the chat Attach Files feature (see
 - **R2 secrets are per-env — NOT migrated.** The new "Chat Documents (Cloudflare R2)" integration was configured **separately in the PROD admin panel**. Integration secrets live in `site_setting.integration_secrets`, AES-GCM-encrypted with the env-rooted master key, and are NOT copied DEV→PROD — **schema migrates, data (incl. secrets) does not.** Same private bucket (`archos-labs-chat-docs`) + bucket-scoped token as DEV; PROD "Test R2 storage" green. (This is the general rule, not a one-off: the whole point of the encrypted per-env store is that each environment is configured once.)
 - **Backup:** `~/archos-prod-backup-before-0031-20260707-181056.dump` (23 MB, custom format).
 - DEV↔PROD schema in sync at `0031`. Related: [[chat-attach-files]].
+
+## 2026-07-19 — GBrain decommissioned; pgvector is now the sole memory backend
+
+The external `cc-archos-labs-gbrain` Render service was **deleted**. Migrations `0032` + `0033` (`user_memory` pgvector table + distillation layer) were applied to PROD 2026-07-19 via `brain-prod-cutover.mjs --apply`. Migration `0034` (`DROP TABLE user_brain`) also applied to DEV and PROD (PROD with `pg_dump` backup first).
+
+The cleanup PR (`chore/remove-gbrain-backend`) removed: `lib/brain/{client,provision,warm}.ts` + tests, the `/api/brain/provision` + `/api/brain/warm` routes, the `MEMORY_BACKEND` env flag (pgvector is now unconditional in `recall.ts`/`extract.ts`), the `gbrainUrl`/`gbrainAdminToken` integration-config fields + admin-panel inputs, and the `user_brain` table from the schema.
+
+**Current memory topology:** `lib/brain/recall.ts` + `lib/brain/extract.ts` call `user_memory` (pgvector, Render Postgres) directly — no external HTTP hop, no cold-start dependency, no OAuth provisioning per user. `MEMORY_BACKEND` is no longer a recognised env var.
+
+**Still external (not yet cleaned up):** the GBrain Supabase DB (old memories, start-fresh decision — no backfill); the GitHub fork `robertangeles/cc-archos-labs-gbrain`.
+
+See [[2026-07-19-gbrain-decommission]] for the full decision record.
+
+- **Pre-cutover backup:** standard `pg_dump` before `0032`/`0033`; separate `pg_dump` backup before `0034`.
+- **DEV↔PROD schema in sync at `0034`.**
 
 ## Other services on the same posture
 

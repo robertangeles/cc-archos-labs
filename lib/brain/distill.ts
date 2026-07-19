@@ -19,8 +19,8 @@ import {
 //   consolidateAndApply()  ─▶ embed → cosine neighbors → 1 judge call →
 //                             insert / skip(dup) / replace(supersede)
 
-// Extraction model. Env var (like MEMORY_BACKEND — same cutover-knob pattern),
-// default Haiku. Switch to a stronger model here if fact quality is weak.
+// Extraction model. Optional BRAIN_EXTRACTION_MODEL env var, default Haiku.
+// Switch to a stronger model here if fact quality is weak.
 function extractionModel(): string {
   return process.env.BRAIN_EXTRACTION_MODEL?.trim() || "anthropic/claude-haiku-4.5";
 }

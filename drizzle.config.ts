@@ -49,7 +49,6 @@ export default {
     "auth_setting",
     "oauth_account",
     "magic_link_token",
-    "user_brain",
     "cdmp_exam_session",
     "cdmp_exam_answer",
     "cdmp_question_flag",

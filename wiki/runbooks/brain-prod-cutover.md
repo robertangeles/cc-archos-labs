@@ -3,8 +3,10 @@ title: Brain PROD cutover — flip to in-app pgvector + distillation
 category: runbook
 created: 2026-07-19
 updated: 2026-07-19
-related: [[2026-07-16-brain-inapp-pgvector-migration]], [[2026-07-19-brain-distillation-layer]], [[deployment-architecture]]
+related: [[2026-07-16-brain-inapp-pgvector-migration]], [[2026-07-19-brain-distillation-layer]], [[deployment-architecture]], [[2026-07-19-gbrain-decommission]]
 ---
+
+> **COMPLETED 2026-07-19.** This cutover has been executed. Migrations `0032`/`0033` applied to PROD, `MEMORY_BACKEND=pgvector` set, GBrain Render service deleted, cleanup PR (`chore/remove-gbrain-backend`) removed all GBrain code + `0034` dropped `user_brain`. See [[2026-07-19-gbrain-decommission]]. This runbook is kept as historical reference only — do not re-run it.
 
 How to switch PROD from the external GBrain service to the in-app pgvector brain + distillation, with the least friction and an instant rollback. The code is already on PROD (merged #187 + #188 → Render auto-deployed); this is **data + one env var**, not a deploy.
 

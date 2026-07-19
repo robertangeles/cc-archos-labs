@@ -23,9 +23,6 @@ export interface RedactedConfig {
   turnstileSiteKey: string | null;
   // Secret key is the server-side verification credential — always redacted.
   turnstileSecretKey: string;
-  // GBrain persistent memory service.
-  gbrainUrl: string | null;
-  gbrainAdminToken: string;
   // Social platform OAuth credentials.
   twitterClientId: string | null;
   twitterClientSecret: string;
@@ -65,7 +62,6 @@ const ENCRYPTED_FIELDS: ReadonlyArray<FieldKey> = [
   "llmApiKey",
   "googleOauthClientSecret",
   "turnstileSecretKey",
-  "gbrainAdminToken",
   "twitterClientSecret",
   "linkedinClientSecret",
   "cloudinaryApiSecret",
@@ -80,8 +76,6 @@ const NULLABLE_FIELDS: ReadonlyArray<FieldKey> = [
   "googleOauthClientSecret",
   "turnstileSiteKey",
   "turnstileSecretKey",
-  "gbrainUrl",
-  "gbrainAdminToken",
   "twitterClientId",
   "twitterClientSecret",
   "linkedinClientId",
@@ -1157,8 +1151,6 @@ function RevealAuthModal({
     googleOauthClientSecret: "Google OAuth Client Secret",
     turnstileSiteKey: "",
     turnstileSecretKey: "Turnstile Secret Key",
-    gbrainUrl: "",
-    gbrainAdminToken: "GBrain Admin Token",
     twitterClientId: "",
     twitterClientSecret: "Twitter Client Secret",
     twitterEnabled: "",
