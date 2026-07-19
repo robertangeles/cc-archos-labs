@@ -10,6 +10,24 @@ import {
 } from "../db/schema";
 import type { OrgRole } from "../auth/org-context";
 import type { CreateProjectInput, UpdateProjectInput } from "./validation";
+import {
+  ingestEntity,
+  deactivateEntityMemory,
+} from "../brain/workspace-ingest";
+
+// Canonical one-line fact for the workspace-memory tier (Phase 1 ingest).
+// Structured summary, not the raw row — kept short and deterministic.
+function projectFact(p: {
+  name: string;
+  status: string | null;
+  clientName: string | null;
+  description: string | null;
+}): string {
+  const client = p.clientName ? ` for client ${p.clientName}` : "";
+  const status = p.status ? ` (${p.status})` : "";
+  const desc = p.description ? `. ${p.description}` : "";
+  return `Project "${p.name}"${status}${client}${desc}`;
+}
 
 // ============================================================================
 // Project service — projects, membership, and the activity feed.
@@ -129,7 +147,17 @@ export async function createProject(
       updatedAt: project.updatedAt,
     });
   // Re-read through the join so the response carries clientName.
-  return getProject(orgId, row.id, db);
+  const created = await getProject(orgId, row.id, db);
+  // Fire-and-forget: remember the new project (flag-gated, fail-soft).
+  if (created) {
+    void ingestEntity({
+      orgId,
+      sourceType: "project",
+      sourceEntityId: created.id,
+      body: projectFact(created),
+    });
+  }
+  return created;
 }
 
 /** Update a project, scoped to the org. Returns null if not found in the org. */
@@ -174,7 +202,23 @@ export async function updateProject(
       updatedAt: project.updatedAt,
     });
   // Re-read through the join so the response carries clientName.
-  return row ? getProject(orgId, row.id, db) : null;
+  const updated = row ? await getProject(orgId, row.id, db) : null;
+  // Dirty-check: only re-ingest when a text-bearing field changed (skip
+  // no-op churn on e.g. a date-only edit).
+  const textChanged =
+    input.name !== undefined ||
+    input.description !== undefined ||
+    input.status !== undefined ||
+    input.clientId !== undefined;
+  if (updated && textChanged) {
+    void ingestEntity({
+      orgId,
+      sourceType: "project",
+      sourceEntityId: updated.id,
+      body: projectFact(updated),
+    });
+  }
+  return updated;
 }
 
 /** Delete a project, scoped to the org. Returns true if a row was removed. */
@@ -189,6 +233,14 @@ export async function deleteProject(
     .delete(project)
     .where(and(eq(project.id, projectId), eq(project.organisationId, orgId)))
     .returning({ id: project.id });
+  if (removed.length > 0) {
+    // Fire-and-forget: forget the deleted project's workspace facts.
+    void deactivateEntityMemory({
+      orgId,
+      sourceType: "project",
+      sourceEntityId: projectId,
+    });
+  }
   return removed.length > 0;
 }
 
