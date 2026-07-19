@@ -1469,6 +1469,13 @@ export const userMemory = pgTable(
     title: text("title"),
     body: text("body").notNull(),
     embedding: vector("embedding", { dimensions: 1024 }),
+    // Distillation consolidation (migration 0033). A fact is superseded, not
+    // deleted, when a newer fact contradicts it — soft-delete so a wrong
+    // supersede is recoverable. Recall/list/status filter on is_active.
+    isActive: boolean("is_active").notNull().default(true),
+    supersededAt: timestamp("superseded_at", { withTimezone: true }),
+    // Provenance pointer (no FK — soft reference, never queried by).
+    sourceConversationId: uuid("source_conversation_id"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -1479,6 +1486,14 @@ export const userMemory = pgTable(
   (table) => [
     // Recall pre-filter + Brain-page listing: WHERE user_id = $1.
     index("user_memory_user_id_idx").on(table.userId),
+    // Recall/list scan only live facts: WHERE user_id = $1 AND is_active.
+    index("user_memory_user_active_idx")
+      .on(table.userId)
+      .where(sql`is_active`),
+    // The partial UNIQUE (user_id, md5(body)) WHERE is_active — the
+    // double-insert guard — is an expression index, declared in the
+    // migration SQL (Drizzle has no expression-index builder). See
+    // drizzle/0033_user_memory_consolidation.sql.
   ],
 );
 

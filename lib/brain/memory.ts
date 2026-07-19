@@ -3,7 +3,7 @@ import { sql, eq, and, desc } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { userMemory } from "@/lib/db/schema";
 import { embedText } from "@/lib/embeddings";
-import { sanitizeForBrain } from "./sanitize";
+import { extractFacts, consolidateAndApply } from "./distill";
 import type { RecallResult } from "./recall";
 
 // In-app pgvector memory backend. Replaces the external GBrain MCP calls
@@ -28,8 +28,6 @@ const SIM_WEIGHT = 0.7; // cosine-similarity weight in the blend
 const RECENCY_WEIGHT = 0.2; // recency weight in the blend
 const RECENCY_HALFLIFE_DAYS = 30; // exp decay half-life for recency
 const MAX_QUERY_CHARS = 2000; // query truncation before embedding
-const MAX_BODY_CHARS = 8000; // stored-body cap (embed input limit)
-const MIN_BODY_CHARS = 8; // below this, nothing worth storing
 
 const EMPTY: RecallResult = { memories: [], source: "none", count: 0 };
 
@@ -61,7 +59,7 @@ export async function recallFromDb(
       SELECT body, created_at,
              1 - (embedding <=> ${vectorStr}::vector) AS similarity
       FROM user_memory
-      WHERE user_id = ${userId}::uuid AND embedding IS NOT NULL
+      WHERE user_id = ${userId}::uuid AND is_active AND embedding IS NOT NULL
       ORDER BY embedding <=> ${vectorStr}::vector
       LIMIT ${CANDIDATE_LIMIT}
     `)) as unknown as Array<{
@@ -114,40 +112,22 @@ export function rankMemories(
 }
 
 /**
- * Capture one chat turn as a memory: sanitize both sides, embed, insert.
- * Fired fire-and-forget from the streaming path, so a slow embed never
- * blocks the reply. Drops the turn on embed/DB failure (best-effort — the
- * next turn re-captures overlapping context). Never throws.
+ * Capture a chat turn as clean atomic facts (distillation layer): extract
+ * facts from the USER message, then consolidate (dedup / supersede) against
+ * the user's existing facts. Fired fire-and-forget from the streaming path.
+ * Stores nothing for greetings/questions or on any LLM failure. Never throws.
  */
 export async function captureToDb(
   userId: string,
   userMessage: string,
-  assistantResponse: string,
+  conversationId: string | null = null,
 ): Promise<void> {
-  const user = sanitizeForBrain(userMessage);
-  const assistant = sanitizeForBrain(assistantResponse);
-  const body = `## User\n${user.sanitized}\n\n## Assistant\n${assistant.sanitized}`.trim();
-  if (body.length < MIN_BODY_CHARS) return; // nothing worth storing
-
-  const title = user.sanitized.trim().slice(0, 120) || null;
-
-  let embedding: number[];
   try {
-    embedding = await embedText(body.slice(0, MAX_BODY_CHARS));
+    const facts = await extractFacts(userMessage);
+    if (facts.length === 0) return;
+    await consolidateAndApply(userId, facts, conversationId);
   } catch {
-    return; // embed API down → drop this turn (self-heals next turn)
-  }
-
-  try {
-    await getDb().insert(userMemory).values({
-      userId,
-      sourceType: "chat",
-      title,
-      body,
-      embedding,
-    });
-  } catch {
-    // Insert failed — best-effort; never surface to the chat path.
+    // Best-effort; never surface to the chat path.
   }
 }
 
@@ -173,7 +153,7 @@ export async function listMemoriesFromDb(
       updatedAt: userMemory.updatedAt,
     })
     .from(userMemory)
-    .where(eq(userMemory.userId, userId))
+    .where(and(eq(userMemory.userId, userId), eq(userMemory.isActive, true)))
     .orderBy(desc(userMemory.createdAt))
     .limit(limit);
 
@@ -213,7 +193,7 @@ export async function getMemoryStatusFromDb(
   const rows = await getDb()
     .select({ createdAt: userMemory.createdAt })
     .from(userMemory)
-    .where(eq(userMemory.userId, userId))
+    .where(and(eq(userMemory.userId, userId), eq(userMemory.isActive, true)))
     .orderBy(desc(userMemory.createdAt))
     .limit(1);
   if (rows.length === 0) return { hasMemory: false, lastActiveAt: null };

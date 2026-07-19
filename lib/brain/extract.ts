@@ -8,11 +8,13 @@ export async function extractMemories(
   userId: string,
   userMessage: string,
   assistantResponse: string,
+  conversationId: string | null = null,
 ): Promise<void> {
-  // In-app pgvector backend (cutover flag). Delegates to a local DB insert;
-  // the GBrain MCP path below is the legacy default.
+  // In-app pgvector backend (cutover flag). Distills the USER message into
+  // clean facts; the GBrain MCP path below is the legacy default. The
+  // assistantResponse is only used by the GBrain path (kept for it).
   if (memoryBackend() === "pgvector") {
-    return captureToDb(userId, userMessage, assistantResponse);
+    return captureToDb(userId, userMessage, conversationId);
   }
 
   const config = await getIntegrationConfig();

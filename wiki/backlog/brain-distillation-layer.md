@@ -6,6 +6,8 @@ updated: 2026-07-19
 related: [[conversational-memory-design]], [[2026-07-16-brain-inapp-pgvector-migration]]
 ---
 
+**Status: SHIPPED 2026-07-19** — implemented, tested, verified; see [[2026-07-19-brain-distillation-layer]].
+
 Locked implementation spec (CEO + eng review, 2026-07-19). Replaces naive store-every-turn capture with extract → consolidate → (existing) multi-signal recall, so the brain stores clean atomic facts instead of raw turns. Grounded in [[conversational-memory-design]]. Does NOT block shipping the pgvector migration itself.
 
 ## Decisions locked
