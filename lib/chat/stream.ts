@@ -200,7 +200,7 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
           tokens,
           false,
         );
-        extractMemories(args.userId, args.userContent, content, args.conversationId).catch(() => {});
+        extractMemories(args.userId, args.userContent, args.conversationId).catch(() => {});
       }
     };
 
@@ -257,7 +257,7 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
           tokens,
           false,
         );
-        extractMemories(args.userId, args.userContent, content, args.conversationId).catch(() => {});
+        extractMemories(args.userId, args.userContent, args.conversationId).catch(() => {});
       }
     };
 
@@ -417,7 +417,7 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
         aborted,
       );
       if (!aborted) {
-        extractMemories(args.userId, args.userContent, buffer, args.conversationId).catch(() => {});
+        extractMemories(args.userId, args.userContent, args.conversationId).catch(() => {});
       }
     }
   };

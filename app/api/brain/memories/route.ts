@@ -1,13 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { getBrainToken } from "@/lib/brain/provision";
-import { callMcp } from "@/lib/brain/client";
 import { rateLimit } from "@/lib/rate-limit";
-import {
-  memoryBackend,
-  listMemoriesFromDb,
-  deleteMemoryFromDb,
-} from "@/lib/brain/memory";
+import { listMemoriesFromDb, deleteMemoryFromDb } from "@/lib/brain/memory";
 
 export const runtime = "nodejs";
 
@@ -20,59 +14,16 @@ export async function GET() {
     );
   }
 
-  if (memoryBackend() === "pgvector") {
-    const items = await listMemoriesFromDb(auth.user.id);
-    // `slug` mirrors the legacy GBrain contract the client already speaks —
-    // here it carries the row id, which DELETE uses to scope the delete.
-    return NextResponse.json({
-      memories: items.map((m) => ({
-        slug: m.id,
-        title: m.title,
-        content: m.content,
-        updatedAt: m.updatedAt,
-      })),
-    });
-  }
-
-  const token = await getBrainToken(auth.user.id);
-  if (!token) {
-    return NextResponse.json({ memories: [] });
-  }
-
-  try {
-    const response = await callMcp(token, "list_pages", { limit: 100 });
-    if (response.error) {
-      return NextResponse.json({ memories: [] });
-    }
-
-    const pages = parseListResult(response.result);
-
-    const memoriesWithContent = await Promise.all(
-      pages.slice(0, 50).map(async (page) => {
-        try {
-          const pageResp = await callMcp(token, "get_page", { slug: page.slug }, 5000);
-          const content = parsePageContent(pageResp.result);
-          return {
-            slug: page.slug,
-            title: page.title || "Memory",
-            content: content || page.title || page.slug,
-            updatedAt: page.updated_at,
-          };
-        } catch {
-          return {
-            slug: page.slug,
-            title: page.title || "Memory",
-            content: page.title || page.slug,
-            updatedAt: page.updated_at,
-          };
-        }
-      }),
-    );
-
-    return NextResponse.json({ memories: memoriesWithContent });
-  } catch {
-    return NextResponse.json({ memories: [] });
-  }
+  const items = await listMemoriesFromDb(auth.user.id);
+  // `slug` carries the memory row id, which DELETE uses to scope the delete.
+  return NextResponse.json({
+    memories: items.map((m) => ({
+      slug: m.id,
+      title: m.title,
+      content: m.content,
+      updatedAt: m.updatedAt,
+    })),
+  });
 }
 
 export async function DELETE(request: Request) {
@@ -102,88 +53,9 @@ export async function DELETE(request: Request) {
     );
   }
 
-  if (memoryBackend() === "pgvector") {
-    const deleted = await deleteMemoryFromDb(auth.user.id, slug);
-    if (!deleted) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
-    return NextResponse.json({ deleted: true });
+  const deleted = await deleteMemoryFromDb(auth.user.id, slug);
+  if (!deleted) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-
-  const token = await getBrainToken(auth.user.id);
-  if (!token) {
-    return NextResponse.json(
-      { error: "Brain not provisioned" },
-      { status: 404 },
-    );
-  }
-
-  try {
-    const response = await callMcp(token, "delete_page", { slug });
-    if (response.error) {
-      return NextResponse.json(
-        { error: "Could not delete. Try again." },
-        { status: 500 },
-      );
-    }
-    return NextResponse.json({ deleted: true });
-  } catch {
-    return NextResponse.json(
-      { error: "Could not delete. Try again." },
-      { status: 500 },
-    );
-  }
-}
-
-interface PageMeta {
-  slug: string;
-  title?: string;
-  type?: string;
-  updated_at?: string;
-}
-
-function parseListResult(result: unknown): PageMeta[] {
-  if (!result || typeof result !== "object") return [];
-  const r = result as Record<string, unknown>;
-  if (!Array.isArray(r.content)) return [];
-
-  for (const item of r.content) {
-    if (typeof item === "object" && item !== null && "text" in item) {
-      const text = (item as { text: string }).text;
-      try {
-        const parsed = JSON.parse(text);
-        if (Array.isArray(parsed)) return parsed;
-      } catch {
-        continue;
-      }
-    }
-  }
-  return [];
-}
-
-function parsePageContent(result: unknown): string | null {
-  if (!result || typeof result !== "object") return null;
-  const r = result as Record<string, unknown>;
-  if (!Array.isArray(r.content)) return null;
-
-  for (const item of r.content) {
-    if (typeof item === "object" && item !== null && "text" in item) {
-      const text = (item as { text: string }).text;
-      try {
-        const parsed = JSON.parse(text);
-        if (typeof parsed === "object" && parsed !== null) {
-          const p = parsed as Record<string, unknown>;
-          if (typeof p.compiled_truth === "string" && p.compiled_truth.length > 0) {
-            return p.compiled_truth;
-          }
-          if (typeof p.content === "string") {
-            return String(p.content).replace(/^---[\s\S]*?---\n*/, "").trim();
-          }
-        }
-      } catch {
-        return text;
-      }
-    }
-  }
-  return null;
+  return NextResponse.json({ deleted: true });
 }

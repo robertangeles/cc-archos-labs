@@ -2,11 +2,13 @@
 title: GBrain Multi-User Integration
 category: decision
 created: 2026-06-10
-updated: 2026-06-10
-related: [[deployment-architecture]]
+updated: 2026-07-19
+related: [[deployment-architecture]], [[2026-07-19-gbrain-decommission]]
 ---
 
 How we gave every Archos Labs user a persistent AI brain — the architecture decisions, the failures, and what we learned.
+
+> **Decommissioned 2026-07-19** — see [[2026-07-19-gbrain-decommission]]. The GBrain Render service was deleted, all GBrain code was removed, and pgvector is now the sole unconditional memory backend. This page is the historical record of why the two-service design existed and what it cost.
 
 > **Superseded (2026-07-16):** the external-service architecture described here was retired once Render added pgvector support. Memory now lives in an in-app `user_memory` pgvector table — see [[2026-07-16-brain-inapp-pgvector-migration]]. The GBrain code path still ships behind the `MEMORY_BACKEND` flag until the follow-up decommission PR. This page is kept as the historical record of why the two-service design existed.
 

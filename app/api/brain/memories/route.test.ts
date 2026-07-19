@@ -1,41 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Covers the pgvector backend path of /api/brain/memories. The GBrain path is
-// unchanged and exercised by the live service; here we prove the DB path keeps
-// the exact client contract ({ memories: [{ slug, title, content, updatedAt }] }
-// and DELETE ?slug=) so the Brain page needs no change.
+// Covers /api/brain/memories (in-app pgvector backend): the DB path keeps the
+// exact client contract ({ memories: [{ slug, title, content, updatedAt }] } and
+// DELETE ?slug=) so the Brain page needs no change.
 
-const {
-  getCurrentUserMock,
-  rateLimitMock,
-  memoryBackendMock,
-  listMock,
-  deleteMock,
-  getBrainTokenMock,
-  callMcpMock,
-} = vi.hoisted(() => ({
-  getCurrentUserMock: vi.fn(),
-  rateLimitMock: vi.fn(),
-  memoryBackendMock: vi.fn(),
-  listMock: vi.fn(),
-  deleteMock: vi.fn(),
-  getBrainTokenMock: vi.fn(),
-  callMcpMock: vi.fn(),
-}));
+const { getCurrentUserMock, rateLimitMock, listMock, deleteMock } = vi.hoisted(
+  () => ({
+    getCurrentUserMock: vi.fn(),
+    rateLimitMock: vi.fn(),
+    listMock: vi.fn(),
+    deleteMock: vi.fn(),
+  }),
+);
 
 vi.mock("../../../../lib/auth/current-user", () => ({
   getCurrentUser: getCurrentUserMock,
 }));
 vi.mock("../../../../lib/rate-limit", () => ({ rateLimit: rateLimitMock }));
 vi.mock("../../../../lib/brain/memory", () => ({
-  memoryBackend: memoryBackendMock,
   listMemoriesFromDb: listMock,
   deleteMemoryFromDb: deleteMock,
 }));
-vi.mock("../../../../lib/brain/provision", () => ({
-  getBrainToken: getBrainTokenMock,
-}));
-vi.mock("../../../../lib/brain/client", () => ({ callMcp: callMcpMock }));
 
 import { GET, DELETE } from "./route";
 
@@ -50,7 +35,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   getCurrentUserMock.mockResolvedValue(SESSION);
   rateLimitMock.mockReturnValue({ ok: true, remaining: 49, resetAt: 0 });
-  memoryBackendMock.mockReturnValue("pgvector");
   listMock.mockResolvedValue([
     { id: MEM_ID, title: "My project", content: "About Westpac", updatedAt: "2026-07-01T00:00:00.000Z" },
   ]);

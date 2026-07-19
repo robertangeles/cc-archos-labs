@@ -2,11 +2,30 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-07-07
+updated: 2026-07-19
 related:
 ---
 
 Append-only log of sessions. Newest entry at the top.
+
+## 2026-07-19 — GBrain decommissioned
+
+**PROD cutover complete.** Migrations `0032` + `0033` applied to PROD via `scripts/brain-prod-cutover.mjs --apply` (pg_dump backup first). The `brain-memory-v1` prompt clause applied. `MEMORY_BACKEND=pgvector` set on the Render web service — deploy live 2026-07-19.
+
+**GBrain Render service deleted.** `cc-archos-labs-gbrain.onrender.com` is gone.
+
+**Code cleanup** (`chore/remove-gbrain-backend`): `lib/brain/{client,provision,warm}.ts` + tests removed; `/api/brain/provision` + `/api/brain/warm` routes removed; `MEMORY_BACKEND` flag removed (pgvector unconditional in `recall.ts`/`extract.ts`); `gbrainUrl`/`gbrainAdminToken` integration-config fields + admin-panel inputs removed; `user_brain` table dropped from schema. Migration `0034` (`DROP TABLE user_brain`) applied to DEV and PROD.
+
+**Still external:** GBrain Supabase DB (old memories, start-fresh, no backfill — can be deleted later); GitHub fork `robertangeles/cc-archos-labs-gbrain`.
+
+Wiki pages touched:
+- **Created:** `wiki/decisions/2026-07-19-gbrain-decommission.md`
+- **Updated:** `wiki/entities/deployment-architecture.md` — new 2026-07-19 section, MEMORY_BACKEND flag note, related link
+- **Updated:** `wiki/decisions/2026-06-10-gbrain-multi-user-integration.md` — decommission notice at top
+- **Updated:** `wiki/lessons-learned/2026-06-10-gbrain-security-hardening.md` — decommission notice at top
+- **Updated:** `wiki/lessons-learned/2026-06-22-brain-recall-cold-start-timeout.md` — decommission notice at top
+- **Updated:** `wiki/runbooks/brain-prod-cutover.md` — COMPLETED 2026-07-19 notice at top
+- **Updated:** `wiki/index.md` — new decision page entry
 
 ## 2026-07-07 — Chat Attach Files PR2: UI enhancements + two race fixes
 

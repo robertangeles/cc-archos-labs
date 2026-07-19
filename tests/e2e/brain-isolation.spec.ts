@@ -11,8 +11,8 @@ import { test, expect, type APIRequestContext } from "@playwright/test";
 // `WHERE user_id = <session user>` scoping, and this exercises the exact
 // auth → session → route → query path that enforces it.
 //
-// Requires the dev server to run with MEMORY_BACKEND=pgvector (else this
-// exercises the legacy GBrain path). The runner starts it that way.
+// The in-app pgvector brain is the only backend, so this exercises the real
+// capture → recall → isolation path directly (no env flag required).
 // ============================================================================
 
 const BASE_URL = process.env.E2E_BASE_URL ?? "http://localhost:3007";

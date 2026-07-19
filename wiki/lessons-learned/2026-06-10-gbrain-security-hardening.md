@@ -2,9 +2,11 @@
 title: GBrain security hardening — debug endpoints, PII, and schema validation
 category: lessons-learned
 created: 2026-06-10
-updated: 2026-06-10
-related: [[2026-06-10-gbrain-multi-user-integration]]
+updated: 2026-07-19
+related: [[2026-06-10-gbrain-multi-user-integration]], [[2026-07-19-gbrain-decommission]]
 ---
+
+**Decommissioned 2026-07-19** — see [[2026-07-19-gbrain-decommission]]. The GBrain integration this page documents has been fully removed. The rules below remain valid for any future external-service integration.
 
 Security hardening of the GBrain integration. Seven fixes, three lessons.
 

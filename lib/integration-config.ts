@@ -166,9 +166,6 @@ function decryptAndValidate(rawValue: unknown): IntegrationConfig {
   if (decrypted.llmCustomModels === undefined || decrypted.llmCustomModels === null) {
     decrypted.llmCustomModels = [];
   }
-  if (decrypted.gbrainUrl === undefined) {
-    decrypted.gbrainUrl = null;
-  }
   if (decrypted.twitterClientId === undefined) {
     decrypted.twitterClientId = null;
   }
@@ -252,8 +249,6 @@ function readFromEnv(): IntegrationConfig {
     turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY || null,
     llmEnabledModels: [],
     llmCustomModels: [],
-    gbrainUrl: process.env.GBRAIN_URL || null,
-    gbrainAdminToken: process.env.GBRAIN_ADMIN_TOKEN || null,
     twitterClientId: process.env.TWITTER_CLIENT_ID || null,
     twitterClientSecret: process.env.TWITTER_CLIENT_SECRET || null,
     twitterEnabled: process.env.TWITTER_ENABLED === "true",
@@ -419,8 +414,6 @@ export async function migrateEnvToDB(): Promise<{
     turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY ?? null,
     llmEnabledModels: null,
     llmCustomModels: null,
-    gbrainUrl: process.env.GBRAIN_URL ?? null,
-    gbrainAdminToken: process.env.GBRAIN_ADMIN_TOKEN ?? null,
     twitterClientId: process.env.TWITTER_CLIENT_ID ?? null,
     twitterClientSecret: process.env.TWITTER_CLIENT_SECRET ?? null,
     twitterEnabled: false,
@@ -622,8 +615,6 @@ export async function getIntegrationConfigRedacted(): Promise<{
   googleOauthClientSecret: string;
   turnstileSiteKey: string | null;
   turnstileSecretKey: string;
-  gbrainUrl: string | null;
-  gbrainAdminToken: string;
   twitterClientId: string | null;
   twitterClientSecret: string;
   twitterEnabled: boolean;
@@ -654,8 +645,6 @@ export async function getIntegrationConfigRedacted(): Promise<{
     googleOauthClientSecret: redactSecret(config.googleOauthClientSecret ?? ""),
     turnstileSiteKey: config.turnstileSiteKey,
     turnstileSecretKey: redactSecret(config.turnstileSecretKey ?? ""),
-    gbrainUrl: config.gbrainUrl,
-    gbrainAdminToken: redactSecret(config.gbrainAdminToken ?? ""),
     twitterClientId: config.twitterClientId,
     twitterClientSecret: redactSecret(config.twitterClientSecret ?? ""),
     twitterEnabled: config.twitterEnabled,

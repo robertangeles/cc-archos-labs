@@ -104,9 +104,6 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
       .then((data) => {
         if (data?.provisioned) {
           setBrainProvisioned(true);
-          // Wake GBrain now so the first message's memory recall is fast
-          // instead of cold-starting mid-send. Best-effort, fire-and-forget.
-          fetch("/api/brain/warm", { method: "POST" }).catch(() => {});
         }
       })
       .catch(() => {});

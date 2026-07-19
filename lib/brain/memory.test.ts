@@ -1,33 +1,10 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { memoryBackend, rankMemories, type Candidate } from "./memory";
+import { describe, expect, it } from "vitest";
+import { rankMemories, type Candidate } from "./memory";
 
 // Pure-logic tests for the in-app pgvector memory backend. The DB + embedding
 // paths (recallFromDb/captureToDb) need a real pgvector engine + live
 // embeddings, so they are proven by scripts/verify-brain-pgvector.mjs against
 // the DEV DB — the same reason the repo's eval suite is excluded from CI.
-
-describe("memoryBackend()", () => {
-  const original = process.env.MEMORY_BACKEND;
-  afterEach(() => {
-    if (original === undefined) delete process.env.MEMORY_BACKEND;
-    else process.env.MEMORY_BACKEND = original;
-  });
-
-  it("returns 'pgvector' only when the env var is exactly 'pgvector'", () => {
-    process.env.MEMORY_BACKEND = "pgvector";
-    expect(memoryBackend()).toBe("pgvector");
-  });
-
-  it("defaults to 'gbrain' when unset", () => {
-    delete process.env.MEMORY_BACKEND;
-    expect(memoryBackend()).toBe("gbrain");
-  });
-
-  it("defaults to 'gbrain' for any other value (fail safe)", () => {
-    process.env.MEMORY_BACKEND = "PGVECTOR";
-    expect(memoryBackend()).toBe("gbrain");
-  });
-});
 
 describe("rankMemories()", () => {
   const NOW = Date.parse("2026-07-16T00:00:00Z");

@@ -2,9 +2,11 @@
 title: Brain recall silently failed on GBrain cold starts — "Metis doesn't remember me"
 category: lessons-learned
 created: 2026-06-22
-updated: 2026-06-22
-related: [[2026-06-10-gbrain-multi-user-integration]], [[2026-06-10-gbrain-security-hardening]], [[deployment-architecture]]
+updated: 2026-07-19
+related: [[2026-06-10-gbrain-multi-user-integration]], [[2026-06-10-gbrain-security-hardening]], [[deployment-architecture]], [[2026-07-19-gbrain-decommission]]
 ---
+
+**Decommissioned 2026-07-19** — see [[2026-07-19-gbrain-decommission]]. The GBrain cold-start problem described here is moot — the external service was deleted and pgvector (in-app, same Render Postgres, no cold starts) is now the sole backend. The rule below still applies to any future cold-start-prone dependency.
 
 Reported as "the Metis chat space does not remember me now." It was the memory (Brain) recall silently timing out, not lost data. Persistence, schema, credentials, and config were all healthy.
 
