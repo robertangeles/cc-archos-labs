@@ -1653,3 +1653,9 @@ Decisions: approach = extract + consolidate (not extract-only, not the full work
 Two-phase brain work. **Phase 1:** shipped the in-app pgvector backend (PR #187 merged) — flag-gated (`MEMORY_BACKEND`, default gbrain), CI green, pr-reviewer approved, plus a reviewer-flagged 10s recall budget fix. **Phase 2:** built the distillation layer on `feature/brain-distillation` (see [[2026-07-19-brain-distillation-layer]]).
 
 Distillation: capture = extract atomic facts (Haiku, user message only) → consolidate (embed → cosine neighbors → 1 Haiku judge → insert/skip/replace) → soft-delete supersede. Migration 0033 (`is_active`/`superseded_at`/`source_conversation_id` + partial index + `(user_id, md5(body))` unique guard). Verified: full suite 1218 green, tsc clean, live eval (clean facts, dedup, DMBOK→DCAM supersede, greetings ignored), Playwright e2e distilled + isolated through the real chat path. A unit test caught + fixed a fail-closed `parseFacts` bug.
+
+## 2026-07-19 — Brain PROD cutover tooling (+ fixed a jsonb double-encoding trap)
+
+Built `scripts/brain-prod-cutover.mjs` (gated: PROD_DATABASE_URL only, refuses local, dry-run default; backup → migrate via db-apply.mjs → prompt clause; does NOT flip the flag or backfill) + [[brain-prod-cutover]] runbook. Least-friction PROD switch: code's already deployed, so it's data + one Render env var, with instant rollback.
+
+Dry-running the script against DEV caught a real trap: `site_setting.value` was stored **double-encoded** (jsonb string) because my earlier DEV prompt-fix used `JSON.stringify(obj)::jsonb`. That silently made `getChatPrompt` fall back to the placeholder prompt (Metis lost its persona; recall still worked, so it hid). Fixed: the cutover script writes with `sql.json()` and reads defensively; repaired DEV's prompt to a proper jsonb object (persona restored). New lesson: [[2026-07-19-site-setting-jsonb-double-encoding]].
