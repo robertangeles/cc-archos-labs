@@ -1,6 +1,7 @@
 import { callMcp } from "./client";
 import { getBrainToken, getUserBrain, provisionBrain } from "./provision";
 import { getIntegrationConfig } from "@/lib/integration-config";
+import { memoryBackend, recallFromDb } from "./memory";
 
 export interface RecallResult {
   memories: string[];
@@ -20,6 +21,12 @@ export async function recallMemories(
   query: string,
 ): Promise<RecallResult> {
   const empty: RecallResult = { memories: [], source: "none", count: 0 };
+
+  // In-app pgvector backend (cutover flag). Delegates to a local DB scan;
+  // the GBrain MCP path below is the legacy default.
+  if (memoryBackend() === "pgvector") {
+    return recallFromDb(userId, query);
+  }
 
   const config = await getIntegrationConfig();
   if (!config.gbrainUrl || !config.gbrainAdminToken) {
