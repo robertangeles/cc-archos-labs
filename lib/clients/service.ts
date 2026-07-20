@@ -10,6 +10,23 @@ import type {
   ContractInput,
   UpdateContractInput,
 } from "./validation";
+import {
+  ingestEntity,
+  deactivateEntityMemory,
+} from "../brain/workspace-ingest";
+
+// Canonical one-line fact for the workspace-memory tier (Phase 1 ingest).
+// Structured summary; the `notes` free-text is what recall adds over Phase 0's
+// live client snapshot.
+function clientFact(c: {
+  name: string;
+  industry: string | null;
+  notes: string | null;
+}): string {
+  const industry = c.industry ? ` in ${c.industry}` : "";
+  const notes = c.notes ? `. ${c.notes}` : "";
+  return `Client "${c.name}"${industry}${notes}`;
+}
 
 // ============================================================================
 // Clients service — pure data access for the consulting CRM.
@@ -142,6 +159,15 @@ export async function createClient(
       notes: input.notes ?? null,
     })
     .returning(clientColumns);
+  // Fire-and-forget: remember the new client (flag-gated, fail-soft).
+  if (created) {
+    void ingestEntity({
+      orgId,
+      sourceType: "client",
+      sourceEntityId: created.id,
+      body: clientFact(created),
+    });
+  }
   return created;
 }
 
@@ -180,6 +206,19 @@ export async function updateClient(
     })
     .where(and(eq(client.id, clientId), eq(client.organisationId, orgId)))
     .returning(clientColumns);
+  // Dirty-check: only re-ingest when a fact-bearing field changed.
+  const textChanged =
+    input.name !== undefined ||
+    input.industry !== undefined ||
+    input.notes !== undefined;
+  if (updated && textChanged) {
+    void ingestEntity({
+      orgId,
+      sourceType: "client",
+      sourceEntityId: updated.id,
+      body: clientFact(updated),
+    });
+  }
   return updated ?? null;
 }
 
@@ -194,6 +233,14 @@ export async function deleteClient(
     .delete(client)
     .where(and(eq(client.id, clientId), eq(client.organisationId, orgId)))
     .returning({ id: client.id });
+  if (removed.length > 0) {
+    // Fire-and-forget: forget the deleted client's workspace facts.
+    void deactivateEntityMemory({
+      orgId,
+      sourceType: "client",
+      sourceEntityId: clientId,
+    });
+  }
   return removed.length > 0;
 }
 
