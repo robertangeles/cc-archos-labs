@@ -66,6 +66,41 @@ export async function recallFromDb(
   return { memories: ranked, source: "brain", count: ranked.length };
 }
 
+/**
+ * Recall the most relevant ORG-shared workspace facts for a query (the
+ * workspace_memory tier). Mirrors recallFromDb but scoped by organisation_id
+ * (the isolation boundary) and served by the HNSW ANN index. Returns ranked
+ * bodies; [] on any failure. ponytail: embeds independently of recallFromDb —
+ * a single shared embed is an optimization, not needed while both run
+ * concurrently within the recall budget.
+ */
+export async function recallWorkspaceFromDb(
+  orgId: string,
+  query: string,
+): Promise<string[]> {
+  let embedding: number[];
+  try {
+    embedding = await embedText(query.slice(0, MAX_QUERY_CHARS));
+  } catch {
+    return [];
+  }
+  const vectorStr = `[${embedding.join(",")}]`;
+  try {
+    const rows = (await getDb().execute(sql`
+      SELECT body, created_at,
+             1 - (embedding <=> ${vectorStr}::vector) AS similarity
+      FROM workspace_memory
+      WHERE organisation_id = ${orgId}::uuid AND is_active AND embedding IS NOT NULL
+      ORDER BY embedding <=> ${vectorStr}::vector
+      LIMIT ${CANDIDATE_LIMIT}
+    `)) as unknown as Candidate[];
+    if (rows.length === 0) return [];
+    return rankMemories(rows, Date.now());
+  } catch {
+    return [];
+  }
+}
+
 export interface Candidate {
   body: string;
   created_at: string | Date;
