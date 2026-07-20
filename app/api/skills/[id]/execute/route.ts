@@ -68,6 +68,7 @@ export async function POST(
       model,
       temperature: skill.temperature ? Number(skill.temperature) : undefined,
       maxTokens: skill.maxTokens ?? undefined,
+      userId: auth.user.id,
     });
 
     try {

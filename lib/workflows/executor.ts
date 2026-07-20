@@ -51,7 +51,7 @@ export async function executeWorkflow(
       userId,
     }));
 
-    const { result, contextPatch } = await executeStep(step, context, rulesBlock);
+    const { result, contextPatch } = await executeStep(step, context, rulesBlock, { userId });
     Object.assign(context, contextPatch);
     stepResults.push(result);
 
@@ -160,7 +160,7 @@ export async function* executeWorkflowStreaming(
 
     yield { type: "step_start", index: i, total: steps.length, skillName };
 
-    const { result, contextPatch } = await executeStep(step, context, rulesBlock);
+    const { result, contextPatch } = await executeStep(step, context, rulesBlock, { userId });
     Object.assign(context, contextPatch);
     stepResults.push(result);
     yield { type: "step_result", result };
@@ -222,7 +222,7 @@ export async function executeStep(
   step: typeof workflowStep.$inferSelect,
   context: Record<string, string>,
   rulesBlock: string | null,
-  opts: { modelOverride?: string; feedbackAddendum?: string } = {},
+  opts: { modelOverride?: string; feedbackAddendum?: string; userId?: string } = {},
 ): Promise<{ result: StepResult; contextPatch: Record<string, string> }> {
   const stepStart = Date.now();
 
@@ -259,6 +259,7 @@ export async function executeStep(
       model,
       temperature,
       maxTokens,
+      userId: opts.userId,
     });
 
     const durationMs = Date.now() - stepStart;
