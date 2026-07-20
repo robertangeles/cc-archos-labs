@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type MockInstance,
+} from "vitest";
 
 // Hoisted mocks so the vi.mock factories can reference them.
 const m = vi.hoisted(() => ({
@@ -25,6 +33,8 @@ const KEY = {
   sourceEntityId: "22222222-2222-2222-2222-222222222222",
 };
 
+let logSpy: MockInstance;
+
 beforeEach(() => {
   m.execute.mockReset().mockResolvedValue(undefined);
   m.txExecute.mockReset().mockResolvedValue(undefined);
@@ -34,12 +44,28 @@ beforeEach(() => {
       cb({ execute: m.txExecute }),
     );
   m.embedText.mockReset().mockResolvedValue(Array(1024).fill(0.1));
+  // Suppress + capture the structured ingest telemetry.
+  logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
   delete process.env.WORKSPACE_MEMORY_INGEST;
 });
 
 afterEach(() => {
+  logSpy.mockRestore();
   delete process.env.WORKSPACE_MEMORY_INGEST;
 });
+
+// Parsed workspace_ingest telemetry events emitted so far.
+function ingestEvents() {
+  return logSpy.mock.calls
+    .map((c) => {
+      try {
+        return JSON.parse(c[0] as string);
+      } catch {
+        return {};
+      }
+    })
+    .filter((e) => e.tag === "workspace_ingest");
+}
 
 describe("workspace-ingest feature flag", () => {
   it("reads WORKSPACE_MEMORY_INGEST", () => {
@@ -98,5 +124,37 @@ describe("workspace-ingest (flag on)", () => {
   it("deactivateEntityMemory issues one supersede UPDATE", async () => {
     await deactivateEntityMemory(KEY);
     expect(m.execute).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("workspace-ingest observability (flag on)", () => {
+  beforeEach(() => {
+    process.env.WORKSPACE_MEMORY_INGEST = "true";
+  });
+
+  it("logs ingest_ok on success", async () => {
+    await ingestEntity({ ...KEY, body: "Project Acme is active." });
+    expect(ingestEvents().map((e) => e.event)).toContain("ingest_ok");
+  });
+
+  it("retries then logs ingest_failed when the pipeline keeps failing", async () => {
+    m.embedText.mockRejectedValue(new Error("embed down"));
+    await ingestEntity({ ...KEY, body: "Project Acme is active." });
+    const events = ingestEvents().map((e) => e.event);
+    expect(events).toContain("ingest_retry");
+    expect(events).toContain("ingest_failed");
+    expect(events).not.toContain("ingest_ok");
+  });
+
+  it("logs deactivate_ok", async () => {
+    await deactivateEntityMemory(KEY);
+    expect(ingestEvents().map((e) => e.event)).toContain("deactivate_ok");
+  });
+
+  it("never logs the entity body (content-free telemetry)", async () => {
+    m.embedText.mockRejectedValue(new Error("embed down"));
+    await ingestEntity({ ...KEY, body: "SENSITIVE_CLIENT_SECRET_XYZ" });
+    const raw = logSpy.mock.calls.map((c) => String(c[0])).join(" ");
+    expect(raw).not.toContain("SENSITIVE_CLIENT_SECRET_XYZ");
   });
 });

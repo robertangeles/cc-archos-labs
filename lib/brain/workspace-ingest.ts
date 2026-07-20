@@ -3,6 +3,7 @@ import pLimit from "p-limit";
 import { sql } from "drizzle-orm";
 import { getDb } from "../db";
 import { embedText } from "../embeddings";
+import { logWorkspaceIngestEvent, safeReason } from "./observability";
 
 // Phase 1 ingest: workspace entities → the org-scoped workspace_memory tier.
 //
@@ -24,6 +25,9 @@ const MAX_BODY_CHARS = 2000;
 // Concurrency cap on the embed/DB pipeline. ponytail: fixed cap, make it a
 // config knob only if real throughput data says 4 is wrong.
 const queue = pLimit(4);
+const INGEST_ATTEMPTS = 2; // one retry — absorbs a transient embed/DB blip
+const RETRY_DELAY_MS = 250;
+const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export function isWorkspaceMemoryEnabled(): boolean {
   return process.env.WORKSPACE_MEMORY_INGEST === "true";
@@ -52,28 +56,52 @@ export async function ingestEntity(input: IngestInput): Promise<void> {
     await deactivateEntityMemory(input);
     return;
   }
+  const { orgId, sourceType, sourceEntityId } = input;
   await queue(async () => {
-    try {
-      const emb = await embedText(body.slice(0, MAX_BODY_CHARS));
-      const vec = `[${emb.join(",")}]`;
-      const title = body.slice(0, 120);
-      const db = getDb();
-      await db.transaction(async (tx) => {
-        // Supersede the entity's prior active fact(s) — handles updates.
-        await tx.execute(supersedeSql(input));
-        // Insert the fresh fact. ON CONFLICT guards the exact-dup case
-        // (organisation_id, md5(body)) WHERE is_active.
-        await tx.execute(sql`
-          INSERT INTO workspace_memory
-            (organisation_id, source_type, source_entity_id, title, body, embedding)
-          VALUES
-            (${input.orgId}::uuid, ${input.sourceType},
-             ${input.sourceEntityId}::uuid, ${title}, ${body}, ${vec}::vector)
-          ON CONFLICT (organisation_id, md5(body)) WHERE is_active DO NOTHING
-        `);
-      });
-    } catch {
-      /* best-effort; an ingest failure must never break the entity write */
+    // One retry absorbs a transient blip; on final failure we LOG (a
+    // fire-and-forget failure must never be silent) but never propagate.
+    for (let attempt = 0; attempt < INGEST_ATTEMPTS; attempt++) {
+      try {
+        const emb = await embedText(body.slice(0, MAX_BODY_CHARS));
+        const vec = `[${emb.join(",")}]`;
+        const title = body.slice(0, 120);
+        await getDb().transaction(async (tx) => {
+          // Supersede the entity's prior active fact(s) — handles updates.
+          await tx.execute(supersedeSql(input));
+          // Insert the fresh fact. ON CONFLICT guards the exact-dup case
+          // (organisation_id, md5(body)) WHERE is_active.
+          await tx.execute(sql`
+            INSERT INTO workspace_memory
+              (organisation_id, source_type, source_entity_id, title, body, embedding)
+            VALUES
+              (${orgId}::uuid, ${sourceType}, ${sourceEntityId}::uuid,
+               ${title}, ${body}, ${vec}::vector)
+            ON CONFLICT (organisation_id, md5(body)) WHERE is_active DO NOTHING
+          `);
+        });
+        logWorkspaceIngestEvent({ event: "ingest_ok", orgId, sourceType, sourceEntityId });
+        return;
+      } catch (err) {
+        if (attempt < INGEST_ATTEMPTS - 1) {
+          logWorkspaceIngestEvent({
+            event: "ingest_retry",
+            orgId,
+            sourceType,
+            sourceEntityId,
+            reason: safeReason(err),
+          });
+          await delay(RETRY_DELAY_MS * (attempt + 1));
+          continue;
+        }
+        logWorkspaceIngestEvent({
+          event: "ingest_failed",
+          orgId,
+          sourceType,
+          sourceEntityId,
+          reason: safeReason(err),
+        });
+        // best-effort; never propagate to the entity write path
+      }
     }
   });
 }
@@ -86,8 +114,20 @@ export async function deactivateEntityMemory(input: EntityKey): Promise<void> {
   if (!isWorkspaceMemoryEnabled()) return;
   try {
     await getDb().execute(supersedeSql(input));
-  } catch {
-    /* best-effort */
+    logWorkspaceIngestEvent({
+      event: "deactivate_ok",
+      orgId: input.orgId,
+      sourceType: input.sourceType,
+      sourceEntityId: input.sourceEntityId,
+    });
+  } catch (err) {
+    logWorkspaceIngestEvent({
+      event: "deactivate_failed",
+      orgId: input.orgId,
+      sourceType: input.sourceType,
+      sourceEntityId: input.sourceEntityId,
+      reason: safeReason(err),
+    });
   }
 }
 
