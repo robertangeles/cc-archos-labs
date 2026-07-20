@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-19T08:54:58.944Z
+generated: 2026-07-20T10:48:26.141Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -94,7 +94,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/google-oauth/cb` | [app/api/admin/google-oauth/cb/route.ts](../app/api/admin/google-oauth/cb/route.ts) | 2026-05-31 |
 | `/api/admin/google-oauth/disconnect` | [app/api/admin/google-oauth/disconnect/route.ts](../app/api/admin/google-oauth/disconnect/route.ts) | 2026-05-22 |
 | `/api/admin/google-oauth/start` | [app/api/admin/google-oauth/start/route.ts](../app/api/admin/google-oauth/start/route.ts) | 2026-05-15 |
-| `/api/admin/integrations` | [app/api/admin/integrations/route.ts](../app/api/admin/integrations/route.ts) | 2026-07-07 |
+| `/api/admin/integrations` | [app/api/admin/integrations/route.ts](../app/api/admin/integrations/route.ts) | 2026-07-19 |
 | `/api/admin/integrations/models` | [app/api/admin/integrations/models/route.ts](../app/api/admin/integrations/models/route.ts) | 2026-06-07 |
 | `/api/admin/integrations/reveal` | [app/api/admin/integrations/reveal/route.ts](../app/api/admin/integrations/reveal/route.ts) | 2026-05-15 |
 | `/api/admin/integrations/reveal-auth` | [app/api/admin/integrations/reveal-auth/route.ts](../app/api/admin/integrations/reveal-auth/route.ts) | 2026-05-15 |
@@ -270,7 +270,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 |------|--------------|
 | [components/admin/integrations/consultant-profile-form.tsx](../components/admin/integrations/consultant-profile-form.tsx) | 2026-06-12 |
 | [components/admin/integrations/integrations-grid.tsx](../components/admin/integrations/integrations-grid.tsx) | 2026-07-07 |
-| [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-07-07 |
+| [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-07-19 |
 | [components/analytics/analytics-client.tsx](../components/analytics/analytics-client.tsx) | 2026-05-18 |
 | [components/blog/author-bio.tsx](../components/blog/author-bio.tsx) | 2026-05-24 |
 | [components/blog/category-chips.tsx](../components/blog/category-chips.tsx) | 2026-05-20 |

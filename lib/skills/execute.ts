@@ -1,8 +1,16 @@
 import "server-only";
 import { getIntegrationConfig } from "../integration-config";
 import { OPENROUTER_URL, buildAuthHeaders } from "../llm/config";
+import { recallMemories, formatRecallContext } from "../brain/recall";
 import type { ExecuteSkillResponse } from "./types";
 const EXECUTE_TIMEOUT_MS = 30_000;
+
+// E3: make Skills + Workflows workspace-aware by injecting brain + workspace
+// recall into their prompt. Flag-gated (off by default) so it never changes
+// skill output until enabled per deployment.
+function isSkillRecallEnabled(): boolean {
+  return process.env.WORKSPACE_SKILL_RECALL === "true";
+}
 
 function assemblePrompt(
   template: string,
@@ -27,6 +35,7 @@ export async function executeSkill(opts: {
   model: string;
   temperature?: number;
   maxTokens?: number;
+  userId?: string;
 }): Promise<ExecuteSkillResponse> {
   const config = await getIntegrationConfig();
   const apiKey = config.llmApiKey;
@@ -44,9 +53,26 @@ export async function executeSkill(opts: {
 
   const userContent = assemblePrompt(opts.promptTemplate, sanitized);
 
+  // E3: workspace + brain recall, using the assembled prompt as the query.
+  // Fail-soft: on any failure the skill runs ungrounded, never breaks.
+  let recallBlock = "";
+  if (opts.userId && isSkillRecallEnabled()) {
+    try {
+      const recall = await recallMemories(opts.userId, userContent);
+      if (recall.memories.length > 0) {
+        recallBlock = formatRecallContext(recall.memories);
+      }
+    } catch {
+      // recall unavailable — run ungrounded
+    }
+  }
+
   const messages: Array<{ role: string; content: string }> = [];
-  if (opts.systemPrompt) {
-    messages.push({ role: "system", content: opts.systemPrompt });
+  const systemText = [recallBlock, opts.systemPrompt ?? ""]
+    .filter(Boolean)
+    .join("\n\n");
+  if (systemText) {
+    messages.push({ role: "system", content: systemText });
   }
   messages.push({ role: "user", content: userContent });
 

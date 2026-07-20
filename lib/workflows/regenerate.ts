@@ -240,6 +240,7 @@ export async function* regenerateStream(args: {
       const { result, contextPatch } = await executeStep(step, context, rulesBlock, {
         modelOverride: isTarget ? overrideModel : undefined,
         feedbackAddendum: isTarget ? feedbackAddendum : undefined,
+        userId: args.userId,
       });
 
       if (result.status === "error") {
