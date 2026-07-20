@@ -2,6 +2,10 @@ import "server-only";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb, type DB } from "../db";
 import {
+  ingestEntity,
+  deactivateEntityMemory,
+} from "../brain/workspace-ingest";
+import {
   project,
   kanbanColumn,
   kanbanCard,
@@ -302,6 +306,13 @@ export async function getBoard(orgId: string, projectId: string, dbArg?: DB) {
  * Create a card in a column. Returns null if the project is not in the org, or
  * if the target column does not belong to that project.
  */
+// Canonical one-line fact for the workspace-memory tier (Phase 1 ingest). The
+// card title + free-text description are NOT in Phase 0's live snapshot, so this
+// is genuinely new recall content.
+function cardFact(c: { title: string; description: string | null }): string {
+  return `Card "${c.title}"${c.description ? `: ${c.description}` : ""}`;
+}
+
 export async function createCard(
   orgId: string,
   projectId: string,
@@ -368,6 +379,14 @@ export async function createCard(
     row.title,
     db,
   );
+
+  // Fire-and-forget: remember the new card (flag-gated, fail-soft).
+  void ingestEntity({
+    orgId,
+    sourceType: "kanban_card",
+    sourceEntityId: row.id,
+    body: cardFact(row),
+  });
 
   return row;
 }
@@ -462,6 +481,16 @@ export async function updateCard(
     db,
   );
 
+  // Dirty-check: only re-ingest when a fact-bearing field changed.
+  if (input.title !== undefined || input.description !== undefined) {
+    void ingestEntity({
+      orgId,
+      sourceType: "kanban_card",
+      sourceEntityId: row.id,
+      body: cardFact(row),
+    });
+  }
+
   return row;
 }
 
@@ -501,6 +530,13 @@ export async function deleteCard(
     existing?.title ?? null,
     db,
   );
+
+  // Fire-and-forget: forget the deleted card's workspace facts.
+  void deactivateEntityMemory({
+    orgId,
+    sourceType: "kanban_card",
+    sourceEntityId: cardId,
+  });
 
   return true;
 }
