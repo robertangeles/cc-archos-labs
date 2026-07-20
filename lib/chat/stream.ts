@@ -11,6 +11,12 @@ import { vectorSearch } from "../knowledge/search";
 import { recallMemories, formatRecallContext } from "../brain/recall";
 import { extractMemories } from "../brain/extract";
 import { buildWorkspaceContext } from "./workspace-context";
+import {
+  isWorkspaceToolsEnabled,
+  resolveToolOrgId,
+  runWorkspaceToolTurn,
+} from "./workspace-tools";
+import type { ChatMessage } from "./tool-loop";
 import { loadConversationDocuments } from "./attachments/service";
 import { getModelContextWindow, fitContext } from "./attachments/budget";
 import { logAttachmentEvent } from "./attachments/observability";
@@ -331,6 +337,55 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     };
 
     return { stream, cleanup };
+  }
+
+  // Workspace tool loop (C2): flag-gated. When on + the user has an org, let the
+  // model call allowlisted org-scoped tools to reason over the workspace. A
+  // tool-using turn's final answer is produced non-streamed, so it ships as a
+  // single chunk (like web search). On any failure or empty answer, fall through
+  // to normal streaming (ungrounded). Only reached for standard models — the
+  // web-search / perplexity / image branches above already returned.
+  if (isWorkspaceToolsEnabled()) {
+    const toolOrgId = await resolveToolOrgId(args.userId);
+    if (toolOrgId) {
+      let toolContent = "";
+      try {
+        toolContent = await runWorkspaceToolTurn(
+          [...systemMessage, ...priorMessages] as ChatMessage[],
+          toolOrgId,
+          modelId,
+          apiKey,
+          args.signal,
+        );
+      } catch {
+        toolContent = "";
+      }
+      if (toolContent) {
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(encoder.encode(toolContent));
+            controller.close();
+          },
+        });
+        const cleanup = async () => {
+          await chatService.saveMessage(
+            args.conversationId,
+            "assistant",
+            toolContent,
+            modelId,
+            0,
+            false,
+          );
+          extractMemories(
+            args.userId,
+            args.userContent,
+            args.conversationId,
+          ).catch(() => {});
+        };
+        return { stream, cleanup };
+      }
+    }
   }
 
   // Standard models: streaming via chat completions
