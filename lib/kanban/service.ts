@@ -309,7 +309,7 @@ export async function getBoard(orgId: string, projectId: string, dbArg?: DB) {
 // Canonical one-line fact for the workspace-memory tier (Phase 1 ingest). The
 // card title + free-text description are NOT in Phase 0's live snapshot, so this
 // is genuinely new recall content.
-function cardFact(c: { title: string; description: string | null }): string {
+export function cardFact(c: { title: string; description: string | null }): string {
   return `Card "${c.title}"${c.description ? `: ${c.description}` : ""}`;
 }
 

@@ -18,7 +18,7 @@ import {
 // Canonical one-line fact for the workspace-memory tier (Phase 1 ingest).
 // Structured summary; the `notes` free-text is what recall adds over Phase 0's
 // live client snapshot.
-function clientFact(c: {
+export function clientFact(c: {
   name: string;
   industry: string | null;
   notes: string | null;

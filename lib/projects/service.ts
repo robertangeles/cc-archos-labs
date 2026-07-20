@@ -17,7 +17,7 @@ import {
 
 // Canonical one-line fact for the workspace-memory tier (Phase 1 ingest).
 // Structured summary, not the raw row — kept short and deterministic.
-function projectFact(p: {
+export function projectFact(p: {
   name: string;
   status: string | null;
   clientName: string | null;
