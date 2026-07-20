@@ -42,7 +42,8 @@
     "migrate-wp:apply": "node --env-file=.env.local --import tsx scripts/migrate-wp/index.ts --apply",
     "migrate-wp:tsc": "tsc --noEmit -p tsconfig.migrate-wp.json",
     "seed:blog-author": "node --env-file=.env.local --import tsx scripts/seed/blog-author-backfill.ts",
-    "calibrate:threshold": "node --env-file=.env.local --import tsx scripts/calibrate-threshold.ts"
+    "calibrate:threshold": "node --env-file=.env.local --import tsx scripts/calibrate-threshold.ts",
+    "backfill:workspace-memory": "node --env-file=.env.local --conditions=react-server --import tsx scripts/backfill-workspace-memory.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
