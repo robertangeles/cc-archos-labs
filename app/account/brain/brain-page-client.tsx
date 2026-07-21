@@ -9,10 +9,36 @@ interface MemoryPage {
   updatedAt?: string;
 }
 
+interface WorkspaceMemory {
+  slug: string;
+  sourceType: string;
+  sourceEntityId: string | null;
+  entityName: string;
+  content: string;
+  updatedAt?: string;
+}
+
 const PAGE_SIZE = 10;
+
+/** Tier tabs. "Chat" is the private user_memory tier; "Workspace" the org one. */
+type Tier = "all" | "chat" | "workspace";
+
+// Human labels for the workspace group headers, keyed by source_type.
+const SOURCE_LABELS: Record<string, string> = {
+  project: "Projects",
+  client: "Clients",
+  kanban_card: "Cards",
+};
+
+function sourceLabel(sourceType: string): string {
+  return SOURCE_LABELS[sourceType] ?? sourceType.replace(/_/g, " ");
+}
 
 export function BrainPageClient() {
   const [memories, setMemories] = useState<MemoryPage[]>([]);
+  const [workspace, setWorkspace] = useState<WorkspaceMemory[]>([]);
+  const [canDeleteWorkspace, setCanDeleteWorkspace] = useState(false);
+  const [tier, setTier] = useState<Tier>("all");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [_deleting, setDeleting] = useState<string | null>(null);
@@ -26,6 +52,8 @@ export function BrainPageClient() {
       if (res.ok) {
         const data = await res.json();
         setMemories(data.memories || []);
+        setWorkspace(data.workspace || []);
+        setCanDeleteWorkspace(Boolean(data.canDeleteWorkspace));
       }
     } catch {
       // Silent fail
@@ -53,10 +81,43 @@ export function BrainPageClient() {
     }
   };
 
-  const filtered = memories.filter((m) => {
-    if (search && !m.content.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  const handleDeleteWorkspace = async (slug: string) => {
+    setDeleting(slug);
+    try {
+      const res = await fetch(
+        `/api/brain/memories?scope=workspace&slug=${encodeURIComponent(slug)}`,
+        { method: "DELETE" },
+      );
+      if (res.ok) {
+        setWorkspace((prev) => prev.filter((m) => m.slug !== slug));
+      }
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const matchesSearch = (text: string) =>
+    !search || text.toLowerCase().includes(search.toLowerCase());
+
+  const filtered = (tier === "workspace" ? [] : memories).filter((m) =>
+    matchesSearch(m.content),
+  );
+
+  const filteredWorkspace = (tier === "chat" ? [] : workspace).filter(
+    (m) => matchesSearch(m.content) || matchesSearch(m.entityName),
+  );
+
+  // Group the workspace tier by source type. Ingest writes exactly ONE active
+  // fact per entity, so grouping by entity would render a header per row —
+  // source type is the grouping that matches the real cardinality.
+  const workspaceGroups = filteredWorkspace.reduce<
+    Record<string, WorkspaceMemory[]>
+  >((acc, m) => {
+    (acc[m.sourceType] ??= []).push(m);
+    return acc;
+  }, {});
+
+  const totalCount = memories.length + workspace.length;
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = search ? 0 : Math.min(page, totalPages - 1);
@@ -83,7 +144,7 @@ export function BrainPageClient() {
             Your Brain
           </h1>
           <span className="text-sm text-[#8a8f98]">
-            {memories.length} memor{memories.length === 1 ? "y" : "ies"}
+            {totalCount} memor{totalCount === 1 ? "y" : "ies"}
           </span>
         </div>
         <p className="mt-2 text-sm text-[#8a8f98] leading-relaxed max-w-2xl">
@@ -94,7 +155,7 @@ export function BrainPageClient() {
         </p>
       </div>
 
-      {memories.length === 0 ? (
+      {totalCount === 0 ? (
         <div className="text-center py-16">
           <div className="text-[#62666d] mb-3">
             <svg className="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -110,6 +171,40 @@ export function BrainPageClient() {
         </div>
       ) : (
         <>
+          {/* Tier segments. The lavender underline is the page's ONE accent
+              use — everything else stays on the surface ladder. */}
+          <div
+            role="tablist"
+            aria-label="Memory source"
+            className="flex gap-6 mb-4 border-b border-[#23252a]"
+          >
+            {(
+              [
+                ["all", "All", totalCount],
+                ["chat", "Chat", memories.length],
+                ["workspace", "Workspace", workspace.length],
+              ] as const
+            ).map(([key, label, count]) => (
+              <button
+                key={key}
+                role="tab"
+                aria-selected={tier === key}
+                onClick={() => {
+                  setTier(key);
+                  setPage(0);
+                }}
+                className={`-mb-px border-b-2 px-1 pb-2.5 text-sm transition-colors ${
+                  tier === key
+                    ? "border-[#5e6ad2] text-[#f7f8f8]"
+                    : "border-transparent text-[#8a8f98] hover:text-[#d0d6e0]"
+                }`}
+              >
+                {label}
+                <span className="ml-2 text-[11px] text-[#62666d]">{count}</span>
+              </button>
+            ))}
+          </div>
+
           <div className="flex gap-3 mb-4">
             <input
               type="text"
@@ -201,6 +296,82 @@ export function BrainPageClient() {
                 Next
               </button>
             </div>
+          )}
+
+          {/* Workspace tier — grouped under source-type headers. */}
+          {Object.entries(workspaceGroups).map(([sourceType, items]) => (
+            <div key={sourceType} className="mt-6">
+              <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-[#62666d]">
+                {sourceLabel(sourceType)}
+              </p>
+              <div className="space-y-2">
+                {items.map((m) => {
+                  const isExpanded = expanded === m.slug;
+                  return (
+                    <div
+                      key={m.slug}
+                      className="rounded-lg bg-[#0f1011] border border-[#23252a] group"
+                    >
+                      <button
+                        onClick={() => setExpanded(isExpanded ? null : m.slug)}
+                        className="w-full p-4 flex items-start gap-3 text-left"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-[#f7f8f8]">{m.entityName}</p>
+                          <p className="mt-1 truncate text-[13px] text-[#8a8f98]">
+                            {m.content}
+                          </p>
+                          {m.updatedAt && (
+                            <p className="text-[11px] text-[#62666d] mt-1">
+                              {new Date(m.updatedAt).toLocaleString(undefined, {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          )}
+                        </div>
+                        {canDeleteWorkspace && (
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteWorkspace(m.slug);
+                            }}
+                            className="p-1.5 rounded text-[#62666d] hover:text-red-400
+                                       opacity-0 group-hover:opacity-100 focus:opacity-100
+                                       transition-all cursor-pointer"
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Delete memory for ${m.entityName}`}
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </span>
+                        )}
+                      </button>
+                      {isExpanded && (
+                        <div className="px-4 pb-4">
+                          <pre className="text-[13px] text-[#d0d6e0] whitespace-pre-wrap font-sans leading-relaxed">
+                            {m.content}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          {tier === "workspace" && filteredWorkspace.length === 0 && (
+            <p className="py-12 text-center text-sm text-[#8a8f98]">
+              {search
+                ? "No workspace memories match that search."
+                : "Metis hasn't learned anything from your workspace yet."}
+            </p>
           )}
         </>
       )}
