@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Header } from "../components/layout/header";
 import { Footer } from "../components/layout/footer";
+import {
+  GoogleTagManager,
+  GoogleTagManagerNoScript,
+} from "../components/analytics/google-tag-manager";
 import { SearchProvider } from "../components/search/search-provider";
 import { getSignedInLead } from "../lib/lead-display";
 import {
@@ -90,6 +94,10 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-canvas text-ink font-sans">
+        {/* GTM <noscript> must be the first thing after <body>. Env-driven;
+            no-ops when NEXT_PUBLIC_GTM_ID is unset (local dev, preview). */}
+        <GoogleTagManagerNoScript gtmId={process.env.NEXT_PUBLIC_GTM_ID} />
+        <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: jsonLdScript(orgSchema) }}

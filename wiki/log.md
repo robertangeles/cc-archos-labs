@@ -1682,3 +1682,13 @@ Dry-running the script against DEV caught a real trap: `site_setting.value` was 
 ## 2026-07-24 — E4 Brain inspector QA runbook
 
 Added `wiki/runbooks/e4-brain-inspector-qa-checklist.md` (hand-run QA for the `/account/brain` workspace memory tier, branch `feature/brain-workspace-inspector`). Indexed under runbooks. A–D testable on the empty DEV tier; E–F covered by the 16 route tests.
+
+## 2026-07-24 — Google Tag Manager install (GA4 + Meta Pixel container)
+
+Installed site-wide GTM container `GTM-TDT86Q37` (branch `feature/analytics-ga4-meta-pixel`). Started as a raw GA4 `gtag` + Meta Pixel `fbq` build with an SPA route-change page-view tracker; **pivoted to GTM** when Rob supplied a GTM container id — GTM is one container that holds GA4, Meta Pixel, and future tags, all configured in the GTM UI (admin-controllable, no code deploy per tag). The pivot deleted the route-change tracker: GA4 Enhanced Measurement + GTM's History Change trigger handle Next.js SPA navigations without per-route JS.
+
+Code: `components/analytics/google-tag-manager.tsx` (loader `<Script afterInteractive>` + `<noscript>` iframe rendered first-child-of-`<body>`), wired in `app/layout.tsx` from `NEXT_PUBLIC_GTM_ID`. No-ops when the id is unset (dev/preview never load GTM). Docs: [[analytics-gtm]], `.env.example`.
+
+Verified: tsc + eslint clean, full suite 1262 green, and a real headless-browser smoke on the prod build (`next build` + `next start`) — `gtm.js?id=GTM-TDT86Q37` requested, `dataLayer` initialised with `gtm.start`, `<noscript>` iframe in SSR HTML.
+
+Open (not blocking install): GA4 + Meta Pixel tags must be added **inside GTM**; and Consent Mode v2 + a cookie banner + a /privacy disclosure are needed before EU/UK traffic (GTM currently loads tags unconditionally).

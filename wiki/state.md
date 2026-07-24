@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-21T03:14:19.938Z
+generated: 2026-07-24T08:10:50.130Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -155,7 +155,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/booking/intake-followup` | [app/api/booking/intake-followup/route.ts](../app/api/booking/intake-followup/route.ts) | 2026-05-17 |
 | `/api/booking/reschedule` | [app/api/booking/reschedule/route.ts](../app/api/booking/reschedule/route.ts) | 2026-05-17 |
 | `/api/brain` | [app/api/brain/route.ts](../app/api/brain/route.ts) | 2026-07-19 |
-| `/api/brain/memories` | [app/api/brain/memories/route.ts](../app/api/brain/memories/route.ts) | 2026-07-19 |
+| `/api/brain/memories` | [app/api/brain/memories/route.ts](../app/api/brain/memories/route.ts) | 2026-07-21 |
 | `/api/brain/status` | [app/api/brain/status/route.ts](../app/api/brain/status/route.ts) | 2026-07-19 |
 | `/api/cdmp/answer` | [app/api/cdmp/answer/route.ts](../app/api/cdmp/answer/route.ts) | 2026-06-03 |
 | `/api/cdmp/complete` | [app/api/cdmp/complete/route.ts](../app/api/cdmp/complete/route.ts) | 2026-06-29 |
@@ -264,7 +264,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate` | [app/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate/route.ts](../app/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate/route.ts) | 2026-07-06 |
 | `/api/workflows/[id]/steps/[stepId]/prompt` | [app/api/workflows/[id]/steps/[stepId]/prompt/route.ts](../app/api/workflows/[id]/steps/[stepId]/prompt/route.ts) | 2026-07-06 |
 
-## Components (120)
+## Components (122)
 
 | File | Last shipped |
 |------|--------------|
@@ -272,6 +272,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/admin/integrations/integrations-grid.tsx](../components/admin/integrations/integrations-grid.tsx) | 2026-07-07 |
 | [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-07-19 |
 | [components/analytics/analytics-client.tsx](../components/analytics/analytics-client.tsx) | 2026-05-18 |
+| [components/analytics/google-tag-manager.test.tsx](../components/analytics/google-tag-manager.test.tsx) | 2026-07-24 |
+| [components/analytics/google-tag-manager.tsx](../components/analytics/google-tag-manager.tsx) | 2026-07-24 |
 | [components/blog/author-bio.tsx](../components/blog/author-bio.tsx) | 2026-05-24 |
 | [components/blog/category-chips.tsx](../components/blog/category-chips.tsx) | 2026-05-20 |
 | [components/blog/editorial-list-row.tsx](../components/blog/editorial-list-row.tsx) | 2026-05-21 |
