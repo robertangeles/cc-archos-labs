@@ -1678,3 +1678,7 @@ Distillation: capture = extract atomic facts (Haiku, user message only) → cons
 Built `scripts/brain-prod-cutover.mjs` (gated: PROD_DATABASE_URL only, refuses local, dry-run default; backup → migrate via db-apply.mjs → prompt clause; does NOT flip the flag or backfill) + [[brain-prod-cutover]] runbook. Least-friction PROD switch: code's already deployed, so it's data + one Render env var, with instant rollback.
 
 Dry-running the script against DEV caught a real trap: `site_setting.value` was stored **double-encoded** (jsonb string) because my earlier DEV prompt-fix used `JSON.stringify(obj)::jsonb`. That silently made `getChatPrompt` fall back to the placeholder prompt (Metis lost its persona; recall still worked, so it hid). Fixed: the cutover script writes with `sql.json()` and reads defensively; repaired DEV's prompt to a proper jsonb object (persona restored). New lesson: [[2026-07-19-site-setting-jsonb-double-encoding]].
+
+## 2026-07-24 — E4 Brain inspector QA runbook
+
+Added `wiki/runbooks/e4-brain-inspector-qa-checklist.md` (hand-run QA for the `/account/brain` workspace memory tier, branch `feature/brain-workspace-inspector`). Indexed under runbooks. A–D testable on the empty DEV tier; E–F covered by the 16 route tests.

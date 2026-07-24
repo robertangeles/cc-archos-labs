@@ -1,7 +1,7 @@
 import "server-only";
 import { sql, eq, and, desc } from "drizzle-orm";
 import { getDb } from "@/lib/db";
-import { userMemory } from "@/lib/db/schema";
+import { userMemory, workspaceMemory } from "@/lib/db/schema";
 import { embedText } from "@/lib/embeddings";
 import { extractFacts, consolidateAndApply } from "./distill";
 import type { RecallResult } from "./recall";
@@ -208,6 +208,105 @@ export async function deleteAllMemoriesFromDb(userId: string): Promise<number> {
     .where(eq(userMemory.userId, userId))
     .returning({ id: userMemory.id });
   return deleted.length;
+}
+
+// ── Workspace tier (org-shared) management surface ──────────────────
+//
+// The Brain page reads BOTH tiers: a user's private chat memories (above) and
+// the org-shared workspace facts ingested from projects/clients/cards. These
+// are org-scoped, not user-scoped — the caller resolves the org first and is
+// responsible for having validated membership (see resolveOrgContext).
+
+export interface WorkspaceMemoryListItem {
+  id: string;
+  /** 'project' | 'client' | 'kanban_card' — drives the group header. */
+  sourceType: string;
+  sourceEntityId: string | null;
+  /** The entity's display name, for the row's lead text. */
+  entityName: string;
+  content: string;
+  updatedAt: string;
+}
+
+/**
+ * List an org's live workspace memories, newest first.
+ *
+ * Scoped to orgId — the caller MUST pass an org the user is a member of
+ * (resolveOrgContext re-validates membership on every call). Ordering is by
+ * source_type then recency so the UI's grouped render is stable.
+ */
+export async function listWorkspaceMemoriesFromDb(
+  orgId: string,
+  limit = 200,
+): Promise<WorkspaceMemoryListItem[]> {
+  const rows = await getDb()
+    .select({
+      id: workspaceMemory.id,
+      sourceType: workspaceMemory.sourceType,
+      sourceEntityId: workspaceMemory.sourceEntityId,
+      title: workspaceMemory.title,
+      body: workspaceMemory.body,
+      updatedAt: workspaceMemory.updatedAt,
+    })
+    .from(workspaceMemory)
+    .where(
+      and(
+        eq(workspaceMemory.organisationId, orgId),
+        eq(workspaceMemory.isActive, true),
+      ),
+    )
+    .orderBy(workspaceMemory.sourceType, desc(workspaceMemory.createdAt))
+    .limit(limit);
+
+  return rows.map((r) => ({
+    id: r.id,
+    sourceType: r.sourceType,
+    sourceEntityId: r.sourceEntityId,
+    entityName: entityNameFromFact(r.body, r.title),
+    content: r.body,
+    updatedAt: toIso(r.updatedAt),
+  }));
+}
+
+/**
+ * Soft-delete one workspace memory. Org-scoped: the id alone is not enough,
+ * so a member of org A can never deactivate org B's row even with a valid id.
+ * Soft, not hard — same supersede mechanism the ingest path uses, so the row
+ * stays auditable and a re-ingest can supersede it cleanly.
+ */
+export async function deactivateWorkspaceMemory(
+  orgId: string,
+  id: string,
+): Promise<boolean> {
+  const updated = await getDb()
+    .update(workspaceMemory)
+    .set({ isActive: false, supersededAt: new Date(), updatedAt: new Date() })
+    .where(
+      and(
+        eq(workspaceMemory.id, id),
+        eq(workspaceMemory.organisationId, orgId),
+        eq(workspaceMemory.isActive, true),
+      ),
+    )
+    .returning({ id: workspaceMemory.id });
+  return updated.length > 0;
+}
+
+/**
+ * Pull the entity's display name out of a fact body.
+ *
+ * Every ingested fact is written by an exported formatter that leads with the
+ * entity name in double quotes — `Project "Acme"...`, `Client "Acme"...`,
+ * `Card "Cutover"...` (see projectFact / clientFact / cardFact). Reading the
+ * first quoted span back is cheaper than a polymorphic join across three
+ * entity tables for what is purely a display label. Falls back to the stored
+ * title, then the raw body, so a formatter change degrades to a worse label
+ * rather than a blank row.
+ */
+function entityNameFromFact(body: string, title: string | null): string {
+  const quoted = body.match(/"([^"]+)"/);
+  if (quoted?.[1]) return quoted[1];
+  return title || body.slice(0, 80);
 }
 
 /** Lightweight status for the workspace Brain indicator. */
