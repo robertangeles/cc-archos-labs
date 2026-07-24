@@ -9,6 +9,7 @@ import { getChatPrompt } from "./prompt-config";
 import { getEnabledRules } from "../rules/service";
 import { vectorSearch } from "../knowledge/search";
 import { recallMemories, formatRecallContext } from "../brain/recall";
+import { getMemoryStatusFromDb } from "../brain/memory";
 import { extractMemories } from "../brain/extract";
 import { buildWorkspaceContext } from "./workspace-context";
 import {
@@ -20,6 +21,22 @@ import type { ChatMessage } from "./tool-loop";
 import { loadConversationDocuments } from "./attachments/service";
 import { getModelContextWindow, fitContext } from "./attachments/budget";
 import { logAttachmentEvent } from "./attachments/observability";
+
+// Injected when the brain has no memories for this user (or recall failed).
+// Deliberately NOT titled "## Brain Memory" — the system prompt ties that
+// heading to "you know this user, treat the notes as true", which is the
+// opposite of what we want here. A blunt present-tense "no record" statement
+// adjacent to the user's turn is what stops a weaker model from inventing a
+// persona when asked "do you remember me?".
+const EMPTY_BRAIN_NOTICE =
+  "## Memory check\n" +
+  "There are NO saved notes about this user. You have no prior record of who " +
+  "they are — no name, company, role, industry, location, or projects. Treat " +
+  "this as your first meeting.\n\n" +
+  'If they ask "do you remember me?", "who am I?", or anything about ' +
+  "themselves, say plainly that you don't have anything on them yet and invite " +
+  "them to tell you about themselves. NEVER invent, guess, or state any " +
+  "personal detail about this user. Fabricating an identity is a critical failure.";
 
 interface StreamMessageArgs {
   conversationId: string;
@@ -69,14 +86,27 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     // Knowledge search unavailable — continue without RAG
   }
 
+  // Brain recall. Three cases:
+  //  1. relevant memories → inject them.
+  //  2. brain is genuinely EMPTY → inject an explicit "no record" notice. The
+  //     absence of a memory block is not a signal a weaker model reads, so on an
+  //     empty brain it fabricates a plausible user ("You're Alex Chen, founder
+  //     of ..."). Stating the empty state in the present tense, adjacent to the
+  //     question, is what stops the confabulation (tests/e2e/brain-no-fabrication).
+  //  3. brain has notes but NONE matched this query → inject nothing. Recall is
+  //     relevance-ranked, so an empty result for one query does NOT mean an empty
+  //     brain; claiming "no record" here would make Metis deny a user it knows.
   let brainContext = "";
   try {
     const recall = await recallMemories(args.userId, args.userContent);
     if (recall.source === "brain" && recall.memories.length > 0) {
       brainContext = formatRecallContext(recall.memories);
+    } else {
+      const status = await getMemoryStatusFromDb(args.userId);
+      if (!status.hasMemory) brainContext = EMPTY_BRAIN_NOTICE;
     }
   } catch {
-    // Brain recall failed — continue without memory enrichment
+    // Recall/status unavailable — continue without a memory block.
   }
 
   // Phase 0 workspace memory: inject a snapshot of the user's active-org
