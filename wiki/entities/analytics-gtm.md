@@ -33,6 +33,14 @@ Why the split: the operator preferred a delegated, deploy-and-verify install for
 
 `lib/analytics.ts` + `components/analytics/analytics-client.tsx` — the **internal** product event tracker (`track("page.viewed" …)`, scroll depth) from the home-page PAS rewrite (PR #53). That is a separate first-party system and is unrelated to GTM/GA4/Meta.
 
-## Open follow-up — consent + privacy
+## Consent Mode v2 + cookie banner (shipped 2026-07-25)
 
-GTM currently loads its tags **unconditionally (no cookie-consent gate)**. Before enabling for EU/UK traffic: wire **Google Consent Mode v2** in GTM + a consent banner, and disclose GA4 + Meta Pixel in the DB-backed `/privacy` page (edited via `/admin/pages`, not in code). Tracked in [[backlog]].
+`components/analytics/consent.ts` + `consent-banner.tsx` + an inline consent-default script in `app/layout.tsx`.
+
+- **Region-scoped default.** An inline (synchronous) script sets Consent Mode v2 defaults **before** any Google tag: `granted` globally, `denied` for EEA+UK+CH (`EEA_REGIONS`, applied by Google via the visitor's IP region). AU / US / rest-of-world analytics are unaffected. All four v2 signals set (`ad_storage`, `ad_user_data`, `ad_personalization`, `analytics_storage`).
+- **Two-button banner** (`ConsentBanner`, matches the design system) shows once; **Accept**/**Reject** call `gtag('consent','update', …)` + Meta `fbq('consent', grant/revoke)` live and persist the choice in `localStorage` (`archos_consent`). Shown whenever any tracker id is set.
+- **Meta Pixel** has no native region consent, so `meta-pixel.tsx` gates before init: revoke if the visitor rejected, or (no choice yet) if their timezone is `Europe/*` — a dependency-free EEA heuristic. Google's side stays precise via Consent Mode regions.
+
+Verified by a headless smoke: default set before tags, banner shows, Accept → consent update + persist, reload respects the stored choice.
+
+Still deferred: nothing blocking. A granular (per-category) banner and a "change your choice" re-open link could be added later if needed. Privacy `/privacy` already discloses GA4 + Meta Pixel + opt-out (edited in DEV+PROD, see log 2026-07-24).

@@ -26,6 +26,17 @@ describe("metaPixelSnippet", () => {
     expect(s).toContain("fbq('track','PageView')");
     expect(s).toContain("connect.facebook.net/en_US/fbevents.js");
   });
+
+  it("gates consent before init (revoke on reject or EEA timezone)", () => {
+    const s = metaPixelSnippet("28739401002314414");
+    expect(s).toContain("fbq('consent','revoke')");
+    expect(s).toContain("archos_consent"); // reads the stored choice
+    expect(s).toContain("Europe/"); // dependency-free EEA heuristic
+    // revoke must precede init so the pixel is gated from the start
+    expect(s.indexOf("fbq('consent','revoke')")).toBeLessThan(
+      s.indexOf("fbq('init'"),
+    );
+  });
 });
 
 describe("MetaPixel", () => {
