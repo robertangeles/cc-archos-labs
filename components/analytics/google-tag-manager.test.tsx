@@ -32,4 +32,12 @@ describe("GoogleTagManagerNoScript", () => {
     expect(renderToString(<GoogleTagManagerNoScript />)).toBe("");
     expect(renderToString(<GoogleTagManagerNoScript gtmId="" />)).toBe("");
   });
+
+  it("renders nothing when the id does not match GTM-[A-Z0-9]+ (misconfigured env)", () => {
+    // Malformed ids must not reach the src interpolation.
+    expect(renderToString(<GoogleTagManagerNoScript gtmId="INVALID" />)).toBe("");
+    expect(
+      renderToString(<GoogleTagManagerNoScript gtmId="'); alert(1)//" />),
+    ).toBe("");
+  });
 });

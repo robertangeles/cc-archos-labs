@@ -1,5 +1,10 @@
 import Script from "next/script";
 
+// GTM container ids always match GTM-[A-Z0-9]+. Guard against a fat-fingered
+// or misconfigured env var before the id is interpolated into an inline
+// <Script> (dangerouslySetInnerHTML internally) or a URL src attribute.
+const GTM_ID_RE = /^GTM-[A-Z0-9]+$/;
+
 // The Google Tag Manager loader snippet, with the container id interpolated.
 // Pure + exported so the id-interpolation is unit-testable without a DOM.
 export function gtmSnippet(gtmId: string): string {
@@ -16,7 +21,7 @@ export function gtmSnippet(gtmId: string): string {
 // built-in History Change trigger. Next.js client navigation uses the History
 // API, so both fire on route changes with no per-route JS here.
 export function GoogleTagManager({ gtmId }: { gtmId?: string }) {
-  if (!gtmId) return null;
+  if (!gtmId || !GTM_ID_RE.test(gtmId)) return null;
   return (
     <Script id="gtm-init" strategy="afterInteractive">
       {gtmSnippet(gtmId)}
@@ -28,7 +33,7 @@ export function GoogleTagManager({ gtmId }: { gtmId?: string }) {
 // <body> tag, so the layout renders it as body's first child (separate from
 // the loader above, which Next injects near the top of the document).
 export function GoogleTagManagerNoScript({ gtmId }: { gtmId?: string }) {
-  if (!gtmId) return null;
+  if (!gtmId || !GTM_ID_RE.test(gtmId)) return null;
   return (
     <noscript>
       <iframe
