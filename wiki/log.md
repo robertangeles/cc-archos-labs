@@ -1692,3 +1692,13 @@ Code: `components/analytics/google-tag-manager.tsx` (loader `<Script afterIntera
 Verified: tsc + eslint clean, full suite 1262 green, and a real headless-browser smoke on the prod build (`next build` + `next start`) — `gtm.js?id=GTM-TDT86Q37` requested, `dataLayer` initialised with `gtm.start`, `<noscript>` iframe in SSR HTML.
 
 Open (not blocking install): GA4 + Meta Pixel tags must be added **inside GTM**; and Consent Mode v2 + a cookie banner + a /privacy disclosure are needed before EU/UK traffic (GTM currently loads tags unconditionally).
+
+## 2026-07-24 — Meta Pixel installed in code (not GTM)
+
+Installed the Meta (Facebook) Pixel `28739401002314414` directly in code (branch `feature/meta-pixel-code`), env-gated by `NEXT_PUBLIC_FB_PIXEL_ID`. `components/analytics/meta-pixel.tsx` (server-side `<Script afterInteractive>` base snippet + `<noscript>` beacon + a client `PixelRouteTracker` firing `fbq('track','PageView')` on SPA route changes, skipping the first). Wired in `app/layout.tsx`; no-ops when the id is unset/malformed (all-digits guard, mirrors the GTM id guard).
+
+**Deviation from the GTM-only decision:** the operator chose the code route for the pixel (delegated deploy-and-verify over hand-configuring a GTM tag). Meta Pixel now lives in code; GTM stays the container for GA4 + future tags. Documented the double-count trap (do NOT also add the pixel in GTM) in [[analytics-gtm]] + `.env.example`.
+
+Verified: tsc + eslint clean, full suite green, prod-build headless smoke — `fbq` loaded (v2.9.361), `signals/config/28739401002314414` fetched, pixel registered in `fbq.instance.pixelsByID`, queue flushed, `<noscript>` beacon in SSR. The live `/tr` PageView beacon is gated by Meta to the registered domain, so it will be confirmed against archoslabs.xyz post-deploy (Test Events / Pixel Helper).
+
+Still open: privacy policy §5 (cookies) + §6 (analytics) now contradict reality (GTM live, pixel shipping) — must be rewritten (DB-backed `/privacy` page, edit in DEV + PROD). Consent gate still deferred.

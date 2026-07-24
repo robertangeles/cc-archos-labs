@@ -6,7 +6,7 @@ updated: 2026-07-24
 related: [[about-page]], [[deployment-architecture]]
 ---
 
-Site-wide Google Tag Manager container — the single vehicle for GA4, Meta (Facebook) Pixel, and any future marketing/analytics tag. Configured in the GTM dashboard, not in code.
+Site-wide Google Tag Manager container for GA4 and future marketing tags, configured in the GTM dashboard. **The Meta (Facebook) Pixel is the exception — it is installed in code, NOT in GTM** (see below).
 
 ## What ships in code
 
@@ -22,12 +22,12 @@ Both components **render nothing when the id is unset** — so local dev and Ren
 
 `NEXT_PUBLIC_GTM_ID` — public by design (ships in client HTML). Prod container: **`GTM-TDT86Q37`**. Set it in the Render dashboard env. Because `NEXT_PUBLIC_*` is **inlined at build time**, it must be present when Render runs `next build` (it always is — dashboard env is available at build). Left unset locally.
 
-## GA4 + Meta Pixel live in GTM, not code
+## Where each tracker lives
 
-The code installs the container only. GA4 and Meta Pixel are added as **tags inside the GTM dashboard** — no code deploy to add, change, or remove a tag. This is why there is no `gtag`/`fbq` snippet in the repo.
+- **GA4 → GTM (planned).** Add a "Google Tag" (GA4) in the GTM dashboard with the Measurement ID — no code deploy. SPA page views are automatic: GA4 Enhanced Measurement's "page changes based on browser history events" (default on) fires on Next.js client navigations, which use the History API.
+- **Meta Pixel → code (shipped 2026-07-24).** Installed directly in `components/analytics/meta-pixel.tsx`, env-gated by `NEXT_PUBLIC_FB_PIXEL_ID` (prod pixel `28739401002314414`). The operator chose the code route so the pixel is owned + verified end-to-end (no GTM clicking). SPA page views are handled in code: `PixelRouteTracker` fires `fbq('track','PageView')` on each route change (skips the first, which the init snippet already sends). **Do NOT also add a Meta Pixel tag inside GTM — it would double-count every PageView.**
 
-- **GA4** — add a "Google Tag" (GA4) in GTM with the Measurement ID. SPA page views are automatic: GA4 Enhanced Measurement's "page changes based on browser history events" (default on) fires on Next.js client navigations, which use the History API.
-- **Meta Pixel** — add via the community Meta Pixel template (or a Custom HTML tag). For SPA page views, trigger a `PageView` tag on GTM's built-in **History Change** trigger.
+Why the split: the operator preferred a delegated, deploy-and-verify install for the pixel over configuring a GTM tag by hand. GTM stays the home for GA4 and anything added later.
 
 ## Not to be confused with
 
