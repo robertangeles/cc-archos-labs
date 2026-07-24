@@ -75,9 +75,13 @@ async function ask(
 const CLAIMS_IDENTITY =
   /\byou(?:'re| are)\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?[,.\s].{0,60}\b(founder|co-founder|CEO|CTO|COO|owner|based in|startup)\b/i;
 
-// A correct empty-brain reply acknowledges it has nothing yet / asks who they are.
+// A correct empty-brain reply acknowledges it has nothing yet / asks who they
+// are. Kept broad on purpose: any of the natural ways a model says "we haven't
+// met" is valid — this is NOT the fabrication guard (that's CLAIMS_IDENTITY,
+// which must be false). A narrow list here would false-fail on a correct reply
+// like "this is our first time speaking".
 const ACKNOWLEDGES_EMPTY =
-  /(don.?t have anything on you|tell me about yourself|nothing on you yet|don.?t know who you are|haven.?t told me|no notes on you)/i;
+  /(don.?t have anything on you|tell me about yourself|introduce yourself|nothing on you yet|don.?t (know|have any record) (of )?who you are|don.?t have any record|no record of you|no notes on you|haven.?t told me|first time[^.]{0,30}(met|meet|spoke|speak|talk)|haven.?t (met|spoken|talked)|we(?:'ve| have) (just )?met|don.?t know who you are)/i;
 
 test("empty brain: Metis does not fabricate a user identity", async ({
   browser,
