@@ -6,9 +6,11 @@ import { test, expect, type APIRequestContext } from "@playwright/test";
 // Bug (2026-07-24): asked "do you remember me?" on a fresh conversation with an
 // empty brain and no workspace data, Metis invented a full persona
 // ("You're Alex Chen, founder and CEO of Ventra..."). The persona existed in no
-// data source — pure confabulation. Root cause: the chat system prompt's
-// no-memory branch did not explicitly forbid inventing user details. Fixed by
-// hardening that branch (site_setting.workspace_chat_prompt → brain-memory-v2).
+// data source — pure confabulation. Root cause: the absence of a memory block in the system context is not read
+// as "no record" by weaker models — they fabricate a plausible user instead.
+// Fixed by injecting EMPTY_BRAIN_NOTICE into the chat system context in
+// lib/chat/stream.ts when getMemoryStatusFromDb confirms an empty brain.
+// No system-prompt or DB change was required.
 //
 // This test registers a FRESH user (empty brain, empty default org → no
 // brain/workspace/RAG context is injected), asks the trigger question through
