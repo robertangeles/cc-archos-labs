@@ -98,10 +98,12 @@ export default async function RootLayout({
         {/* GTM <noscript> must be the first thing after <body>. Env-driven;
             no-ops when NEXT_PUBLIC_GTM_ID is unset (local dev, preview). */}
         <GoogleTagManagerNoScript gtmId={process.env.NEXT_PUBLIC_GTM_ID} />
-        <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID} />
         {/* Meta Pixel — installed in code, NOT in GTM (don't add it there too,
-            or PageViews double-count). No-ops when the id is unset. */}
+            or PageViews double-count). No-ops when the id is unset. Placed
+            right after GTM's noscript so its own <noscript> beacon sits as
+            early in <body> as possible (Meta's placement guidance). */}
         <MetaPixel pixelId={process.env.NEXT_PUBLIC_FB_PIXEL_ID} />
+        <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: jsonLdScript(orgSchema) }}
