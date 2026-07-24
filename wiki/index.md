@@ -125,6 +125,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 - [Remove env vars from Render dashboard after migrating to DB](runbooks/env-removal-checklist.md) — pre-flight checks, one-at-a-time removal procedure, 7-day cutover finalisation
 - [Local UAT — brain migration (GBrain → in-app pgvector)](runbooks/brain-pgvector-uat-checklist.md) — hand-run checklist proving every memory function works on pgvector + per-user isolation, before shipping. Run with `MEMORY_BACKEND=pgvector pnpm dev`.
 - [Brain PROD cutover — flip to pgvector + distillation](runbooks/brain-prod-cutover.md) — least-friction PROD switch (code's already deployed; data + one env var). `scripts/brain-prod-cutover.mjs --apply` does backup → migrate → prompt; then flip `MEMORY_BACKEND=pgvector` on Render. Instant rollback by unsetting it.
+- [QA — Brain workspace inspector (E4)](runbooks/e4-brain-inspector-qa-checklist.md) — hand-run before shipping the `/account/brain` Workspace tier. A–D testable now (empty tier); E–F need workspace rows and ride on the 16 route tests. Branch `feature/brain-workspace-inspector`.
 
 ## backlog
 - [Brain distillation layer (extract + consolidate)](backlog/brain-distillation-layer.md) — locked spec (CEO + eng review) to replace store-every-turn capture with Haiku fact extraction + LLM-judge consolidation (dedup/supersede via `is_active`/`superseded_at`); recall unchanged. Fixes the polluted "Your Brain" page. Does not block the pgvector migration.
