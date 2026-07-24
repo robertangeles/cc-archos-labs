@@ -1702,3 +1702,11 @@ Installed the Meta (Facebook) Pixel `28739401002314414` directly in code (branch
 Verified: tsc + eslint clean, full suite green, prod-build headless smoke — `fbq` loaded (v2.9.361), `signals/config/28739401002314414` fetched, pixel registered in `fbq.instance.pixelsByID`, queue flushed, `<noscript>` beacon in SSR. The live `/tr` PageView beacon is gated by Meta to the registered domain, so it will be confirmed against archoslabs.xyz post-deploy (Test Events / Pixel Helper).
 
 Still open: privacy policy §5 (cookies) + §6 (analytics) now contradict reality (GTM live, pixel shipping) — must be rewritten (DB-backed `/privacy` page, edit in DEV + PROD). Consent gate still deferred.
+
+## 2026-07-24 — GA4 installed in code + privacy policy disclosure
+
+**GA4** `G-LLN8BG92ZT` installed in code (branch `feature/ga4-code`), env-gated by `NEXT_PUBLIC_GA_ID`. `components/analytics/google-analytics.tsx` — gtag.js loader + config, server component, `isValidGaId` (`G-[A-Z0-9]+`) guard, no-op when unset. SPA page views via GA4 Enhanced Measurement (history events, default on). Verified: tsc/eslint/tests green, prod-build headless smoke — gtag loaded, config `G-LLN8BG92ZT`, `/g/collect` request fired (GA4 collects on localhost, no domain gate). Wired in `app/layout.tsx`; `do NOT add a GA4 tag in GTM too` (double-count). [[analytics-gtm]] updated: **both GA4 + Meta Pixel now in code; GTM is an empty container.**
+
+**Root of a support blow-up:** the operator supplied the **GTM container** snippet calling it "the google analytic tag manager", so GA appeared handled when GTM ≠ GA. GTM was live + firing but collected nothing (no GA4 tag). Fix: got the real GA4 Measurement ID and wired gtag directly. Lesson: when someone pastes a GTM snippet expecting Google Analytics, flag GTM≠GA4 immediately and ask for the `G-XXXX` id.
+
+**Privacy policy** — edited `/privacy` DB content in **DEV + PROD** (page `72df4085…`, direct SQL in a txn + `page_revision` rows, backups saved). §6 no longer claims "no Google Analytics / no third-party analytics"; §5 no longer claims "no tracking/advertising cookies". Now discloses GTM + GA4 + Meta Pixel, what they collect, and an opt-out section; "Last updated" → July 2026. Verified live on archoslabs.xyz/privacy. Still deferred: cookie-consent gate (Consent Mode v2 + banner) before EU/UK traffic.
