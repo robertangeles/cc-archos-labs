@@ -7,6 +7,7 @@ import {
   GoogleTagManagerNoScript,
 } from "../components/analytics/google-tag-manager";
 import { MetaPixel } from "../components/analytics/meta-pixel";
+import { GoogleAnalytics } from "../components/analytics/google-analytics";
 import { SearchProvider } from "../components/search/search-provider";
 import { getSignedInLead } from "../lib/lead-display";
 import {
@@ -103,6 +104,9 @@ export default async function RootLayout({
             right after GTM's noscript so its own <noscript> beacon sits as
             early in <body> as possible (Meta's placement guidance). */}
         <MetaPixel pixelId={process.env.NEXT_PUBLIC_FB_PIXEL_ID} />
+        {/* GA4 (gtag.js) — installed in code, NOT in GTM (don't add a GA4 tag
+            there too, or page_views double-count). No-ops when the id is unset. */}
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
         <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID} />
         <script
           type="application/ld+json"

@@ -6,7 +6,7 @@ updated: 2026-07-24
 related: [[about-page]], [[deployment-architecture]]
 ---
 
-Site-wide Google Tag Manager container for GA4 and future marketing tags, configured in the GTM dashboard. **The Meta (Facebook) Pixel is the exception — it is installed in code, NOT in GTM** (see below).
+Site-wide Google Tag Manager container (`GTM-TDT86Q37`) for any future marketing tags. **Both live trackers — GA4 and the Meta Pixel — are installed in CODE, not in GTM** (the operator chose the deploy-and-verify route for each). GTM is currently an empty container: it loads but holds no tags. See below.
 
 ## What ships in code
 
@@ -24,7 +24,7 @@ Both components **render nothing when the id is unset** — so local dev and Ren
 
 ## Where each tracker lives
 
-- **GA4 → GTM (planned).** Add a "Google Tag" (GA4) in the GTM dashboard with the Measurement ID — no code deploy. SPA page views are automatic: GA4 Enhanced Measurement's "page changes based on browser history events" (default on) fires on Next.js client navigations, which use the History API.
+- **GA4 → code (shipped 2026-07-24).** Installed in `components/analytics/google-analytics.tsx` (gtag.js), env-gated by `NEXT_PUBLIC_GA_ID` (prod `G-LLN8BG92ZT`). Server component — no client hooks. SPA page views rely on GA4 Enhanced Measurement's "page changes based on browser history events" (default on), which fires on Next.js client navigations (History API). **Do NOT also add a GA4 tag in GTM with the same id — double-counts.**
 - **Meta Pixel → code (shipped 2026-07-24).** Installed directly in `components/analytics/meta-pixel.tsx`, env-gated by `NEXT_PUBLIC_FB_PIXEL_ID` (prod pixel `28739401002314414`). The operator chose the code route so the pixel is owned + verified end-to-end (no GTM clicking). SPA page views are handled in code: `PixelRouteTracker` fires `fbq('track','PageView')` on each route change (skips the first, which the init snippet already sends). **Do NOT also add a Meta Pixel tag inside GTM — it would double-count every PageView.**
 
 Why the split: the operator preferred a delegated, deploy-and-verify install for the pixel over configuring a GTM tag by hand. GTM stays the home for GA4 and anything added later.

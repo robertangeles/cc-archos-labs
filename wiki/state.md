@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-24T10:46:33.552Z
+generated: 2026-07-24T11:15:30.440Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -264,7 +264,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate` | [app/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate/route.ts](../app/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate/route.ts) | 2026-07-06 |
 | `/api/workflows/[id]/steps/[stepId]/prompt` | [app/api/workflows/[id]/steps/[stepId]/prompt/route.ts](../app/api/workflows/[id]/steps/[stepId]/prompt/route.ts) | 2026-07-06 |
 
-## Components (124)
+## Components (126)
 
 | File | Last shipped |
 |------|--------------|
@@ -272,6 +272,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/admin/integrations/integrations-grid.tsx](../components/admin/integrations/integrations-grid.tsx) | 2026-07-07 |
 | [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-07-19 |
 | [components/analytics/analytics-client.tsx](../components/analytics/analytics-client.tsx) | 2026-05-18 |
+| [components/analytics/google-analytics.test.tsx](../components/analytics/google-analytics.test.tsx) | unknown |
+| [components/analytics/google-analytics.tsx](../components/analytics/google-analytics.tsx) | unknown |
 | [components/analytics/google-tag-manager.test.tsx](../components/analytics/google-tag-manager.test.tsx) | 2026-07-24 |
 | [components/analytics/google-tag-manager.tsx](../components/analytics/google-tag-manager.tsx) | 2026-07-24 |
 | [components/analytics/meta-pixel.test.tsx](../components/analytics/meta-pixel.test.tsx) | 2026-07-24 |
