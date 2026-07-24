@@ -3,14 +3,14 @@ title: QA — Brain workspace inspector (E4)
 category: runbook
 created: 2026-07-24
 updated: 2026-07-24
-related: [[project-workspace-memory-plan]], [[conversational-memory-design]], [[brain-pgvector-uat-checklist]]
+related: [[conversational-memory-design]], [[brain-pgvector-uat-checklist]]
 ---
 
 Hand-run this before shipping the E4 Brain inspector — the `/account/brain` page that adds the org-shared **Workspace** memory tier next to the private **Chat** tier. ~10 min for A–D.
 
 - **Branch:** `feature/brain-workspace-inspector` · **Commit:** `4da44c0`
 - **Surface:** http://localhost:3007/account/brain (`pnpm dev`)
-- **Design source:** design-shotgun E4-A (segmented `All / Chat / Workspace` + entity-grouped rows). See [[project-workspace-memory-plan]].
+- **Design source:** design-shotgun E4-A (segmented `All / Chat / Workspace` + entity-grouped rows). See [[conversational-memory-design]] for the wider memory architecture.
 
 **Legend:** ✅ testable now (workspace tier is empty on DEV — `WORKSPACE_MEMORY_INGEST` has never been on) · 🔒 needs workspace rows, so browser-blocked → covered by the 16 automated tests in `app/api/brain/memories/route.test.ts` instead.
 
