@@ -1710,3 +1710,9 @@ Still open: privacy policy §5 (cookies) + §6 (analytics) now contradict realit
 **Root of a support blow-up:** the operator supplied the **GTM container** snippet calling it "the google analytic tag manager", so GA appeared handled when GTM ≠ GA. GTM was live + firing but collected nothing (no GA4 tag). Fix: got the real GA4 Measurement ID and wired gtag directly. Lesson: when someone pastes a GTM snippet expecting Google Analytics, flag GTM≠GA4 immediately and ask for the `G-XXXX` id.
 
 **Privacy policy** — edited `/privacy` DB content in **DEV + PROD** (page `72df4085…`, direct SQL in a txn + `page_revision` rows, backups saved). §6 no longer claims "no Google Analytics / no third-party analytics"; §5 no longer claims "no tracking/advertising cookies". Now discloses GTM + GA4 + Meta Pixel, what they collect, and an opt-out section; "Last updated" → July 2026. Verified live on archoslabs.xyz/privacy. Still deferred: cookie-consent gate (Consent Mode v2 + banner) before EU/UK traffic.
+
+## 2026-07-25 — Consent Mode v2 + cookie banner
+
+Shipped Google Consent Mode v2 + a two-button cookie banner (branch `feature/consent-mode-v2`). Region-scoped: `denied` default for EEA+UK+CH, `granted` elsewhere (AU/RoW analytics unaffected), set via a synchronous inline script before the tags. Banner (`components/analytics/consent-banner.tsx`, design-system styled) shows once; Accept/Reject applies to GA4 (Consent Mode update) + Meta (`fbq consent grant/revoke`) live and persists in `localStorage`. Meta gated via a `Europe/*` timezone heuristic (no native region consent). Shared logic in `components/analytics/consent.ts`. See [[analytics-gtm]].
+
+Verified: tsc/eslint clean, analytics tests 18 green, prod-build headless smoke of the full flow (default-before-tags, banner shows, Accept→update+persist, reload respects choice). No new env var — activates off the existing tracker ids.

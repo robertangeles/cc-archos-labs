@@ -8,6 +8,8 @@ import {
 } from "../components/analytics/google-tag-manager";
 import { MetaPixel } from "../components/analytics/meta-pixel";
 import { GoogleAnalytics } from "../components/analytics/google-analytics";
+import { ConsentBanner } from "../components/analytics/consent-banner";
+import { consentDefaultSnippet } from "../components/analytics/consent";
 import { SearchProvider } from "../components/search/search-provider";
 import { getSignedInLead } from "../lib/lead-display";
 import {
@@ -96,8 +98,15 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-canvas text-ink font-sans">
-        {/* GTM <noscript> must be the first thing after <body>. Env-driven;
-            no-ops when NEXT_PUBLIC_GTM_ID is unset (local dev, preview). */}
+        {/* Consent Mode v2 defaults — a synchronous inline script so it runs
+            BEFORE the afterInteractive Google tags. Region-scoped: denied for
+            EEA+UK+CH, granted elsewhere; re-applies any stored choice. */}
+        {(process.env.NEXT_PUBLIC_GA_ID || process.env.NEXT_PUBLIC_GTM_ID) && (
+          <script
+            dangerouslySetInnerHTML={{ __html: consentDefaultSnippet() }}
+          />
+        )}
+        {/* GTM <noscript> first thing after <body>. Env-driven; no-ops unset. */}
         <GoogleTagManagerNoScript gtmId={process.env.NEXT_PUBLIC_GTM_ID} />
         {/* Meta Pixel — installed in code, NOT in GTM (don't add it there too,
             or PageViews double-count). No-ops when the id is unset. Placed
@@ -108,6 +117,15 @@ export default async function RootLayout({
             there too, or page_views double-count). No-ops when the id is unset. */}
         <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
         <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID} />
+        {/* Cookie-consent banner — shows once; Accept/Reject applies to GA4 +
+            Meta live. Enabled whenever any tracker is configured. */}
+        <ConsentBanner
+          enabled={Boolean(
+            process.env.NEXT_PUBLIC_GA_ID ||
+              process.env.NEXT_PUBLIC_GTM_ID ||
+              process.env.NEXT_PUBLIC_FB_PIXEL_ID,
+          )}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: jsonLdScript(orgSchema) }}

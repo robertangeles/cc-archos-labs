@@ -3,6 +3,7 @@
 import Script from "next/script";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
+import { CONSENT_KEY } from "./consent";
 
 // A Meta Pixel ID is all digits. Reject anything else before it reaches the
 // inline-script interpolation (defense-in-depth, mirrors the GTM id guard).
@@ -15,14 +16,15 @@ export function isValidPixelId(pixelId: string | undefined): pixelId is string {
 // The Meta Pixel base snippet with the id interpolated. Pure + exported so the
 // interpolation is unit-testable without a DOM.
 export function metaPixelSnippet(pixelId: string): string {
-  return `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${pixelId}');fbq('track','PageView');`;
+  // Meta has no native region-scoped consent, so gate before init: revoke if
+  // the visitor rejected, or (no choice yet) if their timezone is European —
+  // a dependency-free EEA heuristic. Google's side is handled precisely by
+  // Consent Mode region defaults; this keeps Meta consistent for EEA visitors
+  // while leaving AU / rest-of-world firing.
+  return `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');(function(){var c=null;try{c=localStorage.getItem('${CONSENT_KEY}');}catch(e){}var tz='';try{tz=(Intl.DateTimeFormat().resolvedOptions().timeZone)||'';}catch(e){}if(c==='denied'||(c===null&&tz.indexOf('Europe/')===0)){fbq('consent','revoke');window.__archosPixelGated=true;}})();fbq('init','${pixelId}');fbq('track','PageView');`;
 }
 
-declare global {
-  interface Window {
-    fbq?: (...args: unknown[]) => void;
-  }
-}
+// window.fbq is declared globally in ./consent (shared with the banner).
 
 // The init snippet fires the FIRST PageView when it loads. Next.js navigations
 // are client-side, so subsequent views never reach Meta unless we fire them.
