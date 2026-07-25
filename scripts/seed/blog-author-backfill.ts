@@ -33,10 +33,10 @@ const AUTHOR_FIELDS = {
   photoUrl: "/images/metis-square.png",
   linkedinUrl: "https://www.linkedin.com/in/robangeles22",
   bioMd:
-    "METIS is the intelligence behind Archos Labs. She researches what " +
-    "matters in AI and data today. Her focus is founders and SMBs facing " +
-    "real decisions with limited runway, not executives in enterprise " +
-    "procurement cycles. She finds the signal.",
+    "METIS is the intelligence agent behind Archos Labs' workspace. She " +
+    "researches what matters in AI and data today. Her focus is founders " +
+    "and SMBs facing real decisions with limited runway, not executives " +
+    "in enterprise procurement cycles. She finds the signal.",
 } as const;
 
 async function main(): Promise<void> {
