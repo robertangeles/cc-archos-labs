@@ -79,6 +79,18 @@ export const BlogAgentConfigSchema = z.object({
     /** Posts per week, one entry per week since startDate. Last value holds. */
     weeklyRamp: z.array(z.number().int().min(0).max(7)).min(1),
   }),
+  /**
+   * When a finished post is scheduled for. Always the next occurrence of this
+   * wall-clock hour in this zone.
+   *
+   * Australia/Sydney gives 7am local year-round — UTC+10 in winter (AEST) and
+   * UTC+11 over summer (AEDT). For a fixed UTC+10 regardless of season, use
+   * Australia/Brisbane, which never observes daylight saving.
+   */
+  publishAt: z.object({
+    hour: z.number().int().min(0).max(23),
+    timeZone: z.string().min(1),
+  }),
   /** Where failure alerts go. Empty disables alerting. */
   alertEmail: z.string().email().or(z.literal("")),
 });
@@ -110,6 +122,9 @@ export const BLOG_AGENT_CONFIG_STARTER: BlogAgentConfig = {
   linkAllowlist: [...DEFAULT_LINK_ALLOWLIST],
   minQueueDepth: 7,
   velocity: { startDate: "2026-01-01", weeklyRamp: [2, 2, 3, 4, 5, 6, 7] },
+  // 7am local, year-round. Australia/Brisbane instead if you want a fixed
+  // UTC+10 that ignores daylight saving.
+  publishAt: { hour: 7, timeZone: "Australia/Sydney" },
   alertEmail: "",
 };
 

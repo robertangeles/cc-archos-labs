@@ -124,6 +124,9 @@ try {
     velocity: daily
       ? { startDate: "2026-01-01", weeklyRamp: [7] }
       : { startDate: "2026-01-01", weeklyRamp: [2, 3, 5, 7] },
+    // 7am local in Sydney year-round. Use Australia/Brisbane for a fixed
+    // UTC+10 that ignores daylight saving.
+    publishAt: { hour: 7, timeZone: "Australia/Sydney" },
     alertEmail: "",
   };
 
@@ -145,6 +148,7 @@ try {
   }
   console.log(`  enabled       ${config.enabled}${enable ? "" : "  (pass --enable to turn on)"}`);
   console.log(`  cadence       ${daily ? "daily" : "ramped 2→7 per week"}`);
+  console.log(`  publishes at  ${config.publishAt.hour}:00 ${config.publishAt.timeZone}`);
   console.log(`  minQueueDepth ${config.minQueueDepth}  (no auto batch generation)`);
 } catch (err) {
   fail(err.message);

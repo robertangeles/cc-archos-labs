@@ -6,7 +6,7 @@ import { users, workflowField, workflowStep } from "../db/schema";
 import { getEnabledRules, formatRulesForInjection } from "../rules/service";
 import { executeStep, executeWorkflow } from "../workflows/executor";
 import { createPost } from "../posts-admin";
-import { getBlogAgentConfig, getJudgePrompt, isDueToday } from "./config";
+import { getBlogAgentConfig, getJudgePrompt, isDueToday, nextPublishSlot } from "./config";
 import type { BlogAgentConfig } from "./config-shared";
 import { judgeDraft, type JudgeVerdict } from "./judge";
 import { parseDraft } from "./parse-draft";
@@ -47,9 +47,6 @@ import {
 // needs_review set, and the scheduled publisher withholds it until a human
 // clears the flag. The worst case for every failure path is a draft plus an
 // alert — never a live post.
-
-/** How far ahead to schedule. PostCreateSchema rejects a past timestamp. */
-const SCHEDULE_LEAD_MS = 60 * 60 * 1000;
 
 /** Cap on rewrite rounds. Deliberately one — see below. */
 const MAX_REWRITE_ROUNDS = 1;
@@ -415,8 +412,14 @@ async function finish(
       visibility: "listed",
       needsReview: true,
       isAgentGenerated: true,
-      // Must be in the future — PostCreateSchema rejects a past timestamp.
-      scheduledPublishAt: new Date(now.getTime() + SCHEDULE_LEAD_MS),
+      // Next 7am in the configured zone. Always in the future, which
+      // PostCreateSchema requires. The post still will not go live until the
+      // review flag is cleared — this only sets when it becomes eligible.
+      scheduledPublishAt: nextPublishSlot(
+        now,
+        config.publishAt.hour,
+        config.publishAt.timeZone,
+      ),
     },
     "blog-writer-agent",
   );

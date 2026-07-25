@@ -100,6 +100,67 @@ export function postsPerWeek(config: BlogAgentConfig, now: Date): number {
 }
 
 /**
+ * How far `instant` is offset from UTC in `timeZone`, in milliseconds.
+ * Derived from Intl rather than hardcoded, so daylight saving is handled by
+ * the platform's tz database instead of by us guessing.
+ */
+function zoneOffsetMs(instant: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(instant);
+
+  const g = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+  const asIfUtc = Date.UTC(g("year"), g("month") - 1, g("day"), g("hour") % 24, g("minute"), g("second"));
+  return asIfUtc - instant.getTime();
+}
+
+/**
+ * The next time it is `hour`:00 wall-clock in `timeZone`, strictly in the future.
+ *
+ * Note on "7am AEST": this schedules 7am *local* time in the configured zone.
+ * With `Australia/Sydney` that means 7am year-round — UTC+10 in winter (AEST)
+ * and UTC+11 over summer (AEDT), because the clocks move and 7am is still 7am.
+ * If you meant a fixed UTC+10 offset regardless of season, set the zone to
+ * `Australia/Brisbane`, which never observes daylight saving.
+ */
+export function nextPublishSlot(
+  now: Date,
+  hour: number,
+  timeZone: string,
+): Date {
+  for (let dayOffset = 0; dayOffset <= 3; dayOffset++) {
+    const probe = new Date(now.getTime() + dayOffset * 86_400_000);
+    const local = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(probe);
+    const [y, m, d] = local.split("-").map(Number);
+
+    // Treat the wall clock as UTC, then correct by the zone's offset at that
+    // instant. Applied twice so a slot that lands on a DST boundary settles.
+    let utc = Date.UTC(y, m - 1, d, hour, 0, 0);
+    for (let i = 0; i < 2; i++) {
+      utc = Date.UTC(y, m - 1, d, hour, 0, 0) - zoneOffsetMs(new Date(utc), timeZone);
+    }
+
+    // A minute of headroom: PostCreateSchema rejects a timestamp in the past,
+    // and the run takes minutes, so a slot that is merely "now" would fail.
+    if (utc > now.getTime() + 60_000) return new Date(utc);
+  }
+  // Unreachable in practice — 3 days always contains a future 7am.
+  return new Date(now.getTime() + 86_400_000);
+}
+
+/**
  * Should the agent generate today?
  *
  * Spreads N posts across 7 days by day-of-week rather than bunching them at

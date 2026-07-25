@@ -135,14 +135,91 @@ export function parseDraft(articleDraft: string): ParsedDraft | null {
   if (tags.length === 0) return null;
 
   return {
-    title,
-    excerpt,
+    // House style: headlines are Title Case, not the sentence case the skill
+    // emits. Applied here rather than in the prompt so it is deterministic —
+    // a model asked to title-case gets acronyms wrong intermittently.
+    title: toTitleCase(title),
+    excerpt: capMeta(excerpt),
     contentMd,
     slug: normaliseSlug(slug),
-    seoTitle,
-    seoDescription,
+    seoTitle: toTitleCase(seoTitle),
+    seoDescription: capMeta(seoDescription),
     tags,
   };
+}
+
+/**
+ * Words that stay lower-case inside a title unless they land first or last.
+ * Conjunctions, articles and short prepositions only — verbs are always
+ * capitalised, so "is" and "are" are deliberately absent ("Data Is Breaking
+ * Your AI", not "Data is Breaking Your AI").
+ */
+const MINOR_WORDS = new Set([
+  "a", "an", "and", "as", "at", "but", "by", "for", "from", "if", "in", "into",
+  "nor", "of", "on", "onto", "or", "per", "so", "the", "to", "up", "via", "vs",
+  "with", "yet",
+]);
+
+/** Already-uppercase runs are acronyms: AI, IT, CRM, ROI, SMB, CDO, KPI. */
+const ACRONYM = /^[A-Z0-9][A-Z0-9.&/]*$/;
+
+function capitaliseWord(word: string): string {
+  // Hyphenated compounds capitalise both halves: "non-technical" -> "Non-Technical".
+  return word
+    .split("-")
+    .map((part) =>
+      ACRONYM.test(part) && part.length >= 2
+        ? part
+        : part.charAt(0).toUpperCase() + part.slice(1),
+    )
+    .join("-");
+}
+
+/**
+ * Title Case for headlines and SEO titles.
+ *
+ * The skill emits sentence case ("Shadow AI is already inside your team"); the
+ * house style is Title Case. Acronyms are left alone, which is the whole
+ * difficulty here — a naive capitalise turns "AI" into "Ai" and "IT" into "It",
+ * and "It" is a real word, so the damage is invisible in a spot check.
+ */
+export function toTitleCase(input: string): string {
+  const tokens = input.trim().split(/(\s+)/);
+  const wordIndexes = tokens
+    .map((t, i) => (t.trim().length > 0 ? i : -1))
+    .filter((i) => i >= 0);
+  const first = wordIndexes[0];
+  const last = wordIndexes[wordIndexes.length - 1];
+
+  return tokens
+    .map((token, i) => {
+      if (token.trim().length === 0) return token;
+      if (ACRONYM.test(token) && token.length >= 2) return token;
+      const bare = token.toLowerCase();
+      if (i !== first && i !== last && MINOR_WORDS.has(bare.replace(/[^a-z]/g, ""))) {
+        return bare;
+      }
+      return capitaliseWord(token);
+    })
+    .join("");
+}
+
+/**
+ * Cap a meta description / excerpt at `limit` characters on a word boundary.
+ *
+ * 160 is the point past which Google truncates a description in results, so a
+ * longer one is not shown in full anyway. 2 of the 7 real drafts came in at
+ * 161 and 163, so this fires occasionally rather than constantly — cutting
+ * mid-word or appending an ellipsis would be worse than the overflow.
+ */
+export function capMeta(input: string, limit = 160): string {
+  const text = input.trim().replace(/\s+/g, " ");
+  if (text.length <= limit) return text;
+  const cut = text.slice(0, limit + 1);
+  const lastSpace = cut.lastIndexOf(" ");
+  return (lastSpace > 0 ? cut.slice(0, lastSpace) : text.slice(0, limit))
+    .replace(/[,;:\-–—\s]+$/, "")
+    .trim();
 }
 
 /**
