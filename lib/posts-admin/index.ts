@@ -418,6 +418,7 @@ export async function createPost(
       status: input.status,
       visibility: input.visibility,
       needsReview: input.needsReview,
+      isAgentGenerated: input.isAgentGenerated,
       lastReviewedAt: input.lastReviewedAt,
       scheduledPublishAt: input.scheduledPublishAt,
       ogImageAlt: input.ogImageAlt,
@@ -446,6 +447,7 @@ export async function createPost(
             status: normalised.status,
             visibility: normalised.visibility,
             needsReview: normalised.needsReview,
+            isAgentGenerated: normalised.isAgentGenerated,
             lastReviewedAt: normalised.lastReviewedAt,
             scheduledPublishAt: normalised.scheduledPublishAt,
             ogImageAlt: normalised.ogImageAlt,
@@ -1043,6 +1045,7 @@ function normalisePostInput(input: PostInput): {
   status: PostStatus;
   visibility: PostVisibility;
   needsReview: boolean;
+  isAgentGenerated: boolean;
   lastReviewedAt: Date | null;
   scheduledPublishAt: Date | null;
   ogImageAlt: string | null;
@@ -1060,6 +1063,7 @@ function normalisePostInput(input: PostInput): {
     status: input.status,
     visibility: input.visibility ?? "listed",
     needsReview: input.needsReview ?? false,
+    isAgentGenerated: input.isAgentGenerated ?? false,
     lastReviewedAt: input.lastReviewedAt ?? null,
     scheduledPublishAt:
       input.status === "scheduled" ? (input.scheduledPublishAt ?? null) : null,

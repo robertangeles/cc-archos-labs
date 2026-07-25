@@ -83,6 +83,7 @@ export const PostCreateSchema = z
       .default("draft"),
     visibility: PostVisibilitySchema.optional().default("listed"),
     needsReview: z.boolean().optional(),
+    isAgentGenerated: z.boolean().optional(),
     lastReviewedAt: z.coerce.date().optional().nullable(),
     scheduledPublishAt: z.coerce.date().optional().nullable(),
     ogImageAlt: z

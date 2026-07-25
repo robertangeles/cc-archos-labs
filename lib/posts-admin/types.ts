@@ -88,6 +88,12 @@ export interface PostInput {
   status: PostStatus;
   visibility?: PostVisibility;
   needsReview?: boolean;
+  /**
+   * TRUE for posts written by the blog writer agent. Scopes the publish
+   * gate (scheduled-publisher withholds only when this AND needs_review
+   * are both set) and marks agent output in the admin list.
+   */
+  isAgentGenerated?: boolean;
   lastReviewedAt?: Date | null;
   /**
    * Required when status === 'scheduled', forbidden otherwise. Validated
