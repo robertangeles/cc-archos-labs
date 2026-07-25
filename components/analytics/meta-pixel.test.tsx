@@ -32,6 +32,8 @@ describe("metaPixelSnippet", () => {
     expect(s).toContain("fbq('consent','revoke')");
     expect(s).toContain("archos_consent"); // reads the stored choice
     expect(s).toContain("Europe/"); // dependency-free EEA heuristic
+    // records that it gated, so applyConsent won't double-fire PageView on grant
+    expect(s).toContain("window.__archosPixelGated=true");
     // revoke must precede init so the pixel is gated from the start
     expect(s.indexOf("fbq('consent','revoke')")).toBeLessThan(
       s.indexOf("fbq('init'"),

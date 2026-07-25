@@ -21,7 +21,7 @@ export function metaPixelSnippet(pixelId: string): string {
   // a dependency-free EEA heuristic. Google's side is handled precisely by
   // Consent Mode region defaults; this keeps Meta consistent for EEA visitors
   // while leaving AU / rest-of-world firing.
-  return `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');(function(){var c=null;try{c=localStorage.getItem('${CONSENT_KEY}');}catch(e){}var tz='';try{tz=(Intl.DateTimeFormat().resolvedOptions().timeZone)||'';}catch(e){}if(c==='denied'||(c===null&&tz.indexOf('Europe/')===0)){fbq('consent','revoke');}})();fbq('init','${pixelId}');fbq('track','PageView');`;
+  return `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');(function(){var c=null;try{c=localStorage.getItem('${CONSENT_KEY}');}catch(e){}var tz='';try{tz=(Intl.DateTimeFormat().resolvedOptions().timeZone)||'';}catch(e){}if(c==='denied'||(c===null&&tz.indexOf('Europe/')===0)){fbq('consent','revoke');window.__archosPixelGated=true;}})();fbq('init','${pixelId}');fbq('track','PageView');`;
 }
 
 // window.fbq is declared globally in ./consent (shared with the banner).

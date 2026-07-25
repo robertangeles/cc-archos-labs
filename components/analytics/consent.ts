@@ -37,6 +37,10 @@ declare global {
   interface Window {
     gtag?: (...args: unknown[]) => void;
     fbq?: (...args: unknown[]) => void;
+    // Set true by the Meta Pixel init snippet when it revoked consent (so the
+    // init PageView was suppressed). Lets applyConsent re-fire PageView on grant
+    // ONLY for gated visitors — non-gated ones already counted one at init.
+    __archosPixelGated?: boolean;
   }
 }
 
@@ -54,7 +58,12 @@ export function applyConsent(granted: boolean): void {
   window.gtag?.("consent", "update", granted ? GRANTED : DENIED);
   if (granted) {
     window.fbq?.("consent", "grant");
-    window.fbq?.("track", "PageView");
+    // Re-fire PageView ONLY if the init snippet gated (suppressed) it. Non-gated
+    // visitors already counted a PageView at init, so firing again double-counts.
+    if (window.__archosPixelGated) {
+      window.fbq?.("track", "PageView");
+      window.__archosPixelGated = false;
+    }
   } else {
     window.fbq?.("consent", "revoke");
   }

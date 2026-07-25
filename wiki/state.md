@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-24T23:59:43.137Z
+generated: 2026-07-25T00:22:40.457Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -272,15 +272,15 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/admin/integrations/integrations-grid.tsx](../components/admin/integrations/integrations-grid.tsx) | 2026-07-07 |
 | [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-07-19 |
 | [components/analytics/analytics-client.tsx](../components/analytics/analytics-client.tsx) | 2026-05-18 |
-| [components/analytics/consent-banner.tsx](../components/analytics/consent-banner.tsx) | unknown |
-| [components/analytics/consent.test.ts](../components/analytics/consent.test.ts) | unknown |
-| [components/analytics/consent.ts](../components/analytics/consent.ts) | unknown |
+| [components/analytics/consent-banner.tsx](../components/analytics/consent-banner.tsx) | 2026-07-25 |
+| [components/analytics/consent.test.ts](../components/analytics/consent.test.ts) | 2026-07-25 |
+| [components/analytics/consent.ts](../components/analytics/consent.ts) | 2026-07-25 |
 | [components/analytics/google-analytics.test.tsx](../components/analytics/google-analytics.test.tsx) | 2026-07-24 |
 | [components/analytics/google-analytics.tsx](../components/analytics/google-analytics.tsx) | 2026-07-24 |
 | [components/analytics/google-tag-manager.test.tsx](../components/analytics/google-tag-manager.test.tsx) | 2026-07-24 |
 | [components/analytics/google-tag-manager.tsx](../components/analytics/google-tag-manager.tsx) | 2026-07-24 |
-| [components/analytics/meta-pixel.test.tsx](../components/analytics/meta-pixel.test.tsx) | 2026-07-24 |
-| [components/analytics/meta-pixel.tsx](../components/analytics/meta-pixel.tsx) | 2026-07-24 |
+| [components/analytics/meta-pixel.test.tsx](../components/analytics/meta-pixel.test.tsx) | 2026-07-25 |
+| [components/analytics/meta-pixel.tsx](../components/analytics/meta-pixel.tsx) | 2026-07-25 |
 | [components/blog/author-bio.tsx](../components/blog/author-bio.tsx) | 2026-05-24 |
 | [components/blog/category-chips.tsx](../components/blog/category-chips.tsx) | 2026-05-20 |
 | [components/blog/editorial-list-row.tsx](../components/blog/editorial-list-row.tsx) | 2026-05-21 |
