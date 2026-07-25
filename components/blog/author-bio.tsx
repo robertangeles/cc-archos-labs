@@ -58,28 +58,35 @@ export function AuthorBio({
           </div>
         ) : null}
         {socialLinks.length > 0 ? (
-          <ul
-            className="mt-1 flex items-center gap-x-1"
-            aria-label={`${name} on social platforms`}
-          >
-            {socialLinks.map(({ platform, url }) => {
-              const meta = PLATFORM_META[platform];
-              const Icon = meta.Icon;
-              return (
-                <li key={platform}>
-                  <a
-                    href={url}
-                    rel="me noopener noreferrer"
-                    target="_blank"
-                    aria-label={meta.label}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-md text-ink-subtle transition-colors duration-150 hover:bg-surface-1 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
-                  >
-                    <Icon className="h-5 w-5" aria-hidden />
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
+          <>
+            {/* Labelled because the byline is Metis but the accounts are
+                the studio's — without this the icons read as hers. */}
+            <p className="mt-2 text-eyebrow uppercase tracking-[0.08em] text-ink-subtle">
+              Follow Archos Labs
+            </p>
+            <ul
+              className="flex items-center gap-x-1"
+              aria-label="Archos Labs on social platforms"
+            >
+              {socialLinks.map(({ platform, url }) => {
+                const meta = PLATFORM_META[platform];
+                const Icon = meta.Icon;
+                return (
+                  <li key={platform}>
+                    <a
+                      href={url}
+                      rel="me noopener noreferrer"
+                      target="_blank"
+                      aria-label={meta.label}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-md text-ink-subtle transition-colors duration-150 hover:bg-surface-1 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                    >
+                      <Icon className="h-5 w-5" aria-hidden />
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         ) : null}
       </div>
     </section>

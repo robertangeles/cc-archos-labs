@@ -1716,3 +1716,17 @@ Still open: privacy policy §5 (cookies) + §6 (analytics) now contradict realit
 Shipped Google Consent Mode v2 + a two-button cookie banner (branch `feature/consent-mode-v2`). Region-scoped: `denied` default for EEA+UK+CH, `granted` elsewhere (AU/RoW analytics unaffected), set via a synchronous inline script before the tags. Banner (`components/analytics/consent-banner.tsx`, design-system styled) shows once; Accept/Reject applies to GA4 (Consent Mode update) + Meta (`fbq consent grant/revoke`) live and persists in `localStorage`. Meta gated via a `Europe/*` timezone heuristic (no native region consent). Shared logic in `components/analytics/consent.ts`. See [[analytics-gtm]].
 
 Verified: tsc/eslint clean, analytics tests 18 green, prod-build headless smoke of the full flow (default-before-tags, banner shows, Accept→update+persist, reload respects choice). No new env var — activates off the existing tracker ids.
+
+## 2026-07-25 — Blog author byline → Metis
+
+The end-of-post author card on every blog post now reads **Metis** instead of Rob Angeles (PR #211, branch `feature/metis-author-byline`). New name, new bio ("METIS is the intelligence behind Archos Labs… She finds the signal."), new avatar at `public/images/metis-square.png`.
+
+**Author identity is DB data, not code** — the `author` table row (`slug = 'robangeles'`) feeds the post-header byline, the end-of-post `AuthorBio` card, and the JSON-LD `Person` + `Article.author`. So the content change is one UPDATE, applied via `scripts/update-author-bio.mjs`, which was extended from bio-only to also set `name` + `photo_url`. Applied to DEV; PROD after the Render deploy lands the image file (flipping PROD first would 404 the photo).
+
+**`scripts/seed/blog-author-backfill.ts` was a revert trap.** It does an unconditional UPDATE on the same row with hardcoded values — running `pnpm seed:blog-author` would have silently restored "Rob Angeles". Its constants now carry the Metis values, with a comment tying them to `update-author-bio.mjs`. Caught by the pr-reviewer gate, not by tests. **Rule: any hardcoded copy of DB-backed content is a revert trap — grep for siblings before changing content that a seed script also writes.**
+
+Social icon row in `AuthorBio` is now labelled "Follow Archos Labs" — unlabelled under a Metis byline the icons read as her personal accounts.
+
+**Still open:** the author row's `linkedin_url` is unchanged, so `Article.author.url` and `Person.sameAs` now assert Metis *is* Rob's LinkedIn profile, and `Person.url` points at `/about` (Rob's page). Three of the four `SOCIAL_LINKS` (`lib/social-links.ts`) are Rob's personal profiles, not studio accounts. Entity-graph inaccuracy awaiting a product decision.
+
+Verified: tsc + eslint clean, 1277 tests green, CI green, DEV render checked at 1280 + 375 with no console errors.
