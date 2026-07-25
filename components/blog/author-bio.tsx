@@ -62,7 +62,7 @@ export function AuthorBio({
             {/* Labelled because the byline is Metis but the accounts are
                 the studio's — without this the icons read as hers. */}
             <p className="mt-2 text-eyebrow uppercase tracking-[0.08em] text-ink-subtle">
-              Follow Archos Labs
+              Follow our socials
             </p>
             <ul
               className="flex items-center gap-x-1"
