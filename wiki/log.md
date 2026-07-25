@@ -1742,3 +1742,29 @@ Two follow-ups to the Metis byline (PRs #212, #213, #214).
 `wiki/decisions/2026-05-24-no-comments-reply-by-email.md` marked SUPERSEDED rather than deleted: the "no on-site comments" half of that decision still stands (no comment system, none planned), only the replacement CTA is gone. The CTA named Rob's inbox in body copy, which stopped fitting once the byline became Metis.
 
 Verified: tsc + eslint clean, 1277 tests green, no dangling refs to the removed component, post tail renders with no spacing gap where the box was.
+
+## 2026-07-25 — Blog writer agent, PR 1 (branch `feature/blog-writer-agent`)
+
+Built the machinery around the existing *Archos Labs Blog* workflow so it drafts a post daily without supervision. Five commits, nothing pushed.
+
+**The writer already existed and is good.** Reading the workflow definition, all 5 skills, and all 8 historical runs (including full draft bodies) collapsed the scope: research + steelman were already there and already doing most of the anti-slop work. What was missing was a queue, a gate, a mapping, a trigger, and the controls that only matter once nobody is watching.
+
+**It drafts, it does not publish.** Posts land `scheduled` + `needs_review` + `is_agent_generated`; the existing publisher withholds them until a human clears the flag. That reversed the original plan after the outside voice showed `needs_review` was only an admin list filter and the judge was therefore the sole backstop.
+
+**Three findings that would have shipped bugs**, none of which came from reading the plan:
+
+- `scheduled-publisher.ts` releases its `FOR UPDATE SKIP LOCKED` lock before the work starts, contradicting its own comment. Harmless for idempotent publishing; two posts and two bills for a 6-minute job claim. Copied `lib/scheduler.ts:160` instead, which claims inside one transaction.
+- `needs_review` is a **general** editorial flag (the WP migration set it on 120 posts). Gating publication on it alone would have silently stopped human-authored scheduled posts. Added `post.is_agent_generated` and gate on the conjunction — one column that also serves the admin marker.
+- A `workflow_run_id` FK on the queue would have made `pruneRuns` throw an FK violation inside a swallowed `catch{}`, silently killing run retention forever. Column dropped; `executeWorkflow` does not return a `runId` anyway.
+
+**Calibration beat theory repeatedly.** A blanket dollar-amount reject would have failed 4 of 7 real drafts on illustrative business figures. Grounding by proper nouns drove a clean draft to 0% because sentence-initial capitals pair with the next word. Fabricated first-person experience turned out to be in 3 of 7 drafts, not 1 — `I have watched…` slipped past the first scan.
+
+**Verified, not assumed.** The publisher regression suite was mutation-tested (removing the predicate fails exactly the 3 gate tests, leaving the 9 behaviour tests green). The injection fence was gated on a live DEV run of the essay step, which failed twice on my own replay bugs before passing — the raw `postgres` driver returns `input_mappings` as a JSON *string*, so `Object.entries()` was iterating characters.
+
+`db:generate` is retired in this repo: the drizzle journal stops at 0030 while migrations run to 0035. Migration `0036` hand-written to match, applied to DEV (host verified as `127.0.0.1/archos_labs_dev` first).
+
+Reviews: `/plan-ceo-review` (7 proposals, 7 accepted) then `/plan-eng-review` (8 findings, 0 critical gaps, scope split into 2 PRs). Both CLEAR.
+
+Deferred to PR 2: auto internal-linking, duplicate-topic guard, `field_note` slot, structural variance, `/admin/blog/pipeline`. Performance feedback loop deferred further — nothing to learn from until ~20 agent posts have data.
+
+Verified: 1476 tests green across 131 files, tsc + eslint clean, `pnpm migration-safety` clean.
