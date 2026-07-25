@@ -53,11 +53,39 @@ export interface SlopCheckInput {
 export interface SlopCheckResult {
   verdict: "pass" | "reject";
   findings: SlopFinding[];
-  /** Body with off-allowlist links unwrapped to plain text. */
-  contentMd: string;
+  /**
+   * The body with off-allowlist links unwrapped to plain text. **This is the
+   * only body that may be published.**
+   *
+   * Named explicitly because the caller will have `parsed.contentMd` in scope
+   * too: same type, nearly the same name, and one of them still carries the
+   * attacker's link. Nothing in the type system distinguishes them, so the
+   * name does the work — plus an integration test asserting what `createPost`
+   * actually receives.
+   */
+  publishableContentMd: string;
   strippedLinks: string[];
   groundingRatio: number;
 }
+
+/**
+ * Domains an outbound link may point at, as shipped. Seeded with primary
+ * sources because the editorial guide (docs/designs/translation-layer.md)
+ * explicitly wants them linked: "Cite primary sources inline. Where Rob
+ * references EU AI Act, NIST AI RMF, McKinsey reports, etc., link them."
+ *
+ * Config (`blog_agent_config.linkAllowlist`) seeds from this and can extend
+ * it without a deploy.
+ */
+export const DEFAULT_LINK_ALLOWLIST = [
+  "archoslabs.xyz",
+  "robertangeles.com",
+  "nist.gov",
+  "europa.eu",
+  "oecd.org",
+  "gartner.com",
+  "mckinsey.com",
+] as const;
 
 // ---------------------------------------------------------------------------
 // Tell 1 — fabricated experience (the only slop failure observed in the wild)
@@ -72,15 +100,20 @@ export interface SlopCheckResult {
 // Targets EPISODIC claims (a specific thing that happened) and deliberately
 // spares first-person REASONING ("I'd start by...", "I think..."), which is a
 // legitimate essay voice and carries no truth claim about the world.
+// Global flag is load-bearing: EVERY offending sentence must be reported, not
+// just the first per pattern. The rewrite budget is exactly one round, so a
+// draft carrying two anecdotes that only surfaces one gets the first fixed,
+// fails again on the second, and parks as a draft — which reads as "the writer
+// keeps failing" when it is really "the gate only told it half the problem."
 const EPISODIC_PATTERNS: RegExp[] = [
-  /\bI(?:'ve| have)?\s+(?:once\s+)?(?:spent|watched|saw|wrote|told|asked|admit|remember|learned|had|ran|built|tried|found out|sat|worked|shipped|made)\b/i,
-  /\bI'll admit\b/i,
-  /\b(?:a|one|my)\s+(?:client|customer|founder|colleague|team member)\s+(?:asked|told|said|called|emailed|came)\b/i,
-  /\bin my experience\b/i,
-  /\bwe\s+(?:once|used to)\b/i,
-  /\bour\s+(?:internal|own)\s+\w+\s+(?:review|process|team|policy)\b/i,
-  /\blast\s+(?:year|month|week|quarter),?\s+(?:I|we)\b/i,
-  /\b(?:years|months|weeks)\s+ago,?\s+(?:I|we)\b/i,
+  /\bI(?:'ve| have)?\s+(?:once\s+)?(?:spent|watched|saw|wrote|told|asked|admit|remember|learned|had|ran|built|tried|found out|sat|worked|shipped|made)\b/gi,
+  /\bI'll admit\b/gi,
+  /\b(?:a|one|my)\s+(?:client|customer|founder|colleague|team member)\s+(?:asked|told|said|called|emailed|came)\b/gi,
+  /\bin my experience\b/gi,
+  /\bwe\s+(?:once|used to)\b/gi,
+  /\bour\s+(?:internal|own)\s+\w+\s+(?:review|process|team|policy)\b/gi,
+  /\blast\s+(?:year|month|week|quarter),?\s+(?:I|we)\b/gi,
+  /\b(?:years|months|weeks)\s+ago,?\s+(?:I|we)\b/gi,
 ];
 
 // ---------------------------------------------------------------------------
@@ -164,12 +197,21 @@ function checkableTokens(paragraph: string): string[] {
   return paragraph.match(/\b\d[\d,]*(?:\.\d+)?%?\b/g) ?? [];
 }
 
-function appearsInResearch(token: string, research: string): boolean {
-  const needle = token.replace(/,/g, "").toLowerCase();
-  const hay = research.replace(/,/g, "").toLowerCase();
-  if (hay.includes(needle)) return true;
+/**
+ * Normalise once, match many. The research corpus runs to ~16KB and is checked
+ * against ~40 tokens per gate run; re-normalising it per call allocated the
+ * whole string every time. Callers hoist this out of their loop.
+ */
+export function normaliseForMatch(text: string): string {
+  return text.replace(/,/g, "").toLowerCase();
+}
+
+/** `haystack` must already be `normaliseForMatch`-ed. */
+function appearsInResearch(token: string, haystack: string): boolean {
+  const needle = normaliseForMatch(token);
+  if (haystack.includes(needle)) return true;
   // "78%" in the draft vs "78 percent" in the research, and vice versa.
-  if (needle.endsWith("%")) return hay.includes(needle.slice(0, -1));
+  if (needle.endsWith("%")) return haystack.includes(needle.slice(0, -1));
   return false;
 }
 
@@ -192,6 +234,8 @@ export function groundingRatio(
     .map((p) => p.trim())
     .filter((p) => p.length > 0 && !p.startsWith("#"));
 
+  const haystack = normaliseForMatch(rawResearch);
+
   let checked = 0;
   let grounded = 0;
   const ungrounded: string[] = [];
@@ -200,7 +244,7 @@ export function groundingRatio(
     const tokens = checkableTokens(p);
     if (tokens.length === 0) continue;
     checked++;
-    if (tokens.some((t) => appearsInResearch(t, rawResearch))) {
+    if (tokens.some((t) => appearsInResearch(t, haystack))) {
       grounded++;
     } else {
       ungrounded.push(p.slice(0, 200));
@@ -221,6 +265,7 @@ export function slopCheck(input: SlopCheckInput): SlopCheckResult {
   const findings: SlopFinding[] = [];
   const strippedLinks: string[] = [];
   const minGrounding = input.minGroundingRatio ?? 0.5;
+  const researchHaystack = normaliseForMatch(input.rawResearch);
 
   // --- Links: strip anything off the allowlist -----------------------------
   // This is the control that removes the payoff from an indirect prompt
@@ -242,31 +287,38 @@ export function slopCheck(input: SlopCheckInput): SlopCheckResult {
   for (const url of strippedLinks) {
     findings.push({
       tell: "offsite-link",
-      severity: "hard",
+      // Signal, not hard. The link is already gone from publishableContentMd,
+      // so the attacker's payoff is removed either way. Rejecting outright
+      // would fail exactly the well-cited posts the editorial guide asks for:
+      // "Cite primary sources inline... AIEO favours posts that demonstrate
+      // research" (docs/designs/translation-layer.md). A gate that rejects the
+      // best posts is a gate that gets ignored.
+      severity: "signal",
       quote: url,
-      note: "Outbound link to a domain outside the allowlist. Stripped from the body. Treated as hard because an unexpected link is the payoff of a research-injection attack.",
+      note: "Outbound link to a domain outside the allowlist. Stripped from the body; the label was kept.",
     });
   }
 
   // --- Fabricated experience -----------------------------------------------
   const noteText = (input.fieldNote ?? "").toLowerCase();
   for (const re of EPISODIC_PATTERNS) {
-    const m = contentMd.match(re);
-    if (!m || m.index === undefined) continue;
-    const quote = sentenceAt(contentMd, m.index);
+    for (const m of contentMd.matchAll(re)) {
+      if (m.index === undefined) continue;
+      const quote = sentenceAt(contentMd, m.index);
 
-    // With a human-supplied observation, first person is allowed where it
-    // traces back to that note. Require real overlap, not just its presence.
-    if (noteText.length > 0 && tracesToNote(quote, noteText)) continue;
+      // With a human-supplied observation, first person is allowed where it
+      // traces back to that note. Require real overlap, not just its presence.
+      if (noteText.length > 0 && tracesToNote(quote, noteText)) continue;
 
-    findings.push({
-      tell: "fabricated-experience",
-      severity: "hard",
-      quote,
-      note: input.fieldNote
-        ? "First-person account that does not trace to the supplied field note."
-        : "First-person account of a specific event. The byline is an AI persona, so this is invented experience.",
-    });
+      findings.push({
+        tell: "fabricated-experience",
+        severity: "hard",
+        quote,
+        note: input.fieldNote
+          ? "First-person account that does not trace to the supplied field note."
+          : "First-person account of a specific event. The byline is an AI persona, so this is invented experience.",
+      });
+    }
   }
 
   // --- Service pricing ------------------------------------------------------
@@ -280,7 +332,7 @@ export function slopCheck(input: SlopCheckInput): SlopCheckResult {
         quote: sentence,
         note: "Reads as our own pricing. CLAUDE.md: no prices, day rates, or dollar amounts on the site.",
       });
-    } else if (!appearsInResearch(m[0], input.rawResearch)) {
+    } else if (!appearsInResearch(m[0], researchHaystack)) {
       findings.push({
         tell: "ungrounded-figure",
         severity: "signal",
@@ -360,7 +412,7 @@ export function slopCheck(input: SlopCheckInput): SlopCheckResult {
   return {
     verdict: deduped.some((f) => f.severity === "hard") ? "reject" : "pass",
     findings: deduped,
-    contentMd,
+    publishableContentMd: contentMd,
     strippedLinks,
     groundingRatio: ratio,
   };
