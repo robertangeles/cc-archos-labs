@@ -184,12 +184,24 @@ try {
   await sql`UPDATE content_plan_item SET status='pending', attempts=0, last_error=NULL WHERE id=${seededItem}`;
 
   // Crash recovery.
+  //
+  // Switched OFF for this check, deliberately. runOnce sweeps BEFORE it looks
+  // at `enabled` (run.ts: sweep, then the disabled guard), so the sweep still
+  // happens and the check is still real — but the run stops there instead of
+  // going on to claim the freshly-reclaimed item and write a whole post.
+  //
+  // Without this, "free checks only" quietly spent ~$1 per invocation: the
+  // reclaimed item was immediately claimed and taken through the full
+  // research-and-draft pipeline. Three script runs cost about $3 before the
+  // stray drafts gave it away.
   await sql`
     UPDATE content_plan_item
        SET status='running', locked_by='uat-dead-worker',
            locked_until = now() - interval '1 hour', attempts = 1
      WHERE id = ${seededItem}`;
+  await setEnabled(false);
   const swept = await post(ENDPOINT, `Bearer ${SECRET}`);
+  await setEnabled(true);
   const reclaimed = swept.body?.swept?.reclaimed ?? 0;
   check(
     reclaimed >= 1,
@@ -252,6 +264,29 @@ try {
       fail("Wrote a post", `outcome "${run.body?.outcome}" — ${run.body?.detail ?? "no detail"}`);
     }
 
+    // Show why it landed where it did. A "parked" outcome is the gate
+    // working, not a failure, and the reader should see the reasoning rather
+    // than take the verdict on trust.
+    const [verdictRow] = await sql`
+      SELECT judge_verdict FROM content_plan_item
+       WHERE post_id = ${writtenPostId ?? null} LIMIT 1`;
+    const rounds = verdictRow?.judge_verdict?.rounds ?? [];
+    if (rounds.length > 0) {
+      console.log(`\n  The reviewer ran ${rounds.length} round(s):`);
+      rounds.forEach((r, i) => {
+        const hard = (r.gate ?? []).filter((f) => f.severity === "hard");
+        const jf = r.judge?.findings ?? [];
+        console.log(`    Round ${i + 1}: ${hard.length} rule failure(s), ${jf.length} reviewer note(s)`);
+        for (const f of [...hard, ...jf].slice(0, 4)) {
+          console.log(`      - ${f.tell}: "${String(f.quote).slice(0, 70).replace(/\n/g, " ")}…"`);
+        }
+      });
+      if (rounds.length > 1) {
+        console.log("    (More than one round means it rewrote itself. Check the rewrite");
+        console.log("     genuinely fixed the problem rather than just hiding it.)");
+      }
+    }
+
     if (writtenPostId) {
       const [p] = await sql`
         SELECT status, needs_review, is_agent_generated, word_count FROM post WHERE id = ${writtenPostId}`;
@@ -302,7 +337,9 @@ try {
 } finally {
   if (sql) {
     await sql`DELETE FROM post WHERE slug IN ('uat-agent-awaiting-review','uat-human-flagged')`.catch(() => {});
-    await sql`DELETE FROM content_plan_item WHERE title LIKE 'UAT —%'`.catch(() => {});
+    // Only the throwaway items. An item that produced a post keeps its
+    // judge_verdict — that record is what the checklist asks you to read.
+    await sql`DELETE FROM content_plan_item WHERE title LIKE 'UAT —%' AND post_id IS NULL`.catch(() => {});
     await sql.end();
   }
 }
