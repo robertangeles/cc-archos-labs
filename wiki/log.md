@@ -1768,3 +1768,19 @@ Reviews: `/plan-ceo-review` (7 proposals, 7 accepted) then `/plan-eng-review` (8
 Deferred to PR 2: auto internal-linking, duplicate-topic guard, `field_note` slot, structural variance, `/admin/blog/pipeline`. Performance feedback loop deferred further — nothing to learn from until ~20 agent posts have data.
 
 Verified: 1476 tests green across 131 files, tsc + eslint clean, `pnpm migration-safety` clean.
+
+## 2026-07-25 — Blog writer agent: first live run + UAT checklist
+
+Ran the pipeline end to end against localhost. 228 seconds, `outcome: drafted`, post created as `scheduled` + `needs_review` + `is_agent_generated`, revision attributed to `blog-writer-agent`.
+
+**The live run found a design flaw no test would have caught.** Round 0 was rejected because its figures were not in the research. The rewrite did not remove the claims — it restated them without numbers. `$4,200 per employee` became "drains millions per year". Digit count 6 → 2, vague-quantity count 4 → 6, and round 1 then passed the grounding check cleanly, because `checkableTokens` extracts figures and a paragraph with no digits has nothing to check.
+
+The gate was rewarding the move toward being unfalsifiable — the definition of the slop it exists to stop. One rewrite round was enough to find it.
+
+Fixed: magnitude language with no magnitude in the same sentence is now a hard fail. Hard rather than a signal deliberately, because a signal is what the rewrite optimises against. Calibrated against 9 real drafts; the appeal-to-research phrases had to be split into a separate signal after they false-positived on qualitative claims ("the research shows training has limited impact" asserts no magnitude). No previously-passing draft flipped.
+
+Also fixed: `judge_verdict` kept only the last round, so the reason for a rewrite was unrecoverable — it had to be reconstructed from `workflow_execution_run` by hand. It records every round now.
+
+Added `wiki/runbooks/blog-writer-agent-uat-checklist.md` — hand-run acceptance covering the controls (auth, kill switch, loud-failing preflight, publish gate, crash recovery) plus the judgement section tests cannot cover. Every SQL snippet and test filter in it was executed against DEV before committing. Includes the human-post regression check: a human's flagged scheduled post must still publish, since `needs_review` is a general editorial flag.
+
+Also added `scripts/seed-blog-agent-config.mjs`, which derives every id from the database rather than hardcoding them — workflow field ids are runtime data that a builder edit re-mints.
