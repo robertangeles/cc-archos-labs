@@ -1,10 +1,13 @@
 // scripts/update-author-bio.mjs
 //
-// One-off content update — replace the bio_md of a single author row.
-// Lives in scripts/ because [[deployment-architecture]] is single-env
-// (DATABASE_URL points at prod from both .env.local and Render) and
-// the project deliberately defers a multi-author admin UI per
-// [[2026-05-20-posts-admin-phase-d-ui]] "Out of scope".
+// One-off content update — replace the name, photo_url and bio_md of a
+// single author row. Lives in scripts/ because the project deliberately
+// defers a multi-author admin UI per [[2026-05-20-posts-admin-phase-d-ui]]
+// "Out of scope".
+//
+// DEV and PROD are separate databases — see [[deployment-architecture]].
+// `--env-file=.env.local` hits DEV only. To update PROD, run it with the
+// Render DATABASE_URL explicitly (DATABASE_URL_RENDER_PROD in .env.local).
 //
 // Pattern matches scripts/backfill-og-image-alt.mjs: dry-run by
 // default, --apply flag to actually write, idempotent on re-run.
@@ -16,15 +19,20 @@
 //   node --env-file=.env.local scripts/update-author-bio.mjs --apply
 //     # writes the new bio (single UPDATE)
 //
-// To change the bio text, edit NEW_BIO_MD below. To target a different
-// author, change AUTHOR_SLUG. The script intentionally hard-codes both
-// so the diff in git review shows exactly what landed in prod.
+// To change the byline, edit NEW_NAME / NEW_PHOTO_URL / NEW_BIO_MD
+// below. To target a different author, change AUTHOR_SLUG. The script
+// intentionally hard-codes all of it so the diff in git review shows
+// exactly what landed in prod.
 
 import postgres from "postgres";
 
 const AUTHOR_SLUG = "robangeles";
 
-const NEW_BIO_MD = `Most consulting engagements split the thinking from the doing. Rob doesn't. Principal Consultant at Archos Labs, he owns the full stack — assessment, architecture, delivery — across retail, financial services, healthcare, and government.`;
+const NEW_NAME = "Metis";
+
+const NEW_PHOTO_URL = "/images/metis-square.png";
+
+const NEW_BIO_MD = `METIS is the intelligence behind Archos Labs. She researches what matters in AI and data today. Her focus is founders and SMBs facing real decisions with limited runway, not executives in enterprise procurement cycles. She finds the signal.`;
 
 const APPLY = process.argv.includes("--apply");
 
@@ -41,7 +49,7 @@ const sql = postgres(DATABASE_URL, { max: 1 });
 try {
   // 1. Look up the target row by slug. Fail loudly if 0 or >1 rows.
   const rows = await sql`
-    SELECT id, slug, name, bio_md, length(bio_md) as current_len, updated_at
+    SELECT id, slug, name, photo_url, bio_md, length(bio_md) as current_len, updated_at
     FROM author
     WHERE slug = ${AUTHOR_SLUG}
   `;
@@ -68,6 +76,9 @@ try {
   console.log(`Author: ${before.name} (id=${before.id}, slug=${before.slug})`);
   console.log(`Bio updated_at: ${before.updated_at}`);
   console.log("---");
+  console.log(`Name:  ${before.name} → ${NEW_NAME}`);
+  console.log(`Photo: ${before.photo_url ?? "(null)"} → ${NEW_PHOTO_URL}`);
+  console.log("---");
   console.log("CURRENT BIO:");
   console.log(`  ${before.bio_md ?? "(null)"}`);
   console.log("---");
@@ -78,8 +89,12 @@ try {
     `Length: ${before.current_len ?? 0} chars → ${NEW_BIO_MD.length} chars`,
   );
 
-  if (before.bio_md === NEW_BIO_MD) {
-    console.log("\nNo-op: bio already matches NEW_BIO_MD. Exiting.");
+  if (
+    before.bio_md === NEW_BIO_MD &&
+    before.name === NEW_NAME &&
+    before.photo_url === NEW_PHOTO_URL
+  ) {
+    console.log("\nNo-op: author row already matches. Exiting.");
     process.exit(0);
   }
 
@@ -92,9 +107,12 @@ try {
   //    a single-row update — Postgres treats single statements atomic.
   const result = await sql`
     UPDATE author
-    SET bio_md = ${NEW_BIO_MD}
+    SET name = ${NEW_NAME},
+        photo_url = ${NEW_PHOTO_URL},
+        bio_md = ${NEW_BIO_MD},
+        updated_at = now()
     WHERE slug = ${AUTHOR_SLUG}
-    RETURNING id, slug, name, length(bio_md) as new_len, updated_at
+    RETURNING id, slug, name, photo_url, length(bio_md) as new_len, updated_at
   `;
 
   if (result.length !== 1) {
@@ -104,6 +122,8 @@ try {
 
   console.log("\nUPDATED:");
   console.log(`  id: ${result[0].id}`);
+  console.log(`  name: ${result[0].name}`);
+  console.log(`  photo_url: ${result[0].photo_url}`);
   console.log(`  new bio length: ${result[0].new_len} chars`);
   console.log(`  updated_at: ${result[0].updated_at}`);
   console.log("\nDone.");
