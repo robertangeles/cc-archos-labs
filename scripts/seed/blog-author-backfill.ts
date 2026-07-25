@@ -6,10 +6,15 @@
 // else. This script writes the public byline values that should appear
 // in the Written By card on every post page:
 //
-//   name           = "Rob Angeles"
-//   photo_url      = "/images/ran-square.png"  (square crops cleanly to circle)
+//   name           = "Metis"
+//   photo_url      = "/images/metis-square.png"  (square crops cleanly to circle)
 //   linkedin_url   = the LinkedIn URL
-//   bio_md         = one-paragraph practitioner bio
+//   bio_md         = one-paragraph bio
+//
+// Keep these values in step with scripts/update-author-bio.mjs — that
+// script applies byline changes, this one re-asserts them on a fresh
+// environment. If they drift, running this seed silently reverts the
+// live byline to whatever is hardcoded here.
 //
 // Idempotent: re-running on a row that already matches is a no-op
 // (UPDATE returns 1 row affected but the values don't change). Safe to
@@ -24,13 +29,14 @@ import postgres from "postgres";
 const AUTHOR_SLUG = "robangeles";
 
 const AUTHOR_FIELDS = {
-  name: "Rob Angeles",
-  photoUrl: "/images/ran-square.png",
+  name: "Metis",
+  photoUrl: "/images/metis-square.png",
   linkedinUrl: "https://www.linkedin.com/in/robangeles22",
   bioMd:
-    "Principal Consultant at Archos Labs. 25 years across financial " +
-    "services, healthcare, and government — one person who runs the " +
-    "assessment, the architecture, and the delivery.",
+    "METIS is the intelligence behind Archos Labs. She researches what " +
+    "matters in AI and data today. Her focus is founders and SMBs facing " +
+    "real decisions with limited runway, not executives in enterprise " +
+    "procurement cycles. She finds the signal.",
 } as const;
 
 async function main(): Promise<void> {
