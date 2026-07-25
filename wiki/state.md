@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-25T01:36:32.224Z
+generated: 2026-07-25T01:58:18.831Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -281,7 +281,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/analytics/google-tag-manager.tsx](../components/analytics/google-tag-manager.tsx) | 2026-07-24 |
 | [components/analytics/meta-pixel.test.tsx](../components/analytics/meta-pixel.test.tsx) | 2026-07-25 |
 | [components/analytics/meta-pixel.tsx](../components/analytics/meta-pixel.tsx) | 2026-07-25 |
-| [components/blog/author-bio.tsx](../components/blog/author-bio.tsx) | 2026-05-24 |
+| [components/blog/author-bio.tsx](../components/blog/author-bio.tsx) | 2026-07-25 |
 | [components/blog/category-chips.tsx](../components/blog/category-chips.tsx) | 2026-05-20 |
 | [components/blog/editorial-list-row.tsx](../components/blog/editorial-list-row.tsx) | 2026-05-21 |
 | [components/blog/heading-copy-link-button.tsx](../components/blog/heading-copy-link-button.tsx) | 2026-05-20 |
