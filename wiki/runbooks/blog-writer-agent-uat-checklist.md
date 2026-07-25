@@ -10,6 +10,11 @@ You are deciding one thing: **would you put your name on what this thing writes?
 
 Everything else — the auth, the kill switch, the publish gate, the crash recovery — is checked by a script. Your job is to read one blog post and answer five questions.
 
+> **Where this stands (2026-07-25, branch `feature/blog-writer-agent`)**
+> Step 1 has been run: **9 of 9 checks pass**, dev server up, settings valid, queue empty, no leftover drafts. Unless you have changed something, **start at Step 2**.
+>
+> Re-run Step 1 any time — it is genuinely free (verified by counting model calls before and after, not by assuming) and safe to repeat.
+
 ---
 
 ## Step 1 — run the checks
@@ -47,7 +52,9 @@ Takes about 20 seconds and costs nothing. You should see:
 | Your own flagged post still publishes | This change touched shared publishing code. Your own posts must behave exactly as before. |
 | Once you approve it, it publishes | Approving actually releases it. |
 
-The script cleans up after itself and leaves your settings as it found them.
+The script leaves your settings as it found them and removes its own throwaway
+data. It keeps anything attached to a real post, so the reviewer's reasoning
+survives for Step 3.
 </details>
 
 **If anything fails, stop.** Those are controls, not polish. Send me the output.
@@ -60,12 +67,16 @@ The script cleans up after itself and leaves your settings as it found them.
 node --env-file=.env.local scripts/uat-blog-agent.mjs --write
 ```
 
-This one costs roughly **$1** and takes **3–6 minutes**. It researches a topic, drafts it, reviews its own work, rewrites once if needed, and hands you a link.
+This one costs roughly **$1** and takes **3–6 minutes**. It researches a topic, drafts it, reviews its own work, rewrites once if needed, and hands you a link. It then prints what the reviewer found, round by round, so you are not taking the verdict on trust.
 
-Two outcomes are both fine:
+Two outcomes, both fine:
 
-- **"Wrote a post and held it for review"** — go to step 3.
-- **"Rejected its own draft and parked it"** — the gate did its job. Read the parked draft anyway and see whether you agree with the rejection.
+- **"Wrote a post and held it for review"** — go to Step 3.
+- **"Rejected its own draft and parked it"** — go to Step 3 anyway, and read the parked draft.
+
+**Expect "parked" fairly often.** Of the last three drafts produced on this branch, two were rejected by the reviewer even though the free rule-based checks passed them cleanly. That is the reviewer being strict about whether claims trace back to the research.
+
+If it parks something you would have been happy to publish, that is not a bug and not a code change — it means the reviewer is tuned too tight, and the fix is a wording change in `blog_judge_prompt`. **Tell me which post and I will loosen it.** The opposite mistake, a reviewer that waves everything through, is much more expensive to discover.
 
 ---
 
@@ -80,7 +91,13 @@ Yes or no. If no, say specifically what is wrong — that reason becomes the nex
 Look for *"I spent three months…"*, *"a client asked me…"*, *"last year we…"*. The byline is Metis, which is not a person. A personal war story here is invented, and it is the single fastest way to lose credibility if a reader ever works that out. There should be none.
 
 **3. Is every number real?**
-Pick two figures. The script prints a command to show you the research it was given. Each number should be in there. A number that isn't is one it made up.
+Pick two figures. Run this to see the source material it was working from:
+
+```
+node --env-file=.env.local scripts/uat-blog-agent.mjs --research
+```
+
+Each number in the post should appear in there. One that doesn't is one it made up.
 
 **4. Does it say "millions" when it means a number?**
 Watch for *"drains millions per year"*, *"a significant share"*, *"large portions of their time"*. This is the failure the first live run produced: told its figures weren't supported, it didn't drop them, it made them vaguer. There should be none of this now — if you find one, tell me, because the gate has another hole.
@@ -104,8 +121,10 @@ Worth knowing so you don't report them as bugs:
 
 - **It never publishes on its own.** Posts land as drafts marked "needs review". They go live when you say so, and not before. That is deliberate — you chose it.
 - **It rewrites once, then gives up.** A second rejection parks the post for you. Rewriting until something passes teaches it to dodge the reviewer rather than write better.
+- **A parked post is the system working.** Roughly two in three recent drafts were parked. That is a tuning signal, not a fault — see Step 2.
 - **The number check is matching, not fact-checking.** It catches a figure that appears nowhere in the research. It cannot catch a real figure attached to the wrong claim. That is what question 3 is for.
-- **Settings are edited in the database for now.** The admin screens for them come in the next PR.
+- **The reviewer only sees the finished draft.** It cannot tell you the research itself was thin — only that the writing is not supported by it. If posts keep getting parked on the same topic, suspect the topic, not the writer.
+- **Settings are edited in the database for now.** The admin screens for them come in the next PR, along with a page showing the queue.
 
 ---
 
