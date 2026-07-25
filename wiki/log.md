@@ -1730,3 +1730,15 @@ Social icon row in `AuthorBio` is now labelled "Follow Archos Labs" — unlabell
 **Still open:** the author row's `linkedin_url` is unchanged, so `Article.author.url` and `Person.sameAs` now assert Metis *is* Rob's LinkedIn profile, and `Person.url` points at `/about` (Rob's page). Three of the four `SOCIAL_LINKS` (`lib/social-links.ts`) are Rob's personal profiles, not studio accounts. Entity-graph inaccuracy awaiting a product decision.
 
 Verified: tsc + eslint clean, 1277 tests green, CI green, DEV render checked at 1280 + 375 with no console errors.
+
+## 2026-07-25 — Bio reword + reply-by-email section removed
+
+Two follow-ups to the Metis byline (PRs #212, #213, #214).
+
+**Copy.** Social row label "Follow Archos Labs" → "Follow our socials" (#212). Bio reworded to "METIS is the **intelligence agent** behind **Archos Labs' workspace**…" (#213), applied to DEV + PROD and verified live.
+
+**Removed the reply-by-email CTA** from `/blog/[slug]` (#214). `components/blog/reply-by-email.tsx` deleted; `getPrimaryConsultant()` dropped from the page's `Promise.all` along with the `replyEmail` const and two now-orphaned imports. Post tail is now PostBody → SocialShare → AuthorBio → ReadNext. `getPrimaryConsultant()` itself stays — booking still uses it.
+
+`wiki/decisions/2026-05-24-no-comments-reply-by-email.md` marked SUPERSEDED rather than deleted: the "no on-site comments" half of that decision still stands (no comment system, none planned), only the replacement CTA is gone. The CTA named Rob's inbox in body copy, which stopped fitting once the byline became Metis.
+
+Verified: tsc + eslint clean, 1277 tests green, no dangling refs to the removed component, post tail renders with no spacing gap where the box was.

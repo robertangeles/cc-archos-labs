@@ -2,9 +2,18 @@
 title: No on-site comments — reply-by-email instead
 category: decision
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-07-25
 related: [[translation-layer]], [[2026-05-20-translation-layer-public-render]], [[2026-05-24-blog-tidy-ceo-review]]
 ---
+
+> **SUPERSEDED 2026-07-25 — the reply-by-email CTA was removed from `/blog/[slug]`.**
+> `components/blog/reply-by-email.tsx` is deleted; the post tail is now
+> PostBody → SocialShare → AuthorBio → ReadNext. The "no on-site comments"
+> half of this decision still holds — there is still no comment system, and
+> none is planned. What changed is the replacement: the CTA named Rob's inbox
+> directly, which stopped making sense once the byline became Metis. The
+> reasoning below is kept as the record of why comments were rejected.
+> (Byline change logged in `wiki/log.md` under 2026-07-25.)
 
 The Translation Layer does not have an on-site comment system. Reader feedback flows through a "Reply by email" CTA at the foot of every post, plus the existing LinkedIn and email share affordances. This is a deliberate brand decision, not a deferred feature.
 

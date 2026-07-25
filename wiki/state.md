@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-25T01:58:18.831Z
+generated: 2026-07-25T02:49:13.683Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -264,7 +264,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate` | [app/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate/route.ts](../app/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate/route.ts) | 2026-07-06 |
 | `/api/workflows/[id]/steps/[stepId]/prompt` | [app/api/workflows/[id]/steps/[stepId]/prompt/route.ts](../app/api/workflows/[id]/steps/[stepId]/prompt/route.ts) | 2026-07-06 |
 
-## Components (129)
+## Components (128)
 
 | File | Last shipped |
 |------|--------------|
@@ -289,7 +289,6 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/blog/post-body.tsx](../components/blog/post-body.tsx) | 2026-05-20 |
 | [components/blog/post-header.tsx](../components/blog/post-header.tsx) | 2026-05-21 |
 | [components/blog/read-next.tsx](../components/blog/read-next.tsx) | 2026-05-21 |
-| [components/blog/reply-by-email.tsx](../components/blog/reply-by-email.tsx) | 2026-05-24 |
 | [components/blog/social-share.tsx](../components/blog/social-share.tsx) | 2026-05-22 |
 | [components/blog/toc.tsx](../components/blog/toc.tsx) | 2026-05-20 |
 | [components/booking/calendar-picker.tsx](../components/booking/calendar-picker.tsx) | 2026-05-17 |
