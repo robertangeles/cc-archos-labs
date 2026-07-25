@@ -379,6 +379,65 @@ describe("groundingRatio", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Unquantified quantity — the hole the first live run found
+// ---------------------------------------------------------------------------
+describe("unquantified quantity", () => {
+  const wrap = (s: string) => `Opening framing paragraph.\n\n${s}\n\nAnd a close.`;
+
+  it.each([
+    "Poor data quality drains millions per year from organizations.",
+    "Knowledge workers spend large portions of their working hours reconciling data.",
+    "A significant share of that cost traces back to inconsistent records.",
+    "The vast majority of teams never audit their own sources.",
+    "Most companies discover this only when reporting breaks.",
+  ])("hard-rejects a magnitude claim with no magnitude: %s", (sentence) => {
+    const r = check({ contentMd: wrap(sentence) });
+    expect(r.verdict).toBe("reject");
+    expect(r.findings.some((f) => f.tell === "unquantified-quantity")).toBe(true);
+  });
+
+  it.each([
+    "Poor data quality costs the average organisation $12.9 million per year.",
+    "Some 78% of teams never audit their own sources.",
+    "Around 3 in 5 companies discover this only when reporting breaks.",
+  ])("permits the same claim once it names the number: %s", (sentence) => {
+    const r = check({ contentMd: wrap(sentence) });
+    expect(
+      r.findings.some((f) => f.tell === "unquantified-quantity"),
+      sentence,
+    ).toBe(false);
+  });
+
+  it("reproduces the exact regression from the first live run", () => {
+    // Told its specific figures were unsupported, the rewrite replaced them
+    // with unfalsifiable language and passed. Digit count went 6 -> 2, vague
+    // quantity 4 -> 6. This is the sentence that got through.
+    const r = check({
+      contentMd: wrap(
+        "Poor data quality drains millions per year from organizations, and a significant share of that cost traces back to inconsistent core entity records.",
+      ),
+      rawResearch: "no figures at all",
+    });
+    expect(r.verdict).toBe("reject");
+    const uq = r.findings.filter((f) => f.tell === "unquantified-quantity");
+    expect(uq.length).toBeGreaterThanOrEqual(1);
+    expect(uq[0].quote).toContain("drains millions per year");
+  });
+
+  it("treats an unnamed appeal to research as a signal, not a hard fail", () => {
+    // Calibration: these fire on QUALITATIVE claims that assert no magnitude
+    // ("the research shows training has limited impact"), so hard-failing them
+    // rejected sentences that were doing nothing wrong.
+    const r = check({
+      contentMd: wrap("The research shows training has limited impact on behaviour."),
+    });
+    const f = r.findings.find((x) => x.tell === "unsourced-appeal");
+    expect(f?.severity).toBe("signal");
+    expect(r.verdict).toBe("pass");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Lexical signals
 // ---------------------------------------------------------------------------
 describe("lexical signals are advisory, not disqualifying", () => {

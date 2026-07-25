@@ -338,7 +338,11 @@ export async function runOnce(now: Date = new Date()): Promise<RunResult> {
   const judgePrompt = await getJudgePrompt();
   let draft = output.articleDraft;
   let parsed = parseDraft(draft);
-  let verdictLog: unknown = null;
+  // Every round, not just the last. The first live run needed a rewrite and
+  // the reason was unrecoverable afterwards, because this used to be
+  // overwritten each iteration — so "why was this rewritten?" had to be
+  // reconstructed from workflow_execution_run by hand.
+  const rounds: unknown[] = [];
 
   for (let round = 0; round <= MAX_REWRITE_ROUNDS; round++) {
     if (!parsed) {
@@ -354,14 +358,10 @@ export async function runOnce(now: Date = new Date()): Promise<RunResult> {
       output.rawResearch,
       item.fieldNote,
     );
-    verdictLog = {
-      round,
-      gate: result.gate,
-      judge: result.judge,
-    };
+    rounds.push({ round, gate: result.gate, judge: result.judge });
 
     if (result.ok) {
-      return finish(config, item, parsed, result.publishable, verdictLog, now, swept);
+      return finish(config, item, parsed, result.publishable, { rounds }, now, swept);
     }
 
     // One rewrite, then stop. An unbounded loop optimises for evading the
@@ -381,7 +381,7 @@ export async function runOnce(now: Date = new Date()): Promise<RunResult> {
     parsed = parseDraft(draft);
   }
 
-  return park(config, item, parsed, draft, verdictLog, swept);
+  return park(config, item, parsed, draft, { rounds }, swept);
 }
 
 /** Passed the gate: land it scheduled, awaiting human review. */

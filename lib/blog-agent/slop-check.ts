@@ -18,6 +18,8 @@ export type SlopTell =
   | "fabricated-experience"
   | "service-pricing"
   | "offsite-link"
+  | "unquantified-quantity"
+  | "unsourced-appeal"
   | "ungrounded-figure"
   | "absolutist-adverb"
   | "juxtaposition"
@@ -132,6 +134,49 @@ const EPISODIC_PATTERNS: RegExp[] = [
 const MONEY = /[$£€]\s?[\d,]+(?:\.\d+)?\s?(?:k|m|bn|billion|million|thousand)?|\b\d[\d,]*(?:\.\d+)?\s?(?:dollars|USD|AUD|GBP)\b/gi;
 const OFFER_CONTEXT =
   /\b(?:we|our|us|archos|my)\b[^.!?]{0,80}\b(?:charge|charges|charged|rate|rates|fee|fees|price|prices|pricing|cost|costs|retainer|engagement|package|starting at|per day|day rate|hourly|invoice)\b|\b(?:charge|rate|fee|price|pricing|retainer|starting at|per day|day rate)\b[^.!?]{0,80}\b(?:we|our|us|archos)\b/i;
+
+// ---------------------------------------------------------------------------
+// Tell 3 — unquantified quantity
+// ---------------------------------------------------------------------------
+//
+// Magnitude language with no magnitude. "Poor data quality drains millions per
+// year." "Knowledge workers spend large portions of their working hours." "The
+// research consistently shows..." Each reads as evidence and asserts nothing
+// checkable.
+//
+// This is not a style nit — it is the hole the rewrite loop found on the first
+// live run. Told its specific figures (4,200 / 3,800 / 40,000) were not in the
+// research, the writer did not remove the claims: it restated them without
+// numbers. Digit count went 6 → 2, vague-quantity count went 4 → 6, and the
+// draft then passed the grounding check cleanly, because a paragraph with no
+// digits has no checkable tokens and is skipped entirely.
+//
+// So the gate was actively rewarding the move toward being unfalsifiable —
+// which is the definition of the slop this whole pipeline exists to stop:
+// "just enough generality to avoid being provably wrong."
+//
+// Hard, not a signal, and deliberately so: a signal is precisely what the
+// rewrite optimises against. The escape hatch is to say the number.
+// Calibrated against 9 real drafts. Magnitude words only — the appeal-to-
+// research phrases were tried here first and had to be split out: they fire on
+// qualitative claims that assert no magnitude at all ("the Gartner and MIT
+// Sloan data show that costs accumulate in budgets before they surface in
+// metrics", "the research shows training has limited impact"). Those are a
+// different tell and folding them in generated false positives on sentences
+// that were doing nothing wrong.
+const QUANTITY_WORDS =
+  /\b(millions?|billions?|thousands?\s+of|significant\s+(?:share|portion|percentage|amount|number|proportion)|large\s+(?:share|portions?|number|amount|proportion)|substantial\s+(?:share|portion|amount|number)|vast\s+majority|overwhelming\s+majority|many\s+organi[sz]ations|most\s+(?:companies|organi[sz]ations|businesses))\b/gi;
+
+/**
+ * Appeal to unnamed research. Weak writing and a slop marker, but it asserts no
+ * magnitude, so it is a signal rather than a hard failure — the published draft
+ * still rejects on its three genuine magnitude claims without this one.
+ */
+const UNSOURCED_APPEAL =
+  /\b(consistently\s+shows?|the\s+research\s+(?:shows?|suggests?|indicates?)|studies\s+show|the\s+data\s+shows?)\b/gi;
+
+/** A digit anywhere in the sentence discharges the claim. */
+const HAS_DIGIT = /\d/;
 
 // ---------------------------------------------------------------------------
 // Tells 4-6 — lexical overcompensation
@@ -340,6 +385,30 @@ export function slopCheck(input: SlopCheckInput): SlopCheckResult {
         note: `Figure ${m[0]} does not appear in the research.`,
       });
     }
+  }
+
+  // --- Unquantified quantity ------------------------------------------------
+  for (const m of contentMd.matchAll(QUANTITY_WORDS)) {
+    if (m.index === undefined) continue;
+    const sentence = sentenceAt(contentMd, m.index);
+    if (HAS_DIGIT.test(sentence)) continue; // it named the number — fine
+    findings.push({
+      tell: "unquantified-quantity",
+      severity: "hard",
+      quote: sentence,
+      note: `"${m[0]}" asserts a magnitude without stating one. Give the figure from the research, or drop the claim.`,
+    });
+  }
+
+  for (const m of contentMd.matchAll(UNSOURCED_APPEAL)) {
+    if (m.index === undefined) continue;
+    const sentence = sentenceAt(contentMd, m.index);
+    findings.push({
+      tell: "unsourced-appeal",
+      severity: "signal",
+      quote: sentence,
+      note: `"${m[0]}" appeals to research without naming it.`,
+    });
   }
 
   // --- Lexical overcompensation --------------------------------------------
