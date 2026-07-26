@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-26T05:10:07.453Z
+generated: 2026-07-26T05:23:07.911Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -40,7 +40,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/account/workspace` | [app/account/workspace/page.tsx](../app/account/workspace/page.tsx) | 2026-06-11 |
 | `/admin/(authed)/auth` | [app/admin/(authed)/auth/page.tsx](../app/admin/(authed)/auth/page.tsx) | 2026-05-26 |
 | `/admin/(authed)/blog` | [app/admin/(authed)/blog/page.tsx](../app/admin/(authed)/blog/page.tsx) | 2026-05-20 |
-| `/admin/(authed)/blog/pipeline` | [app/admin/(authed)/blog/pipeline/page.tsx](../app/admin/(authed)/blog/pipeline/page.tsx) | unknown |
+| `/admin/(authed)/blog/pipeline` | [app/admin/(authed)/blog/pipeline/page.tsx](../app/admin/(authed)/blog/pipeline/page.tsx) | 2026-07-26 |
 | `/admin/(authed)/blog/posts` | [app/admin/(authed)/blog/posts/page.tsx](../app/admin/(authed)/blog/posts/page.tsx) | 2026-05-21 |
 | `/admin/(authed)/blog/posts/[id]` | [app/admin/(authed)/blog/posts/[id]/page.tsx](../app/admin/(authed)/blog/posts/[id]/page.tsx) | 2026-05-21 |
 | `/admin/(authed)/blog/posts/[id]/revisions` | [app/admin/(authed)/blog/posts/[id]/revisions/page.tsx](../app/admin/(authed)/blog/posts/[id]/revisions/page.tsx) | 2026-05-21 |
@@ -90,7 +90,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
 | `/api/admin/auth-settings` | [app/api/admin/auth-settings/route.ts](../app/api/admin/auth-settings/route.ts) | 2026-05-26 |
-| `/api/admin/blog-agent/retry` | [app/api/admin/blog-agent/retry/route.ts](../app/api/admin/blog-agent/retry/route.ts) | unknown |
+| `/api/admin/blog-agent/retry` | [app/api/admin/blog-agent/retry/route.ts](../app/api/admin/blog-agent/retry/route.ts) | 2026-07-26 |
 | `/api/admin/bookings/[id]/status` | [app/api/admin/bookings/[id]/status/route.ts](../app/api/admin/bookings/[id]/status/route.ts) | 2026-06-12 |
 | `/api/admin/consultant/profile` | [app/api/admin/consultant/profile/route.ts](../app/api/admin/consultant/profile/route.ts) | 2026-06-12 |
 | `/api/admin/google-oauth/cb` | [app/api/admin/google-oauth/cb/route.ts](../app/api/admin/google-oauth/cb/route.ts) | 2026-05-31 |

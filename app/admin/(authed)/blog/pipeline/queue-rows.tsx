@@ -110,12 +110,15 @@ export function QueueRows({ rows }: { rows: QueueRow[] }) {
               {/* Title and everything under it */}
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  {/* Once a post exists its title is the real thing; the plan
+                      item's title is the brief that produced it, and showing
+                      the brief made a queue of finished work look like junk. */}
                   {row.post ? (
                     <Link
                       href={`/admin/blog/posts/${row.post.id}`}
                       className="text-body-sm text-ink hover:text-primary"
                     >
-                      {row.title}
+                      {row.post.title}
                     </Link>
                   ) : (
                     <span className="text-body-sm text-ink">{row.title}</span>
@@ -125,6 +128,11 @@ export function QueueRows({ rows }: { rows: QueueRow[] }) {
                     <span className="text-xs text-ink-subtle/70">{row.categoryName}</span>
                   ) : null}
                 </div>
+                {row.post ? (
+                  <p className="mt-0.5 text-xs text-ink-subtle/70">
+                    Brief: {row.title}
+                  </p>
+                ) : null}
 
                 {state ? (
                   <p

@@ -92,6 +92,8 @@ export function describeHealth(input: {
 export interface QueueRowPost {
   id: string;
   slug: string;
+  /** What was actually written, which is not the plan item's title. */
+  title: string;
   status: string;
   needsReview: boolean;
   scheduledPublishAt: Date | null;
@@ -224,6 +226,7 @@ export async function loadPipelineView(now: Date = new Date()): Promise<Pipeline
         categoryName: category.name,
         postId: post.id,
         postSlug: post.slug,
+        postTitle: post.title,
         postStatus: post.status,
         postNeedsReview: post.needsReview,
         postScheduledPublishAt: post.scheduledPublishAt,
@@ -288,6 +291,7 @@ export async function loadPipelineView(now: Date = new Date()): Promise<Pipeline
         ? {
             id: r.postId,
             slug: r.postSlug!,
+            title: r.postTitle!,
             status: r.postStatus!,
             needsReview: !!r.postNeedsReview,
             scheduledPublishAt: r.postScheduledPublishAt,
