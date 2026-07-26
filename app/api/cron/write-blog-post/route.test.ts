@@ -110,6 +110,17 @@ describe("auth", () => {
     expect(runMock).not.toHaveBeenCalled();
   });
 
+  it("503s (not a silent fallback to CRON_SECRET) when BLOG_CRON_SECRET is set but too short", async () => {
+    // `||` only falls through on falsy, not on length — a short BLOG_CRON_SECRET
+    // is still truthy, so it must be the one that fails the length check rather
+    // than quietly ceding to a perfectly valid CRON_SECRET sitting behind it.
+    process.env.CRON_SECRET = SECRET;
+    process.env.BLOG_CRON_SECRET = "short";
+    const res = await POST(req(`Bearer ${SECRET}`));
+    expect(res.status).toBe(503);
+    expect(runMock).not.toHaveBeenCalled();
+  });
+
   it("401s with a wrong token", async () => {
     const res = await POST(req("Bearer definitely-not-the-secret"));
     expect(res.status).toBe(401);

@@ -6,7 +6,7 @@ updated: 2026-07-26
 related: [[blog-writer-agent]], [[deployment-architecture]]
 ---
 
-What to do when the daily blog agent misbehaves. Seven failure modes, each with a signal and a response.
+What to do when the daily blog agent misbehaves. Eight failure modes, each with a signal and a response.
 
 ## First: nothing it does is urgent
 
