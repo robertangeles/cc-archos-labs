@@ -131,7 +131,7 @@ export async function preflight(
         problem:
           `Configured field id for "${name}" (${id}) no longer exists on the workflow. ` +
           `A field was probably deleted and re-added in the builder, which mints a new id. ` +
-          `Fix the field map at /admin/prompts/blog-agent-config.`,
+          `Re-run scripts/seed-blog-agent-config.mjs, which derives every id from the database.`,
       };
     }
   }

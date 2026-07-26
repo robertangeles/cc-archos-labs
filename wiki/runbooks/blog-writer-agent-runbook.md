@@ -14,11 +14,23 @@ The agent never publishes. Every failure path ends in a draft plus an alert, and
 
 ## Kill switch
 
-```
-/admin/prompts/blog-agent-config  →  set enabled: false
+```sql
+UPDATE site_setting
+   SET value = jsonb_set(value, '{enabled}', 'false'::jsonb), updated_at = now()
+ WHERE key = 'blog_agent_config';
 ```
 
-Takes effect on the next tick, no deploy. Use this before debugging anything. Deleting the Render cron job also works and is the harder stop.
+Takes effect on the next tick, no deploy. Verified: the route then returns
+`outcome: "disabled"` and spends nothing. Use `'true'::jsonb` to switch it back
+on. The literal matters — binding a JS `false` through a query parameter stores
+the *string* `"false"`, which fails schema validation and falls back to the
+disabled starter. Same outcome by accident, but for the wrong reason.
+
+Deleting the Render cron job also works and is the harder stop.
+
+> There is no admin screen for this yet. `/admin/prompts/[slug]` exists but its
+> `VALID_SLUGS` list does not include the blog agent's keys, so
+> `/admin/prompts/blog-agent-config` 404s. Editing the row is the only way in.
 
 ## Health check
 
@@ -48,7 +60,7 @@ SELECT status, count(*) FROM content_plan_item GROUP BY status;
 
 **Cause, in order of likelihood:** the research is thin (the writer has nothing to be specific about, so the grounding check bites); the judge model changed behaviour; or `blog_judge_prompt` was edited into something too strict.
 
-**Response:** read `content_plan_item.judge_verdict` for a parked item. It records the gate and judge findings per round, each quoting the offending sentence. If the quotes are fair, the problem is upstream — the topic was too thin to research. If the quotes look like nitpicking, tune `blog_judge_prompt` at `/admin/prompts`.
+**Response:** read `content_plan_item.judge_verdict` for a parked item. It records the gate and judge findings per round, each quoting the offending sentence. If the quotes are fair, the problem is upstream — the topic was too thin to research. If the quotes look like nitpicking, edit the `blog_judge_prompt` row in `site_setting`.
 
 > Do **not** respond by raising the rewrite budget. One round is deliberate: an unbounded loop optimises for evading the judge rather than having something to say, which produces polished emptiness — the exact failure the gate exists to prevent.
 
@@ -96,7 +108,7 @@ SELECT field_id, label FROM workflow_field
  WHERE workflow_id = '<workflowId>' ORDER BY sort_order;
 ```
 
-Then update `fieldMap` at `/admin/prompts/blog-agent-config`. Without this guard the agent would have passed inputs keyed to a dead id, received an empty topic, and written a confident, well-formed article about nothing.
+Then update `fieldMap` in the `blog_agent_config` row, or re-run `scripts/seed-blog-agent-config.mjs`, which derives every id from the database. Without this guard the agent would have passed inputs keyed to a dead id, received an empty topic, and written a confident, well-formed article about nothing.
 
 ## 5. Every post is getting the fallback illustration
 
@@ -112,7 +124,7 @@ SELECT id, slug, og_image_path IS NOT NULL AS has_image,
 **Causes, cheapest to check first:**
 
 1. **Illustrations are switched off.** `image.enabled: false` in
-   `blog_agent_config`. Deliberate if someone set it; check before digging.
+   the `blog_agent_config` row. Deliberate if someone set it; check before digging.
 2. **R2 is not configured on the server.** `attachImageToPost` throws
    `R2NotConfiguredError`. Needs `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
    `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` and `R2_PUBLIC_URL` — note the last one

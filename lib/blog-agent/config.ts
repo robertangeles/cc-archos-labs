@@ -51,7 +51,8 @@ export const getBlogAgentConfig = cache(async (): Promise<BlogAgentConfig> => {
     console.warn(
       `[blog-agent] ${CONFIG_KEY} failed validation (fields: ${fields}). ` +
         `Falling back to the disabled starter — the pipeline will not run. ` +
-        `Fix it at /admin/prompts/blog-agent-config.`,
+        `Fix the site_setting row directly, or re-run scripts/seed-blog-agent-config.mjs. ` +
+        `There is no admin screen for it yet.`,
     );
     return BLOG_AGENT_CONFIG_STARTER;
   }
