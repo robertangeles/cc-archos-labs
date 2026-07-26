@@ -15,6 +15,13 @@ import {
   DiagnosticPromptSchema,
 } from "../../../../lib/diagnostic/prompt-config-shared";
 import { SITE_SETTING_KEY as DIAGNOSTIC_PROMPT_KEY } from "../../../../lib/diagnostic/prompt-config";
+import {
+  BlogAgentConfigSchema,
+  CONFIG_KEY as BLOG_AGENT_CONFIG_KEY,
+  JUDGE_PROMPT_KEY,
+  JudgePromptSchema,
+  PLAN_PROMPT_KEY,
+} from "../../../../lib/blog-agent/config-shared";
 
 // /admin/prompts — cards grid of all Claude prompts used across the site.
 // Mirrors the /admin/integrations layout: one card per prompt, status
@@ -45,7 +52,14 @@ interface PromptCard {
 }
 
 export default async function PromptsIndexPage() {
-  const { diagnosticStatus, chatPromptStatus, bookingPrompts } = await loadCardData();
+  const {
+    diagnosticStatus,
+    chatPromptStatus,
+    bookingPrompts,
+    blogAgentStatus,
+    judgePromptStatus,
+    planPromptStatus,
+  } = await loadCardData();
 
   const cards: PromptCard[] = [
     {
@@ -88,6 +102,30 @@ export default async function PromptsIndexPage() {
       fires:
         "Fires on booking-create when the blog library has entries.",
       status: bookingStatus(bookingPrompts, "blogMatch"),
+    },
+    {
+      slug: "blog-agent-config",
+      title: "Blog agent",
+      description:
+        "The agent that researches, writes and queues blog posts unattended. Settings, cadence, and the control that stops it.",
+      fires: "Runs from a scheduled job, once per due day.",
+      status: blogAgentStatus,
+    },
+    {
+      slug: "blog-judge-prompt",
+      title: "Blog reviewer",
+      description:
+        "The rubric an independent model grades every draft against. Reads the research alongside the draft, and must quote the sentence it objects to.",
+      fires: "Fires once per draft, and again if a rewrite is needed.",
+      status: judgePromptStatus,
+    },
+    {
+      slug: "blog-plan-prompt",
+      title: "Blog topic planner",
+      description:
+        "Turns research about what founders are searching for into a batch of article topics. Each item becomes one queued post.",
+      fires: "Fires when the topic queue drops below the refill threshold.",
+      status: planPromptStatus,
     },
   ];
 
@@ -142,6 +180,9 @@ async function loadCardData(): Promise<{
   diagnosticStatus: CardStatus;
   chatPromptStatus: CardStatus;
   bookingPrompts: BookingPrompts | null;
+  blogAgentStatus: CardStatus;
+  judgePromptStatus: CardStatus;
+  planPromptStatus: CardStatus;
 }> {
   const db = getDb();
   let diagnosticStatus: CardStatus;
@@ -204,7 +245,62 @@ async function loadCardData(): Promise<{
     console.error("[admin/prompts] booking status load failed:", err);
   }
 
-  return { diagnosticStatus, chatPromptStatus, bookingPrompts };
+  // The blog agent's card reports running or stopped rather than configured,
+  // because that is the question you open this page to answer. A config that
+  // fails validation is an error, not a fallback: the agent is silently on the
+  // disabled starter and is not running at all.
+  let blogAgentStatus: CardStatus;
+  try {
+    const rows = await db
+      .select({ value: siteSetting.value })
+      .from(siteSetting)
+      .where(eq(siteSetting.key, BLOG_AGENT_CONFIG_KEY))
+      .limit(1);
+    if (rows.length === 0) {
+      blogAgentStatus = { tone: "neutral", label: "Not set up" };
+    } else {
+      const parsed = BlogAgentConfigSchema.safeParse(rows[0].value);
+      blogAgentStatus = !parsed.success
+        ? { tone: "error", label: "Invalid — not running" }
+        : parsed.data.enabled
+          ? { tone: "success", label: "Running" }
+          : { tone: "warning", label: "Stopped" };
+    }
+  } catch (err) {
+    console.error("[admin/prompts] blog agent status load failed:", err);
+    blogAgentStatus = { tone: "warning", label: "Unknown" };
+  }
+
+  const promptStatus = async (key: string): Promise<CardStatus> => {
+    try {
+      const rows = await db
+        .select({ value: siteSetting.value })
+        .from(siteSetting)
+        .where(eq(siteSetting.key, key))
+        .limit(1);
+      if (rows.length === 0) return { tone: "neutral", label: "Starter" };
+      const parsed = JudgePromptSchema.safeParse(rows[0].value);
+      if (!parsed.success) return { tone: "error", label: "Malformed" };
+      return parsed.data.version.startsWith("starter")
+        ? { tone: "neutral", label: "Starter" }
+        : { tone: "success", label: "Configured" };
+    } catch (err) {
+      console.error(`[admin/prompts] ${key} status load failed:`, err);
+      return { tone: "warning", label: "Unknown" };
+    }
+  };
+
+  const judgePromptStatus = await promptStatus(JUDGE_PROMPT_KEY);
+  const planPromptStatus = await promptStatus(PLAN_PROMPT_KEY);
+
+  return {
+    diagnosticStatus,
+    chatPromptStatus,
+    bookingPrompts,
+    blogAgentStatus,
+    judgePromptStatus,
+    planPromptStatus,
+  };
 }
 
 // A booking sub-prompt is "Configured" if its version label is anything

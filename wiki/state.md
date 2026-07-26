@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-26T02:48:24.238Z
+generated: 2026-07-26T04:35:02.528Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -84,7 +84,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/workspace/model-studio` | [app/workspace/model-studio/page.tsx](../app/workspace/model-studio/page.tsx) | 2026-07-12 |
 | `/workspace/model-studio/[id]` | [app/workspace/model-studio/[id]/page.tsx](../app/workspace/model-studio/[id]/page.tsx) | 2026-06-17 |
 
-## API endpoints (176)
+## API endpoints (178)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -120,6 +120,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/posts/[id]/revisions` | [app/api/admin/posts/[id]/revisions/route.ts](../app/api/admin/posts/[id]/revisions/route.ts) | 2026-05-20 |
 | `/api/admin/posts/[id]/revisions/[revId]/restore` | [app/api/admin/posts/[id]/revisions/[revId]/restore/route.ts](../app/api/admin/posts/[id]/revisions/[revId]/restore/route.ts) | 2026-05-20 |
 | `/api/admin/posts/[id]/suggest-links` | [app/api/admin/posts/[id]/suggest-links/route.ts](../app/api/admin/posts/[id]/suggest-links/route.ts) | 2026-05-20 |
+| `/api/admin/settings/blog-agent` | [app/api/admin/settings/blog-agent/route.ts](../app/api/admin/settings/blog-agent/route.ts) | unknown |
+| `/api/admin/settings/blog-agent-prompt/[kind]` | [app/api/admin/settings/blog-agent-prompt/[kind]/route.ts](../app/api/admin/settings/blog-agent-prompt/[kind]/route.ts) | unknown |
 | `/api/admin/settings/blog-enabled` | [app/api/admin/settings/blog-enabled/route.ts](../app/api/admin/settings/blog-enabled/route.ts) | 2026-05-20 |
 | `/api/admin/settings/blog-library` | [app/api/admin/settings/blog-library/route.ts](../app/api/admin/settings/blog-library/route.ts) | 2026-06-12 |
 | `/api/admin/settings/booking-prompts` | [app/api/admin/settings/booking-prompts/route.ts](../app/api/admin/settings/booking-prompts/route.ts) | 2026-05-17 |
@@ -187,7 +189,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/cron/process-scheduled-social` | [app/api/cron/process-scheduled-social/route.ts](../app/api/cron/process-scheduled-social/route.ts) | 2026-06-14 |
 | `/api/cron/purge-inactive-leads` | [app/api/cron/purge-inactive-leads/route.ts](../app/api/cron/purge-inactive-leads/route.ts) | 2026-05-18 |
 | `/api/cron/purge-session-metadata` | [app/api/cron/purge-session-metadata/route.ts](../app/api/cron/purge-session-metadata/route.ts) | 2026-05-18 |
-| `/api/cron/write-blog-post` | [app/api/cron/write-blog-post/route.ts](../app/api/cron/write-blog-post/route.ts) | 2026-07-25 |
+| `/api/cron/write-blog-post` | [app/api/cron/write-blog-post/route.ts](../app/api/cron/write-blog-post/route.ts) | 2026-07-26 |
 | `/api/diagnostic/generate` | [app/api/diagnostic/generate/route.ts](../app/api/diagnostic/generate/route.ts) | 2026-06-03 |
 | `/api/diagnostic/report/[sessionId]/pdf` | [app/api/diagnostic/report/[sessionId]/pdf/route.ts](../app/api/diagnostic/report/[sessionId]/pdf/route.ts) | 2026-06-03 |
 | `/api/diagnostic/share` | [app/api/diagnostic/share/route.ts](../app/api/diagnostic/share/route.ts) | 2026-06-03 |
