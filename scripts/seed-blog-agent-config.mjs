@@ -72,6 +72,21 @@ try {
     wordCount: fields[3].field_id,
   };
 
+  // The illustration setting, added by scripts/seed-illustration-skill.mjs.
+  // Matched by label rather than position because it is optional — a config
+  // without it still validates, and the art director then picks its own
+  // setting (which converges on one answer, hence the field).
+  const placeField = fields.find((f) => /illustration setting/i.test(f.label));
+  if (placeField) {
+    fieldMap.imagePlace = placeField.field_id;
+  } else {
+    console.warn(
+      '  WARN: no "Illustration setting" field on the workflow. Run ' +
+        "scripts/seed-illustration-skill.mjs --apply first, or illustrations " +
+        "will all share one setting.",
+    );
+  }
+
   // --- author --------------------------------------------------------------
   const [author] = await sql`
     SELECT id, name FROM author WHERE slug = ${AUTHOR_SLUG} LIMIT 1
@@ -128,6 +143,7 @@ try {
     // UTC+10 that ignores daylight saving.
     publishAt: { hour: 7, timeZone: "Australia/Sydney" },
     alertEmail: "",
+    image: { enabled: true },
   };
 
   await sql`
