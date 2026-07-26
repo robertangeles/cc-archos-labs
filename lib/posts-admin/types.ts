@@ -52,6 +52,12 @@ export interface AdminPostView {
   wordCount: number;
   readingTimeMin: number;
   needsReview: boolean;
+  /**
+   * Written by the blog writer agent. Read side of the flag PostInput already
+   * carried — without it the admin list cannot tell an agent draft from one of
+   * the 120 migrated WordPress posts, which also sit in the review queue.
+   */
+  isAgentGenerated: boolean;
   sourceWpId: number | null;
   lastReviewedAt: Date | null;
   publishedAt: Date | null;
@@ -88,6 +94,12 @@ export interface PostInput {
   status: PostStatus;
   visibility?: PostVisibility;
   needsReview?: boolean;
+  /**
+   * TRUE for posts written by the blog writer agent. Scopes the publish
+   * gate (scheduled-publisher withholds only when this AND needs_review
+   * are both set) and marks agent output in the admin list.
+   */
+  isAgentGenerated?: boolean;
   lastReviewedAt?: Date | null;
   /**
    * Required when status === 'scheduled', forbidden otherwise. Validated

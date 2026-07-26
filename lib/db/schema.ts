@@ -1643,6 +1643,18 @@ export const post = pgTable(
     // Migration script sets this when Claude returns a low-confidence
     // currency check OR malformed output.
     needsReview: boolean("needs_review").notNull().default(false),
+    // TRUE for posts written by the blog writer agent. Two jobs:
+    //   1. Scopes the publish gate. scheduled-publisher withholds a due post
+    //      only when this AND needs_review are both true, so a human editor
+    //      flagging their own scheduled post still publishes exactly as
+    //      before. needs_review is a GENERAL editorial flag (the WP migration
+    //      set it on 120 posts); gating on it alone would have silently
+    //      changed behaviour for human-authored posts.
+    //   2. Marks agent output in the admin list so it is distinguishable from
+    //      the legacy WP needs-review queue.
+    // No index: only ever read alongside status='scheduled', which the
+    // partial index post_due_for_publish_idx already serves.
+    isAgentGenerated: boolean("is_agent_generated").notNull().default(false),
     // WordPress uhiz_posts.ID — the migration idempotency key. NULL for
     // posts authored directly in admin (no WP origin).
     sourceWpId: integer("source_wp_id"),
@@ -3964,3 +3976,91 @@ export const dataModelCanvasState = pgTable(
 );
 export type DataModelCanvasState = typeof dataModelCanvasState.$inferSelect;
 export type NewDataModelCanvasState = typeof dataModelCanvasState.$inferInsert;
+
+// ============================================================================
+// content_plan_item — Blog writer agent
+// ============================================================================
+// The work queue the daily blog agent pulls from. OLTP, 2NF: every non-key
+// column depends only on the id.
+//
+//   plan.ts inserts a batch
+//          │
+//          ▼
+//     ┌─ pending ◀──────────── sweeper (locked_until elapsed, attempts+1)
+//     │      │ claim: SELECT ... FOR UPDATE SKIP LOCKED + UPDATE, ONE txn
+//     │      ▼                 (copied from lib/scheduler.ts:160 — NOT from
+//     │   running               scheduled-publisher, which releases its lock
+//     │      │                  before the work starts)
+//     │      ├──▶ drafted  (terminal — post created, awaiting human review)
+//     │      ├──▶ skipped  (terminal — duplicate topic)
+//     │      └──▶ failed   (terminal at attempts >= 3)
+//     └──────────┘
+//
+// There is deliberately NO `published` status and NO FK to
+// workflow_execution_run:
+//   - Live state is derived by joining `post`; the scheduled publisher owns
+//     post.status, so one writer per column.
+//   - workflow_execution_run is pruned to 22 rows per workflow by pruneRuns
+//     (lib/workflows/runs.ts), and that DELETE runs inside a swallowed
+//     catch{} in executor.ts. An FK here would make pruning throw, get
+//     swallowed, and silently stop forever while step_results grew unbounded.
+export const contentPlanItem = pgTable(
+  "content_plan_item",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Groups one research batch from plan.ts.
+    batchId: uuid("batch_id").notNull(),
+    // Position within the batch; also the dequeue order.
+    dayNumber: integer("day_number").notNull(),
+    title: text("title").notNull(),
+    // 'long' | 'short' — maps to the workflow's word-count dropdown.
+    format: text("format").notNull(),
+    // Structural variance hint so 70 posts don't share one skeleton
+    // (Google names near-identical structure as a scaled-content signal).
+    shape: text("shape"),
+    categoryId: uuid("category_id").references(() => category.id, {
+      onDelete: "set null",
+    }),
+    topic: text("topic").notNull(),
+    audience: text("audience").notNull(),
+    action: text("action").notNull(),
+    // A real observation supplied by a human. When present the gate permits
+    // first-person narration that traces to it; when NULL, episodic first
+    // person is always a hard failure. This is the honest replacement for the
+    // first-hand-experience signal given up by forbidding invented anecdotes.
+    fieldNote: text("field_note"),
+    // pending | running | drafted | failed | skipped
+    status: text("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error"),
+    lockedBy: text("locked_by"),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+    postId: uuid("post_id").references(() => post.id, { onDelete: "set null" }),
+    // Audit only: the gate + judge findings per round, so a rejection can be
+    // explained after the fact. JSONB exception per the CLAUDE.md DB
+    // standards (audit/metadata column, not a relational one).
+    judgeVerdict: jsonb("judge_verdict"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // The dequeue, run every cron tick: "next pending item in batch order".
+    index("content_plan_item_status_day_number_idx").on(
+      table.status,
+      table.dayNumber,
+    ),
+    // FK index (mandatory per CLAUDE.md): "items in this category".
+    index("content_plan_item_category_id_idx").on(table.categoryId),
+    // FK index (mandatory per CLAUDE.md): "which item produced this post".
+    index("content_plan_item_post_id_idx").on(table.postId),
+    // "List one batch" — the admin pipeline view.
+    index("content_plan_item_batch_id_idx").on(table.batchId),
+  ],
+);
+
+export type ContentPlanItem = typeof contentPlanItem.$inferSelect;
+export type NewContentPlanItem = typeof contentPlanItem.$inferInsert;

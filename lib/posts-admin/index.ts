@@ -188,6 +188,7 @@ export async function listPostsForAdmin(
       wordCount: post.wordCount,
       readingTimeMin: post.readingTimeMin,
       needsReview: post.needsReview,
+      isAgentGenerated: post.isAgentGenerated,
       sourceWpId: post.sourceWpId,
       lastReviewedAt: post.lastReviewedAt,
       publishedAt: post.publishedAt,
@@ -276,6 +277,7 @@ export async function getAdminPostById(
       wordCount: post.wordCount,
       readingTimeMin: post.readingTimeMin,
       needsReview: post.needsReview,
+      isAgentGenerated: post.isAgentGenerated,
       sourceWpId: post.sourceWpId,
       lastReviewedAt: post.lastReviewedAt,
       publishedAt: post.publishedAt,
@@ -418,6 +420,7 @@ export async function createPost(
       status: input.status,
       visibility: input.visibility,
       needsReview: input.needsReview,
+      isAgentGenerated: input.isAgentGenerated,
       lastReviewedAt: input.lastReviewedAt,
       scheduledPublishAt: input.scheduledPublishAt,
       ogImageAlt: input.ogImageAlt,
@@ -446,6 +449,7 @@ export async function createPost(
             status: normalised.status,
             visibility: normalised.visibility,
             needsReview: normalised.needsReview,
+            isAgentGenerated: normalised.isAgentGenerated,
             lastReviewedAt: normalised.lastReviewedAt,
             scheduledPublishAt: normalised.scheduledPublishAt,
             ogImageAlt: normalised.ogImageAlt,
@@ -1043,6 +1047,7 @@ function normalisePostInput(input: PostInput): {
   status: PostStatus;
   visibility: PostVisibility;
   needsReview: boolean;
+  isAgentGenerated: boolean;
   lastReviewedAt: Date | null;
   scheduledPublishAt: Date | null;
   ogImageAlt: string | null;
@@ -1060,6 +1065,7 @@ function normalisePostInput(input: PostInput): {
     status: input.status,
     visibility: input.visibility ?? "listed",
     needsReview: input.needsReview ?? false,
+    isAgentGenerated: input.isAgentGenerated ?? false,
     lastReviewedAt: input.lastReviewedAt ?? null,
     scheduledPublishAt:
       input.status === "scheduled" ? (input.scheduledPublishAt ?? null) : null,
@@ -1127,6 +1133,7 @@ interface PostRowForView {
   wordCount: number;
   readingTimeMin: number;
   needsReview: boolean;
+  isAgentGenerated: boolean;
   sourceWpId: number | null;
   lastReviewedAt: Date | null;
   publishedAt: Date | null;
@@ -1170,6 +1177,7 @@ function rowToAdminView(row: PostRowForView): AdminPostView {
     wordCount: row.wordCount,
     readingTimeMin: row.readingTimeMin,
     needsReview: row.needsReview,
+    isAgentGenerated: row.isAgentGenerated,
     sourceWpId: row.sourceWpId,
     lastReviewedAt: row.lastReviewedAt,
     publishedAt: row.publishedAt,

@@ -4,6 +4,8 @@ import type { BookingPromptKind } from "../../../../../lib/booking-prompts-share
 import { BlogLibraryEditor } from "./blog-library-editor";
 import { BookingPromptEditor } from "./booking-prompt-editor";
 import { ChatPromptEditor } from "./chat-prompt-editor";
+import { BlogAgentConfigEditor } from "./blog-agent-config-editor";
+import { BlogAgentPromptEditor } from "./blog-agent-prompt-editor";
 import { DiagnosticPromptEditor } from "./diagnostic-prompt-editor";
 
 // /admin/prompts/[slug] — drill-down editor for one prompt.
@@ -21,7 +23,10 @@ type Slug =
   | "workspace-chat"
   | "intake-followup"
   | "precall-brief"
-  | "blog-matching";
+  | "blog-matching"
+  | "blog-agent-config"
+  | "blog-judge-prompt"
+  | "blog-plan-prompt";
 
 const SLUG_TO_BOOKING_KEY: Partial<Record<Slug, BookingPromptKind>> = {
   "intake-followup": "followup",
@@ -62,6 +67,24 @@ const META: Record<Slug, { title: string; description: string; fires: string }> 
       fires:
         "Fires on booking-create when the blog library has entries.",
     },
+    "blog-agent-config": {
+      title: "Blog agent",
+      description:
+        "Settings for the agent that researches, writes and queues blog posts on its own. The stop control is here, and it takes effect on the next run. Nothing the agent writes reaches the public site until you clear the review flag on that post.",
+      fires: "Runs from a scheduled job, once per due day.",
+    },
+    "blog-judge-prompt": {
+      title: "Blog reviewer",
+      description:
+        "The rubric an independent model grades every draft against before it can be queued. It reads the research alongside the draft, so \u201cis this claim supported?\u201d is answerable rather than guessable, and every finding it reports must quote the sentence it objects to.",
+      fires: "Fires once per draft, and once more if a rewrite is needed.",
+    },
+    "blog-plan-prompt": {
+      title: "Blog topic planner",
+      description:
+        "The brief that turns research about what founders are searching for into a batch of article topics. Each item becomes one queued post, so this shapes what gets written for weeks at a time.",
+      fires: "Fires when the queue drops below the refill threshold.",
+    },
   };
 
 const VALID_SLUGS: Slug[] = [
@@ -70,6 +93,11 @@ const VALID_SLUGS: Slug[] = [
   "intake-followup",
   "precall-brief",
   "blog-matching",
+  // The blog agent's three. Their absence is why the runbook's kill-switch
+  // URL 404'd — the page it named was never reachable.
+  "blog-agent-config",
+  "blog-judge-prompt",
+  "blog-plan-prompt",
 ];
 
 export default async function PromptDetailPage({ params }: PageProps) {
@@ -100,6 +128,12 @@ export default async function PromptDetailPage({ params }: PageProps) {
         <DiagnosticPromptEditor />
       ) : slug === "workspace-chat" ? (
         <ChatPromptEditor />
+      ) : slug === "blog-agent-config" ? (
+        <BlogAgentConfigEditor />
+      ) : slug === "blog-judge-prompt" ? (
+        <BlogAgentPromptEditor kind="judge" />
+      ) : slug === "blog-plan-prompt" ? (
+        <BlogAgentPromptEditor kind="plan" />
       ) : (
         <BookingPromptEditor promptKey={SLUG_TO_BOOKING_KEY[slug]!} />
       )}

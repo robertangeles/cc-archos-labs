@@ -247,7 +247,17 @@ function PostsTable({
           return (
             <tr key={p.id} className="border-b border-hairline align-top">
               <td className="py-3 pr-4">
-                <div className="text-ink">{p.title}</div>
+                <div className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="text-ink">{p.title}</span>
+                  {/* 120 migrated WordPress posts also carry needs_review, so
+                      without this marker an agent draft is indistinguishable
+                      from a decade-old import in the review queue. */}
+                  {p.isAgentGenerated ? (
+                    <span className="shrink-0 rounded-full border border-hairline px-1.5 py-0.5 text-[10px] uppercase tracking-[0.08em] text-ink-subtle">
+                      Agent
+                    </span>
+                  ) : null}
+                </div>
                 <div className="mt-0.5 font-mono text-[11px] text-ink-subtle">
                   /blog/{p.slug}
                 </div>

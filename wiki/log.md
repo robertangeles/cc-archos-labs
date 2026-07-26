@@ -1742,3 +1742,119 @@ Two follow-ups to the Metis byline (PRs #212, #213, #214).
 `wiki/decisions/2026-05-24-no-comments-reply-by-email.md` marked SUPERSEDED rather than deleted: the "no on-site comments" half of that decision still stands (no comment system, none planned), only the replacement CTA is gone. The CTA named Rob's inbox in body copy, which stopped fitting once the byline became Metis.
 
 Verified: tsc + eslint clean, 1277 tests green, no dangling refs to the removed component, post tail renders with no spacing gap where the box was.
+
+## 2026-07-25 — Blog writer agent, PR 1 (branch `feature/blog-writer-agent`)
+
+Built the machinery around the existing *Archos Labs Blog* workflow so it drafts a post daily without supervision. Five commits, nothing pushed.
+
+**The writer already existed and is good.** Reading the workflow definition, all 5 skills, and all 8 historical runs (including full draft bodies) collapsed the scope: research + steelman were already there and already doing most of the anti-slop work. What was missing was a queue, a gate, a mapping, a trigger, and the controls that only matter once nobody is watching.
+
+**It drafts, it does not publish.** Posts land `scheduled` + `needs_review` + `is_agent_generated`; the existing publisher withholds them until a human clears the flag. That reversed the original plan after the outside voice showed `needs_review` was only an admin list filter and the judge was therefore the sole backstop.
+
+**Three findings that would have shipped bugs**, none of which came from reading the plan:
+
+- `scheduled-publisher.ts` releases its `FOR UPDATE SKIP LOCKED` lock before the work starts, contradicting its own comment. Harmless for idempotent publishing; two posts and two bills for a 6-minute job claim. Copied `lib/scheduler.ts:160` instead, which claims inside one transaction.
+- `needs_review` is a **general** editorial flag (the WP migration set it on 120 posts). Gating publication on it alone would have silently stopped human-authored scheduled posts. Added `post.is_agent_generated` and gate on the conjunction — one column that also serves the admin marker.
+- A `workflow_run_id` FK on the queue would have made `pruneRuns` throw an FK violation inside a swallowed `catch{}`, silently killing run retention forever. Column dropped; `executeWorkflow` does not return a `runId` anyway.
+
+**Calibration beat theory repeatedly.** A blanket dollar-amount reject would have failed 4 of 7 real drafts on illustrative business figures. Grounding by proper nouns drove a clean draft to 0% because sentence-initial capitals pair with the next word. Fabricated first-person experience turned out to be in 3 of 7 drafts, not 1 — `I have watched…` slipped past the first scan.
+
+**Verified, not assumed.** The publisher regression suite was mutation-tested (removing the predicate fails exactly the 3 gate tests, leaving the 9 behaviour tests green). The injection fence was gated on a live DEV run of the essay step, which failed twice on my own replay bugs before passing — the raw `postgres` driver returns `input_mappings` as a JSON *string*, so `Object.entries()` was iterating characters.
+
+`db:generate` is retired in this repo: the drizzle journal stops at 0030 while migrations run to 0035. Migration `0036` hand-written to match, applied to DEV (host verified as `127.0.0.1/archos_labs_dev` first).
+
+Reviews: `/plan-ceo-review` (7 proposals, 7 accepted) then `/plan-eng-review` (8 findings, 0 critical gaps, scope split into 2 PRs). Both CLEAR.
+
+Deferred to PR 2: auto internal-linking, duplicate-topic guard, `field_note` slot, structural variance, `/admin/blog/pipeline`. Performance feedback loop deferred further — nothing to learn from until ~20 agent posts have data.
+
+Verified: 1476 tests green across 131 files, tsc + eslint clean, `pnpm migration-safety` clean.
+
+## 2026-07-25 — Blog writer agent: first live run + UAT checklist
+
+Ran the pipeline end to end against localhost. 228 seconds, `outcome: drafted`, post created as `scheduled` + `needs_review` + `is_agent_generated`, revision attributed to `blog-writer-agent`.
+
+**The live run found a design flaw no test would have caught.** Round 0 was rejected because its figures were not in the research. The rewrite did not remove the claims — it restated them without numbers. `$4,200 per employee` became "drains millions per year". Digit count 6 → 2, vague-quantity count 4 → 6, and round 1 then passed the grounding check cleanly, because `checkableTokens` extracts figures and a paragraph with no digits has nothing to check.
+
+The gate was rewarding the move toward being unfalsifiable — the definition of the slop it exists to stop. One rewrite round was enough to find it.
+
+Fixed: magnitude language with no magnitude in the same sentence is now a hard fail. Hard rather than a signal deliberately, because a signal is what the rewrite optimises against. Calibrated against 9 real drafts; the appeal-to-research phrases had to be split into a separate signal after they false-positived on qualitative claims ("the research shows training has limited impact" asserts no magnitude). No previously-passing draft flipped.
+
+Also fixed: `judge_verdict` kept only the last round, so the reason for a rewrite was unrecoverable — it had to be reconstructed from `workflow_execution_run` by hand. It records every round now.
+
+Added `wiki/runbooks/blog-writer-agent-uat-checklist.md` — hand-run acceptance covering the controls (auth, kill switch, loud-failing preflight, publish gate, crash recovery) plus the judgement section tests cannot cover. Every SQL snippet and test filter in it was executed against DEV before committing. Includes the human-post regression check: a human's flagged scheduled post must still publish, since `needs_review` is a general editorial flag.
+
+Also added `scripts/seed-blog-agent-config.mjs`, which derives every id from the database rather than hardcoding them — workflow field ids are runtime data that a builder edit re-mints.
+
+## 2026-07-26 — Blog agent PR 2: in-agent illustration
+
+Agent posts had no featured image at all — `generateOgImage` is still a stub returning an empty path, and the workflow's last step only ever wrote a Midjourney prompt for a human to paste by hand.
+
+**The style was chosen by looking, not by arguing.** Three rounds of prompt iteration in chat produced clipart, then an empty beige field, then a slide. The fix was not more adjectives: it was fetching the actual reference portfolio, building a contact sheet of 16 pieces, and reading the style off it. Every axis of the direction taken from a written description was inverted — no figures where the reference has one in almost every piece, one object where it uses full environments, halftone and torn paper where it is clean flat vector, and no equivalent at all of its signature move, a hard-edged beam of light cutting through a dim room.
+
+**Three things the model does regardless of instruction**, each now handled in code:
+
+- Mattes the illustration inside a white border, even when the prompt says full bleed, no border, no mat, no frame — observed on the house fallback, whose prompt contained exactly that clause.
+- Returns alt text over the stated limit: 147, 214 and 144 characters against a 125 cap, in three runs out of three.
+- Converges on one idea when asked to vary: told to consider three settings and discard the obvious one, three independent runs still chose a warehouse; an earlier prompt chose a ruler three times out of three. Settings are now assigned from a rotating list of twelve.
+
+**A test found a real bug.** `attachIllustration` wrapped generation, upload and fallback in one `try`. Any throw from the first two jumped straight past the fallback, so an R2 misconfigured on the server — the likeliest real failure — would have shipped posts with a blank featured slot and no error. Split into two blocks.
+
+New skill `archos-editorial-illustration` replaces `archos-stephan-schmitz-image` on the workflow's last step; the old one is left in place for manual Midjourney work. It could not be reused: it emits Midjourney flags Gemini reads as prose, names a living artist, contradicts itself ("simple geometric figures, no detail for detail's sake" against "caricatured proportions and expressive faces, satirical"), and its system prompt tells the model to ask a clarifying question and wait — which unattended is a hung step.
+
+Touched: [[blog-writer-agent]], [[blog-writer-agent-runbook]], [[blog-writer-agent-uat-checklist]].
+
+## 2026-07-26 — Blog agent: internal linking
+
+Not scrapped, just deferred behind the illustration work. Before today no post on the site contained a single internal link.
+
+**The design constraint decided the approach.** The gate reviews the body, then the post saves. Anything that lets a model rewrite the body after gating puts unreviewed text on the site, which is the hole the gate exists to close. So links are added deterministically, by wrapping wording the article already used — the reviewer approved those words, and wrapping them introduces no new claim.
+
+**Measured rather than assumed, twice.** A first real run linked 1 of 6 candidates, and the five misses were all highly relevant posts. Checking the body rather than theorising showed why: the nearest posts by whole-document similarity were near-duplicates in topic that shared no surface wording, while a phrase appearing four times in the body belonged to a post outside the pool. Ranking finds posts about the same subject; anchor matching needs posts using the same words. Widening the pool to 15 took it to 1-2 links per post.
+
+**Mutation testing earned its keep twice more.** It caught that a `sed`-based harness had silently no-opped, which would have reported two untested rules as tested — the rewritten harness fails loudly when a pattern is not found. And it exposed a real bug: one length floor was doing two jobs. Adding an optional "s" can only lengthen a match and needs no guard; stripping one shortens it and must be gated at four characters, or "is" becomes "i". Conflating them blocked "Data Gap" from reaching "data gaps". The surviving mutant turned out to mark code that did not need to exist, and was deleted rather than tested.
+
+Also fixed a flake this branch introduced: the image compression test generated 1450x500 of gaussian noise and occasionally blew a 30s budget under full-suite CPU contention. Shrunk to 900x320, which still lands 65% over the 500KB cap so the ladder genuinely runs. 45.9s to 3.6s, and three consecutive full-suite runs are clean.
+
+Touched: [[blog-writer-agent]], [[blog-writer-agent-runbook]], [[blog-writer-agent-uat-checklist]].
+
+## 2026-07-26 — Blog agent admin UI
+
+Design-reviewed before a line was written: 3/10 to 9/10, three mockups, variant C approved on execution. Its ten-item sidebar and "Reviewer: Sam H." labels were rejected as fiction rather than taste — none of those sections exist, and the reviewer is DeepSeek.
+
+**The review found the worst bug of the day before building anything.** The runbook told an operator to stop the agent at `/admin/prompts/blog-agent-config`. That page 404'd: the prompt editor has a hardcoded `VALID_SLUGS` and the blog agent's keys were never in it. The most safety-critical line in the runbook pointed at nothing, and the same dead URL sat in two error messages an operator only sees during a failure.
+
+**One review finding was wrong and is corrected.** I claimed DESIGN.md defines no red. Its palette block does not, but `app/globals.css` defines `--color-semantic-error`, `--color-semantic-warning` and `--color-semantic-high`, and every admin editor already uses them. DESIGN.md's "the only semantic color is success" is scoped to the marketing canvas. The rule worth keeping: **DESIGN.md describes the public site, `globals.css` is the authority for what exists.**
+
+Three things only surfaced by opening the page in a browser rather than reasoning about it:
+
+- The expand link read "Why was this rejected?" on rows that had been flagged and then fixed by a rewrite. The page was telling a comfortable lie about its own history.
+- `isAgentGenerated` existed only on `PostInput`, the write shape, despite a comment claiming it "marks agent output in the admin list". The read shape never had it, so the marker could not render. Threaded through `AdminPostView`, both list queries, and `rowToAdminView`.
+- The site header overflows at 375px on **every** admin page — posts is 590px wide. Pre-existing, flagged, untouched. This page's own `main` measures exactly 375px with zero overflowing children.
+
+A penetration test caught a real one too: the prompt route resolved its kind with `raw in KINDS`, and `in` walks the prototype chain, so `kind=constructor` returned `Object.prototype.constructor` — truthy, `.key` undefined — sailing past the 404 and reaching the database with an undefined key. `Object.hasOwn` now, mutation-verified.
+
+Design decisions that made it into code: the stop control saves on press rather than behind a Save button, because the one time you reach for it is the wrong moment to hunt for a second click; derived workflow ids are read-only, because hand-editing one is precisely how the mapping broke before; and a config that fails validation names the broken fields instead of quietly rendering the starter, since that state means the agent is running on a disabled default and nothing else says so.
+
+Touched: [[blog-writer-agent]], [[blog-writer-agent-runbook]], [[blog-writer-agent-uat-checklist]].
+
+## 2026-07-26 — Blog agent: three a day, no review hold
+
+Operator changed the requirements: three posts a day at 7am, 2pm and 10pm; no review hold; fresh image per post; no repeated topics.
+
+**The review hold is gone.** `createPost` writes `needsReview: false`, so a post that clears the gate publishes on its own. That was the last control between the research and the public site, and removing it was an explicit call — the operator took ownership. The publisher's `NOT (is_agent_generated AND needs_review)` guard stays as a manual brake.
+
+**Two bugs found by looking at real output rather than reasoning about it.**
+
+Five posts had been scheduled for the same instant. `nextPublishSlot` answers "when is the next 7am", not "when is the next free slot", so everything created in one afternoon collided. `nextFreeSlot` now walks the day's slots against every scheduled post, re-deriving each candidate through `nextPublishSlot` so daylight saving cannot drift them.
+
+The gate was rejecting correctly-grounded sentences. `unquantified-quantity` demanded a **digit** in the sentence, but this writer spells numbers out as house style, so *"More than a quarter of companies surveyed estimated annual losses exceeding five million dollars"* was hard-failed for naming its figure in words. Two live drafts were parked on this before it was spotted; both passed on the first attempt afterwards. The gate must not punish a house style it also enforces.
+
+**The duplicate guard could not have been built on the obvious helper.** `searchByEmbedding` hard-filters `status = 'published'` and agent posts land `scheduled`, so it is blind to exactly what repeats. Proven against the real database before writing the module: with both statuses the nearest neighbour of a scheduled post is that post at 0.0000; published-only does not see it at all.
+
+**A mutation survived and exposed a hollow test.** The duplicate guard's status filter could be reverted to published-only with every test still green, because the mocked database ignores its own WHERE clause. A filter test through that mock passes regardless of the filter, which is worse than no test. Replaced with a pinned constant plus a comment recording the real-database verification.
+
+Also caught: `Number(null)` is `0`, which is finite and below any threshold — a null distance would have read as "identical" and made the guard skip every post it was asked about.
+
+Verified end to end: two posts, two distinct slots, two distinct image checksums, review flags clear.
+
+Touched: [[blog-writer-agent]], [[blog-writer-agent-runbook]], [[blog-writer-agent-uat-checklist]].

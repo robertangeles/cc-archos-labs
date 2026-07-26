@@ -77,6 +77,21 @@ export async function publishScheduledPosts(
         and(
           eq(post.status, "scheduled"),
           lte(post.scheduledPublishAt, now),
+          // Blog writer agent gate: an agent-written post does not go live
+          // until a human clears needs_review (the existing "Mark reviewed"
+          // action in the admin editor, which also writes an audit revision).
+          //
+          // The conjunction is deliberate. needs_review alone is a GENERAL
+          // editorial flag — the WordPress migration set it on 120 posts and
+          // any admin can set it on any post — so gating on it by itself
+          // would silently stop a human's own flagged-and-scheduled post from
+          // ever publishing, with nothing in the logs to explain it. Scoping
+          // to is_agent_generated leaves human-authored behaviour untouched.
+          //
+          // Still served by the partial index post_due_for_publish_idx
+          // (WHERE status = 'scheduled'); the extra predicate is a post-scan
+          // filter, verified by EXPLAIN.
+          sql`NOT (${post.isAgentGenerated} AND ${post.needsReview})`,
         ),
       )
       .orderBy(sql`${post.scheduledPublishAt} ASC`)

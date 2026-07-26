@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation";
 const tabs: Array<{ href: string; label: string; exact?: boolean }> = [
   { href: "/admin/blog", label: "Settings", exact: true },
   { href: "/admin/blog/posts", label: "Posts" },
+  { href: "/admin/blog/pipeline", label: "Blog agent" },
 ];
 
 export function BlogSubNav() {
