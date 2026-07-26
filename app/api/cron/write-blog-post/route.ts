@@ -6,7 +6,7 @@ import { describeRunFailure, sendAlert } from "../../../../lib/blog-agent/alert"
 import { getBlogAgentConfig } from "../../../../lib/blog-agent/config";
 import { generateBatch } from "../../../../lib/blog-agent/plan";
 import { pendingCount } from "../../../../lib/blog-agent/queue";
-import { runOnce } from "../../../../lib/blog-agent/run";
+import { runUntilDrafted } from "../../../../lib/blog-agent/run";
 
 // POST /api/cron/write-blog-post
 //
@@ -58,10 +58,10 @@ export async function POST(request: NextRequest) {
   // 2. Write one post -------------------------------------------------------
   let result;
   try {
-    result = await runOnce(new Date());
+    result = await runUntilDrafted(new Date());
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[cron/write-blog-post] runOnce threw:", message);
+    console.error("[cron/write-blog-post] runUntilDrafted threw:", message);
     await touchHeartbeat({ processed: 0, failed: 1, durationMs: Date.now() - runStart });
     return NextResponse.json(
       { ok: false, error: "Blog agent failed.", detail: message },

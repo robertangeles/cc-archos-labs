@@ -123,6 +123,16 @@ describe("fabricated experience", () => {
     "We once tried exactly this.",
     "Last year, I ran the same test.",
     "Two years ago, we built the same thing.",
+    // Reached PROD on 2026-07-26 in draft 2474d130, under the Metis byline,
+    // and the gate passed it. "saw" was covered; the participle was not, and
+    // nothing allowed for an adverb between the auxiliary and the verb.
+    "I have never seen a founder regret building this setup.",
+    "I have seen several regret waiting two years for a real database.",
+    "I've seen this pattern in a dozen companies.",
+    "I have also watched teams skip the audit entirely.",
+    // "run" still reads as testimony in the perfect tense, same as "seen".
+    "I've run into this exact problem in other contexts.",
+    "I have run this scenario a hundred times in my head.",
   ])("hard-rejects: %s", (sentence) => {
     const r = check({ contentMd: body(sentence) });
     expect(r.verdict).toBe("reject");
@@ -135,6 +145,11 @@ describe("fabricated experience", () => {
     "If I were choosing today, I would pick the simpler option.",
     "You should expect this to take a quarter.",
     "We know from the research that adoption stalls here.",
+    // "run" is spelled identically in plain present tense — reasoning and
+    // idiom, not a claim of past experience. Widening the verb list to catch
+    // "I have run" must not also catch bare "I run".
+    "I run through three scenarios before recommending one.",
+    "I run the risk of overstating this, but the pattern holds.",
   ])("permits first-person reasoning: %s", (sentence) => {
     const r = check({ contentMd: body(sentence) });
     expect(

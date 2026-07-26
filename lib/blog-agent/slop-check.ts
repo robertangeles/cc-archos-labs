@@ -108,7 +108,21 @@ export const DEFAULT_LINK_ALLOWLIST = [
 // fails again on the second, and parks as a draft — which reads as "the writer
 // keeps failing" when it is really "the gate only told it half the problem."
 const EPISODIC_PATTERNS: RegExp[] = [
-  /\bI(?:'ve| have)?\s+(?:once\s+)?(?:spent|watched|saw|wrote|told|asked|admit|remember|learned|had|ran|built|tried|found out|sat|worked|shipped|made)\b/gi,
+  // The adverb slot and the participles are not decoration. Draft 2474d130
+  // shipped "I have never seen a founder regret building this setup" past this
+  // gate on 2026-07-26: "saw" was listed but "seen" was not, and "never" sat
+  // between the auxiliary and the verb where nothing allowed for it. A claim
+  // about what the author has witnessed is testimony whichever tense it takes.
+  /\bI(?:'ve| have)?\s+(?:once|never|also|often|repeatedly|already)?\s*(?:spent|watched|seen|saw|wrote|written|told|asked|admit|remember|learned|learnt|had|ran|built|tried|found out|sat|worked|shipped|made)\b/gi,
+  // "run" is deliberately not in the list above. Every other verb there is
+  // past-tense-only or a participle with no present-tense twin, so the
+  // auxiliary can be optional and the bare form still only reads as
+  // testimony. "run" is spelled identically in plain present tense ("I run
+  // this test every week", "I run the risk of overstating this") — reasoning
+  // and idiom, not a claim of past experience — so only the auxiliary form
+  // ("I've run" / "I have run") is unambiguous, and the auxiliary is required
+  // here rather than optional.
+  /\bI(?:'ve| have)\s+(?:once|never|also|often|repeatedly|already)?\s*run\b/gi,
   /\bI'll admit\b/gi,
   /\b(?:a|one|my)\s+(?:client|customer|founder|colleague|team member)\s+(?:asked|told|said|called|emailed|came)\b/gi,
   /\bin my experience\b/gi,
