@@ -180,6 +180,19 @@ function collect(stepResults: WorkflowOutput["stepResults"]): WorkflowOutput | n
   // Only the draft is load-bearing. A missing image_prompt costs the post its
   // illustration, not its existence.
   if (!articleDraft) return null;
+
+  // Name the cause rather than letting every post quietly take the fallback.
+  // A skill with no `skill_output` row writes under the key "result", because
+  // getSkillConfig (lib/workflows/executor.ts:419) defaults to it — which is
+  // exactly what happened the first time the new illustration skill ran.
+  if (!imagePrompt && stepResults.some((s) => s.outputs?.result)) {
+    console.warn(
+      "[blog-agent] a step produced `result` and none produced `image_prompt`. " +
+        "The illustration skill is probably missing its skill_output row; run " +
+        "scripts/seed-illustration-skill.mjs --apply. Using the fallback image.",
+    );
+  }
+
   return { articleDraft, rawResearch, imagePrompt, stepResults };
 }
 

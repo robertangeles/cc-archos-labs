@@ -176,6 +176,29 @@ try {
     }
     const skillRow = { id: skillId };
 
+    // Without this row the step's output lands under the key "result", not
+    // "image_prompt" — getSkillConfig (lib/workflows/executor.ts:419) defaults
+    // to "result" when a skill declares no output. run.ts then finds no image
+    // prompt and every post silently gets the fallback illustration. Caught by
+    // a real end-to-end run; no unit test sees it, because they all mock the
+    // workflow.
+    const [existingOutput] = await sql`
+      SELECT id FROM skill_output WHERE skill_id = ${skillId} LIMIT 1
+    `;
+    if (existingOutput) {
+      await sql`
+        UPDATE skill_output SET key = 'image_prompt', updated_at = now()
+         WHERE id = ${existingOutput.id}
+      `;
+      log("  output key confirmed: image_prompt");
+    } else {
+      await sql`
+        INSERT INTO skill_output ("skill_id","key","type","label","sort_order")
+        VALUES (${skillId}, 'image_prompt', 'markdown', 'Result', 0)
+      `;
+      log("  declared output key: image_prompt");
+    }
+
     // Preserve the article_draft mapping; add the setting.
     const existing =
       typeof imageStep.input_mappings === "string"

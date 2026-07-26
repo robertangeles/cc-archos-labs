@@ -136,6 +136,9 @@ export async function POST(request: NextRequest) {
     itemId: result.itemId,
     postId: result.postId,
     detail: result.detail,
+    // Not an error — the post is fine, it just took the house illustration.
+    // The runbook's "every post is getting the fallback" check reads this.
+    imageFallback: result.imageFallback,
     swept: result.swept,
     refill,
   });
