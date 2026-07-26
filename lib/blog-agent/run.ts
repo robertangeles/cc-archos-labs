@@ -6,10 +6,16 @@ import { users, workflowField, workflowStep } from "../db/schema";
 import { getEnabledRules, formatRulesForInjection } from "../rules/service";
 import { executeStep, executeWorkflow } from "../workflows/executor";
 import { createPost } from "../posts-admin";
+import {
+  attachFallbackImageToPost,
+  attachImageToPost,
+} from "../posts-admin/attach-image";
 import { getBlogAgentConfig, getJudgePrompt, isDueToday, nextPublishSlot } from "./config";
 import type { BlogAgentConfig } from "./config-shared";
 import { judgeDraft, type JudgeVerdict } from "./judge";
+import { generatePostImage } from "./image";
 import { parseDraft } from "./parse-draft";
+import { pickPlace } from "./parse-image-prompt";
 import { slopCheck, type SlopFinding } from "./slop-check";
 import {
   claimNextItem,
@@ -42,11 +48,16 @@ import {
 //        │                                            still bad ──▶ draft
 //        ▼
 //   createPost(scheduled, needs_review, is_agent_generated)
+//        │
+//   attach illustration ── any failure ──▶ house fallback asset
 //
 // Nothing here publishes. createPost lands the post as 'scheduled' with
 // needs_review set, and the scheduled publisher withholds it until a human
 // clears the flag. The worst case for every failure path is a draft plus an
 // alert — never a live post.
+
+/** Alt text for the house asset, and for a generated image with no alt. */
+const FALLBACK_IMAGE_ALT = "Archos Labs editorial illustration";
 
 /** Cap on rewrite rounds. Deliberately one — see below. */
 const MAX_REWRITE_ROUNDS = 1;
@@ -64,6 +75,8 @@ export interface RunResult {
   itemId?: string;
   postId?: string;
   detail?: string;
+  /** True when the post got the house asset instead of its own illustration. */
+  imageFallback?: boolean;
   swept?: { reclaimed: number; exhausted: number; exhaustedIds: string[] };
 }
 
@@ -127,17 +140,27 @@ export async function preflight(
 function inputsFor(config: BlogAgentConfig, item: ClaimedItem): Record<string, string> {
   const band =
     item.format === "long" ? config.wordBands.long : config.wordBands.short;
-  return {
+  const inputs: Record<string, string> = {
     [config.fieldMap.topic]: item.topic,
     [config.fieldMap.audience]: item.audience,
     [config.fieldMap.action]: item.action,
     [config.fieldMap.wordCount]: band,
   };
+  // The illustration's setting is rotated here rather than chosen by the art
+  // director, which converges hard: three independent runs of the same prompt
+  // picked the same setting, every time it was tried. Keyed off dayNumber so
+  // consecutive posts differ and a retry of the same item is stable.
+  if (config.fieldMap.imagePlace) {
+    inputs[config.fieldMap.imagePlace] = pickPlace(item.dayNumber);
+  }
+  return inputs;
 }
 
 interface WorkflowOutput {
   articleDraft: string;
   rawResearch: string;
+  /** Empty when the illustration step failed or was removed. */
+  imagePrompt: string;
   stepResults: Array<{
     stepId: string;
     outputs: Record<string, string>;
@@ -148,12 +171,16 @@ interface WorkflowOutput {
 function collect(stepResults: WorkflowOutput["stepResults"]): WorkflowOutput | null {
   let articleDraft = "";
   let rawResearch = "";
+  let imagePrompt = "";
   for (const s of stepResults) {
     if (s.outputs?.article_draft) articleDraft = s.outputs.article_draft;
     if (s.outputs?.raw_research) rawResearch = s.outputs.raw_research;
+    if (s.outputs?.image_prompt) imagePrompt = s.outputs.image_prompt;
   }
+  // Only the draft is load-bearing. A missing image_prompt costs the post its
+  // illustration, not its existence.
   if (!articleDraft) return null;
-  return { articleDraft, rawResearch, stepResults };
+  return { articleDraft, rawResearch, imagePrompt, stepResults };
 }
 
 /**
@@ -358,7 +385,16 @@ export async function runOnce(now: Date = new Date()): Promise<RunResult> {
     rounds.push({ round, gate: result.gate, judge: result.judge });
 
     if (result.ok) {
-      return finish(config, item, parsed, result.publishable, { rounds }, now, swept);
+      return finish(
+        config,
+        item,
+        parsed,
+        result.publishable,
+        output.imagePrompt,
+        { rounds },
+        now,
+        swept,
+      );
     }
 
     // One rewrite, then stop. An unbounded loop optimises for evading the
@@ -387,6 +423,7 @@ async function finish(
   item: ClaimedItem,
   parsed: NonNullable<ReturnType<typeof parseDraft>>,
   publishableContentMd: string,
+  imagePrompt: string,
   verdictLog: unknown,
   now: Date,
   swept: RunResult["swept"],
@@ -424,12 +461,78 @@ async function finish(
     "blog-writer-agent",
   );
 
+  const usedFallback = await attachIllustration(
+    config,
+    post.id,
+    parsed.slug,
+    imagePrompt,
+  );
+
   await releaseItem(item.id, "drafted", {
     postId: post.id,
     judgeVerdict: verdictLog,
   });
 
-  return { outcome: "drafted", itemId: item.id, postId: post.id, swept };
+  return {
+    outcome: "drafted",
+    itemId: item.id,
+    postId: post.id,
+    imageFallback: usedFallback,
+    swept,
+  };
+}
+
+/**
+ * Give the post its featured image, falling back to the house asset.
+ *
+ * Runs after `createPost` rather than as part of it because the post must exist
+ * before an image can be attached to it, and because an illustration failure
+ * must never cost us a good article. Returns whether the fallback was used, so
+ * it surfaces in the run output and the reviewer knows to look.
+ *
+ * `generateOgImage` (lib/og.ts) is still a stub returning an empty path, so
+ * without this a post has no image at all and the featured slot renders blank.
+ *
+ * Exported for its own tests: every branch here ends in a post that either has
+ * an illustration or visibly does not, and that is worth checking directly
+ * rather than through a whole simulated workflow run.
+ */
+export async function attachIllustration(
+  config: BlogAgentConfig,
+  postId: string,
+  slug: string,
+  imagePrompt: string,
+): Promise<boolean> {
+  // Two separate try blocks, not one. With a single block, an R2 misconfigured
+  // on the server — the likeliest real failure — would throw out of the upload
+  // and jump straight past the fallback, and the post would ship with a blank
+  // featured slot. Anything that goes wrong above must fall through to below.
+  try {
+    if (config.image.enabled && imagePrompt.trim()) {
+      const image = await generatePostImage(imagePrompt);
+      if (image) {
+        await attachImageToPost({
+          postId,
+          slug,
+          buffer: image.buffer,
+          // The skill's alt is capped at 125 but can be empty, and the title is
+          // a poor description of an illustration, so prefer a generic one.
+          alt: image.alt || FALLBACK_IMAGE_ALT,
+        });
+        return false;
+      }
+    }
+  } catch (err) {
+    console.warn("[blog-agent] illustration failed, using the house asset:", err);
+  }
+
+  try {
+    await attachFallbackImageToPost(postId);
+  } catch (err) {
+    // Last resort. The post is already saved and is still worth reviewing.
+    console.warn("[blog-agent] could not attach the house asset either:", err);
+  }
+  return true;
 }
 
 /** Failed the gate twice, or never parsed: land a draft nobody can publish by accident. */

@@ -1,9 +1,12 @@
 import "server-only";
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { eq } from "drizzle-orm";
 import { imageSize } from "image-size";
 import { getDb } from "../db";
 import { post, users } from "../db/schema";
+import { getSiteUrl } from "../site-config";
 import {
   buildR2Client,
   putToR2,
@@ -201,4 +204,46 @@ export async function attachImageToPost(
     alt: altClean,
     inputFormat,
   };
+}
+
+/** Committed house illustration, used when a post's own generation fails. */
+const FALLBACK_PUBLIC_PATH = "/images/blog-fallback.webp";
+const FALLBACK_DISK_PATH = join("public", "images", "blog-fallback.webp");
+const FALLBACK_ALT = "Archos Labs editorial illustration";
+
+/**
+ * Point a post at the committed house illustration.
+ *
+ * Not an R2 upload: the asset is static, served by Next.js, and identical for
+ * every post that needs it — uploading ninety copies of the same 45 KB file
+ * would be pure waste. So `og_image_r2_key` and `og_image_checksum` stay null,
+ * which is also how you tell a fallback from a generated image in the DB.
+ *
+ * The path is absolute because OG meta, RSS enclosures and JSON-LD all need a
+ * fully-qualified URL; a relative one silently breaks every social preview.
+ *
+ * Dimensions are read from the file rather than hardcoded so regenerating the
+ * asset with scripts/generate-blog-fallback-image.mjs cannot leave them stale.
+ */
+export async function attachFallbackImageToPost(postId: string): Promise<void> {
+  const bytes = await readFile(FALLBACK_DISK_PATH);
+  const dim = imageSize(bytes);
+  const now = new Date();
+
+  await getDb()
+    .update(post)
+    .set({
+      ogImagePath: `${getSiteUrl().replace(/\/+$/, "")}${FALLBACK_PUBLIC_PATH}`,
+      ogImageGeneratedAt: now,
+      ogImageAlt: FALLBACK_ALT,
+      ogImageWidth: dim.width ?? null,
+      ogImageHeight: dim.height ?? null,
+      ogImageFilename: "blog-fallback.webp",
+      ogImageMimeType: "image/webp",
+      ogImageSizeKb: Math.round(bytes.byteLength / 1024),
+      ogImageUploadedAt: now,
+      ogImageDeletedAt: null,
+      updatedAt: now,
+    })
+    .where(eq(post.id, postId));
 }

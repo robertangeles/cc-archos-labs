@@ -35,6 +35,17 @@ export const FieldMapSchema = z.object({
   audience: z.string().min(1),
   action: z.string().min(1),
   wordCount: z.string().min(1),
+  /**
+   * Optional 5th field carrying the illustration's setting.
+   *
+   * Optional because a stored config predating it would otherwise fail
+   * validation, and a config that fails validation falls back to the DISABLED
+   * starter — the pipeline would go quiet rather than lose one feature. Absent,
+   * the skill picks its own setting, which converges: three independent runs
+   * chose a warehouse, and an earlier prompt chose a ruler three times out of
+   * three. Add the field in the builder, re-run scripts/seed-blog-agent-config.mjs.
+   */
+  imagePlace: z.string().min(1).optional(),
 });
 
 export const BlogAgentConfigSchema = z.object({
@@ -93,6 +104,12 @@ export const BlogAgentConfigSchema = z.object({
   }),
   /** Where failure alerts go. Empty disables alerting. */
   alertEmail: z.string().email().or(z.literal("")),
+  /**
+   * Illustration kill switch. Defaulted rather than required so a stored config
+   * written before illustrations existed still validates — see `imagePlace`.
+   * Off, posts get the committed house fallback and cost nothing extra.
+   */
+  image: z.object({ enabled: z.boolean() }).default({ enabled: true }),
 });
 
 export type BlogAgentConfig = z.infer<typeof BlogAgentConfigSchema>;
@@ -126,6 +143,7 @@ export const BLOG_AGENT_CONFIG_STARTER: BlogAgentConfig = {
   // UTC+10 that ignores daylight saving.
   publishAt: { hour: 7, timeZone: "Australia/Sydney" },
   alertEmail: "",
+  image: { enabled: true },
 };
 
 // ---------------------------------------------------------------------------
