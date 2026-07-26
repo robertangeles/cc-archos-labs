@@ -1858,3 +1858,29 @@ Also caught: `Number(null)` is `0`, which is finite and below any threshold — 
 Verified end to end: two posts, two distinct slots, two distinct image checksums, review flags clear.
 
 Touched: [[blog-writer-agent]], [[blog-writer-agent-runbook]], [[blog-writer-agent-uat-checklist]].
+
+## 2026-07-26 — Blog agent promoted to PROD
+
+Live at archoslabs.xyz. Three posts a day at 7am, 2pm and 10pm Sydney, publishing without a human hold.
+
+**One near-miss worth recording.** PROD had no `__drizzle_applied` table, and `scripts/db-apply.mjs` creates it empty then applies every migration not listed in it. Run blind against PROD it would have attempted all 37 migrations from `0000` against a database holding 301 published posts. It fails safe — 16 of those migrations carry an unguarded `CREATE TABLE` so it aborts on the first — but it would also never have reached `0036`. Correct sequence: verify the live schema really is at 0035 (workspace_memory present, user_brain dropped, og_image columns present), backfill 0000-0035 as applied, then run it so only `0036` executes. **Anyone running db-apply against a database that has never had it must do this first.**
+
+**Promotion sequence, in the order it has to happen:**
+
+1. `pg_dump -Fc` → `~/backups/archos_prod_20260726-173435.dump` (26MB)
+2. Backfill `__drizzle_applied` with 0000-0035
+3. `DATABASE_URL="<PROD>" node scripts/db-apply.mjs` → applies 0036 only. Verified: table created with 5 indexes, `post.is_agent_generated` added, 301 posts intact
+4. `seed-illustration-skill.mjs --apply` → new skill, the illustration-setting field, step 5 repointed
+5. `seed-blog-agent-config.mjs --daily` → config seeded **disabled**
+6. PR #216 → CI green → pr-reviewer → merge → Render deploy
+7. Verify the deployed endpoint 401s without auth and the admin pages resolve
+8. Only then enable the config
+9. Create the Render cron last, so nothing fires before the deploy is verified
+
+**Review caught two real defects before merge.** The offsite-link stripper — the stated control against indirect prompt injection — missed `[text](url "title")`: the markdown branch needs the closing paren immediately after the URL, and the bare-URL branch explicitly excludes anything preceded by `(`. An off-allowlist link with a title reached publishable content intact. And `generateBatch` restarted `day_number` at 1 per batch while `pickPlace(item.dayNumber)` keys the illustration's setting, element and device off it — every batch after the first would have reproduced the same seven images.
+
+**Accepted, not fixed:** the TOCTOU between reading taken publish slots and writing one. Same tradeoff `scheduled-publisher.ts` already documents, needs two overlapping runs of a thrice-daily job, and a collided slot beats a lost post.
+
+Render cron `blog-writer-agent` (crn-d9is4ibrjlhs73ffq2s0): `0 19,2,10 * * *` UTC = 5am / 12pm / 8pm Sydney, each roughly two hours before the slot it fills. Copied from the four existing crons rather than invented — Git Provider source, `buildCommand: true`, curl with `$CRON_SECRET`.
+
+Touched: [[blog-writer-agent]], [[deployment-architecture]].
