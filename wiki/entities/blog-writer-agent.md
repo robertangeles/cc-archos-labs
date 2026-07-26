@@ -105,12 +105,24 @@ Responsibility is split on purpose, and the split is the whole design:
 
 Nothing here can cost a post. Any failure attaches the committed house asset at `public/images/blog-fallback.webp`, and `image.enabled: false` turns generation off without a deploy.
 
+## Internal linking
+
+Agent posts link into the 254 already on the blog. Before this, no post on the site contained a single internal link.
+
+Links are added by wrapping wording the article **already used** — never by adding text. That is what makes it safe to run after the gate: the reviewer approved those words, and wrapping them in a link introduces no new claim. The alternative, letting the writer add its own links, would put unreviewed text on the site and reopen the exact hole the gate closes.
+
+The mechanics, all deterministic ([lib/blog-agent/internal-links.ts](../../lib/blog-agent/internal-links.ts)): take the 15 nearest published posts by embedding, extract 2-4 word phrases from their titles, and link the first phrase that appears in the body. Headings, code, blockquotes, existing links and bare URLs are all off limits. One link per paragraph, three per post.
+
+**Measured, not assumed.** A first real run linked 1 of 6 candidates. The misses were all highly relevant posts that simply shared no surface wording — so the pool went to 15, because ranking finds posts about the same subject while anchor matching needs posts that use the same words. Now 1-2 links per post. Zero is a legitimate outcome and is reported, not treated as a fault.
+
+Mutation testing found the one bug worth naming: a single length floor was doing two different jobs. Making a trailing "s" optional can only lengthen a match and needs no guard; *stripping* one shortens it and must be gated, or "is" becomes "i" and catches a stray letter. Conflating them blocked "Data Gap" from reaching "data gaps".
+
 ## Deferred (PR 2)
 
-Auto internal-linking, duplicate-topic guard, the `field_note` slot, structural variance, and `/admin/blog/pipeline`. The performance feedback loop is deferred further still — it has nothing to learn from until roughly 20 agent posts have data.
+Duplicate-topic guard, the `field_note` slot, structural variance, and `/admin/blog/pipeline`. The performance feedback loop is deferred further still — it has nothing to learn from until roughly 20 agent posts have data.
 
 One to watch rather than fix: the art director keeps choosing **doorways** as its repeated element regardless of setting. The settings differ so the compositions do, but if that persists across a real run of posts it will read as samey.
 
 ## Operating it
 
-See [[blog-writer-agent-runbook]] for the six failure modes and what to do about each.
+See [[blog-writer-agent-runbook]] for the seven failure modes and what to do about each.

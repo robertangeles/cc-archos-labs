@@ -6,6 +6,7 @@ import { users, workflowField, workflowStep } from "../db/schema";
 import { getEnabledRules, formatRulesForInjection } from "../rules/service";
 import { executeStep, executeWorkflow } from "../workflows/executor";
 import { createPost } from "../posts-admin";
+import { findSimilarPosts } from "../posts/find-similar";
 import {
   attachFallbackImageToPost,
   attachImageToPost,
@@ -14,6 +15,7 @@ import { getBlogAgentConfig, getJudgePrompt, isDueToday, nextPublishSlot } from 
 import type { BlogAgentConfig } from "./config-shared";
 import { judgeDraft, type JudgeVerdict } from "./judge";
 import { generatePostImage } from "./image";
+import { insertInternalLinks } from "./internal-links";
 import { parseDraft } from "./parse-draft";
 import { pickPlace } from "./parse-image-prompt";
 import { slopCheck, type SlopFinding } from "./slop-check";
@@ -47,6 +49,8 @@ import {
 //        │                                                     │
 //        │                                            still bad ──▶ draft
 //        ▼
+//   internal links (wraps existing words only — adds no new text)
+//        │
 //   createPost(scheduled, needs_review, is_agent_generated)
 //        │
 //   attach illustration ── any failure ──▶ house fallback asset
@@ -55,6 +59,13 @@ import {
 // needs_review set, and the scheduled publisher withholds it until a human
 // clears the flag. The worst case for every failure path is a draft plus an
 // alert — never a live post.
+
+/**
+ * Internal links added per post. Three is the ceiling the plan set: enough for
+ * the crawler to see the article as connected, few enough that it still reads
+ * as writing rather than as an SEO exercise.
+ */
+const MAX_INTERNAL_LINKS = 3;
 
 /** Alt text for the house asset, and for a generated image with no alt. */
 const FALLBACK_IMAGE_ALT = "Archos Labs editorial illustration";
@@ -441,6 +452,8 @@ async function finish(
   now: Date,
   swept: RunResult["swept"],
 ): Promise<RunResult> {
+  const linked = await addInternalLinks(parsed.title, parsed.excerpt, publishableContentMd);
+
   // createPost runs runSideEffectsAfterSave itself (OG + embedding); calling
   // it again here would double the work and the spend.
   const { post } = await createPost(
@@ -450,7 +463,7 @@ async function finish(
       excerpt: parsed.excerpt,
       // The stripped body, never parsed.contentMd — that one still carries
       // any off-allowlist link the writer was steered into adding.
-      contentMd: publishableContentMd,
+      contentMd: linked,
       seoTitle: parsed.seoTitle,
       seoDescription: parsed.seoDescription,
       tags: parsed.tags,
@@ -493,6 +506,61 @@ async function finish(
     imageFallback: usedFallback,
     swept,
   };
+}
+
+/**
+ * Link the finished draft into the 254 posts already on the blog.
+ *
+ * Runs after the gate and before the save. That ordering is safe because
+ * `insertInternalLinks` only wraps words the gate already approved — it never
+ * adds a sentence or a claim. Letting a model add links after gating would put
+ * unreviewed text on the site.
+ *
+ * No relevance threshold, deliberately. A magic cosine number would be a guess
+ * with no calibration behind it, and the anchor requirement already filters:
+ * an unrelated post's title phrases will not appear in the body, so it simply
+ * does not get linked.
+ */
+async function addInternalLinks(
+  title: string,
+  excerpt: string,
+  contentMd: string,
+): Promise<string> {
+  try {
+    // `visibility: "public"` is the default and is what matters here — an
+    // agent must never link a live article to a draft or an unlisted post.
+    // (`suggestInternalLinks` overrides it to "any" for the admin UI, where a
+    // human deliberately linking an unlisted campaign URL is a valid thing.)
+    // 15, not 6. Measured on a real post: the six nearest by whole-document
+    // similarity were all near-duplicates in topic that happened to share no
+    // surface phrase with the body, so only one could be linked — while
+    // "data quality" appeared four times in the body and its post sat outside
+    // the pool. Ranking finds posts about the same subject; anchor matching
+    // needs posts that use the same words. A wider pool serves both, and costs
+    // one more row in an ANN query that has already run.
+    const candidates = await findSimilarPosts({
+      queryText: { title, excerpt, contentMd },
+      limit: 15,
+    });
+
+    const { contentMd: linked, inserted } = insertInternalLinks(
+      contentMd,
+      candidates.map((c) => ({ slug: c.slug, title: c.title })),
+      { max: MAX_INTERNAL_LINKS },
+    );
+
+    console.log(
+      `[blog-agent] internal links: ${inserted.length} of ${candidates.length} candidates` +
+        (inserted.length
+          ? ` — ${inserted.map((i) => `"${i.anchor}" -> ${i.slug}`).join(", ")}`
+          : " — no title phrase appeared in the body"),
+    );
+    return linked;
+  } catch (err) {
+    // Embedding needs a model call. Losing links must not lose the post.
+    console.warn("[blog-agent] internal linking failed, saving unlinked:", err);
+    return contentMd;
+  }
 }
 
 /**

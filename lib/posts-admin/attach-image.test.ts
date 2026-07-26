@@ -291,10 +291,15 @@ describe("failure modes", () => {
   });
 });
 
-// Sharp generating megapixels of noise and then walking the quality ladder is
-// genuinely slow — seconds, not milliseconds. These two carry their own
-// timeout rather than being made fast and meaningless with a tiny input.
+// Sharp generating noise and then walking the quality ladder is slow, and
+// under full-suite CPU contention it was slow enough to flake at 30s. So the
+// input is the smallest that still does the real work: 900x320 of gaussian
+// noise lands around 825KB, a comfortable 65% over the 500KB cap, so the
+// ladder genuinely has to run and the assertion cannot pass by accident.
 describe("compression", () => {
+  const NOISY_W = 900;
+  const NOISY_H = 320;
+
   /** Noise resists PNG compression, so the ladder really has work to do. */
   async function noisyPng(width: number, height: number): Promise<Buffer> {
     return sharp({
@@ -312,7 +317,7 @@ describe("compression", () => {
   }
 
   it("keeps a large image under the 500 KB DB CHECK", async () => {
-    const noisy = await noisyPng(1450, 500);
+    const noisy = await noisyPng(NOISY_W, NOISY_H);
     expect(noisy.byteLength).toBeGreaterThan(500 * 1024);
 
     const out = await attachImageToPost({
@@ -329,13 +334,13 @@ describe("compression", () => {
     const out = await attachImageToPost({
       postId,
       slug: "my-post",
-      buffer: await noisyPng(1450, 500),
+      buffer: await noisyPng(NOISY_W, NOISY_H),
       alt: "alt",
     });
     const row = await postRow(postId);
     expect(row.og_image_width).toBe(out.width);
     expect(row.og_image_height).toBe(out.height);
     // Whatever the ladder did, the stored aspect ratio must survive it.
-    expect(out.width / out.height).toBeCloseTo(1450 / 500, 1);
+    expect(out.width / out.height).toBeCloseTo(NOISY_W / NOISY_H, 1);
   }, 30_000);
 });

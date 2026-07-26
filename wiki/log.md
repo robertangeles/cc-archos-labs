@@ -1802,3 +1802,17 @@ Agent posts had no featured image at all — `generateOgImage` is still a stub r
 New skill `archos-editorial-illustration` replaces `archos-stephan-schmitz-image` on the workflow's last step; the old one is left in place for manual Midjourney work. It could not be reused: it emits Midjourney flags Gemini reads as prose, names a living artist, contradicts itself ("simple geometric figures, no detail for detail's sake" against "caricatured proportions and expressive faces, satirical"), and its system prompt tells the model to ask a clarifying question and wait — which unattended is a hung step.
 
 Touched: [[blog-writer-agent]], [[blog-writer-agent-runbook]], [[blog-writer-agent-uat-checklist]].
+
+## 2026-07-26 — Blog agent: internal linking
+
+Not scrapped, just deferred behind the illustration work. Before today no post on the site contained a single internal link.
+
+**The design constraint decided the approach.** The gate reviews the body, then the post saves. Anything that lets a model rewrite the body after gating puts unreviewed text on the site, which is the hole the gate exists to close. So links are added deterministically, by wrapping wording the article already used — the reviewer approved those words, and wrapping them introduces no new claim.
+
+**Measured rather than assumed, twice.** A first real run linked 1 of 6 candidates, and the five misses were all highly relevant posts. Checking the body rather than theorising showed why: the nearest posts by whole-document similarity were near-duplicates in topic that shared no surface wording, while a phrase appearing four times in the body belonged to a post outside the pool. Ranking finds posts about the same subject; anchor matching needs posts using the same words. Widening the pool to 15 took it to 1-2 links per post.
+
+**Mutation testing earned its keep twice more.** It caught that a `sed`-based harness had silently no-opped, which would have reported two untested rules as tested — the rewritten harness fails loudly when a pattern is not found. And it exposed a real bug: one length floor was doing two jobs. Adding an optional "s" can only lengthen a match and needs no guard; stripping one shortens it and must be gated at four characters, or "is" becomes "i". Conflating them blocked "Data Gap" from reaching "data gaps". The surviving mutant turned out to mark code that did not need to exist, and was deleted rather than tested.
+
+Also fixed a flake this branch introduced: the image compression test generated 1450x500 of gaussian noise and occasionally blew a 30s budget under full-suite CPU contention. Shrunk to 900x320, which still lands 65% over the 500KB cap so the ladder genuinely runs. 45.9s to 3.6s, and three consecutive full-suite runs are clean.
+
+Touched: [[blog-writer-agent]], [[blog-writer-agent-runbook]], [[blog-writer-agent-uat-checklist]].

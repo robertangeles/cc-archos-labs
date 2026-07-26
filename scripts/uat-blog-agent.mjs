@@ -305,6 +305,35 @@ try {
     `saved_by = ${rev?.saved_by}`,
   );
 
+      // --- Internal links ------------------------------------------------
+      const [body] = await sql`SELECT content_md FROM post WHERE id = ${writtenPostId}`;
+      const links = [...body.content_md.matchAll(/\[([^\]]+)\]\((\/blog\/[^)]+)\)/g)];
+
+      // Zero is a legitimate outcome — no related post's title phrase happened
+      // to appear in the body — so this reports rather than fails.
+      pass(
+        "Internal links",
+        links.length
+          ? `${links.length} inserted: ${links.map((l) => `"${l[1]}"`).join(", ")}`
+          : "none — no related post's wording appeared in the body",
+      );
+
+      // A link to a draft or a deleted post is worse than no link at all.
+      let deadLinks = 0;
+      for (const l of links) {
+        const [target] = await sql`
+          SELECT status, visibility FROM post WHERE slug = ${l[2].replace("/blog/", "")}`;
+        if (!target || target.status !== "published" || target.visibility !== "listed") {
+          deadLinks++;
+        }
+      }
+      check(
+        deadLinks === 0,
+        "Every internal link points at a live post",
+        links.length ? `${links.length} checked` : "none to check",
+        `${deadLinks} link(s) point at a missing, draft or unlisted post`,
+      );
+
       // --- Illustration --------------------------------------------------
       const [img] = await sql`
         SELECT og_image_path, og_image_alt, og_image_width, og_image_height,

@@ -6,7 +6,7 @@ updated: 2026-07-26
 related: [[blog-writer-agent]], [[deployment-architecture]]
 ---
 
-What to do when the daily blog agent misbehaves. Six failure modes, each with a signal and a response.
+What to do when the daily blog agent misbehaves. Seven failure modes, each with a signal and a response.
 
 ## First: nothing it does is urgent
 
@@ -142,6 +142,39 @@ category* rather than the depiction: no documents, ledgers, books, screens,
 charts, rulers, clocks, dials or gauges, because those objects drag text in
 whether or not you asked for it. Style and framing are in code and already say
 "no text"; that alone was not enough.
+
+## 7. Posts have no internal links
+
+**Signal:** agent posts contain no `](/blog/` links at all, across several runs.
+
+```sql
+SELECT slug, (content_md LIKE '%](/blog/%') AS has_links
+  FROM post WHERE is_agent_generated ORDER BY created_at DESC LIMIT 10;
+```
+
+**Cause:** links are inserted by wrapping wording the article already used, so
+a post only links where a related post's title phrase actually appears in the
+body. One or two per post is the measured norm and zero is legitimate.
+
+Check the run log for `[blog-agent] internal links:` — it reports how many
+candidates were considered and what was matched, which separates "nothing
+matched" from "the search returned nothing".
+
+**Genuine faults, if it is zero every time:**
+
+1. **Nothing to link to.** `findSimilarPosts` only returns `published` +
+   `listed` posts that have an embedding. Confirm the corpus:
+   ```sql
+   SELECT count(*) FROM post
+    WHERE status='published' AND visibility='listed' AND embedding IS NOT NULL;
+   ```
+2. **The embedder is failing.** Linking needs one embedding call for the draft.
+   A failure is caught and logged as `internal linking failed, saving
+   unlinked` — the post still saves, deliberately.
+
+**Response:** not urgent. Do not respond by letting the writer insert its own
+links: anything a model adds after the gate is text the reviewer never saw,
+which is the hole the gate exists to close.
 
 ## Something bad reached the public site
 
