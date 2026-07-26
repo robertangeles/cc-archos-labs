@@ -395,7 +395,11 @@ export async function runUntilDrafted(
   } = {},
 ): Promise<RunResult & { attempts: number }> {
   const maxAttempts = opts.maxAttempts ?? 3;
-  const deadlineMs = opts.deadlineMs ?? 540_000;
+  // 480s, not 540s. The route declares `maxDuration = 800`, and a run averages
+  // ~280s, so starting an attempt at 540s could cross that ceiling. Work is not
+  // lost either way — the sweeper reclaims the row — but the run is wasted and
+  // the money with it.
+  const deadlineMs = opts.deadlineMs ?? 480_000;
   const runner = opts.runner ?? runOnce;
   const started = Date.now();
 

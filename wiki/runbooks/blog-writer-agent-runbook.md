@@ -58,6 +58,37 @@ SELECT status, count(*) FROM content_plan_item GROUP BY status;
 
 ---
 
+## 0. The cron 401s
+
+**Signal:** `curl: (22) The requested URL returned error: 401` in the Render cron
+log, and `❌ Your cronjob failed because of an error: Exited with status 22`.
+
+**Cause, confirmed 2026-07-26:** `blog-writer-agent` was created through the API
+and is the only service in the account with no `environmentId`. Every other
+cron and both web services carry `evm-d6siufggjchc73bshed0`. Linking it in the
+dashboard did not take. Without the environment, `$CRON_SECRET` expands to
+nothing and curl sends a bare `Bearer `.
+
+A 401 rather than a 503 is the useful half of the signal: the route returns 503
+when the *server's* secret is missing, so a 401 proves the server is configured
+and the **sent** token was wrong or empty.
+
+**Fix in place:** the endpoint now accepts `BLOG_CRON_SECRET` in preference to
+`CRON_SECRET`, and that secret is set directly on both services — no
+environment group involved. This is also better security than it sounds:
+`CRON_SECRET` opens every cron endpoint, and this is the only one that spends
+real money per call, so it is the one that least deserves a shared key.
+
+> The cron service carries **both** names set to the same value. Its start
+> command references `$CRON_SECRET` and the Render API exposes no way to edit a
+> start command, so the name is matched rather than the command changed. From
+> that service's point of view its cron secret genuinely is that value. Rotate
+> both together or the run 401s again.
+
+To rotate: generate 32 random bytes, set `BLOG_CRON_SECRET` on
+`srv-d7uou89o3t8c73fqoeb0`, set both `BLOG_CRON_SECRET` and `CRON_SECRET` on
+`crn-d9is4ibrjlhs73ffq2s0`. Nothing else in the account is affected.
+
 ## 1. Research step keeps failing
 
 **Signal:** `[ALERT] Blog agent: a plan item failed`, `last_error` mentions the model returning nothing. Items cycle back to `pending`.
@@ -71,6 +102,36 @@ SELECT status, count(*) FROM content_plan_item GROUP BY status;
 **Signal:** repeated `a draft was parked for review`. Posts pile up as drafts with `needs_review=true`.
 
 **Cause, in order of likelihood:** the research is thin (the writer has nothing to be specific about, so the grounding check bites); the judge model changed behaviour; or `blog_judge_prompt` was edited into something too strict.
+
+> **This happened for real on 2026-07-26 and cost three consecutive runs.** The
+> research step returns narrative prose with `[1][2]` citation markers and
+> **zero** percentages or currency figures — measured across 7 runs in DEV and
+> PROD, without exception. The essay skill is told to be specific, so it
+> manufactured figures (`64% of SMBs`, `340 customers`) and the grounding gate
+> correctly refused them. Grounded figures were 0 of 4.
+>
+> The fix was not to the gate. `scripts/patch-essay-evidence-rules.mjs` appends
+> hard evidence rules to the essay skill prompt — every figure must appear
+> verbatim in the research, no invented illustrative numbers, no claimed
+> personal experience. Grounded figures went to 3 of 4, then four consecutive
+> drafts cleared the gate on the first attempt.
+>
+> The lesson generalises: **when the gate rejects everything, suspect the
+> supply, not the filter.** Loosening the floor would have shipped invented
+> statistics under a byline that is not a person.
+
+**Also check the prompts have not drifted between environments.** On 2026-07-26
+`archos-paul-graham-essays` was 6,349 chars in DEV and 9,004 in PROD — PROD
+carried `Pre-write check`, `Forbidden words` and `SEO Package` sections DEV
+lacked, because tuning happens in the live Workflows UI. Anything validated in
+DEV was validated against a prompt PROD does not run:
+
+```sql
+SELECT slug, md5(prompt_template), length(prompt_template)
+  FROM skill WHERE slug LIKE 'archos%' ORDER BY slug;
+```
+
+Run it against both and compare.
 
 **Response:** read `content_plan_item.judge_verdict` for a parked item. It records the gate and judge findings per round, each quoting the offending sentence. If the quotes are fair, the problem is upstream — the topic was too thin to research. If the quotes look like nitpicking, tune it at `/admin/prompts/blog-judge-prompt`.
 
