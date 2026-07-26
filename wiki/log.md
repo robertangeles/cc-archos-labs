@@ -1816,3 +1816,23 @@ Not scrapped, just deferred behind the illustration work. Before today no post o
 Also fixed a flake this branch introduced: the image compression test generated 1450x500 of gaussian noise and occasionally blew a 30s budget under full-suite CPU contention. Shrunk to 900x320, which still lands 65% over the 500KB cap so the ladder genuinely runs. 45.9s to 3.6s, and three consecutive full-suite runs are clean.
 
 Touched: [[blog-writer-agent]], [[blog-writer-agent-runbook]], [[blog-writer-agent-uat-checklist]].
+
+## 2026-07-26 — Blog agent admin UI
+
+Design-reviewed before a line was written: 3/10 to 9/10, three mockups, variant C approved on execution. Its ten-item sidebar and "Reviewer: Sam H." labels were rejected as fiction rather than taste — none of those sections exist, and the reviewer is DeepSeek.
+
+**The review found the worst bug of the day before building anything.** The runbook told an operator to stop the agent at `/admin/prompts/blog-agent-config`. That page 404'd: the prompt editor has a hardcoded `VALID_SLUGS` and the blog agent's keys were never in it. The most safety-critical line in the runbook pointed at nothing, and the same dead URL sat in two error messages an operator only sees during a failure.
+
+**One review finding was wrong and is corrected.** I claimed DESIGN.md defines no red. Its palette block does not, but `app/globals.css` defines `--color-semantic-error`, `--color-semantic-warning` and `--color-semantic-high`, and every admin editor already uses them. DESIGN.md's "the only semantic color is success" is scoped to the marketing canvas. The rule worth keeping: **DESIGN.md describes the public site, `globals.css` is the authority for what exists.**
+
+Three things only surfaced by opening the page in a browser rather than reasoning about it:
+
+- The expand link read "Why was this rejected?" on rows that had been flagged and then fixed by a rewrite. The page was telling a comfortable lie about its own history.
+- `isAgentGenerated` existed only on `PostInput`, the write shape, despite a comment claiming it "marks agent output in the admin list". The read shape never had it, so the marker could not render. Threaded through `AdminPostView`, both list queries, and `rowToAdminView`.
+- The site header overflows at 375px on **every** admin page — posts is 590px wide. Pre-existing, flagged, untouched. This page's own `main` measures exactly 375px with zero overflowing children.
+
+A penetration test caught a real one too: the prompt route resolved its kind with `raw in KINDS`, and `in` walks the prototype chain, so `kind=constructor` returned `Object.prototype.constructor` — truthy, `.key` undefined — sailing past the 404 and reaching the database with an undefined key. `Object.hasOwn` now, mutation-verified.
+
+Design decisions that made it into code: the stop control saves on press rather than behind a Save button, because the one time you reach for it is the wrong moment to hunt for a second click; derived workflow ids are read-only, because hand-editing one is precisely how the mapping broke before; and a config that fails validation names the broken fields instead of quietly rendering the starter, since that state means the agent is running on a disabled default and nothing else says so.
+
+Touched: [[blog-writer-agent]], [[blog-writer-agent-runbook]], [[blog-writer-agent-uat-checklist]].

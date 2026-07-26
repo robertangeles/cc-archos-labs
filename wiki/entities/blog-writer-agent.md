@@ -117,6 +117,18 @@ The mechanics, all deterministic ([lib/blog-agent/internal-links.ts](../../lib/b
 
 Mutation testing found the one bug worth naming: a single length floor was doing two different jobs. Making a trailing "s" optional can only lengthen a match and needs no guard; *stripping* one shortens it and must be gated, or "is" becomes "i" and catches a stray letter. Conflating them blocked "Data Gap" from reaching "data gaps".
 
+## Admin surface
+
+Design-reviewed before it was built (3/10 → 9/10), from an approved mockup.
+
+`/admin/blog/pipeline` answers four questions in order: is it alive, is anything wrong, what is queued, and did the post I approved go out. The last one has its own section because the queue structurally cannot answer it — `published` is deliberately not a queue status, so live state is a join against `post`.
+
+`describeHealth` ([lib/blog-agent/pipeline-view.ts](../../lib/blog-agent/pipeline-view.ts)) exists for one failure: an agent switched on but not checked in for a day looks identical to a healthy one if you render only the timestamp, and the cause — the cron not firing — is invisible from inside the application. It reads "Not running" and points at the scheduled job.
+
+`/admin/prompts/blog-agent-config` holds the settings. **The stop control saves the moment you press it**, in its own block above the form: the one time you reach for it, hunting for a Save button is the wrong experience. Derived ids are read-only, because hand-editing a workflow field id is exactly how the mapping breaks.
+
+Three things only surfaced by opening the page in a browser: the expand link said "Why was this rejected?" on rows that were flagged and then fixed by a rewrite; `isAgentGenerated` existed only on the write shape despite its comment claiming it marks agent output in the admin list; and the site header overflows at 375px on **every** admin page (posts is 590px), which is pre-existing and untouched.
+
 ## Deferred (PR 2)
 
 Duplicate-topic guard, the `field_note` slot, structural variance, and `/admin/blog/pipeline`. The performance feedback loop is deferred further still — it has nothing to learn from until roughly 20 agent posts have data.

@@ -14,25 +14,35 @@ The agent never publishes. Every failure path ends in a draft plus an alert, and
 
 ## Kill switch
 
+**`/admin/prompts/blog-agent-config` → Stop the agent.** It saves the moment
+you press it; there is no second Save click. Takes effect on the next run.
+
+If the admin is unreachable, the same thing in SQL:
+
 ```sql
 UPDATE site_setting
    SET value = jsonb_set(value, '{enabled}', 'false'::jsonb), updated_at = now()
  WHERE key = 'blog_agent_config';
 ```
 
-Takes effect on the next tick, no deploy. Verified: the route then returns
-`outcome: "disabled"` and spends nothing. Use `'true'::jsonb` to switch it back
-on. The literal matters — binding a JS `false` through a query parameter stores
-the *string* `"false"`, which fails schema validation and falls back to the
-disabled starter. Same outcome by accident, but for the wrong reason.
+Verified: the route then returns `outcome: "disabled"` and spends nothing. Use
+`'true'::jsonb` to switch it back on.
+
+> The `::jsonb` literal matters. Binding a JS `false` through a query parameter
+> stores the *string* `"false"`, which fails schema validation and falls back to
+> the disabled starter — the right outcome by accident, for the wrong reason,
+> and confusing for whoever debugs it next.
 
 Deleting the Render cron job also works and is the harder stop.
 
-> There is no admin screen for this yet. `/admin/prompts/[slug]` exists but its
-> `VALID_SLUGS` list does not include the blog agent's keys, so
-> `/admin/prompts/blog-agent-config` 404s. Editing the row is the only way in.
-
 ## Health check
+
+**`/admin/blog/pipeline`** answers this at a glance. The status strip reads
+"Not running" when the agent is switched on but has not checked in for over a
+day, which is the case a raw timestamp hides — that failure is the scheduled
+job not firing, and it is invisible from inside the application.
+
+In SQL:
 
 ```sql
 SELECT * FROM cron_heartbeat WHERE id = 'blog-writer';
@@ -60,7 +70,7 @@ SELECT status, count(*) FROM content_plan_item GROUP BY status;
 
 **Cause, in order of likelihood:** the research is thin (the writer has nothing to be specific about, so the grounding check bites); the judge model changed behaviour; or `blog_judge_prompt` was edited into something too strict.
 
-**Response:** read `content_plan_item.judge_verdict` for a parked item. It records the gate and judge findings per round, each quoting the offending sentence. If the quotes are fair, the problem is upstream — the topic was too thin to research. If the quotes look like nitpicking, edit the `blog_judge_prompt` row in `site_setting`.
+**Response:** read `content_plan_item.judge_verdict` for a parked item. It records the gate and judge findings per round, each quoting the offending sentence. If the quotes are fair, the problem is upstream — the topic was too thin to research. If the quotes look like nitpicking, tune it at `/admin/prompts/blog-judge-prompt`.
 
 > Do **not** respond by raising the rewrite budget. One round is deliberate: an unbounded loop optimises for evading the judge rather than having something to say, which produces polished emptiness — the exact failure the gate exists to prevent.
 
@@ -108,7 +118,7 @@ SELECT field_id, label FROM workflow_field
  WHERE workflow_id = '<workflowId>' ORDER BY sort_order;
 ```
 
-Then update `fieldMap` in the `blog_agent_config` row, or re-run `scripts/seed-blog-agent-config.mjs`, which derives every id from the database. Without this guard the agent would have passed inputs keyed to a dead id, received an empty topic, and written a confident, well-formed article about nothing.
+Then re-run `scripts/seed-blog-agent-config.mjs`, which derives every id from the database. The wiring panel at `/admin/prompts/blog-agent-config` shows the current ids read-only, deliberately: hand-editing one is how this breaks. Without this guard the agent would have passed inputs keyed to a dead id, received an empty topic, and written a confident, well-formed article about nothing.
 
 ## 5. Every post is getting the fallback illustration
 
