@@ -59,8 +59,18 @@ async function researchLandscape(): Promise<string> {
     return "";
   }
 
+  // The timer is cleared as soon as the response object exists, so it bounds
+  // time-to-HEADERS and not the body. This is deliberate and copies
+  // lib/skills/execute.ts:79-104. `sonar-deep-research` answers its headers in
+  // ~10s and then streams the body for minutes; an AbortSignal left armed
+  // across `res.json()` aborts mid-body, which is caught here and reported as
+  // "research returned nothing" — a live failure, not a hypothetical one.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), RESEARCH_TIMEOUT_MS);
+
+  let res: Response;
   try {
-    const res = await fetch(OPENROUTER_URL, {
+    res = await fetch(OPENROUTER_URL, {
       method: "POST",
       headers: buildAuthHeaders(apiKey),
       body: JSON.stringify({
@@ -78,8 +88,15 @@ async function researchLandscape(): Promise<string> {
           },
         ],
       }),
-      signal: AbortSignal.timeout(RESEARCH_TIMEOUT_MS),
+      signal: controller.signal,
     });
+  } catch {
+    return "";
+  } finally {
+    clearTimeout(timer);
+  }
+
+  try {
     if (!res.ok) return "";
     const json = await res.json();
     return json?.choices?.[0]?.message?.content ?? "";

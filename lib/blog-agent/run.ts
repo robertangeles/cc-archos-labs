@@ -366,6 +366,57 @@ async function evaluate(
   };
 }
 
+/**
+ * Keep taking topics off the queue until one of them produces a post.
+ *
+ * A parked draft consumes a slot without filling it. Measured rejection rate is
+ * roughly half, so a tick that gives up on the first rejection delivers about
+ * half the posts the schedule asks for — and the shortfall is silent, because
+ * every individual part reports success.
+ *
+ * Only `parked` and `skipped` are retried, and for opposite reasons. A skip
+ * costs nothing (the duplicate guard runs before the workflow), so letting one
+ * consume a slot is pure waste. A park cost a full run, but the next topic is
+ * independent of the one the gate just refused. `failed` is NOT retried: it
+ * means preflight or the workflow itself broke, which the next topic will hit
+ * in exactly the same way.
+ *
+ * Bounded twice — by attempts and by a wall-clock deadline — because the caller
+ * is a cron with `curl --max-time 900` and a run averages ~4.5 minutes. The
+ * deadline is checked before STARTING an attempt, never mid-flight.
+ */
+export async function runUntilDrafted(
+  now: Date = new Date(),
+  opts: {
+    maxAttempts?: number;
+    deadlineMs?: number;
+    /** Injected so the retry policy is testable without a workflow run. */
+    runner?: (now: Date) => Promise<RunResult>;
+  } = {},
+): Promise<RunResult & { attempts: number }> {
+  const maxAttempts = opts.maxAttempts ?? 3;
+  const deadlineMs = opts.deadlineMs ?? 540_000;
+  const runner = opts.runner ?? runOnce;
+  const started = Date.now();
+
+  let result = await runner(now);
+  let attempts = 1;
+
+  while (
+    attempts < maxAttempts &&
+    (result.outcome === "parked" || result.outcome === "skipped") &&
+    Date.now() - started < deadlineMs
+  ) {
+    console.log(
+      `[blog-agent] attempt ${attempts} ended '${result.outcome}', trying the next topic`,
+    );
+    result = await runner(now);
+    attempts += 1;
+  }
+
+  return { ...result, attempts };
+}
+
 export async function runOnce(now: Date = new Date()): Promise<RunResult> {
   const config = await getBlogAgentConfig();
 

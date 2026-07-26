@@ -123,6 +123,13 @@ describe("fabricated experience", () => {
     "We once tried exactly this.",
     "Last year, I ran the same test.",
     "Two years ago, we built the same thing.",
+    // Reached PROD on 2026-07-26 in draft 2474d130, under the Metis byline,
+    // and the gate passed it. "saw" was covered; the participle was not, and
+    // nothing allowed for an adverb between the auxiliary and the verb.
+    "I have never seen a founder regret building this setup.",
+    "I have seen several regret waiting two years for a real database.",
+    "I've seen this pattern in a dozen companies.",
+    "I have also watched teams skip the audit entirely.",
   ])("hard-rejects: %s", (sentence) => {
     const r = check({ contentMd: body(sentence) });
     expect(r.verdict).toBe("reject");
