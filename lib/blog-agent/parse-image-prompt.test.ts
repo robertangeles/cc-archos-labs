@@ -123,13 +123,50 @@ describe("pickPlace", () => {
 
   it("returns a real setting for negative and non-integer seeds", () => {
     for (const seed of [-1, -13, 0, 1.7, 1e6]) {
-      expect(ILLUSTRATION_PLACES).toContain(pickPlace(seed));
+      const out = pickPlace(seed);
+      expect(
+        ILLUSTRATION_PLACES.some((p) => out.startsWith(p.place)),
+        `seed ${seed} -> ${out}`,
+      ).toBe(true);
     }
   });
 
   it("describes every setting as bare, because clutter beat the concept", () => {
-    for (const place of ILLUSTRATION_PLACES) {
+    for (const { place } of ILLUSTRATION_PLACES) {
       expect(place, place).toMatch(/\b(empty|bare|nothing|open)\b/);
+    }
+  });
+
+  it("names the repeated element too, instead of letting the model choose", () => {
+    // Told to pick its own element with "two identical doorways" as the first
+    // example, it chose doorways every single time — including in an open
+    // field, where it drew three freestanding door frames in the grass.
+    const out = pickPlace(0);
+    expect(out).toMatch(/The repeated element is /);
+  });
+
+  it("varies the element, not just the setting", () => {
+    // A run of posts that all share one setting AND one element is the same
+    // picture with different furniture.
+    const elements = Array.from({ length: 12 }, (_, i) =>
+      pickPlace(i).split("The repeated element is ")[1],
+    );
+    expect(new Set(elements).size).toBeGreaterThan(6);
+  });
+
+  it("does not lean on doors — they are what it collapsed to", () => {
+    const doorish = Array.from({ length: 36 }, (_, i) => pickPlace(i)).filter((p) =>
+      /\bdoors?\b|\bdoorways?\b/i.test(p.split("The repeated element is ")[1] ?? ""),
+    );
+    expect(doorish.length).toBeLessThanOrEqual(6);
+  });
+
+  it("pairs an element that could exist in its setting", () => {
+    // Three identical staircases do not belong in a field. Each element list
+    // is written against its own place for exactly this reason.
+    const field = ILLUSTRATION_PLACES.find((p) => p.place.includes("field"))!;
+    for (const el of field.elements) {
+      expect(el, el).not.toMatch(/stair|corridor|ceiling|lobby/i);
     }
   });
 });

@@ -44,16 +44,19 @@ const PROMPT_TEMPLATE = `Read the article and write ONE scene description for th
 ARTICLE:
 {{article_draft}}
 
-THE SETTING, WHICH IS GIVEN TO YOU AND NOT YOURS TO CHANGE:
+THE SETTING AND THE REPEATED ELEMENT, BOTH GIVEN TO YOU AND NEITHER YOURS TO CHANGE:
 {{image_place}}
 
-(If no setting is named above, use a large, bare, mostly empty interior.)
+Use exactly that setting and exactly that element. Do not substitute a different
+one, and do not add a second kind of repeated object beside it. If nothing is
+named above, use a large, bare, mostly empty interior with three identical
+windows.
 
 Build the scene from three parts.
 
 A FIGURE — one small anonymous person, seen from behind or in silhouette, dwarfed by the space. No face, no expression. They stand in for the reader.
 
-ONE REPEATED ELEMENT — the place is nearly empty, and you add exactly one architectural element repeated two or three times, identical to each other. Two identical doorways. Three identical windows. Two identical staircases. Identical is the whole point: the viewer must see at a glance that these things ought to match.
+THE REPEATED ELEMENT — named for you above. Identical is the whole point: the viewer must see at a glance that these things ought to match. Place them clearly and evenly so the repetition reads instantly.
 
 AN IMPOSSIBILITY — the repeated elements disagree with each other, and the disagreement is written in LIGHT. The light each one throws falls at a different angle, or a different length, or one throws none at all. Or the single figure casts two shadows that point different ways.
 
@@ -64,6 +67,7 @@ HARD RULES:
 3. The impossibility must be visible at thumbnail size. Not a small detail in a corner.
 4. Do not draw the article's literal subject matter. If it is about records, draw no records. The metaphor lives in space and light.
 5. Keep the place bare. No furniture, clutter, beams, railings, machinery, plants or scenery beyond what is named. Everything you add makes the idea harder to see.
+6. Do not draw doors or doorways unless the element named above is a door. They are the obvious choice and they have been overused; the setting you were given has its own repeated thing.
 
 OUTPUT exactly this and nothing else:
 

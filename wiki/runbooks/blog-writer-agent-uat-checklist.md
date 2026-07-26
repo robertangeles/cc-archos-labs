@@ -8,148 +8,113 @@ related: [[blog-writer-agent]], [[blog-writer-agent-runbook]], [[2026-07-25-no-f
 
 You are deciding one thing: **would you put your name on what this thing writes?**
 
-Everything else — the auth, the kill switch, the crash recovery — is checked by a script. Your job is to read one blog post, look at its illustration, and answer six questions.
+Everything a machine can check, a machine already checked. What is left is judgement, and there are five of them. Budget about twenty minutes.
 
-**This matters more than it used to.** Since the review hold was removed, nothing holds a post back for you. The gate is the only thing between the research and your live site.
-
-> **Where this stands (2026-07-25, branch `feature/blog-writer-agent`)**
-> Step 1 has been run: **9 of 9 checks pass**, dev server up, settings valid, queue empty, no leftover drafts. Unless you have changed something, **start at Step 2**.
->
-> Re-run Step 1 any time — it is genuinely free (verified by counting model calls before and after, not by assuming) and safe to repeat.
+> **Since you removed the review hold, nothing holds a post back for you.** A post that clears the gate goes live at its slot. That makes the questions below the last human look at this content, not a second opinion after one.
 
 ---
 
-## Step 1 — run the checks
+## Where this stands right now
 
-Two terminals. First one:
+Two posts are sitting in DEV, written end to end by the agent this afternoon:
 
-```
-pnpm dev
-```
-
-Second one:
-
-```
-node --env-file=.env.local scripts/uat-blog-agent.mjs
-```
-
-Takes about 20 seconds and costs nothing. You should see:
-
-```
-  9 of 9 checks passed.
-```
-
-<details>
-<summary>What those nine checks actually prove</summary>
-
-| Check | Why it matters |
+| Publishes | Post |
 |---|---|
-| Blocked when nobody signs in | The endpoint can spend money and create content. It must not be open. |
-| Blocked with the wrong password | " |
-| Blocked when the password is sent the wrong way | " |
-| Stops completely when you switch it off | Your kill switch works. One setting, no deploy. |
-| Refuses to run on broken settings | If someone edits the workflow and breaks the wiring, it stops in under a second instead of writing a confident article about nothing. |
-| Recovers by itself after a crash | A deploy mid-write leaves a job half-done. It picks itself back up rather than going quiet for a week. |
-| An agent post awaiting review is NOT published | **The one control between a draft and your public site.** |
-| Your own flagged post still publishes | This change touched shared publishing code. Your own posts must behave exactly as before. |
-| Once you approve it, it publishes | Approving actually releases it. |
+| 26 Jul, 10:00pm | [The Dashboard Nobody Opens Is Still Costing You](http://localhost:3007/admin/blog/posts/6e152e8a-63f0-4c83-9884-0fb44550627b) |
+| 27 Jul, 7:00am | [What a Data Catalog Buys a Ten-Person Company](http://localhost:3007/admin/blog/posts/bab77aac-fbef-47fd-9bd7-63020e458aa7) |
 
-The script leaves your settings as it found them and removes its own throwaway
-data. It keeps anything attached to a real post, so the reviewer's reasoning
-survives for Step 3.
-</details>
+Settings: **on**, three slots a day at 7am / 2pm / 10pm Sydney, 21 posts a week, images on.
 
-**If anything fails, stop.** Those are controls, not polish. Send me the output.
+Those two are your test material. You do not need to generate more unless you want to.
 
 ---
 
-## Step 2 — have it write something
+## Step 1 — the machine checks (free, 20 seconds)
 
 ```
-node --env-file=.env.local scripts/uat-blog-agent.mjs --write
+pnpm dev                                              # terminal 1
+node --env-file=.env.local scripts/uat-blog-agent.mjs # terminal 2
 ```
 
-This one costs roughly **$1** and takes **3–6 minutes**. It researches a topic, drafts it, reviews its own work, rewrites once if needed, and hands you a link. It then prints what the reviewer found, round by round, so you are not taking the verdict on trust.
-
-Two outcomes, both fine:
-
-- **"Wrote a post and held it for review"** — go to Step 3.
-- **"Rejected its own draft and parked it"** — go to Step 3 anyway, and read the parked draft.
-
-**Expect "parked" fairly often.** Of the last three drafts produced on this branch, two were rejected by the reviewer even though the free rule-based checks passed them cleanly. That is the reviewer being strict about whether claims trace back to the research.
-
-If it parks something you would have been happy to publish, that is not a bug and not a code change — it means the reviewer is tuned too tight, and the fix is a wording change in `blog_judge_prompt`. **Tell me which post and I will loosen it.** The opposite mistake, a reviewer that waves everything through, is much more expensive to discover.
+Expect `9 of 9 checks passed`. These cover auth on the endpoint that spends money, the kill switch, crash recovery, and the publish gate. If any fail, stop and send me the output — those are controls, not polish.
 
 ---
 
-## Step 3 — read it, and answer six questions
+## Step 2 — the five judgement calls
 
-Open the link the script prints. Read the whole post.
+Open one of the two posts above. Read it properly, not skimmed.
 
-**1. Would you publish this?**
-Yes or no. If no, say specifically what is wrong — that reason becomes the next rule.
+### 1. Would you publish this under your name?
+The whole question. If no, say precisely what is wrong — that reason becomes a rule, the way every other rule in the gate got there.
 
-**2. Does it claim to have lived through anything?**
-Look for *"I spent three months…"*, *"a client asked me…"*, *"last year we…"*. The byline is Metis, which is not a person. A personal war story here is invented, and it is the single fastest way to lose credibility if a reader ever works that out. There should be none.
+### 2. Is there a personal story in it that never happened?
+Look for *"I spent three months…"*, *"a client asked me…"*, *"I have watched this happen."* The byline is Metis, which is not a person. The gate catches these — it caught exactly that sentence today — but it catches phrasings it knows. A new phrasing gets through.
 
-**3. Is every number real?**
-Pick two figures. Run this to see the source material it was working from:
+### 3. Is every number real?
 
 ```
 node --env-file=.env.local scripts/uat-blog-agent.mjs --research
 ```
 
-Each number in the post should appear in there. One that doesn't is one it made up.
+Pick two figures from the post and find them in that output. One you cannot find is one it made up. **This is the check the gate is weakest at**: it matches surface tokens, so it catches a number that appears nowhere, but not a real number attached to the wrong claim.
 
-**4. Does it say "millions" when it means a number?**
-Watch for *"drains millions per year"*, *"a significant share"*, *"large portions of their time"*. This is the failure the first live run produced: told its figures weren't supported, it didn't drop them, it made them vaguer. There should be none of this now — if you find one, tell me, because the gate has another hole.
+### 4. Does it go vague where it should be specific?
+*"drains millions per year"*, *"a significant share"*, *"large portions of their time."* This is the failure mode the gate was built around: told its figures were unsupported, an early draft did not drop them, it made them blurrier. Should be none now. One means the gate has another hole.
 
-**5. Does the counter-argument get a fair hearing?**
-There should be a section arguing against the main point, given real weight and then answered. Not a token objection raised to be swatted away.
+### 5. Would the image stop you scrolling?
+Shrink the preview until the image is about a thumb wide. That is how most people meet it.
 
-**6. Would the image stop you scrolling — and is there any text in it?**
-Shrink the preview until the image is about as wide as your thumb. That is the size most people will see it at.
+- **Any text is a hard fail.** Letters, numbers, signage. The model renders legible text whenever a scene implies it.
+- **A white border is a hard fail.** It should run edge to edge.
+- **Is there an idea in it?** Something quietly wrong — light falling the wrong way, two shadows that disagree. A nice-looking room is decoration, and decoration does not stop a scroll.
+- Open both posts side by side. Same palette and drawing style is deliberate. The same *scene* twice is not.
 
-- **Text is a hard fail.** Any letters, words, numbers or signage. The model renders legible text whenever a scene implies it, so the art director is forbidden from describing anything readable. One slip means the rule needs tightening.
-- **A white border is a hard fail.** The illustration should run edge to edge. A framed-print look means the trim didn't catch it.
-- **Is there an idea in it?** The picture should have one thing that is quietly wrong — light falling the wrong way, two shadows that disagree. If it is just a nice-looking room, it is decoration, and decoration does not stop a scroll.
-- **Does it look like the others?** Open two or three agent posts side by side. Same palette and drawing style is correct and deliberate. The same *scene* three times is not — tell me, because the setting rotation is not doing its job.
+---
+
+## Step 3 — the admin, five minutes
+
+**[/admin/blog/pipeline](http://localhost:3007/admin/blog/pipeline)** — the queue.
+Does the top strip tell you whether the agent is alive without you thinking about it? Expand a row via "What the reviewer said" and see whether the rejection reasons are legible.
+
+**[/admin/prompts/blog-agent-config](http://localhost:3007/admin/prompts/blog-agent-config)** — settings and the stop control.
+Press **Stop the agent**, then **Start** again. It saves on press with no second click. Safe to try.
+
+Then tell me: is 7am / 2pm / 10pm right, or do you want different times?
 
 ---
 
 ## The verdict
 
-Ship if the checks pass **and** you would publish the post, or you can say precisely why not.
+Ship if the nine checks pass **and** you would publish both posts, or can say exactly why not.
 
-Do not ship if question 2, 3 or 4 turns up anything. Those are the three failures this whole thing exists to prevent.
+Do not ship if questions 2, 3 or 4 turn anything up. Those are the three failures this whole thing exists to prevent, and there is no longer a human hold behind them.
 
-An image problem is not a reason to hold the release. Switch illustrations off in the settings (`image.enabled`) and the posts still work — they get the house fallback.
+---
+
+## Open question I need you to settle
+
+**A draft last week contained a literal `[Inference: the research does not establish precise failure thresholds…]` in the prose.** That is the writer showing its working, and it reads as machine output. The gate does not catch it because it is technically an honest caveat rather than a fabrication.
+
+Should a bracketed meta-comment be a hard failure? My view is yes — it is never something a human editor would leave in. Say the word and it becomes a rule.
 
 ---
 
 ## Things that are known, not broken
 
-Worth knowing so you don't report them as bugs:
-
-- **It DOES publish on its own now.** You removed the review hold on 2026-07-26 and took ownership of the output. A post that clears the gate goes live at its slot with nothing in between. To stop one, flag it for review in the admin — the publisher still withholds a flagged agent post.
-- **It rewrites once, then gives up.** A second rejection parks the post for you. Rewriting until something passes teaches it to dodge the reviewer rather than write better.
-- **A parked post is the system working.** Roughly two in three recent drafts were parked. That is a tuning signal, not a fault — see Step 2.
-- **The number check is matching, not fact-checking.** It catches a figure that appears nowhere in the research. It cannot catch a real figure attached to the wrong claim. That is what question 3 is for.
-- **The reviewer only sees the finished draft.** It cannot tell you the research itself was thin — only that the writing is not supported by it. If posts keep getting parked on the same topic, suspect the topic, not the writer.
-- **One or two internal links per post is normal, and zero happens.** Links are only ever added by wrapping words the article already used, so a related post whose title shares no wording with the body simply does not get linked. Measured on real posts: 1-2 links from a pool of 15 candidates. The alternative — letting the writer add links itself — would put text on the site the reviewer never saw.
-- **There are admin screens now.** `/admin/blog/pipeline` shows the queue, why each draft was accepted or parked, and whether an approved post actually went live. `/admin/prompts/blog-agent-config` holds the settings and the stop control, which saves on press rather than behind a Save button. The reviewer and planner prompts are editable at `/admin/prompts/blog-judge-prompt` and `/admin/prompts/blog-plan-prompt`.
-- **Agent posts carry an AGENT marker in the posts list.** Without it they are indistinguishable from the 120 migrated WordPress posts, which also sit in the needs-review queue.
-- **A post that falls back to the house image is not broken.** Losing an illustration must never cost a good article, so any failure — the model erring, storage being unreachable, the art director returning nothing usable — quietly attaches the standard image instead. The script tells you when that happened.
-- **The style is fixed in code, on purpose.** Flat vector shapes, a dim cool room, one hard wedge of warm light, a small figure seen from behind. The art director chooses only the scene. That split is what stops ninety posts drifting apart from each other.
-- **The setting is assigned, not chosen.** Twelve of them, rotated in order. Left to pick for itself the model repeats one answer — three separate runs of the same prompt chose a warehouse every time, and an earlier version chose a ruler three times out of three.
+- **It publishes on its own.** You removed the review hold and took ownership. To stop one post, flag it for review in the admin — the publisher still withholds a flagged agent post.
+- **It rewrites once, then gives up.** A second rejection parks it as a draft, and a draft never publishes. Rewriting until something passes teaches it to dodge the reviewer rather than write better.
+- **A parked post is the system working**, not a fault. Two of four rejections today were correct; one was a genuine gate bug, since fixed.
+- **One or two internal links per post, sometimes zero.** Links only ever wrap wording the article already used, so a related post that shares no phrasing simply is not linked.
+- **The reviewer only sees the finished draft.** It cannot tell you the research was thin, only that the writing is not supported by it. Posts parking repeatedly on one topic means suspect the topic.
 
 ---
 
 ## When you are happy, before PROD
 
-Not part of this test, but the agent cannot run in production until these are done — see [[deployment-architecture]]:
+The agent cannot run in production until these are done — see [[deployment-architecture]]:
 
-- [ ] Back up PROD, then apply the database change **by hand before merging**. Merging first ships a page that errors on a missing table.
-- [ ] Confirm the existing scheduled-post publisher is actually alive in PROD. The whole design assumes it runs.
-- [ ] Create the Render cron job — Git Provider source, **not Docker**.
-- [ ] Point the settings at PROD, and leave it switched **off** until you have watched a run.
+- [ ] `pg_dump` PROD, then apply migration `0036` **by hand before merging**. Merging first ships a page that errors on a missing table.
+- [ ] Confirm the existing scheduled-post publisher is alive in PROD (`cron_heartbeat` id `posts-publisher`). The whole design assumes it runs.
+- [ ] Create the Render cron job — **Git Provider source, not Docker**. Three posts a day means it needs to fire at least three times daily.
+- [ ] Re-run `scripts/seed-blog-agent-config.mjs` and `scripts/seed-illustration-skill.mjs --apply` against PROD.
+- [ ] Leave it **stopped** until you have watched one run.

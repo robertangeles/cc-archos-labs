@@ -63,31 +63,79 @@ export const ILLUSTRATION_COMPOSITION = `Composed as an ultra-wide cinematic ban
  * lit wrongly, and the muddiest was a warehouse full of beams and railings.
  */
 export const ILLUSTRATION_PLACES = [
-  "a vast empty hotel lobby at night, bare polished floor, no furniture",
-  "an empty underground car park, bare concrete, no cars",
-  "an empty theatre auditorium seen from the stage, rows of identical seats",
-  "a bare municipal swimming pool hall at night, still water",
-  "an empty open-plan floor of an office tower, bare carpet, floor-to-ceiling glass",
-  "a wide bare stairwell landing in a concrete building",
-  "an empty airport gate lounge at night, identical seats, dark glass wall",
-  "a flat open field at dusk under a wide sky, nothing but grass",
-  "a bare rooftop at dusk, low parapet, open sky",
-  "an empty warehouse floor, bare concrete, nothing stored in it",
-  "a long empty corridor with identical closed doors down one side",
-  "an empty gallery room with bare white walls and a polished floor",
+  {
+    place: "a vast empty hotel lobby at night, bare polished floor, no furniture",
+    elements: ["three identical pendant lamps hanging in a row", "two identical revolving doors", "three identical square columns"],
+  },
+  {
+    place: "an empty underground car park, bare concrete, no cars",
+    elements: ["three identical concrete pillars", "two identical ramps curving away", "three identical strip lights overhead"],
+  },
+  {
+    place: "an empty theatre auditorium seen from the stage",
+    elements: ["three identical stage lights on a bar", "two identical velvet curtains", "three identical rows of seats"],
+  },
+  {
+    place: "a bare municipal swimming pool hall at night, still water",
+    elements: ["three identical starting blocks", "two identical diving boards", "three identical lane ropes"],
+  },
+  {
+    place: "an empty open-plan office floor, bare carpet, floor-to-ceiling glass",
+    elements: ["three identical ceiling panels glowing", "two identical structural columns", "three identical window bays"],
+  },
+  {
+    place: "a wide bare stairwell in a concrete building",
+    elements: ["three identical flights of stairs", "two identical handrails", "three identical landings"],
+  },
+  {
+    place: "an empty airport gate lounge at night, dark glass wall",
+    elements: ["three identical rows of seating", "two identical jet bridges beyond the glass", "three identical departure gates"],
+  },
+  {
+    place: "a flat open field at dusk under a wide sky, nothing but grass",
+    elements: ["three identical telegraph poles", "two identical bare trees", "three identical hay bales"],
+  },
+  {
+    place: "a bare rooftop at dusk, low parapet, open sky",
+    elements: ["three identical ventilation stacks", "two identical water tanks", "three identical aerial masts"],
+  },
+  {
+    place: "an empty warehouse floor, bare concrete, nothing stored in it",
+    elements: ["three identical roller shutters", "two identical steel roof trusses", "three identical loading bays"],
+  },
+  {
+    place: "a long empty corridor in a plain building",
+    elements: ["three identical ceiling lights", "two identical fire hoses on the wall", "three identical closed doors"],
+  },
+  {
+    place: "an empty gallery room with bare walls and a polished floor",
+    elements: ["three identical empty picture frames", "two identical plinths", "three identical skylights"],
+  },
 ] as const;
 
 /**
- * Pick a setting for a given queue position.
+ * Pick the setting AND the repeated element for a given queue position.
  *
- * A stride coprime with the list length walks the whole list before repeating,
- * so consecutive posts never share a setting and post 1 and post 13 do not
- * collide either — 12 and 5 share no factors, so the cycle is the full 12.
+ * The element is assigned here, not chosen by the art director, for the same
+ * reason the setting is. Told to pick "one architectural element repeated two
+ * or three times" with "two identical doorways" as the first example, it chose
+ * doorways every single time — including in an open field, where it drew three
+ * freestanding door frames in the grass with no walls attached. That is the
+ * third convergence of the same kind: the setting collapsed to "warehouse" and
+ * an earlier object prompt collapsed to "a ruler". A model given an example
+ * follows the example.
+ *
+ * Two different strides so the pairing itself varies: place walks the 12-list
+ * by 5, element walks each 3-list by 7, and neither shares a factor with its
+ * list length, so both cycle fully before repeating.
  */
 export function pickPlace(seed: number): string {
   const n = ILLUSTRATION_PLACES.length;
-  const i = (((Math.trunc(seed) * 5) % n) + n) % n;
-  return ILLUSTRATION_PLACES[i];
+  const s = Math.trunc(seed);
+  const entry = ILLUSTRATION_PLACES[(((s * 5) % n) + n) % n];
+  const m = entry.elements.length;
+  const element = entry.elements[(((s * 7) % m) + m) % m];
+  return `${entry.place}. The repeated element is ${element}.`;
 }
 
 export interface ParsedImagePrompt {
