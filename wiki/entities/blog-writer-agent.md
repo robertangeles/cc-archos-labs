@@ -129,6 +129,20 @@ Design-reviewed before it was built (3/10 → 9/10), from an approved mockup.
 
 Three things only surfaced by opening the page in a browser: the expand link said "Why was this rejected?" on rows that were flagged and then fixed by a rewrite; `isAgentGenerated` existed only on the write shape despite its comment claiming it marks agent output in the admin list; and the site header overflows at 375px on **every** admin page (posts is 590px), which is pre-existing and untouched.
 
+## Cadence and scheduling
+
+Three posts a day, at 7am, 2pm and 10pm local — `publishAt.hours`, with the legacy single `hour` kept so an older stored config still validates.
+
+`nextFreeSlot` ([lib/blog-agent/config.ts](../../lib/blog-agent/config.ts)) picks the next slot **nothing else has claimed**, checked against every scheduled post rather than only the agent's. `nextPublishSlot` answers "when is the next 7am", which is a different question: five real posts created in one afternoon all got the same instant, and five posts appearing at once is the exact velocity spike the ramp exists to avoid. Candidates are re-derived through `nextPublishSlot` rather than stepped by 24 hours, so slots either side of a daylight-saving change hold their wall clock.
+
+## Duplicate-topic guard
+
+`findDuplicateTopic` ([lib/blog-agent/duplicate-guard.ts](../../lib/blog-agent/duplicate-guard.ts)) runs before the workflow, so a repeat costs an embedding call rather than deep research plus a draft plus an illustration.
+
+It deliberately does **not** use `findSimilarPosts`. That helper hard-filters `status = 'published'`, and agent posts land `scheduled` — so it is structurally blind to everything the agent has just written. Three near-identical "Three Questions That…" posts reached DEV precisely that way. Verified against the real database: with `('published','scheduled')` the nearest neighbour of a scheduled post is that post at distance 0.0000; with `'published'` alone it is invisible.
+
+Fails open. Losing the check costs a repeated topic; failing closed would stop the agent writing anything the moment the embedding API had a bad minute.
+
 ## Deferred (PR 2)
 
 Duplicate-topic guard, the `field_note` slot, structural variance, and `/admin/blog/pipeline`. The performance feedback loop is deferred further still — it has nothing to learn from until roughly 20 agent posts have data.

@@ -10,7 +10,9 @@ What to do when the daily blog agent misbehaves. Seven failure modes, each with 
 
 ## First: nothing it does is urgent
 
-The agent never publishes. Every failure path ends in a draft plus an alert, and agent posts only go live when a human clears `needs_review`. A stalled agent means no new posts; it does not mean bad posts.
+A stalled agent means no new posts; it does not mean bad posts. Every failure path ends in a **draft**, and a draft never publishes.
+
+What changed on 2026-07-26: a post that CLEARS the gate now publishes on its own at its slot — the review hold was removed at the operator's request. So the gate, its one rewrite round, and its failing closed are the only things between the research and the live site. To stop a specific post, set `needs_review` on it in the admin; the publisher still withholds a flagged agent post.
 
 ## Kill switch
 

@@ -5,7 +5,7 @@ import { QueueRows } from "./queue-rows";
 // /admin/blog/pipeline — the blog agent's queue.
 //
 // Designed to answer four questions in order: is it alive, is anything wrong,
-// what is queued, and did the post I approved actually go out.
+// what is queued, and did the post actually go out.
 //
 // The last one needs its own section because the queue structurally cannot
 // answer it. `published` is deliberately not a queue status — the scheduled
@@ -51,6 +51,9 @@ export default async function BlogPipelinePage() {
   const { health, rows, published, configProblem } = await loadPipelineView();
   const t = HEALTH_TONE[health.tone];
   const needingReview = rows.filter((r) => r.post?.needsReview).length;
+  const scheduled = rows.filter(
+    (r) => r.post?.status === "scheduled" && !r.post.needsReview,
+  ).length;
   const failed = rows.filter((r) => r.status === "failed").length;
 
   return (
@@ -59,9 +62,8 @@ export default async function BlogPipelinePage() {
         <div>
           <h1 className="text-headline text-ink">Blog agent</h1>
           <p className="mt-2 max-w-2xl text-body-sm text-ink-subtle">
-            Topics the agent has queued, and what happened to each one. Nothing
-            it writes reaches the public site until you clear the review flag on
-            that post.
+            Topics the agent has queued, and what happened to each one. Posts
+            that clear the gate publish on their own at the next free slot.
           </p>
         </div>
         <Link
@@ -131,12 +133,14 @@ export default async function BlogPipelinePage() {
             <p className="mt-1 text-xs text-ink-subtle">
               {needingReview > 0 || failed > 0
                 ? [
-                    needingReview > 0 ? `${needingReview} to review` : null,
                     failed > 0 ? `${failed} failed` : null,
+                    needingReview > 0 ? `${needingReview} held` : null,
                   ]
                     .filter(Boolean)
                     .join(", ")
-                : "Nothing waiting"}
+                : scheduled > 0
+                  ? `${scheduled} queued to publish`
+                  : "Nothing waiting"}
             </p>
           </div>
         </div>
@@ -152,15 +156,15 @@ export default async function BlogPipelinePage() {
         <QueueRows rows={rows} />
       </section>
 
-      {/* Did the post I approved actually go out. */}
+      {/* Did it actually go out. */}
       <section className="space-y-4">
         <h2 className="text-card-title text-ink">Recently published</h2>
         {published.length === 0 ? (
           <div className="rounded-md border border-hairline bg-surface-1/30 px-6 py-8 text-center">
             <p className="text-body-sm text-ink">Nothing published yet.</p>
             <p className="mx-auto mt-2 max-w-md text-xs leading-[1.6] text-ink-subtle">
-              Agent posts land scheduled and held. They appear here once you
-              clear the review flag and their publish time arrives.
+              Agent posts are scheduled for the next free slot and go live on
+              their own. They appear here once that time arrives.
             </p>
           </div>
         ) : (

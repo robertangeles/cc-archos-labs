@@ -27,8 +27,10 @@ function tone(status: string) {
 function postState(row: QueueRow): { text: string; urgent: boolean } | null {
   if (!row.post) return null;
   if (row.post.status === "published") return { text: "Published", urgent: false };
+  // Only reachable when someone flags a post by hand — the agent no longer
+  // sets the review hold, so this is a deliberate manual brake.
   if (row.post.needsReview) {
-    return { text: "Waiting for your review", urgent: true };
+    return { text: "Held — you flagged this for review", urgent: true };
   }
   if (row.post.status === "scheduled" && row.post.scheduledPublishAt) {
     return {

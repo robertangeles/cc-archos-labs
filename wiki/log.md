@@ -1836,3 +1836,25 @@ A penetration test caught a real one too: the prompt route resolved its kind wit
 Design decisions that made it into code: the stop control saves on press rather than behind a Save button, because the one time you reach for it is the wrong moment to hunt for a second click; derived workflow ids are read-only, because hand-editing one is precisely how the mapping broke before; and a config that fails validation names the broken fields instead of quietly rendering the starter, since that state means the agent is running on a disabled default and nothing else says so.
 
 Touched: [[blog-writer-agent]], [[blog-writer-agent-runbook]], [[blog-writer-agent-uat-checklist]].
+
+## 2026-07-26 — Blog agent: three a day, no review hold
+
+Operator changed the requirements: three posts a day at 7am, 2pm and 10pm; no review hold; fresh image per post; no repeated topics.
+
+**The review hold is gone.** `createPost` writes `needsReview: false`, so a post that clears the gate publishes on its own. That was the last control between the research and the public site, and removing it was an explicit call — the operator took ownership. The publisher's `NOT (is_agent_generated AND needs_review)` guard stays as a manual brake.
+
+**Two bugs found by looking at real output rather than reasoning about it.**
+
+Five posts had been scheduled for the same instant. `nextPublishSlot` answers "when is the next 7am", not "when is the next free slot", so everything created in one afternoon collided. `nextFreeSlot` now walks the day's slots against every scheduled post, re-deriving each candidate through `nextPublishSlot` so daylight saving cannot drift them.
+
+The gate was rejecting correctly-grounded sentences. `unquantified-quantity` demanded a **digit** in the sentence, but this writer spells numbers out as house style, so *"More than a quarter of companies surveyed estimated annual losses exceeding five million dollars"* was hard-failed for naming its figure in words. Two live drafts were parked on this before it was spotted; both passed on the first attempt afterwards. The gate must not punish a house style it also enforces.
+
+**The duplicate guard could not have been built on the obvious helper.** `searchByEmbedding` hard-filters `status = 'published'` and agent posts land `scheduled`, so it is blind to exactly what repeats. Proven against the real database before writing the module: with both statuses the nearest neighbour of a scheduled post is that post at 0.0000; published-only does not see it at all.
+
+**A mutation survived and exposed a hollow test.** The duplicate guard's status filter could be reverted to published-only with every test still green, because the mocked database ignores its own WHERE clause. A filter test through that mock passes regardless of the filter, which is worse than no test. Replaced with a pinned constant plus a comment recording the real-database verification.
+
+Also caught: `Number(null)` is `0`, which is finite and below any threshold — a null distance would have read as "identical" and made the guard skip every post it was asked about.
+
+Verified end to end: two posts, two distinct slots, two distinct image checksums, review flags clear.
+
+Touched: [[blog-writer-agent]], [[blog-writer-agent-runbook]], [[blog-writer-agent-uat-checklist]].

@@ -162,6 +162,57 @@ export function nextPublishSlot(
 }
 
 /**
+ * The next publish slot nothing else has already claimed.
+ *
+ * `nextPublishSlot` answers "when is the next 7am", which is not the same
+ * question. Five posts created in one afternoon all get the same answer, and
+ * five posts appearing simultaneously is exactly the publishing-velocity spike
+ * the whole cadence ramp exists to avoid. Normal operation is one run a day so
+ * they rarely collide, but a retry, a manual trigger, or catching up after a
+ * stall all produce it — observed with five real posts stacked on one morning.
+ *
+ * Walks forward a day at a time by re-deriving through `nextPublishSlot`
+ * rather than adding 24 hours, so a slot either side of a daylight-saving
+ * change still lands on the same wall clock.
+ *
+ * `taken` should include every scheduled post, not only the agent's. Colliding
+ * with something a human scheduled is no better than colliding with itself.
+ *
+ * Pure, so the walk is testable without a database.
+ */
+export function nextFreeSlot(
+  now: Date,
+  hours: number[],
+  timeZone: string,
+  taken: Iterable<Date>,
+  maxSlots = 90,
+): Date {
+  const claimed = new Set<number>();
+  for (const d of taken) claimed.add(d.getTime());
+
+  // Three a day means the stream is 7am, 2pm, 10pm, 7am… — the next slot is
+  // whichever configured hour comes soonest, not the next occurrence of one
+  // fixed hour. Each candidate is re-derived through nextPublishSlot rather
+  // than stepped by a fixed offset, so slots either side of a daylight-saving
+  // change still land on the wall clock they were configured for.
+  const wanted = hours.length > 0 ? hours : [7];
+  let cursor = now;
+  let slot = nextPublishSlot(cursor, wanted[0], timeZone);
+
+  for (let i = 0; i < maxSlots; i++) {
+    slot = wanted
+      .map((h) => nextPublishSlot(cursor, h, timeZone))
+      .reduce((a, b) => (a.getTime() <= b.getTime() ? a : b));
+    if (!claimed.has(slot.getTime())) return slot;
+    cursor = new Date(slot.getTime() + 60_000);
+  }
+
+  // Everything inside the horizon is taken. A collided slot is a smaller
+  // problem than no post at all.
+  return slot;
+}
+
+/**
  * Should the agent generate today?
  *
  * Spreads N posts across 7 days by day-of-week rather than bunching them at

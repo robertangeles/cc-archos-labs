@@ -1,8 +1,8 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq, gte } from "drizzle-orm";
 import { getDb } from "../db";
-import { users, workflowField, workflowStep } from "../db/schema";
+import { post as postTable, users, workflowField, workflowStep } from "../db/schema";
 import { getEnabledRules, formatRulesForInjection } from "../rules/service";
 import { executeStep, executeWorkflow } from "../workflows/executor";
 import { createPost } from "../posts-admin";
@@ -11,10 +11,16 @@ import {
   attachFallbackImageToPost,
   attachImageToPost,
 } from "../posts-admin/attach-image";
-import { getBlogAgentConfig, getJudgePrompt, isDueToday, nextPublishSlot } from "./config";
+import {
+  getBlogAgentConfig,
+  getJudgePrompt,
+  isDueToday,
+  nextFreeSlot,
+} from "./config";
 import type { BlogAgentConfig } from "./config-shared";
 import { judgeDraft, type JudgeVerdict } from "./judge";
 import { generatePostImage } from "./image";
+import { findDuplicateTopic } from "./duplicate-guard";
 import { insertInternalLinks } from "./internal-links";
 import { parseDraft } from "./parse-draft";
 import { pickPlace } from "./parse-image-prompt";
@@ -36,6 +42,8 @@ import {
 //        │
 //   preflight ── bad config ──▶ fail loudly, never run
 //        │
+//   duplicate? ── yes ──▶ skip, spend nothing
+//        │
 //   executeWorkflow (1 retry — research fails ~1 in 8)
 //        │
 //   parseDraft ── null ──▶ draft + needs_review, fail item
@@ -51,14 +59,15 @@ import {
 //        ▼
 //   internal links (wraps existing words only — adds no new text)
 //        │
-//   createPost(scheduled, needs_review, is_agent_generated)
+//   createPost(scheduled at the next free slot, is_agent_generated)
 //        │
 //   attach illustration ── any failure ──▶ house fallback asset
 //
-// Nothing here publishes. createPost lands the post as 'scheduled' with
-// needs_review set, and the scheduled publisher withholds it until a human
-// clears the flag. The worst case for every failure path is a draft plus an
-// alert — never a live post.
+// A post that clears the gate publishes on its own at its slot. The review
+// hold was removed deliberately — the operator took ownership of the output —
+// so the gate, the gate's rewrite round, and the gate failing closed are now
+// the only things between the research and the public site. Every failure path
+// still ends in a draft plus an alert, and a draft never publishes.
 
 /**
  * Internal links added per post. Three is the ceiling the plan set: enough for
@@ -77,6 +86,7 @@ export type RunOutcome =
   | "disabled"
   | "not-due"
   | "idle"
+  | "skipped"
   | "drafted"
   | "parked"
   | "failed";
@@ -376,6 +386,18 @@ export async function runOnce(now: Date = new Date()): Promise<RunResult> {
     return { outcome: "failed", itemId: item.id, detail: problem.problem, swept };
   }
 
+  // Before spending anything: has this already been written? Checked against
+  // published AND scheduled posts, because the agent's own recent output sits
+  // in `scheduled` and is exactly what it would otherwise repeat.
+  const duplicate = await findDuplicateTopic(item.title, config.duplicateThreshold);
+  if (duplicate) {
+    const detail =
+      `Too close to "${duplicate.title}" (${duplicate.status}, distance ` +
+      `${duplicate.distance.toFixed(3)} under ${config.duplicateThreshold}).`;
+    await releaseItem(item.id, "skipped", { lastError: detail });
+    return { outcome: "skipped", itemId: item.id, detail, swept };
+  }
+
   const { output, error } = await runWorkflowWithRetry(config, item);
   if (!output) {
     const detail = error ?? "workflow failed";
@@ -473,16 +495,17 @@ async function finish(
       categoryId: item.categoryId,
       status: "scheduled",
       visibility: "listed",
-      needsReview: true,
+      // No review hold. The operator took ownership of the output, so a
+      // post that clears the gate publishes at its slot on its own. The
+      // publisher's `NOT (is_agent_generated AND needs_review)` guard stays
+      // in place as a manual brake: flag a post in the admin and it stops.
+      needsReview: false,
       isAgentGenerated: true,
-      // Next 7am in the configured zone. Always in the future, which
-      // PostCreateSchema requires. The post still will not go live until the
-      // review flag is cleared — this only sets when it becomes eligible.
-      scheduledPublishAt: nextPublishSlot(
-        now,
-        config.publishAt.hour,
-        config.publishAt.timeZone,
-      ),
+      // The next slot nothing else has claimed, not merely the next 7am.
+      // Always in the future, which PostCreateSchema requires. The post still
+      // will not go live until the review flag is cleared — this only sets
+      // when it becomes eligible.
+      scheduledPublishAt: await claimPublishSlot(config, now),
     },
     "blog-writer-agent",
   );
@@ -506,6 +529,40 @@ async function finish(
     imageFallback: usedFallback,
     swept,
   };
+}
+
+/**
+ * Pick a publish slot no other scheduled post already occupies.
+ *
+ * Reads every future scheduled post, agent-written or not: two posts landing
+ * in the same minute is no better because a human scheduled one of them.
+ *
+ * A failure here falls back to the plain next-slot rather than blocking the
+ * save. A collided post is a smaller problem than a lost one.
+ */
+async function claimPublishSlot(
+  config: BlogAgentConfig,
+  now: Date,
+): Promise<Date> {
+  let taken: Date[] = [];
+  try {
+    const rows = await getDb()
+      .select({ at: postTable.scheduledPublishAt })
+      .from(postTable)
+      .where(
+        and(
+          eq(postTable.status, "scheduled"),
+          gte(postTable.scheduledPublishAt, now),
+        ),
+      );
+    taken = rows.map((r) => r.at).filter((d): d is Date => d !== null);
+  } catch (err) {
+    console.warn("[blog-agent] could not read taken publish slots:", err);
+  }
+  // `hours` is optional so an older stored config still validates; fall back
+  // to the single legacy hour when it is absent.
+  const hours = config.publishAt.hours ?? [config.publishAt.hour];
+  return nextFreeSlot(now, hours, config.publishAt.timeZone, taken);
 }
 
 /**

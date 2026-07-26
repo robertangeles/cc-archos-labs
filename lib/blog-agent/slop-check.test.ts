@@ -474,3 +474,61 @@ describe("lexical signals are advisory, not disqualifying", () => {
     expect(r.findings.some((f) => f.tell === "length")).toBe(true);
   });
 });
+
+describe("a magnitude spelled in words counts as stating it", () => {
+  // From a live run, hard-failed as unquantified-quantity:
+  //
+  //   "More than a quarter of companies surveyed estimated annual losses
+  //    exceeding five million dollars"
+  //
+  // That names its figure twice. The check demanded a DIGIT, and this writer
+  // spells numbers out as house style — "eighty percent", "ninety-five
+  // percent" — so the gate was rejecting grounded sentences for their prose.
+
+  const uq = (md: string) =>
+    check({ contentMd: md }).findings.filter(
+      (f) => f.tell === "unquantified-quantity",
+    );
+
+  it("accepts the exact sentence the live run rejected", () => {
+    expect(
+      uq(
+        "More than a quarter of companies surveyed estimated annual losses exceeding five million dollars.",
+      ),
+    ).toHaveLength(0);
+  });
+
+  it("accepts other spelled-out magnitudes", () => {
+    for (const s of [
+      "Eighty percent of AI projects fail before production, the survey found.",
+      "Ninety-five percent of pilots never ship millions of predictions.",
+      "Roughly two thirds of those companies lost millions.",
+      "Twenty organisations reported losses in the millions.",
+    ]) {
+      expect(uq(s), s).toHaveLength(0);
+    }
+  });
+
+  it("still rejects a magnitude word with no magnitude at all", () => {
+    for (const s of [
+      "Poor data quality drains millions per year from mid-sized firms.",
+      "Most companies never audit their own records.",
+      "The vast majority of teams cannot answer this question.",
+      "That automation helps when you have thousands of datasets to manage.",
+    ]) {
+      expect(uq(s), s).toHaveLength(1);
+    }
+  });
+
+  it("does not let a bare article discharge the claim", () => {
+    // "a million" and "one million" state nothing; the escape hatch is a
+    // real figure, not the indefinite article.
+    expect(uq("It costs a million dollars a year in lost time.")).toHaveLength(1);
+  });
+
+  it("digits still discharge it", () => {
+    expect(
+      uq("Poor data quality drains $4.2 million per year from mid-sized firms."),
+    ).toHaveLength(0);
+  });
+});

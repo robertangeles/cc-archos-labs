@@ -87,8 +87,11 @@ export const BlogAgentConfigSchema = z.object({
    */
   velocity: z.object({
     startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD"),
-    /** Posts per week, one entry per week since startDate. Last value holds. */
-    weeklyRamp: z.array(z.number().int().min(0).max(7)).min(1),
+    /**
+     * Posts per week, one entry per week since startDate. Last value holds.
+     * Caps at 21 because the schedule now runs three slots a day.
+     */
+    weeklyRamp: z.array(z.number().int().min(0).max(21)).min(1),
   }),
   /**
    * When a finished post is scheduled for. Always the next occurrence of this
@@ -99,7 +102,17 @@ export const BlogAgentConfigSchema = z.object({
    * Australia/Brisbane, which never observes daylight saving.
    */
   publishAt: z.object({
+    /**
+     * Legacy single slot. Kept so a config written before multi-slot
+     * scheduling still validates — a required field would fail validation on
+     * the stored row and drop the agent to the disabled starter.
+     */
     hour: z.number().int().min(0).max(23),
+    /**
+     * The day's publish slots, in local wall-clock hours. Three posts a day
+     * at 7am, 2pm and 10pm. Falls back to `[hour]` when absent.
+     */
+    hours: z.array(z.number().int().min(0).max(23)).min(1).optional(),
     timeZone: z.string().min(1),
   }),
   /** Where failure alerts go. Empty disables alerting. */
@@ -138,10 +151,10 @@ export const BLOG_AGENT_CONFIG_STARTER: BlogAgentConfig = {
   duplicateThreshold: 0.25,
   linkAllowlist: [...DEFAULT_LINK_ALLOWLIST],
   minQueueDepth: 7,
-  velocity: { startDate: "2026-01-01", weeklyRamp: [2, 2, 3, 4, 5, 6, 7] },
-  // 7am local, year-round. Australia/Brisbane instead if you want a fixed
-  // UTC+10 that ignores daylight saving.
-  publishAt: { hour: 7, timeZone: "Australia/Sydney" },
+  velocity: { startDate: "2026-01-01", weeklyRamp: [21] },
+  // Three a day: first at 7am, last at 10pm, local year-round.
+  // Australia/Brisbane instead for a fixed UTC+10 that ignores daylight saving.
+  publishAt: { hour: 7, hours: [7, 14, 22], timeZone: "Australia/Sydney" },
   alertEmail: "",
   image: { enabled: true },
 };

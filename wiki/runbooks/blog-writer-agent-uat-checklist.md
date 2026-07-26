@@ -8,7 +8,9 @@ related: [[blog-writer-agent]], [[blog-writer-agent-runbook]], [[2026-07-25-no-f
 
 You are deciding one thing: **would you put your name on what this thing writes?**
 
-Everything else — the auth, the kill switch, the publish gate, the crash recovery — is checked by a script. Your job is to read one blog post, look at its illustration, and answer six questions.
+Everything else — the auth, the kill switch, the crash recovery — is checked by a script. Your job is to read one blog post, look at its illustration, and answer six questions.
+
+**This matters more than it used to.** Since the review hold was removed, nothing holds a post back for you. The gate is the only thing between the research and your live site.
 
 > **Where this stands (2026-07-25, branch `feature/blog-writer-agent`)**
 > Step 1 has been run: **9 of 9 checks pass**, dev server up, settings valid, queue empty, no leftover drafts. Unless you have changed something, **start at Step 2**.
@@ -129,7 +131,7 @@ An image problem is not a reason to hold the release. Switch illustrations off i
 
 Worth knowing so you don't report them as bugs:
 
-- **It never publishes on its own.** Posts land as drafts marked "needs review". They go live when you say so, and not before. That is deliberate — you chose it.
+- **It DOES publish on its own now.** You removed the review hold on 2026-07-26 and took ownership of the output. A post that clears the gate goes live at its slot with nothing in between. To stop one, flag it for review in the admin — the publisher still withholds a flagged agent post.
 - **It rewrites once, then gives up.** A second rejection parks the post for you. Rewriting until something passes teaches it to dodge the reviewer rather than write better.
 - **A parked post is the system working.** Roughly two in three recent drafts were parked. That is a tuning signal, not a fault — see Step 2.
 - **The number check is matching, not fact-checking.** It catches a figure that appears nowhere in the research. It cannot catch a real figure attached to the wrong claim. That is what question 3 is for.

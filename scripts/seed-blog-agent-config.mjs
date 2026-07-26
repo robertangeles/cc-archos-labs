@@ -137,11 +137,11 @@ try {
     // Raise it once the pipeline is actually running on a schedule.
     minQueueDepth: 0,
     velocity: daily
-      ? { startDate: "2026-01-01", weeklyRamp: [7] }
-      : { startDate: "2026-01-01", weeklyRamp: [2, 3, 5, 7] },
-    // 7am local in Sydney year-round. Use Australia/Brisbane for a fixed
-    // UTC+10 that ignores daylight saving.
-    publishAt: { hour: 7, timeZone: "Australia/Sydney" },
+      ? { startDate: "2026-01-01", weeklyRamp: [21] }
+      : { startDate: "2026-01-01", weeklyRamp: [7, 14, 21] },
+    // Three a day: first at 7am, last at 10pm, local in Sydney year-round.
+    // Use Australia/Brisbane for a fixed UTC+10 that ignores daylight saving.
+    publishAt: { hour: 7, hours: [7, 14, 22], timeZone: "Australia/Sydney" },
     alertEmail: "",
     image: { enabled: true },
   };
@@ -163,8 +163,11 @@ try {
     console.log(`    ${k.padEnd(10)} ${v}  ← "${label.slice(0, 52)}"`);
   }
   console.log(`  enabled       ${config.enabled}${enable ? "" : "  (pass --enable to turn on)"}`);
-  console.log(`  cadence       ${daily ? "daily" : "ramped 2→7 per week"}`);
-  console.log(`  publishes at  ${config.publishAt.hour}:00 ${config.publishAt.timeZone}`);
+  console.log(`  cadence       ${daily ? "21/week (3 a day)" : "ramped 7→21 per week"}`);
+  console.log(
+    `  publishes at  ${config.publishAt.hours.map((h) => `${h}:00`).join(", ")} ` +
+      `${config.publishAt.timeZone}`,
+  );
   console.log(`  minQueueDepth ${config.minQueueDepth}  (no auto batch generation)`);
 } catch (err) {
   fail(err.message);

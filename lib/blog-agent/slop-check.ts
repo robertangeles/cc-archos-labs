@@ -175,8 +175,28 @@ const QUANTITY_WORDS =
 const UNSOURCED_APPEAL =
   /\b(consistently\s+shows?|the\s+research\s+(?:shows?|suggests?|indicates?)|studies\s+show|the\s+data\s+shows?)\b/gi;
 
-/** A digit anywhere in the sentence discharges the claim. */
-const HAS_DIGIT = /\d/;
+/**
+ * A stated magnitude anywhere in the sentence discharges the claim.
+ *
+ * Digits are the obvious form, but this writer spells numbers out as house
+ * style — "eighty percent of pilots", "ninety-five percent". Requiring a digit
+ * rejected a correctly-grounded sentence in a live run:
+ *
+ *   "More than a quarter of companies surveyed estimated annual losses
+ *    exceeding five million dollars"
+ *
+ * That names its figure twice and was still hard-failed, because the only
+ * numeral in it is a word. The gate must not punish a house style it also
+ * enforces elsewhere.
+ *
+ * A bare "a"/"one" is deliberately excluded — "a million" states nothing.
+ */
+const NUMBER_WORD =
+  /\b(?:two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|quarter|third|half|two-thirds|three-quarters)\b/i;
+
+function statesAMagnitude(sentence: string): boolean {
+  return /\d/.test(sentence) || NUMBER_WORD.test(sentence);
+}
 
 // ---------------------------------------------------------------------------
 // Tells 4-6 — lexical overcompensation
@@ -391,7 +411,7 @@ export function slopCheck(input: SlopCheckInput): SlopCheckResult {
   for (const m of contentMd.matchAll(QUANTITY_WORDS)) {
     if (m.index === undefined) continue;
     const sentence = sentenceAt(contentMd, m.index);
-    if (HAS_DIGIT.test(sentence)) continue; // it named the number — fine
+    if (statesAMagnitude(sentence)) continue; // it named the number — fine
     findings.push({
       tell: "unquantified-quantity",
       severity: "hard",

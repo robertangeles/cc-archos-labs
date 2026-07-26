@@ -67,6 +67,7 @@ export function BlogAgentConfigEditor() {
   // Free-text mirrors, so a half-typed "2,3," does not get parsed into
   // nonsense on every keystroke.
   const [rampText, setRampText] = useState("");
+  const [hoursText, setHoursText] = useState("");
   const [allowlistText, setAllowlistText] = useState("");
 
   useEffect(() => {
@@ -86,6 +87,9 @@ export function BlogAgentConfigEditor() {
         if (res.ok && json?.ok && json.data) {
           setConfig(json.data);
           setRampText(json.data.velocity.weeklyRamp.join(", "));
+          setHoursText(
+            (json.data.publishAt.hours ?? [json.data.publishAt.hour]).join(", "),
+          );
           setAllowlistText(json.data.linkAllowlist.join("\n"));
           setInvalidFields(json.invalidFields ?? []);
           setLoad({ kind: "ready" });
@@ -144,14 +148,27 @@ export function BlogAgentConfigEditor() {
     const ramp = rampText
       .split(",")
       .map((n) => Number(n.trim()))
-      .filter((n) => Number.isInteger(n) && n >= 0 && n <= 7);
+      .filter((n) => Number.isInteger(n) && n >= 0 && n <= 21);
     if (ramp.length === 0) {
-      setSave({ kind: "error", message: "Cadence needs at least one number from 0 to 7." });
+      setSave({ kind: "error", message: "Cadence needs at least one number from 0 to 21." });
+      return;
+    }
+
+    const hours = hoursText
+      .split(",")
+      .map((n) => Number(n.trim()))
+      .filter((n) => Number.isInteger(n) && n >= 0 && n <= 23)
+      .sort((a, b) => a - b);
+    if (hours.length === 0) {
+      setSave({ kind: "error", message: "Publish times need at least one hour from 0 to 23." });
       return;
     }
 
     const next: BlogAgentConfig = {
       ...config,
+      // `hour` stays in step with the first slot so an older reader of this
+      // config still gets something sensible.
+      publishAt: { ...config.publishAt, hour: hours[0], hours },
       velocity: { ...config.velocity, weeklyRamp: ramp },
       linkAllowlist: allowlistText
         .split("\n")
@@ -163,6 +180,7 @@ export function BlogAgentConfigEditor() {
       if (await persist(next)) {
         setConfig(next);
         setRampText(ramp.join(", "));
+        setHoursText(hours.join(", "));
         setInvalidFields([]);
         setSave({ kind: "saved" });
         setTimeout(() => setSave({ kind: "idle" }), 2500);
@@ -257,7 +275,7 @@ export function BlogAgentConfigEditor() {
       <form onSubmit={onSubmit} className="flex flex-col gap-y-6">
         <Field
           label="Cadence — posts per week"
-          hint="One number per week since the start date; the last one holds from then on. Ramps rather than jumping, because publishing velocity measured against a site's own history is a scaled-content signal, and this blog has 254 posts and almost no recent publishing."
+          hint="One number per week since the start date; the last one holds from then on. 21 is three a day. Ramps rather than jumping, because publishing velocity measured against a site's own history is a scaled-content signal, and this blog has 254 posts and almost no recent publishing."
         >
           <input
             type="text"
@@ -271,20 +289,15 @@ export function BlogAgentConfigEditor() {
 
         <div className="grid gap-6 sm:grid-cols-2">
           <Field
-            label="Publish hour"
-            hint="Posts are scheduled for the next occurrence of this hour."
+            label="Publish times"
+            hint="Local hours, comma separated. 7, 14, 22 gives three posts a day, first at 7am and last at 10pm. Each post takes the next slot nothing else has claimed, so they never stack on one moment."
           >
             <input
-              type="number"
-              min={0}
-              max={23}
-              value={config.publishAt.hour}
-              onChange={(e) =>
-                setConfig((c) => ({
-                  ...c,
-                  publishAt: { ...c.publishAt, hour: Number(e.target.value) },
-                }))
-              }
+              type="text"
+              inputMode="numeric"
+              value={hoursText}
+              onChange={(e) => setHoursText(e.target.value)}
+              placeholder="7, 14, 22"
               className={inputClass}
             />
           </Field>
