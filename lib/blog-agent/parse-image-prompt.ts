@@ -65,51 +65,51 @@ export const ILLUSTRATION_COMPOSITION = `Composed as an ultra-wide cinematic ban
 export const ILLUSTRATION_PLACES = [
   {
     place: "a vast empty hotel lobby at night, bare polished floor, no furniture",
-    elements: ["three identical pendant lamps hanging in a row", "two identical revolving doors", "three identical square columns"],
+    elements: ["two identical revolving doors", "three identical pendant lamps hanging in a row", "four identical square columns"],
   },
   {
     place: "an empty underground car park, bare concrete, no cars",
-    elements: ["three identical concrete pillars", "two identical ramps curving away", "three identical strip lights overhead"],
+    elements: ["two identical ramps curving away", "three identical concrete pillars", "four identical strip lights overhead"],
   },
   {
     place: "an empty theatre auditorium seen from the stage",
-    elements: ["three identical stage lights on a bar", "two identical velvet curtains", "three identical rows of seats"],
+    elements: ["two identical velvet curtains", "three identical stage lights on a bar", "four identical rows of seats"],
   },
   {
     place: "a bare municipal swimming pool hall at night, still water",
-    elements: ["three identical starting blocks", "two identical diving boards", "three identical lane ropes"],
+    elements: ["two identical diving boards", "three identical starting blocks", "four identical lane ropes"],
   },
   {
     place: "an empty open-plan office floor, bare carpet, floor-to-ceiling glass",
-    elements: ["three identical ceiling panels glowing", "two identical structural columns", "three identical window bays"],
+    elements: ["two identical structural columns", "three identical glowing ceiling panels", "four identical window bays"],
   },
   {
     place: "a wide bare stairwell in a concrete building",
-    elements: ["three identical flights of stairs", "two identical handrails", "three identical landings"],
+    elements: ["two identical handrails", "three identical landings", "four identical flights of stairs"],
   },
   {
     place: "an empty airport gate lounge at night, dark glass wall",
-    elements: ["three identical rows of seating", "two identical jet bridges beyond the glass", "three identical departure gates"],
+    elements: ["two identical jet bridges beyond the glass", "three identical departure gates", "four identical rows of seating"],
   },
   {
     place: "a flat open field at dusk under a wide sky, nothing but grass",
-    elements: ["three identical telegraph poles", "two identical bare trees", "three identical hay bales"],
+    elements: ["two identical bare trees", "three identical hay bales", "four identical telegraph poles"],
   },
   {
     place: "a bare rooftop at dusk, low parapet, open sky",
-    elements: ["three identical ventilation stacks", "two identical water tanks", "three identical aerial masts"],
+    elements: ["two identical water tanks", "three identical ventilation stacks", "four identical aerial masts"],
   },
   {
     place: "an empty warehouse floor, bare concrete, nothing stored in it",
-    elements: ["three identical roller shutters", "two identical steel roof trusses", "three identical loading bays"],
+    elements: ["two identical steel roof trusses", "three identical loading bays", "four identical roller shutters"],
   },
   {
     place: "a long empty corridor in a plain building",
-    elements: ["three identical ceiling lights", "two identical fire hoses on the wall", "three identical closed doors"],
+    elements: ["two identical fire hoses on the wall", "three identical closed doors", "four identical ceiling lights"],
   },
   {
     place: "an empty gallery room with bare walls and a polished floor",
-    elements: ["three identical empty picture frames", "two identical plinths", "three identical skylights"],
+    elements: ["two identical plinths", "three identical empty picture frames", "four identical skylights"],
   },
 ] as const;
 
@@ -128,6 +128,12 @@ export const ILLUSTRATION_PLACES = [
  * Two different strides so the pairing itself varies: place walks the 12-list
  * by 5, element walks each 3-list by 7, and neither shares a factor with its
  * list length, so both cycle fully before repeating.
+ *
+ * Each place lists its elements as two / three / four in that order, so the
+ * COUNT rotates evenly too. An earlier version had two "three" entries per
+ * place and one "two", which meant 67% of posts opened on three of something —
+ * at 21 posts a week that is a visible tic, and the repetition is already the
+ * device without the number being predictable as well.
  */
 export function pickPlace(seed: number): string {
   const n = ILLUSTRATION_PLACES.length;

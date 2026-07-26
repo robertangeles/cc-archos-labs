@@ -161,6 +161,34 @@ describe("pickPlace", () => {
     expect(doorish.length).toBeLessThanOrEqual(6);
   });
 
+  it("rotates the COUNT as well as the element", () => {
+    // An earlier version had two "three" entries per place and one "two", so
+    // 67% of posts opened on three of something. At 21 posts a week that is a
+    // visible tic — the repetition is already the device without the number
+    // being predictable too.
+    const counts: Record<string, number> = {};
+    for (let i = 0; i < 36; i++) {
+      const el = pickPlace(i).split("The repeated element is ")[1] ?? "";
+      const word = el.split(" ")[0];
+      counts[word] = (counts[word] ?? 0) + 1;
+    }
+    expect(Object.keys(counts).sort()).toEqual(["four", "three", "two"]);
+    // Even, not merely present.
+    for (const n of Object.values(counts)) expect(n).toBe(12);
+  });
+
+  it("lists every place's elements as two, three, four in that order", () => {
+    // The even rotation depends on the ordering, so pin it — a reordered list
+    // would silently skew the distribution again.
+    for (const { place, elements } of ILLUSTRATION_PLACES) {
+      expect(elements.map((e) => e.split(" ")[0]), place).toEqual([
+        "two",
+        "three",
+        "four",
+      ]);
+    }
+  });
+
   it("pairs an element that could exist in its setting", () => {
     // Three identical staircases do not belong in a field. Each element list
     // is written against its own place for exactly this reason.
