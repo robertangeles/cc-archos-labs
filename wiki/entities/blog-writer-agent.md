@@ -2,7 +2,7 @@
 title: Blog Writer Agent — unattended drafting with a slop gate
 category: entity
 created: 2026-07-25
-updated: 2026-07-25
+updated: 2026-07-26
 related: [[state]], [[translation-layer]], [[deployment-architecture]], [[workflow-run-history]], [[2026-07-25-no-fabricated-experience]]
 ---
 
@@ -85,10 +85,32 @@ The judge fences the research in its own prompt too. The executor's fence does n
 - **Do not copy `scheduled-publisher.ts` for a job claim.** Its comment describes a lock held across both stages; its transaction actually commits and releases before the per-row UPDATE. Harmless there (publishing is idempotent), two posts and two bills here. Copy [lib/scheduler.ts:160](../../lib/scheduler.ts) instead.
 - **Do not FK to `workflow_execution_run`.** `pruneRuns` trims it to 22 rows per workflow inside a swallowed `catch{}`; a reference would make the prune throw, get swallowed, and stop retention forever while `step_results` grew unbounded.
 
+## The illustration
+
+Every post gets a featured image, generated in the same run. Before this, agent posts had none at all — `generateOgImage` ([lib/og.ts](../../lib/og.ts)) is still a stub returning an empty path.
+
+Responsibility is split on purpose, and the split is the whole design:
+
+| Decided in code | Decided by the skill |
+|---|---|
+| Style, setting, framing, alt-text cap | The scene: where the figure stands, where the light falls, what is impossible |
+
+**Style** lives in `ILLUSTRATION_STYLE` ([lib/blog-agent/parse-image-prompt.ts](../../lib/blog-agent/parse-image-prompt.ts)) because it must not drift across ninety posts: flat vector shapes, a dim cool room, one hard-edged wedge of warm light, an elevated three-quarter view, a small anonymous figure seen from behind. It describes the look rather than naming an artist — a name is a coin flip on what the model absorbed, and Google's guidance discourages it.
+
+**Setting** is rotated over twelve bare places, keyed off `day_number`. Asking the model to vary does not work: told to consider three settings and discard the obvious one, three independent runs still chose a warehouse, and an earlier prompt chose a ruler three times out of three.
+
+**Ratio.** The template renders `aspect-[29/10]`, and 2.9:1 is not a ratio the model offers — its widest is 21:9. So it generates at 21:9 and crops server-side, because the raw file is what social cards, RSS and JSON-LD serve; a CSS crop would leave every shared link uncropped. (`--ar 289:100` in the old skill was a Midjourney value that appears nowhere in the code.)
+
+**Two things the model does anyway, handled in code rather than asked for:** it mattes images inside a white border even when the prompt forbids one, and it returns alt text over the stated limit — measured at 147, 214 and 144 characters against a 125 cap, three times out of three.
+
+Nothing here can cost a post. Any failure attaches the committed house asset at `public/images/blog-fallback.webp`, and `image.enabled: false` turns generation off without a deploy.
+
 ## Deferred (PR 2)
 
 Auto internal-linking, duplicate-topic guard, the `field_note` slot, structural variance, and `/admin/blog/pipeline`. The performance feedback loop is deferred further still — it has nothing to learn from until roughly 20 agent posts have data.
 
+One to watch rather than fix: the art director keeps choosing **doorways** as its repeated element regardless of setting. The settings differ so the compositions do, but if that persists across a real run of posts it will read as samey.
+
 ## Operating it
 
-See [[blog-writer-agent-runbook]] for the four failure modes and what to do about each.
+See [[blog-writer-agent-runbook]] for the six failure modes and what to do about each.

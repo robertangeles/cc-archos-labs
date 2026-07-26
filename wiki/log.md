@@ -1784,3 +1784,21 @@ Also fixed: `judge_verdict` kept only the last round, so the reason for a rewrit
 Added `wiki/runbooks/blog-writer-agent-uat-checklist.md` — hand-run acceptance covering the controls (auth, kill switch, loud-failing preflight, publish gate, crash recovery) plus the judgement section tests cannot cover. Every SQL snippet and test filter in it was executed against DEV before committing. Includes the human-post regression check: a human's flagged scheduled post must still publish, since `needs_review` is a general editorial flag.
 
 Also added `scripts/seed-blog-agent-config.mjs`, which derives every id from the database rather than hardcoding them — workflow field ids are runtime data that a builder edit re-mints.
+
+## 2026-07-26 — Blog agent PR 2: in-agent illustration
+
+Agent posts had no featured image at all — `generateOgImage` is still a stub returning an empty path, and the workflow's last step only ever wrote a Midjourney prompt for a human to paste by hand.
+
+**The style was chosen by looking, not by arguing.** Three rounds of prompt iteration in chat produced clipart, then an empty beige field, then a slide. The fix was not more adjectives: it was fetching the actual reference portfolio, building a contact sheet of 16 pieces, and reading the style off it. Every axis of the direction taken from a written description was inverted — no figures where the reference has one in almost every piece, one object where it uses full environments, halftone and torn paper where it is clean flat vector, and no equivalent at all of its signature move, a hard-edged beam of light cutting through a dim room.
+
+**Three things the model does regardless of instruction**, each now handled in code:
+
+- Mattes the illustration inside a white border, even when the prompt says full bleed, no border, no mat, no frame — observed on the house fallback, whose prompt contained exactly that clause.
+- Returns alt text over the stated limit: 147, 214 and 144 characters against a 125 cap, in three runs out of three.
+- Converges on one idea when asked to vary: told to consider three settings and discard the obvious one, three independent runs still chose a warehouse; an earlier prompt chose a ruler three times out of three. Settings are now assigned from a rotating list of twelve.
+
+**A test found a real bug.** `attachIllustration` wrapped generation, upload and fallback in one `try`. Any throw from the first two jumped straight past the fallback, so an R2 misconfigured on the server — the likeliest real failure — would have shipped posts with a blank featured slot and no error. Split into two blocks.
+
+New skill `archos-editorial-illustration` replaces `archos-stephan-schmitz-image` on the workflow's last step; the old one is left in place for manual Midjourney work. It could not be reused: it emits Midjourney flags Gemini reads as prose, names a living artist, contradicts itself ("simple geometric figures, no detail for detail's sake" against "caricatured proportions and expressive faces, satirical"), and its system prompt tells the model to ask a clarifying question and wait — which unattended is a hung step.
+
+Touched: [[blog-writer-agent]], [[blog-writer-agent-runbook]], [[blog-writer-agent-uat-checklist]].

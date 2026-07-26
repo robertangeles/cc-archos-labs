@@ -2,13 +2,13 @@
 title: UAT — blog writer agent
 category: runbook
 created: 2026-07-25
-updated: 2026-07-25
+updated: 2026-07-26
 related: [[blog-writer-agent]], [[blog-writer-agent-runbook]], [[2026-07-25-no-fabricated-experience]], [[deployment-architecture]]
 ---
 
 You are deciding one thing: **would you put your name on what this thing writes?**
 
-Everything else — the auth, the kill switch, the publish gate, the crash recovery — is checked by a script. Your job is to read one blog post and answer five questions.
+Everything else — the auth, the kill switch, the publish gate, the crash recovery — is checked by a script. Your job is to read one blog post, look at its illustration, and answer six questions.
 
 > **Where this stands (2026-07-25, branch `feature/blog-writer-agent`)**
 > Step 1 has been run: **9 of 9 checks pass**, dev server up, settings valid, queue empty, no leftover drafts. Unless you have changed something, **start at Step 2**.
@@ -80,7 +80,7 @@ If it parks something you would have been happy to publish, that is not a bug an
 
 ---
 
-## Step 3 — read it, and answer five questions
+## Step 3 — read it, and answer six questions
 
 Open the link the script prints. Read the whole post.
 
@@ -105,13 +105,23 @@ Watch for *"drains millions per year"*, *"a significant share"*, *"large portion
 **5. Does the counter-argument get a fair hearing?**
 There should be a section arguing against the main point, given real weight and then answered. Not a token objection raised to be swatted away.
 
+**6. Would the image stop you scrolling — and is there any text in it?**
+Shrink the preview until the image is about as wide as your thumb. That is the size most people will see it at.
+
+- **Text is a hard fail.** Any letters, words, numbers or signage. The model renders legible text whenever a scene implies it, so the art director is forbidden from describing anything readable. One slip means the rule needs tightening.
+- **A white border is a hard fail.** The illustration should run edge to edge. A framed-print look means the trim didn't catch it.
+- **Is there an idea in it?** The picture should have one thing that is quietly wrong — light falling the wrong way, two shadows that disagree. If it is just a nice-looking room, it is decoration, and decoration does not stop a scroll.
+- **Does it look like the others?** Open two or three agent posts side by side. Same palette and drawing style is correct and deliberate. The same *scene* three times is not — tell me, because the setting rotation is not doing its job.
+
 ---
 
 ## The verdict
 
-Ship if the nine checks pass **and** you would publish the post, or you can say precisely why not.
+Ship if the checks pass **and** you would publish the post, or you can say precisely why not.
 
 Do not ship if question 2, 3 or 4 turns up anything. Those are the three failures this whole thing exists to prevent.
+
+An image problem is not a reason to hold the release. Switch illustrations off in the settings (`image.enabled`) and the posts still work — they get the house fallback.
 
 ---
 
@@ -125,6 +135,9 @@ Worth knowing so you don't report them as bugs:
 - **The number check is matching, not fact-checking.** It catches a figure that appears nowhere in the research. It cannot catch a real figure attached to the wrong claim. That is what question 3 is for.
 - **The reviewer only sees the finished draft.** It cannot tell you the research itself was thin — only that the writing is not supported by it. If posts keep getting parked on the same topic, suspect the topic, not the writer.
 - **Settings are edited in the database for now.** The admin screens for them come in the next PR, along with a page showing the queue.
+- **A post that falls back to the house image is not broken.** Losing an illustration must never cost a good article, so any failure — the model erring, storage being unreachable, the art director returning nothing usable — quietly attaches the standard image instead. The script tells you when that happened.
+- **The style is fixed in code, on purpose.** Flat vector shapes, a dim cool room, one hard wedge of warm light, a small figure seen from behind. The art director chooses only the scene. That split is what stops ninety posts drifting apart from each other.
+- **The setting is assigned, not chosen.** Twelve of them, rotated in order. Left to pick for itself the model repeats one answer — three separate runs of the same prompt chose a warehouse every time, and an earlier version chose a ruler three times out of three.
 
 ---
 

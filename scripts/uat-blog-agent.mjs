@@ -304,6 +304,49 @@ try {
     "",
     `saved_by = ${rev?.saved_by}`,
   );
+
+      // --- Illustration --------------------------------------------------
+      const [img] = await sql`
+        SELECT og_image_path, og_image_alt, og_image_width, og_image_height,
+               og_image_size_kb, og_image_r2_key
+          FROM post WHERE id = ${writtenPostId}`;
+      const usedFallback = Boolean(img?.og_image_path) && !img?.og_image_r2_key;
+
+      check(
+        Boolean(img?.og_image_path),
+        "Has a featured image",
+        usedFallback ? "the house fallback, not its own" : "generated for this post",
+        "no image at all — the featured slot will render blank",
+      );
+
+      if (img?.og_image_path) {
+        // The blog template renders featured images at aspect-[29/10]. A wrong
+        // ratio here means letterboxing on every card and social preview.
+        const ratio = img.og_image_width / img.og_image_height;
+        check(
+          Math.abs(ratio - 2.9) < 0.05,
+          "Image is the shape the template expects",
+          `${img.og_image_width}x${img.og_image_height} (${ratio.toFixed(2)}:1)`,
+          `${ratio.toFixed(2)}:1, expected 2.90:1`,
+        );
+        check(
+          img.og_image_size_kb <= 500,
+          "Image is within the size cap",
+          `${img.og_image_size_kb}KB`,
+          `${img.og_image_size_kb}KB exceeds the 500KB limit`,
+        );
+        check(
+          Boolean(img.og_image_alt) && img.og_image_alt.length <= 125,
+          "Image has alt text within the limit",
+          `${img.og_image_alt?.length ?? 0} chars`,
+          `alt is ${img.og_image_alt?.length ?? 0} chars`,
+        );
+
+        if (usedFallback) {
+          console.log("\n  NOTE: this post got the house fallback illustration.");
+          console.log("  That means generation failed. Check the run output above for the reason.");
+        }
+      }
     }
   }
 
@@ -324,11 +367,11 @@ try {
     console.log(`    Preview:  ${BASE}/admin/blog/posts/${writtenPostId}/preview`);
     console.log("\n  To check its numbers are real (question 3), print the research it was given:");
     console.log("\n    node --env-file=.env.local scripts/uat-blog-agent.mjs --research");
-    console.log("\n  Then answer the five questions in");
+    console.log("\n  Then answer the six questions in");
     console.log("  wiki/runbooks/blog-writer-agent-uat-checklist.md");
   } else {
     console.log("\n  All safety checks passed. Re-run with --write to have it write a real post,");
-    console.log("  then read it and answer the five questions in the checklist.");
+    console.log("  then read it and answer the six questions in the checklist.");
   }
   console.log("");
 } catch (err) {

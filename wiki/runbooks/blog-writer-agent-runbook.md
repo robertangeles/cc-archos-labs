@@ -2,11 +2,11 @@
 title: Blog writer agent — operational runbook
 category: runbook
 created: 2026-07-25
-updated: 2026-07-25
+updated: 2026-07-26
 related: [[blog-writer-agent]], [[deployment-architecture]]
 ---
 
-What to do when the daily blog agent misbehaves. Four failure modes, each with a signal and a response.
+What to do when the daily blog agent misbehaves. Six failure modes, each with a signal and a response.
 
 ## First: nothing it does is urgent
 
@@ -97,6 +97,51 @@ SELECT field_id, label FROM workflow_field
 ```
 
 Then update `fieldMap` at `/admin/prompts/blog-agent-config`. Without this guard the agent would have passed inputs keyed to a dead id, received an empty topic, and written a confident, well-formed article about nothing.
+
+## 5. Every post is getting the fallback illustration
+
+**Signal:** `imageFallback: true` on every run, or in SQL — a fallback has an
+image path but no R2 key, because it is a static asset rather than an upload:
+
+```sql
+SELECT id, slug, og_image_path IS NOT NULL AS has_image,
+       og_image_r2_key IS NULL AS is_fallback
+  FROM post WHERE is_agent_generated ORDER BY created_at DESC LIMIT 10;
+```
+
+**Causes, cheapest to check first:**
+
+1. **Illustrations are switched off.** `image.enabled: false` in
+   `blog_agent_config`. Deliberate if someone set it; check before digging.
+2. **R2 is not configured on the server.** `attachImageToPost` throws
+   `R2NotConfiguredError`. Needs `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
+   `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` and `R2_PUBLIC_URL` — note the last one
+   is `R2_PUBLIC_URL`, not `R2_PUBLIC_BASE_URL`.
+3. **The illustration step produced nothing.** Look for `image_prompt` in the
+   run's `step_results`. Empty means the step failed; the article still shipped,
+   which is by design.
+4. **Generation is timing out.** `generateImage` bounds time-to-headers at 25s.
+   Measured at 2K: headers at 10.1-10.6s, so there is roughly 2.5x margin. If
+   this starts firing, the provider has slowed down — do not "fix" it by raising
+   the image size, which is what eats the margin.
+
+**Response:** none of these is urgent. Posts still land and still read fine.
+Fix the cause, and the next run picks it up.
+
+## 6. The illustrations have text in them
+
+**Signal:** legible words, letters or numerals in a generated image.
+
+**Cause:** the art director described something readable. The model renders
+text whenever the scene implies it — an early version of this prompt described
+a ledger and the image came back with a readable company name on it.
+
+**Response:** tighten the skill prompt at `/account/workflows`
+(`archos-editorial-illustration`). The rule that works is banning the *object
+category* rather than the depiction: no documents, ledgers, books, screens,
+charts, rulers, clocks, dials or gauges, because those objects drag text in
+whether or not you asked for it. Style and framing are in code and already say
+"no text"; that alone was not enough.
 
 ## Something bad reached the public site
 
