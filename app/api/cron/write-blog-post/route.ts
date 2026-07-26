@@ -37,9 +37,24 @@ const HEARTBEAT_ID = "blog-writer";
 
 export async function POST(request: NextRequest) {
   // 1. Auth -----------------------------------------------------------------
-  const expected = process.env.CRON_SECRET;
+  //
+  // BLOG_CRON_SECRET first, CRON_SECRET as the fallback. Two reasons, and the
+  // second is the real one.
+  //
+  // Practical: this cron was created through the API and is the only service in
+  // the account outside the shared environment, so `$CRON_SECRET` expands to
+  // nothing in its shell and every run 401s. A secret scoped to this one
+  // service fixes that without touching the five crons that work.
+  //
+  // Security: `CRON_SECRET` opens EVERY cron endpoint. This is the only one
+  // that spends real money per call — deep research, four model steps and an
+  // image — so it is the one that least deserves a shared key. A dedicated
+  // secret means a leak here cannot purge leads or publish posts.
+  const expected = process.env.BLOG_CRON_SECRET || process.env.CRON_SECRET;
   if (!expected || expected.length < 16) {
-    console.error("[cron/write-blog-post] CRON_SECRET not set or too short");
+    console.error(
+      "[cron/write-blog-post] neither BLOG_CRON_SECRET nor CRON_SECRET is set (or it is too short)",
+    );
     return NextResponse.json(
       { ok: false, error: "Cron not configured." },
       { status: 503 },

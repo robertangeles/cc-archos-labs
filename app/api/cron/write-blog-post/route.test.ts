@@ -64,19 +64,22 @@ beforeEach(() => {
 
 afterEach(() => {
   delete process.env.CRON_SECRET;
+  delete process.env.BLOG_CRON_SECRET;
   vi.clearAllMocks();
 });
 
 describe("auth", () => {
-  it("503s when CRON_SECRET is unset", async () => {
+  it("503s when neither secret is set", async () => {
     delete process.env.CRON_SECRET;
+    delete process.env.BLOG_CRON_SECRET;
     const res = await POST(req(`Bearer ${SECRET}`));
     expect(res.status).toBe(503);
     expect(runMock).not.toHaveBeenCalled();
   });
 
-  it("503s when CRON_SECRET is too short to be a real secret", async () => {
+  it("503s when the secret is too short to be a real secret", async () => {
     process.env.CRON_SECRET = "short";
+    delete process.env.BLOG_CRON_SECRET;
     const res = await POST(req("Bearer short"));
     expect(res.status).toBe(503);
     expect(runMock).not.toHaveBeenCalled();
@@ -85,6 +88,36 @@ describe("auth", () => {
   it("401s with no Authorization header", async () => {
     const res = await POST(req());
     expect(res.status).toBe(401);
+    expect(runMock).not.toHaveBeenCalled();
+  });
+
+  // This endpoint is the only one that spends real money per call, so it gets
+  // its own key rather than the one that opens every cron route.
+  it("accepts BLOG_CRON_SECRET in preference to CRON_SECRET", async () => {
+    process.env.BLOG_CRON_SECRET = "blog-only-secret-long-enough-to-pass";
+    const res = await POST(req("Bearer blog-only-secret-long-enough-to-pass"));
+    expect(res.status).toBe(200);
+    expect(runMock).toHaveBeenCalledOnce();
+  });
+
+  it("rejects the shared CRON_SECRET once a blog-specific one is set", async () => {
+    // Otherwise the narrower key would be additive rather than scoping, and
+    // the whole point — a leak here cannot reach the other cron routes — is
+    // lost in the direction that matters.
+    process.env.BLOG_CRON_SECRET = "blog-only-secret-long-enough-to-pass";
+    const res = await POST(req(`Bearer ${SECRET}`));
+    expect(res.status).toBe(401);
+    expect(runMock).not.toHaveBeenCalled();
+  });
+
+  it("503s (not a silent fallback to CRON_SECRET) when BLOG_CRON_SECRET is set but too short", async () => {
+    // `||` only falls through on falsy, not on length — a short BLOG_CRON_SECRET
+    // is still truthy, so it must be the one that fails the length check rather
+    // than quietly ceding to a perfectly valid CRON_SECRET sitting behind it.
+    process.env.CRON_SECRET = SECRET;
+    process.env.BLOG_CRON_SECRET = "short";
+    const res = await POST(req(`Bearer ${SECRET}`));
+    expect(res.status).toBe(503);
     expect(runMock).not.toHaveBeenCalled();
   });
 

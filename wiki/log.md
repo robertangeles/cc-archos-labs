@@ -1884,3 +1884,41 @@ Live at archoslabs.xyz. Three posts a day at 7am, 2pm and 10pm Sydney, publishin
 Render cron `blog-writer-agent` (crn-d9is4ibrjlhs73ffq2s0): `0 19,2,10 * * *` UTC = 5am / 12pm / 8pm Sydney, each roughly two hours before the slot it fills. Copied from the four existing crons rather than invented — Git Provider source, `buildCommand: true`, curl with `$CRON_SECRET`.
 
 Touched: [[blog-writer-agent]], [[deployment-architecture]].
+
+## 2026-07-26 — Blog agent: three defects fixed, first four posts scheduled in PROD
+
+Promoted the agent to PROD in the morning (PR #216) and it produced nothing.
+Running the pipeline directly against PROD instead of verifying the deploy
+surfaced three defects, all fixed in PR #217:
+
+- `researchLandscape` passed `AbortSignal.timeout` to `fetch`, aborting a body
+  that was still streaming. PROD's queue went 0 → 14 on the first run after.
+- A parked draft ended the tick, so three ticks a day delivered well under
+  three posts, silently. `runUntilDrafted` takes the next topic.
+- `I have never seen` slipped past the fabricated-experience regex into a PROD
+  draft under the Metis byline. pr-reviewer then caught a false positive in my
+  widened pattern (`I run the risk of...`) and fixed it.
+
+The root cause of the gate rejecting everything was **supply, not filter**: the
+research step returns zero figures, so the writer invented them.
+`scripts/patch-essay-evidence-rules.mjs` appends hard evidence rules to the
+essay skill prompt. Grounded figures 0/4 → 3/4 → four consecutive first-attempt
+passes.
+
+Also found: `archos-paul-graham-essays` differs between DEV (6,349 chars) and
+PROD (9,004) — PROD carries three sections DEV lacks. Not yet reconciled.
+
+Cron 401 traced to the service having no `environmentId`, so `$CRON_SECRET`
+expanded empty. Fixed with a dedicated `BLOG_CRON_SECRET` set directly on both
+services — also least-privilege, since the shared secret opens every cron route.
+
+Scheduled in PROD: Sun 26 Jul 10pm, Mon 27 Jul 7am / 2pm / 10pm. Four distinct
+illustrations, all 3168x1092, none held for review.
+
+Housekeeping: archived 5 stale drafts (3 rejects, 2 empty shells from June),
+requeued 3 topics that only failed under the old prompt, removed all scratch
+files.
+
+Touched: `wiki/runbooks/blog-writer-agent-runbook.md`,
+`wiki/lessons-learned/2026-07-26-verify-by-running-not-by-deploying.md`,
+`wiki/index.md`.
