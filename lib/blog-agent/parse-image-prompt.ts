@@ -113,6 +113,43 @@ export const ILLUSTRATION_PLACES = [
   },
 ] as const;
 
+
+/**
+ * The kind of wrongness the picture is built on, assigned in code.
+ *
+ * Measured on the original skill's 13 real outputs: 7 of 13 were "N identical
+ * things a figure stands in front of" — four filing cabinets, five doors,
+ * three podiums. It converged too. The operator never saw it because he ran it
+ * by hand and re-rolled the fourth filing cabinet; that filter disappears when
+ * the thing runs three times a day unattended.
+ *
+ * An earlier version of this file hardcoded the repeated-object device, which
+ * took a 54% problem to 100%. Rotating the device restores the variety of idea
+ * the reference illustrator actually has — a man painting himself out of
+ * existence, a pool shaped like a head, a tree inside a picture frame — while
+ * still refusing the model a free choice it has demonstrably blown.
+ *
+ * 8 and 12 share no factors with their strides, so device, place and element
+ * all cycle fully and independently.
+ */
+export const ILLUSTRATION_DEVICES = [
+  "The repeated things should be identical, but the light each one throws disagrees — different angles, different lengths, or one throwing none at all.",
+  "There should be a row of them and there is only one, alone in a space that plainly expects more. The empty positions are visible in the floor or the wall.",
+  "The figure's reflection does not match the figure — it stands differently, faces elsewhere, or is not there at all.",
+  "One of the repeated things is enormously larger than the others, dwarfing the figure, while the rest stay ordinary. Nothing explains the difference.",
+  "The light, or a shadow, continues straight through a solid surface and carries on beyond it as though the surface were not there.",
+  "The figure casts the shadow of something else entirely — a shape that is not a person and is not anything else in the frame.",
+  "The repeated things hang suspended a little above where they should rest, and their shadows fall on the ground beneath as if they were still touching it.",
+  "One is missing from an otherwise complete row, and the gap it left is lit while everything present sits in shadow.",
+] as const;
+
+/** Pick the device for a queue position. Stride 5 against 8 cycles fully. */
+export function pickDevice(seed: number): string {
+  const n = ILLUSTRATION_DEVICES.length;
+  const i = (((Math.trunc(seed) * 5) % n) + n) % n;
+  return ILLUSTRATION_DEVICES[i];
+}
+
 /**
  * Pick the setting AND the repeated element for a given queue position.
  *
@@ -141,7 +178,7 @@ export function pickPlace(seed: number): string {
   const entry = ILLUSTRATION_PLACES[(((s * 5) % n) + n) % n];
   const m = entry.elements.length;
   const element = entry.elements[(((s * 7) % m) + m) % m];
-  return `${entry.place}. The repeated element is ${element}.`;
+  return `${entry.place}. The repeated element is ${element}. ${pickDevice(s)}`;
 }
 
 export interface ParsedImagePrompt {

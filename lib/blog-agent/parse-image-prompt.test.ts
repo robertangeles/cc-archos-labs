@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import fixtures from "./__fixtures__/real-image-prompts.json";
 import {
   ILLUSTRATION_COMPOSITION,
+  ILLUSTRATION_DEVICES,
   ILLUSTRATION_PLACES,
   ILLUSTRATION_STYLE,
   buildImagePrompt,
   parseImagePrompt,
+  pickDevice,
   pickPlace,
 } from "./parse-image-prompt";
 
@@ -224,5 +226,39 @@ describe("buildImagePrompt", () => {
 
   it("stays inside the 16k prompt cap generateImage enforces", () => {
     expect(buildImagePrompt("x".repeat(2000)).length).toBeLessThan(16_000);
+  });
+});
+
+describe("device rotation", () => {
+  it("cycles every device before repeating", () => {
+    const seen = new Set(
+      Array.from({ length: ILLUSTRATION_DEVICES.length }, (_, i) => pickDevice(i)),
+    );
+    expect(seen.size).toBe(ILLUSTRATION_DEVICES.length);
+  });
+
+  it("never repeats a device on consecutive posts", () => {
+    for (let i = 0; i < 40; i++) {
+      expect(pickDevice(i), `seed ${i}`).not.toBe(pickDevice(i + 1));
+    }
+  });
+
+  it("does not make every picture the repeated-object idea", () => {
+    // Measured on the original skill's 13 real outputs: 7 of 13 were "N
+    // identical things a figure stands before". Hardcoding that device took a
+    // 54% problem to 100%.
+    const repeatedObject = Array.from({ length: 24 }, (_, i) => pickDevice(i)).filter(
+      (d) => /should be identical/.test(d),
+    );
+    expect(repeatedObject.length / 24).toBeLessThan(0.2);
+  });
+
+  it("puts the device in the brief the art director receives", () => {
+    const brief = pickPlace(3);
+    expect(ILLUSTRATION_DEVICES.some((d) => brief.endsWith(d))).toBe(true);
+  });
+
+  it("is deterministic", () => {
+    expect(pickDevice(11)).toBe(pickDevice(11));
   });
 });

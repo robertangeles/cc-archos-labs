@@ -58,7 +58,7 @@ A FIGURE — one small anonymous person, seen from behind or in silhouette, dwar
 
 THE REPEATED ELEMENT — named for you above. Identical is the whole point: the viewer must see at a glance that these things ought to match. Place them clearly and evenly so the repetition reads instantly.
 
-AN IMPOSSIBILITY — the repeated elements disagree with each other, and the disagreement is written in LIGHT. The light each one throws falls at a different angle, or a different length, or one throws none at all. Or the single figure casts two shadows that point different ways.
+THE IMPOSSIBILITY — the last sentence of the block above tells you exactly what is wrong with this scene. Build the picture around that and nothing else. Do not add a second impossibility beside it, and do not fall back on shadows disagreeing unless that is what you were told.
 
 HARD RULES:
 
