@@ -188,6 +188,7 @@ export async function listPostsForAdmin(
       wordCount: post.wordCount,
       readingTimeMin: post.readingTimeMin,
       needsReview: post.needsReview,
+      isAgentGenerated: post.isAgentGenerated,
       sourceWpId: post.sourceWpId,
       lastReviewedAt: post.lastReviewedAt,
       publishedAt: post.publishedAt,
@@ -276,6 +277,7 @@ export async function getAdminPostById(
       wordCount: post.wordCount,
       readingTimeMin: post.readingTimeMin,
       needsReview: post.needsReview,
+      isAgentGenerated: post.isAgentGenerated,
       sourceWpId: post.sourceWpId,
       lastReviewedAt: post.lastReviewedAt,
       publishedAt: post.publishedAt,
@@ -1131,6 +1133,7 @@ interface PostRowForView {
   wordCount: number;
   readingTimeMin: number;
   needsReview: boolean;
+  isAgentGenerated: boolean;
   sourceWpId: number | null;
   lastReviewedAt: Date | null;
   publishedAt: Date | null;
@@ -1174,6 +1177,7 @@ function rowToAdminView(row: PostRowForView): AdminPostView {
     wordCount: row.wordCount,
     readingTimeMin: row.readingTimeMin,
     needsReview: row.needsReview,
+    isAgentGenerated: row.isAgentGenerated,
     sourceWpId: row.sourceWpId,
     lastReviewedAt: row.lastReviewedAt,
     publishedAt: row.publishedAt,

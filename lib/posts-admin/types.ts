@@ -52,6 +52,12 @@ export interface AdminPostView {
   wordCount: number;
   readingTimeMin: number;
   needsReview: boolean;
+  /**
+   * Written by the blog writer agent. Read side of the flag PostInput already
+   * carried — without it the admin list cannot tell an agent draft from one of
+   * the 120 migrated WordPress posts, which also sit in the review queue.
+   */
+  isAgentGenerated: boolean;
   sourceWpId: number | null;
   lastReviewedAt: Date | null;
   publishedAt: Date | null;
