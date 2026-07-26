@@ -205,9 +205,19 @@ const ABSOLUTIST =
   /\b(?:truly|absolutely|fundamentally|critically|profoundly|utterly|entirely|completely|undeniably|unquestionably)\b/gi;
 const JUXTAPOSITION = /\bnot\s+[^.,;!?]{2,60},\s*but\s+[^.!?]{2,60}/gi;
 
-/** Markdown links, bare URLs, and autolinks. */
+/**
+ * Markdown links, bare URLs, and autolinks.
+ *
+ * The markdown-link alternative allows an optional trailing title
+ * (`[text](url "title")` or `[text](url 'title')`) after the URL. Without
+ * that, `[text](https://evil.com "Click here")` matched neither alternative —
+ * not the link form, because a title sits between the URL and the closing
+ * `)`; not the bare-URL form, because it is preceded by `(`, which that
+ * alternative's lookbehind excludes to avoid double-processing a normal
+ * link — and passed through untouched, defeating the strip entirely.
+ */
 const LINK_RE =
-  /\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)|<(https?:\/\/[^>\s]+)>|(?<![(<\]])\b(https?:\/\/[^\s)<>]+)/g;
+  /\[([^\]]*)\]\((https?:\/\/[^)\s]+)(?:\s+[^)]*)?\)|<(https?:\/\/[^>\s]+)>|(?<![(<\]])\b(https?:\/\/[^\s)<>]+)/g;
 
 function hostOf(url: string): string | null {
   try {

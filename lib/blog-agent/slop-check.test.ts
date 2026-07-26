@@ -281,6 +281,20 @@ describe("outbound link allowlist", () => {
     expect(r.verdict).toBe("pass");
   });
 
+  it("strips a markdown link that carries a title attribute", () => {
+    // [text](url "title") sits between the two alternatives: not the plain
+    // link form (a title breaks the immediate `)`), and excluded from the
+    // bare-URL form by its own lookbehind (it is preceded by `(`). Without
+    // the title-aware branch this URL passed through untouched.
+    const r = check({
+      contentMd:
+        'Intro.\n\nSee [this source](https://evil.example.com/x "Click here") for more.\n\nClose.',
+    });
+    expect(r.publishableContentMd).not.toContain("evil.example.com");
+    expect(r.publishableContentMd).toContain("this source");
+    expect(r.strippedLinks).toEqual(["https://evil.example.com/x"]);
+  });
+
   it("survives an injection-shaped payload end to end", () => {
     // The shape of the real risk: research text steers the writer into
     // recommending a product and linking to it. Even if the writer complies,

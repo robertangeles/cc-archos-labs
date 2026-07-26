@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { getDb } from "../db";
 import { category, contentPlanItem } from "../db/schema";
 import { generateStructured } from "../claude";
@@ -158,6 +158,20 @@ export async function generateBatch(
   const skipped: string[] = [];
   const rows: Array<typeof contentPlanItem.$inferInsert> = [];
 
+  // Continue the numbering rather than restarting at 1 for each batch.
+  //
+  // Two things read day_number globally, not per batch. `claimNextItem`
+  // dequeues with ORDER BY status, day_number across every pending row, so a
+  // batch restarting at 1 would jump the queue ahead of the previous batch's
+  // unconsumed items. And `pickPlace(item.dayNumber)` keys the illustration's
+  // setting, repeated element AND device off it — so batch 2 day 1 would get
+  // the identical picture concept as batch 1 day 1, and every batch after the
+  // first would silently reproduce the same seven images.
+  const [maxRow] = await db
+    .select({ max: sql<number | null>`max(${contentPlanItem.dayNumber})` })
+    .from(contentPlanItem);
+  const offset = maxRow?.max ?? 0;
+
   batch.items.forEach((item, i) => {
     const slug = config.categoryMap[item.category];
     const categoryId = slug ? idBySlug.get(slug) : undefined;
@@ -167,7 +181,7 @@ export async function generateBatch(
     }
     rows.push({
       batchId,
-      dayNumber: i + 1,
+      dayNumber: offset + i + 1,
       title: item.title,
       format: item.format,
       shape: item.shape,
