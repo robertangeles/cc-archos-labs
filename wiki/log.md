@@ -1922,3 +1922,63 @@ files.
 Touched: `wiki/runbooks/blog-writer-agent-runbook.md`,
 `wiki/lessons-learned/2026-07-26-verify-by-running-not-by-deploying.md`,
 `wiki/index.md`.
+
+## 2026-07-27 — DEV Postgres provisioned on HEPHAESTUS; prompt drift closed
+
+Pulled 143 commits (`2a98df8` → `03b49fc`, 224 files) onto this laptop and went
+to sync the one drifted prompt row flagged in yesterday's log —
+`archos-paul-graham-essays`, DEV 6,349 chars against PROD 9,004.
+
+**The sync could not start: there was no DEV database.** `.env.local` named
+`archos_labs_dev`, the `archos_dev` role existed and its password worked, and
+the database itself had never been created on this machine — `3D000`. The
+2026-06-15 DEV clone was made on a different laptop. Nothing in the repo said
+DEV was per-machine, so [[deployment-architecture]] read as though it existed
+everywhere.
+
+**The narrow request was the wrong unit of work.** Cloning PROD wholesale (54
+MB, minutes) fixed the missing database, the migration state and the prompt
+drift in one move, and no single-row sync script was ever written. DEV now
+reads 9,004 chars / md5 `eca95c3e30e6` / v5 with the `Pre-write check`,
+`Forbidden words` and `SEO Package` sections it lacked.
+
+Verified: 118/118 tables identical, 5,490 rows, `__drizzle_applied` at 38 rows
+/ `0036_content_plan_item.sql`. The three `must be owner of extension` errors
+from `pg_restore` are benign and now documented as expected — they hit
+`COMMENT ON EXTENSION` only, and `pg_restore` exiting 1 is normal here.
+
+**Rewrote the global `/update-db` (`~/.claude/commands/update-db.md`) to be
+repo-agnostic**, since it hardcoded Culinaire's `DEV_DATABASE_URL` /
+`PROD_DATABASE_URL` in a root `.env` and stopped at its first gate here. It now
+resolves connections by trying both naming schemes across `.env.local` / `.env`
+/ `.env.development`, and **parses env files as text** so it can read a
+deliberately commented-out PROD URL — a dotenv loader never sees one.
+
+**Checking that rewrite against the real files found it was broken for
+Culinaire too, for the opposite reason.** Culinaire's `DEV_DATABASE_URL` is
+itself a Render host, so the old "restore target must be localhost, else STOP"
+guard refused it outright. Host shape cannot distinguish DEV from PROD once DEV
+is managed. Replaced with three unconditional checks (URLs equal; host+db equal;
+**db name equal on any host** — the case a copy-pasted URL hits) and then a
+branch: local proceeds, remote proceeds only after the operator names the target
+database back, re-confirmed every run. Verified against both repos plus three
+adversarial pairs. Culinaire's databases differ by one suffix —
+`culinaire_kitchen_postgresdb_oqph` vs `culinaire_kitchen_postgresdb` — which is
+why a bare "yes" is not accepted as confirmation.
+
+**This is the guard archos needs when the Render DEV DB lands**, and it is now
+written before the migration rather than after it.
+
+**One contradiction named rather than quietly patched:** this file's header says
+"Newest entry at the top" while every entry since 2026-07-01 has been appended
+at the bottom; followed the de facto order.
+
+**Accepted deviation:** a full clone copies `site_setting.integration_secrets`
+PROD→DEV, against the per-environment secrets rule. Ciphertext only; operator
+accepted the production PII now on the laptop explicitly. A Render DEV Postgres
+is planned for the week of 2026-08-03 to end hand-seeding from PROD — when it
+lands the `127.0.0.1` = DEV identity rule dies and must be rewritten in
+`CLAUDE.md` and [[deployment-architecture]] in the same change.
+
+Touched: [[deployment-architecture]],
+[[2026-07-27-dev-db-is-per-machine]], `wiki/index.md`.

@@ -2,14 +2,16 @@
 title: Deployment architecture
 category: entity
 created: 2026-05-20
-updated: 2026-07-19
-related: [[2026-05-08-render-postgres-over-neon]], [[integration-config]], [[index]], [[state]], [[chat-attach-files]], [[2026-07-19-gbrain-decommission]]
+updated: 2026-07-27
+related: [[2026-05-08-render-postgres-over-neon]], [[integration-config]], [[index]], [[state]], [[chat-attach-files]], [[2026-07-19-gbrain-decommission]], [[2026-07-27-dev-db-is-per-machine]]
 ---
 
 The runtime topology of Archos Labs.
 
 > **⚠️ CURRENT REALITY (since 2026-06-15): TWO databases, not one.**
 > `.env.local`'s `DATABASE_URL` points at a **local DEV Postgres** (`archos_labs_dev`, host `127.0.0.1`, PG18, no SSL). **PROD** is the Render `archos_labs_pdb` (Singapore), kept commented in `.env.local` as `DATABASE_URL_RENDER_PROD`. **They are separate.** Anything you run locally via `.env.local` (`db:migrate`, seeds, ad-hoc SQL) hits **DEV only**; PROD must be migrated separately (see the 2026-06-15 section below). Before claiming where data lives, **check the `DATABASE_URL` host** — a `127.0.0.1` / no-SSL connection is DEV, period. The original "single database" framing below (created 2026-05-20) is **historical** — kept for the deploy/web-service topology, but the data layer is no longer single-DB.
+>
+> **DEV is per-machine and is NOT guaranteed to exist.** `DATABASE_URL` naming a local host tells you which *role* the connection plays, not that the database is there. Each dev machine must have `archos_labs_dev` provisioned separately — see the 2026-07-27 section for the sequence. Confirm it exists before diagnosing anything else; a missing DEV DB surfaces as `PostgresError: database "archos_labs_dev" does not exist` (code `3D000`), which is a provisioning gap, not an app bug. The `DEV_MACHINE` key in `.env.local` records which laptop the file is configured for.
 
 ## The shape
 
@@ -121,6 +123,28 @@ See [[2026-07-19-gbrain-decommission]] for the full decision record.
 
 - **Pre-cutover backup:** standard `pg_dump` before `0032`/`0033`; separate `pg_dump` backup before `0034`.
 - **DEV↔PROD schema in sync at `0034`.**
+
+## 2026-07-27 — DEV Postgres provisioned on HEPHAESTUS from a PROD clone
+
+The local DEV database had never been set up on this laptop. `.env.local` named `archos_labs_dev` and the `archos_dev` role existed and authenticated, but the database itself did not — so every local `db:migrate`, seed, and `pnpm dev` against it failed with `3D000`. The 2026-06-15 DEV clone was created on a different machine; nothing carried it here, and nothing in the repo recorded that DEV is per-machine.
+
+**Provisioning sequence** (local PG 18.4, PROD PG 18.4 — same major, so a plain dump/restore is clean):
+
+1. `sudo -u postgres psql -c "CREATE DATABASE archos_labs_dev OWNER archos_dev;"` — the `archos_dev` role has neither `CREATEDB` nor superuser, so this needs `postgres`.
+2. `CREATE EXTENSION vector, pg_trgm, pgcrypto` **as superuser**, before restoring. `vector` is untrusted, so `archos_dev` cannot create it mid-restore.
+3. `pg_dump "<PROD>" -Fc --no-owner --no-privileges` — PROD read-only throughout. 54 MB database → 26 MB dump.
+4. `pg_restore --no-owner --no-privileges -d "<DEV>"` — no `--clean`, the target is empty.
+5. Verify by row-count diff across every `public` base table.
+
+**Expected restore errors — benign, exit code 1 is normal here.** Three `must be owner of extension` failures on `COMMENT ON EXTENSION` for `vector`, `pg_trgm`, `pgcrypto`. They occur because step 2 created the extensions as `postgres` while the restore runs as `archos_dev`. Only the comments are lost; the extensions work. **Anything touching `COPY`, a constraint, or a column type is NOT benign** — investigate before declaring success.
+
+**Verified:** 118/118 tables identical, 5,490 rows, `__drizzle_applied` at 38 rows / `0036_content_plan_item.sql` — in sync with PROD and with the code.
+
+**This also closed the `archos-paul-graham-essays` prompt drift** recorded in [[2026-07-26-verify-by-running-not-by-deploying]] (DEV 6,349 chars vs PROD 9,004). A full clone made the single-row sync unnecessary — DEV now reads 9,004 / md5 `eca95c3e30e6` / v5, carrying the `Pre-write check`, `Forbidden words`, and `SEO Package` sections it lacked.
+
+**Accepted deviation:** a full clone copies `site_setting.integration_secrets` PROD→DEV, which [the per-environment secrets rule](#other-services-on-the-same-posture) says should not cross environments. Ciphertext only (AES-GCM, env-rooted master key), and the operator accepted the risk explicitly, including the production PII now resident on the laptop.
+
+**Planned (week of 2026-08-03): a Render DEV Postgres**, so DEV stops being seeded from PROD by hand and stops being per-machine. When that lands, the `127.0.0.1` = DEV identity rule in the banner above **stops being true** and must be rewritten — DEV will be a `*.render.com` SSL host like PROD, and host alone will no longer distinguish them.
 
 ## Other services on the same posture
 
