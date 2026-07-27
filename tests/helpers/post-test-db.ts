@@ -35,6 +35,32 @@ const POST_STUB = `
     "visibility" text NOT NULL DEFAULT 'listed',
     "needs_review" boolean NOT NULL DEFAULT false,
     "is_agent_generated" boolean NOT NULL DEFAULT false,
+    -- Everything below exists because updatePost ends in .returning(), which
+    -- drizzle expands to EVERY column declared on the post table. A stub
+    -- missing any one of them fails with a bare "column ... does not exist"
+    -- from inside the transaction. FKs are dropped on purpose: this harness
+    -- has no author/category/users tables and the write path never joins them.
+    "author_id" uuid,
+    "category_id" uuid,
+    "source_wp_id" integer,
+    "last_reviewed_at" timestamp with time zone,
+    -- Real column is vector(1024). pgvector is not loaded in this pglite
+    -- build, and nothing on the write path reads or writes it, so a nullable
+    -- text placeholder is enough to satisfy .returning().
+    "embedding" text,
+    "og_image_path" text,
+    "og_image_generated_at" timestamp with time zone,
+    "og_image_alt" text,
+    "og_image_width" integer,
+    "og_image_height" integer,
+    "og_image_filename" text,
+    "og_image_mime_type" text,
+    "og_image_size_kb" integer,
+    "og_image_uploaded_by" uuid,
+    "og_image_uploaded_at" timestamp with time zone,
+    "og_image_checksum" text,
+    "og_image_r2_key" text,
+    "og_image_deleted_at" timestamp with time zone,
     "published_at" timestamp with time zone,
     "scheduled_publish_at" timestamp with time zone,
     "archived_at" timestamp with time zone,
@@ -43,6 +69,25 @@ const POST_STUB = `
     "tags" jsonb NOT NULL DEFAULT '[]'::jsonb,
     "created_at" timestamp with time zone NOT NULL DEFAULT now(),
     "updated_at" timestamp with time zone NOT NULL DEFAULT now()
+  )
+`;
+
+// updatePost re-reads the saved row through getAdminPostById, which LEFT JOINs
+// both lookup tables for the display name/slug. Only the columns that join
+// selects are declared; nothing on the write path inserts into them.
+const AUTHOR_STUB = `
+  CREATE TABLE IF NOT EXISTS "author" (
+    "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    "name" text NOT NULL,
+    "slug" text NOT NULL UNIQUE
+  )
+`;
+
+const CATEGORY_STUB = `
+  CREATE TABLE IF NOT EXISTS "category" (
+    "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    "name" text NOT NULL,
+    "slug" text NOT NULL UNIQUE
   )
 `;
 
@@ -78,12 +123,15 @@ export interface PostTestDb {
     scheduledPublishAt?: Date | null;
     needsReview?: boolean;
     isAgentGenerated?: boolean;
+    lastReviewedAt?: Date | null;
   }) => Promise<string>;
   close: () => Promise<void>;
 }
 
 export async function makePostTestDb(): Promise<PostTestDb> {
   const client = new PGlite();
+  await client.query(AUTHOR_STUB);
+  await client.query(CATEGORY_STUB);
   await client.query(POST_STUB);
   await client.query(POST_REVISION_STUB);
   await client.query(DUE_INDEX);
@@ -99,8 +147,8 @@ export async function makePostTestDb(): Promise<PostTestDb> {
       const res = await client.query<{ id: string }>(
         `INSERT INTO "post"
            ("slug","title","content_md","status","scheduled_publish_at",
-            "needs_review","is_agent_generated")
-         VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+            "needs_review","is_agent_generated","last_reviewed_at")
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
         [
           over.slug ?? `post-${n}`,
           `Post ${n}`,
@@ -111,6 +159,7 @@ export async function makePostTestDb(): Promise<PostTestDb> {
             : over.scheduledPublishAt,
           over.needsReview ?? false,
           over.isAgentGenerated ?? false,
+          over.lastReviewedAt ?? null,
         ],
       );
       return res.rows[0].id;

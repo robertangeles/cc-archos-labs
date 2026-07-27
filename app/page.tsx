@@ -16,6 +16,7 @@ import type { Metadata } from "next";
 import { getSiteSettings, buildPageMetadata } from "../lib/site-config";
 import { BOOK_A_CALL_URL, TAKE_ASSESSMENT_URL } from "../lib/cta-urls";
 import { buildHomePageServicesLd } from "../lib/schema-org";
+import { jsonLdScript } from "../lib/structured-data";
 import { sanitiseName } from "../lib/sanitise-name";
 import { AnalyticsClient } from "../components/analytics/analytics-client";
 import {
@@ -219,10 +220,13 @@ export default async function Home({
   return (
     <>
       {/* Page-specific Service JSON-LD. The root Organization + WebSite
-          schemas already render globally in app/layout.tsx. */}
+          schemas already render globally in app/layout.tsx.
+          Serialised via jsonLdScript() — `orgName` comes from the
+          admin-editable site_setting row, so it is untrusted input
+          flowing into a <script> tag. */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(servicesLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(servicesLd) }}
       />
 
       <AnalyticsClient route="/" />

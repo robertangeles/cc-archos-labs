@@ -6,6 +6,7 @@ import { runBootCheck } from "../../lib/pages/boot-check";
 import { getSessionFromCookies } from "../../lib/auth-server";
 import { buildPageMetadata, getSiteSettings, getSiteUrl } from "../../lib/site-config";
 import { buildCmsPageWebPageLd } from "../../lib/schema-org";
+import { jsonLdScript } from "../../lib/structured-data";
 import { MarkdownArticle } from "../../components/pages/markdown-article";
 import { BlocksRenderer } from "../../components/pages/blocks-renderer";
 import type { PageBlock } from "../../lib/db/schema";
@@ -132,9 +133,11 @@ export default async function CatchAllPage({ params }: PageProps) {
 
   return (
     <>
+      {/* Serialised via jsonLdScript() — title and description come
+          straight from the admin-authored `page` row. */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(webPageLd) }}
       />
       {result.kind === "preview" ? (
         <div className="bg-amber-500/10 px-6 py-2 text-center text-sm text-amber-700 dark:text-amber-300">
