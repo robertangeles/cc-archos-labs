@@ -37,11 +37,20 @@ const nextConfig: NextConfig = {
         // kill four inline scripts — the Consent Mode default snippet in
         // app/layout.tsx plus the GTM, GA4 and Meta Pixel initialisers in
         // components/analytics/ — and the failure mode is invisible: pages
-        // render fine, analytics just stops. Fixing that properly needs a
-        // per-request nonce, which this static headers() block cannot emit
-        // (there is no middleware.ts). So: collect violations for a week via
-        // /api/csp-report, build the allowlist from real traffic, then switch
-        // the header name to Content-Security-Policy in a follow-up.
+        // render fine, analytics just stops.
+        //
+        // Fixing that properly needs a per-request nonce, which this static
+        // headers() block cannot emit. proxy.ts IS the middleware (Next 16
+        // renamed middleware.ts → proxy.ts), but its matcher is scoped to
+        // /admin and /api/admin, so it never runs on the public routes that
+        // would need the nonce. Widening it to all traffic puts the Edge
+        // runtime in front of every public request — a deliberate
+        // architectural change, not a free one.
+        //
+        // So: collect violations for a week via /api/csp-report, build the
+        // allowlist from real traffic, then decide between a nonce (widen the
+        // matcher) and a hash-based policy before switching the header name to
+        // Content-Security-Policy.
         //
         // Both reporting mechanisms are wired because no browser supports both:
         // report-uri is all Firefox and Safari ever implemented, and report-to
