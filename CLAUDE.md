@@ -262,10 +262,12 @@ Test before shipping: Would a skeptical first-time user trust this enough to com
 
 `main` auto-deploys via Render. Branch protection active since 2026-05-11. CI must pass before merging — never bypass.
 
+**Admin bypass was removed 2026-07-27 and there is no exception left.** Direct pushes to `main` are rejected for everyone including the owner (`GH013`). Every change — including a one-line wiki edit — goes through a branch, a PR, and green `lint + typecheck + build`. See `wiki/decisions/2026-07-27-remove-admin-bypass.md`.
+
 **Solo mode:** always ask for explicit confirmation before `git push`. Never push automatically.
 
-- Small changes (< 3 files, config, wiki): commit to `main` directly
-- Non-trivial: feature branch, max 2 days, merge `--no-ff`
+- Every change, however small: feature branch → PR → CI green → **squash-merge**
+- Non-trivial: feature branch, max 2 days. Never `--no-ff` — `required_linear_history` rejects merge commits
 - For incomplete features touching shared code: use feature flags
 - Pull `main` before starting any new branch
 - One feature per branch — never bundle unrelated changes
