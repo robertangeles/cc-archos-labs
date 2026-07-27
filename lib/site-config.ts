@@ -82,9 +82,11 @@ export function normalizeTwitterHandle(input: string): string {
 // don't pass them fall back to og:type=website with no dateModified.
 export async function buildPageMetadata({
   title,
+  absoluteTitle,
   description,
   path,
   ogType,
+  publishedISO,
   lastUpdatedISO,
   articleSection,
   image,
@@ -93,10 +95,34 @@ export async function buildPageMetadata({
   imageHeight,
 }: {
   title?: string;
+  /**
+   * Emit `title.absolute` instead of a bare string, so the brand suffix is
+   * baked in here rather than left to the layout's template.
+   *
+   * ONLY app/page.tsx should set this. Next.js applies `title.template` to
+   * DESCENDANT segments, never to the segment that declares it — and
+   * app/page.tsx and app/layout.tsx are both the root segment. So the
+   * homepage is the one route the template can never reach: it shipped as
+   * "Your Fractional Data Team for Startups & SMBs" while /about, /blog and
+   * /contact all correctly ended in " — Archos Labs".
+   *
+   * This is a deliberate, documented exception to the "titles must be
+   * brand-free" rule in
+   * wiki/lessons-learned/2026-07-12-seo-crawl-not-indexed-hygiene.md.
+   * Setting it on any child route double-brands that route's title.
+   */
+  absoluteTitle?: boolean;
   description?: string;
   path?: string;
   /** OG type override. Default 'website'. Legal/long-form pages use 'article'. */
   ogType?: "website" | "article";
+  /**
+   * ISO datetime the content first published. Powers article:published_time,
+   * which Facebook, LinkedIn and Google Discover read as the freshness
+   * anchor. Distinct from lastUpdatedISO — a post that was published in May
+   * and reviewed in July needs both, or the two dates collapse.
+   */
+  publishedISO?: string;
   /** ISO datetime of the most recent material update. Powers og:updated_time. */
   lastUpdatedISO?: string;
   /** Schema.org article section (e.g. 'Legal', 'Marketing'). Optional. */
@@ -153,9 +179,12 @@ export async function buildPageMetadata({
 
   return {
     metadataBase: new URL(siteUrl),
-    title: title
-      ? title
-      : { default: effectiveTitle, template: `%s — ${settings.siteName}` },
+    // `absolute` bypasses any ancestor template — see the absoluteTitle doc.
+    title: absoluteTitle
+      ? { absolute: effectiveTitle }
+      : title
+        ? title
+        : { default: effectiveTitle, template: `%s — ${settings.siteName}` },
     description: effectiveDescription,
     alternates: { canonical: fullUrl },
     openGraph: {
@@ -165,6 +194,12 @@ export async function buildPageMetadata({
       description: effectiveDescription,
       url: fullUrl,
       images: [ogImage],
+      // Gated independently of modifiedTime: a post can have a publish date
+      // without a later review date, and emitting only modified_time (as this
+      // did) leaves scrapers guessing when the piece first appeared.
+      ...(resolvedOgType === "article" && publishedISO
+        ? { publishedTime: publishedISO }
+        : {}),
       ...(resolvedOgType === "article" && lastUpdatedISO
         ? {
             modifiedTime: lastUpdatedISO,

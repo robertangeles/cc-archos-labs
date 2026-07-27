@@ -6,6 +6,7 @@ import { getDb } from "../db";
 import { author, category, post, postRevision } from "../db/schema";
 import { pingIndexNow } from "../indexnow";
 import { getSiteUrl } from "../site-config";
+import { trimAltToWordBoundary } from "./alt-text";
 import { deriveSlugFromTitle } from "./slug-derivation";
 import { computeWordCount, readingTimeMinutes } from "./word-count";
 import {
@@ -1102,7 +1103,11 @@ function normaliseAltText(raw: string | null | undefined): string | null {
   if (raw == null) return null;
   const trimmed = raw.trim();
   if (!trimmed) return null;
-  return trimmed.slice(0, 125);
+  // Same word-boundary policy as the image pipeline — see lib/posts-admin/alt-text.ts.
+  // Reachable with over-length input from internal callers (the blog agent
+  // constructs PostInput directly); the admin route's Zod .max(125) rejects
+  // before it gets here.
+  return trimAltToWordBoundary(trimmed);
 }
 
 /**

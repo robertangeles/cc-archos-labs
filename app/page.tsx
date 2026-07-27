@@ -33,9 +33,14 @@ import {
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
-    // Brand-free: buildPageMetadata appends " — Archos Labs" via the layout
-    // title template. Embedding the brand here doubled it in <title> and og:title.
+    // Brand-free title + absoluteTitle. The layout's title template applies
+    // to DESCENDANT segments only, and this file shares the root segment with
+    // app/layout.tsx — so the template can never fire here. Without the flag
+    // the homepage <title> ships with no brand at all while every child route
+    // gets one. absoluteTitle makes buildPageMetadata append it directly.
+    // Do NOT copy this flag to any other route; it double-brands them.
     title: "Your Fractional Data Team for Startups & SMBs",
+    absoluteTitle: true,
     description:
       "No data team? Rob Angeles works with startup founders and SMBs as their fractional data person. Fixed-fee. No retainer. Melbourne, Australia.",
     path: "/",

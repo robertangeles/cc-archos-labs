@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-27T11:14:00.027Z
+generated: 2026-07-27T11:24:25.493Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -13,13 +13,13 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 
 | Route | File | Last shipped |
 |-------|------|--------------|
-| `/` | [app/page.tsx](../app/page.tsx) | 2026-07-12 |
+| `/` | [app/page.tsx](../app/page.tsx) | 2026-07-27 |
 | `/(auth)/auth/password-reset/[token]` | [app/(auth)/auth/password-reset/[token]/page.tsx](../app/(auth)/auth/password-reset/[token]/page.tsx) | 2026-06-03 |
 | `/(auth)/forgot-password` | [app/(auth)/forgot-password/page.tsx](../app/(auth)/forgot-password/page.tsx) | 2026-06-03 |
 | `/(auth)/login` | [app/(auth)/login/page.tsx](../app/(auth)/login/page.tsx) | 2026-06-03 |
 | `/(auth)/register` | [app/(auth)/register/page.tsx](../app/(auth)/register/page.tsx) | 2026-06-03 |
-| `/[...slug]` | [app/[...slug]/page.tsx](../app/[...slug]/page.tsx) | 2026-05-18 |
-| `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-07-12 |
+| `/[...slug]` | [app/[...slug]/page.tsx](../app/[...slug]/page.tsx) | 2026-07-27 |
+| `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-07-27 |
 | `/account` | [app/account/page.tsx](../app/account/page.tsx) | 2026-06-07 |
 | `/account/brain` | [app/account/brain/page.tsx](../app/account/brain/page.tsx) | 2026-06-10 |
 | `/account/clients` | [app/account/clients/page.tsx](../app/account/clients/page.tsx) | 2026-06-15 |
@@ -79,13 +79,13 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/ai-readiness` | [app/tools/ai-readiness/page.tsx](../app/tools/ai-readiness/page.tsx) | 2026-07-12 |
 | `/tools/ai-readiness/report/[sessionId]` | [app/tools/ai-readiness/report/[sessionId]/page.tsx](../app/tools/ai-readiness/report/[sessionId]/page.tsx) | 2026-06-03 |
 | `/tools/ai-readiness/share/[token]` | [app/tools/ai-readiness/share/[token]/page.tsx](../app/tools/ai-readiness/share/[token]/page.tsx) | 2026-05-13 |
-| `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-06-29 |
+| `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-07-27 |
 | `/tools/cdmp-practice/history/[sessionId]` | [app/tools/cdmp-practice/history/[sessionId]/page.tsx](../app/tools/cdmp-practice/history/[sessionId]/page.tsx) | 2026-06-03 |
 | `/tools/cdmp-practice/specialist/[area]` | [app/tools/cdmp-practice/specialist/[area]/page.tsx](../app/tools/cdmp-practice/specialist/[area]/page.tsx) | 2026-06-29 |
 | `/workspace/model-studio` | [app/workspace/model-studio/page.tsx](../app/workspace/model-studio/page.tsx) | 2026-07-12 |
 | `/workspace/model-studio/[id]` | [app/workspace/model-studio/[id]/page.tsx](../app/workspace/model-studio/[id]/page.tsx) | 2026-06-17 |
 
-## API endpoints (179)
+## API endpoints (180)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -192,6 +192,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/cron/purge-inactive-leads` | [app/api/cron/purge-inactive-leads/route.ts](../app/api/cron/purge-inactive-leads/route.ts) | 2026-05-18 |
 | `/api/cron/purge-session-metadata` | [app/api/cron/purge-session-metadata/route.ts](../app/api/cron/purge-session-metadata/route.ts) | 2026-05-18 |
 | `/api/cron/write-blog-post` | [app/api/cron/write-blog-post/route.ts](../app/api/cron/write-blog-post/route.ts) | 2026-07-26 |
+| `/api/csp-report` | [app/api/csp-report/route.ts](../app/api/csp-report/route.ts) | unknown |
 | `/api/diagnostic/generate` | [app/api/diagnostic/generate/route.ts](../app/api/diagnostic/generate/route.ts) | 2026-06-03 |
 | `/api/diagnostic/report/[sessionId]/pdf` | [app/api/diagnostic/report/[sessionId]/pdf/route.ts](../app/api/diagnostic/report/[sessionId]/pdf/route.ts) | 2026-06-03 |
 | `/api/diagnostic/share` | [app/api/diagnostic/share/route.ts](../app/api/diagnostic/share/route.ts) | 2026-06-03 |

@@ -22,7 +22,11 @@ archoslabs.xyz (~2-month-old domain) showed ~20 blog + category URLs stuck at "C
 
 ## Rules
 - **Bounded list/pagination routes must 404 out-of-range, never 200+empty.** A soft 404 is a "Crawled – currently not indexed" magnet. When you add the guard to one paginated route, grep for every sibling paginated route and add it there too.
-- **Page titles passed to `buildPageMetadata` must be brand-free.** The layout template + `effectiveTitle` append the site name exactly once each; embedding it doubles it in `<title>` and OG. (Documented inline in `lib/site-config.ts`.)
+- **Page titles passed to `buildPageMetadata` must be brand-free — with exactly one exception, the homepage.** The layout template + `effectiveTitle` append the site name exactly once each; embedding it doubles it in `<title>` and OG. (Documented inline in `lib/site-config.ts`.)
+
+  **Amended 2026-07-27.** Next.js applies `title.template` to *descendant* segments only, never to the segment that declares it. `app/page.tsx` and `app/layout.tsx` are both the root segment, so the template can never reach the homepage. Stripping the brand from the homepage title in this very fix therefore left `/` shipping `<title>Your Fractional Data Team for Startups & SMBs</title>` with no brand at all, while `/about`, `/blog` and `/contact` correctly ended in `— Archos Labs`. Verified live 2026-07-27.
+
+  The fix is `buildPageMetadata({ absoluteTitle: true })`, used by `app/page.tsx` **only** — it emits `title.absolute`, which bypasses ancestor templates and bakes the brand in directly. Setting it on any child route double-brands that route. The rule above still holds everywhere else.
 - **Public, indexable routes should be ISR (`revalidate=N`), not `force-dynamic`.** `force-dynamic` means every Googlebot fetch is a cold DB round-trip — slow TTFB throttles crawl on a low-authority domain. `isBlogEnabled()` fails closed, so ISR routes still build in CI with no DB.
 - **Any `dangerouslySetInnerHTML` with a JSON-LD blob goes through `jsonLdScript()`** — never bare `JSON.stringify` — even when the fields look trusted (admin-managed). It's `<script>`, not HTML: escape `<`/U+2028/U+2029, not DOMPurify.
 - **A client-component page can't export metadata** — it inherits the nearest layout's, including the root's homepage canonical. Give it a sibling `layout.tsx` with a self-canonical (+ noindex for utility pages) or it reads as a duplicate of `/`.
