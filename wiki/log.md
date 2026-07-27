@@ -1982,3 +1982,44 @@ lands the `127.0.0.1` = DEV identity rule dies and must be rewritten in
 
 Touched: [[deployment-architecture]],
 [[2026-07-27-dev-db-is-per-machine]], `wiki/index.md`.
+
+## 2026-07-27 — Admin bypass removed from the main ruleset
+
+Pushing the wiki commit above surfaced the real finding of the day. It
+succeeded, and GitHub said why: `Bypassed rule violations for refs/heads/main`
+— pull request required, `lint + typecheck + build` expected, neither applied.
+
+**The rules were never wrong.** `Main Protection` was active and correctly
+configured all along. It carried one bypass actor — `RepositoryRole 5` (admin),
+`mode=always` — which exempts every rule on every operation, including a direct
+push. No classic branch protection sat underneath, so that ruleset was the only
+gate and it did not apply to the account doing most of the work.
+
+`CLAUDE.md` has said "CI must pass before merging — never bypass" since
+2026-05-11. **The instruction stood for two and a half months while the
+mechanism enforcing it was switched off for the only user who could violate
+it.** A written rule and an enforced rule are different things, and nothing
+reveals the gap until something exercises it.
+
+Set `bypass_actors` to `[]`; rules untouched. Rejected downgrading `mode` to
+`pull_request` — that closes the observed hole (direct pushes) while leaving
+the worse one open (merging a PR with red CI).
+
+**Verified by trying to violate it**, not by trusting the API response: pushed
+an empty commit and got `GH013 ... push declined due to repository rule
+violations`. The wording moved from "Bypassed rule violations" to "Repository
+rule violations found", which is the whole change. Test commit discarded.
+
+Three docs described the old world and were corrected: `CONTRIBUTING.md`'s
+entire "Bypass conventions" section (now "Review conventions") and its
+backlog-claim step that instructed a direct push; `CLAUDE.md`'s "small changes
+commit to `main` directly". Also fixed a pre-existing contradiction found on
+the way — `CLAUDE.md` prescribed `merge --no-ff` while `required_linear_history`
+rejects merge commits, so that instruction could never have worked.
+
+Open: `/ship` and `/land-and-deploy` may assume bypass in their merge steps.
+Untested under the new ruleset — worth a dry run before either is needed under
+pressure.
+
+Touched: [[2026-07-27-remove-admin-bypass]], `CONTRIBUTING.md`, `CLAUDE.md`,
+`wiki/index.md`.

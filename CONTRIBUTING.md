@@ -95,29 +95,35 @@ Keep branches short-lived. If a branch is open more than two days, something is 
 Before picking up a backlog item from `wiki/backlog/backlog.md`:
 
 1. Edit that file — add `[Rob, 2026-05-12]` (or `[Dev2, 2026-05-12]`) after the item heading.
-2. Commit + push that one-line change directly to `main` via admin bypass. Tiny doc-only commit, no PR needed.
+2. Open a one-line PR for it and squash-merge as soon as CI is green. **Direct pushes to `main` no longer work** — admin bypass was removed 2026-07-27 (see `wiki/decisions/2026-07-27-remove-admin-bypass.md`).
 3. The other dev sees it on their next `pnpm wip` (recent commits to main).
 4. The PR that ships the item removes the claim line.
 
-Cost: one tiny commit per item. Benefit: no two-devs-on-the-same-item collisions.
+Cost: one tiny PR per item, and you wait out a CI run to claim something. Benefit: no two-devs-on-the-same-item collisions.
 
-## Bypass conventions
+If that wait proves annoying in practice, the fix is to move claims off `main` entirely — assign yourself the backlog item as a GitHub issue, or just push the feature branch early and let its name signal the claim. Do not reach for a bypass; the whole point of removing it was that "just this once" is how it erodes.
 
-Admin-role bypass-merge is fine for:
+## Review conventions
+
+**There is no bypass.** Admin-role bypass was removed from the `Main Protection` ruleset on 2026-07-27 after a direct push to `main` succeeded and skipped CI entirely. Every change now goes through a PR with `lint + typecheck + build` green — for everyone, including the repo owner. See `wiki/decisions/2026-07-27-remove-admin-bypass.md`.
+
+Required approvals are set to **0**, so green CI is the gate and you may squash-merge your own PR for:
 
 - UI changes, copy edits, additive code (new components, new utilities)
 - Additive schema (new tables, new columns)
 - Test additions, doc updates
 - Wiki edits
 
-Admin-role bypass-merge is **NOT** fine for these — they need an explicit "approved" reply in the PR thread from the OTHER dev before merge:
+These need an explicit "approved" reply in the PR thread from the OTHER dev before you merge, even with CI green:
 
 - Any PR with the `migration-destructive` label
 - Any PR that deletes code the other dev wrote
 - Any PR that touches `lib/diagnostic/` core engine (scoring, content, prompt loaders)
 - Any PR that changes branch-protection rules or CI workflow files
 
-CI doesn't enforce this — it's a discipline layer. The migration-safety check (CI step that runs `scripts/_check-migration-safety.mjs --ci`) does enforce the destructive-SQL gate; convention covers the rest.
+CI doesn't enforce that second list — it's a discipline layer. The migration-safety check (CI step that runs `scripts/_check-migration-safety.mjs --ci`) does enforce the destructive-SQL gate; convention covers the rest.
+
+**If you genuinely need to bypass** — a production incident where waiting out CI causes real harm — re-enable it deliberately in Settings → Rules → Main Protection, land the fix, then turn it straight back off and say so in the PR or the wiki log. Making it a visible, reversible decision is the point. Silently having the door open was the failure mode.
 
 ## Destructive migrations
 
