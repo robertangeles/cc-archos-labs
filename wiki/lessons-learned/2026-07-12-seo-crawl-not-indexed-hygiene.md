@@ -2,7 +2,7 @@
 title: "Crawled – currently not indexed" is mostly domain trust, but hygiene bugs feed it
 category: synthesis
 created: 2026-07-12
-updated: 2026-07-12
+updated: 2026-07-28
 related: [[2026-06-05-seo-crawl-budget-pagination-fix]], [[2026-05-21-sitemap-aieo-fixes]], [[translation-layer]]
 ---
 
@@ -32,6 +32,16 @@ archoslabs.xyz (~2-month-old domain) showed ~20 blog + category URLs stuck at "C
 - **A client-component page can't export metadata** — it inherits the nearest layout's, including the root's homepage canonical. Give it a sibling `layout.tsx` with a self-canonical (+ noindex for utility pages) or it reads as a duplicate of `/`.
 
 ## Still open (need a decision — see log)
-- Blog posts + index + category + CMS + marketing pages are all still `force-dynamic` (biggest crawl-budget lever; ISR needs `revalidatePath` on admin publish + a preview-cookie refactor).
 - Unlisted posts render indexable with a self-canonical and no internal links (intentional "preserve backlink equity" per code comment) — orphan indexable pages; noindex-vs-keep is an SEO-strategy call.
-- `/ai-readiness-assessment` (landing) and `/tools/ai-readiness` (the tool) share the title "AI Readiness Assessment" and both index — competing duplicate.
+
+## Resolved since (2026-07-28)
+
+- ~~`/ai-readiness-assessment` and `/tools/ai-readiness` share a title~~ — **already fixed when this note was written.** Live titles are distinct: "AI Readiness Assessment — Archos Labs" vs "Start the AI Readiness Assessment — Archos Labs", and `app/tools/ai-readiness/page.tsx:12` carries a comment explaining the split. The note was stale on the day it was filed.
+
+- ~~ISR is the biggest crawl-budget lever~~ — **the premise is wrong, and the real blocker is bigger.** The conversion was built and measured on a production build: `export const revalidate = 3600` on `app/blog/[slug]/page.tsx` changes the export and nothing else. Two consecutive requests both returned `Cache-Control: private, no-cache, no-store` with no `x-nextjs-cache` header.
+
+  It is not the preview-cookie refactor this note predicted, and not the root layout's `cookies()` read either — stubbing that out changed nothing at runtime. **No page in this application renders statically at all**: `pnpm build` marks every `page.tsx` as `ƒ`, and only route handlers and metadata files (`feed.xml`, `llms.txt`, `sitemap.xml`, `opengraph-image`, `robots.txt`) get `○`. No nested layout sets `force-dynamic` and the shared components use no dynamic APIs. Root cause still unknown.
+
+  The `revalidatePath` half shipped anyway (`lib/posts-admin/revalidate.ts`, PR #222) and is correct — it is simply inert until whatever forces app-wide dynamic rendering is found. **Before attempting ISR anywhere again, run `pnpm build` and check for a `○` on any `page.tsx` first.** Do not infer from the export that `revalidate` took effect.
+
+  Two rules that came out of building it: `revalidatePath` must always take an exact path — the `"/blog/[slug]"` route-pattern form invalidates every post — and in Postgres a JOIN under `FOR UPDATE` locks the joined table's rows too, so the scheduled publisher resolves categories in a separate unlocked read after the commit.
