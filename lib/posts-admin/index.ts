@@ -645,9 +645,26 @@ export async function updatePost(
           ...(normalised.lastReviewedAt !== undefined
             ? { lastReviewedAt: normalised.lastReviewedAt }
             : {}),
+          // A human review is a claim about SPECIFIC TEXT. Once the body has
+          // materially changed, the person who signed off never saw what is
+          // now on the page — so the credit has to lapse rather than quietly
+          // vouch for words nobody checked. Unlike lastReviewedAt (freshness
+          // metadata, where staleness is cosmetic), this drives a public
+          // authorship claim and the Article editor/contributor fields.
+          //
+          // Same threshold the embedding regen uses, for the same reason: it
+          // is already the project's definition of "the content meaningfully
+          // changed". A typo fix keeps the credit; a rewrite drops it and the
+          // byline reverts to Metis until someone re-reviews.
+          //
+          // An explicit value in the payload still wins — that is the
+          // "Mark human-reviewed" action itself, which arrives with the same
+          // contentMd it is vouching for.
           ...(normalised.reviewedByHumanAt !== undefined
             ? { reviewedByHumanAt: normalised.reviewedByHumanAt }
-            : {}),
+            : diffSizePct > EMBEDDING_REGEN_THRESHOLD_PCT
+              ? { reviewedByHumanAt: null }
+              : {}),
           scheduledPublishAt: normalised.scheduledPublishAt,
           ogImageAlt: normalised.ogImageAlt,
           publishedAt: nextPublishedAt,
