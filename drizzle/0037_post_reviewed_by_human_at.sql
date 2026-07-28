@@ -1,0 +1,61 @@
+-- Migration 0037: post.reviewed_by_human_at — human review signal for bylines
+--
+-- Hand-written, matching the convention since 0031: the drizzle-kit journal
+-- stops at 0030 and `db:generate` now prompts on every out-of-sync table, so
+-- migrations here are authored directly and applied via scripts/db-apply.mjs
+-- against __drizzle_applied.
+--
+-- Purely additive: one nullable column. No DROP, so no `-- safety:` header is
+-- required by the CI migration-safety check. Idempotent (IF NOT EXISTS) so a
+-- partial apply can be re-run, exactly as db-apply.mjs expects.
+--
+--
+-- WHY THIS COLUMN EXISTS
+--
+-- The blog agent publishes three posts a day. Every one is bylined "Metis" and
+-- the Article JSON-LD names Metis as author. Google's E-E-A-T guidance anchors
+-- expertise to named humans, so the ask was to add "Reviewed by Rob Angeles".
+--
+-- That claim has to be TRUE. lib/blog-agent/run.ts:557 creates every successful
+-- agent post with needs_review = false — the comment there states the intent
+-- plainly ("No review hold. The operator took ownership"). So agent posts go
+-- live unread, and a blanket "Reviewed by" byline would be a false statement
+-- on the page AND in structured data. That is a Google spam-policy exposure,
+-- not a copy nit.
+--
+-- Nothing already in the schema can carry this signal:
+--
+--   needs_review        A GENERAL editorial flag. The WP migration set it on
+--                       120 posts and any admin can set it on any post. It is
+--                       also false on every PUBLISHED agent post by
+--                       construction, so it cannot distinguish "a human read
+--                       this" from "nobody ever looked".
+--   last_reviewed_at    Already load-bearing: it drives dateModified,
+--                       article:modified_time, sitemap lastmod and the
+--                       llms.txt "Last reviewed" line. Overloading it would
+--                       make a review click silently rewrite the freshness
+--                       date of the content.
+--   is_agent_generated  Says who WROTE it, not who checked it.
+--
+-- Hence a dedicated column. NULL means "no human has vouched for this post",
+-- which is the correct default for all 100+ existing rows including every
+-- post already published.
+--
+--
+-- NO INDEX, DELIBERATELY
+--
+-- Per the project's index rule, every index must name the query it serves.
+-- This column is only ever read on a row already fetched by slug (the public
+-- post page) or by id (the admin editor), so an index would serve no query.
+-- It is never a filter, a join key, or a sort. Add one if a "reviewed posts"
+-- admin list view ever appears — and state the query when you do.
+--
+--
+-- OLTP table, unchanged normal form. reviewed_by_human_at depends only on the
+-- primary key (id), so `post` remains in 2NF.
+
+ALTER TABLE "post"
+  ADD COLUMN IF NOT EXISTS "reviewed_by_human_at" timestamp with time zone;
+
+COMMENT ON COLUMN "post"."reviewed_by_human_at" IS
+  'When a human explicitly confirmed they reviewed this post. NULL = never reviewed. Drives the "Reviewed by" byline and the editor/contributor fields in the Article JSON-LD. Distinct from needs_review (a general editorial flag) and last_reviewed_at (content freshness, feeds dateModified).';

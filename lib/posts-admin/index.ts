@@ -191,6 +191,7 @@ export async function listPostsForAdmin(
       readingTimeMin: post.readingTimeMin,
       needsReview: post.needsReview,
       isAgentGenerated: post.isAgentGenerated,
+      reviewedByHumanAt: post.reviewedByHumanAt,
       sourceWpId: post.sourceWpId,
       lastReviewedAt: post.lastReviewedAt,
       publishedAt: post.publishedAt,
@@ -280,6 +281,7 @@ export async function getAdminPostById(
       readingTimeMin: post.readingTimeMin,
       needsReview: post.needsReview,
       isAgentGenerated: post.isAgentGenerated,
+      reviewedByHumanAt: post.reviewedByHumanAt,
       sourceWpId: post.sourceWpId,
       lastReviewedAt: post.lastReviewedAt,
       publishedAt: post.publishedAt,
@@ -455,6 +457,7 @@ export async function createPost(
             // On INSERT there is no stored value to preserve, so the
             // three-state distinction collapses: absent means NULL.
             lastReviewedAt: normalised.lastReviewedAt ?? null,
+            reviewedByHumanAt: normalised.reviewedByHumanAt ?? null,
             scheduledPublishAt: normalised.scheduledPublishAt,
             ogImageAlt: normalised.ogImageAlt,
             // Publish semantics on create:
@@ -641,6 +644,9 @@ export async function updatePost(
           // so be explicit instead.
           ...(normalised.lastReviewedAt !== undefined
             ? { lastReviewedAt: normalised.lastReviewedAt }
+            : {}),
+          ...(normalised.reviewedByHumanAt !== undefined
+            ? { reviewedByHumanAt: normalised.reviewedByHumanAt }
             : {}),
           scheduledPublishAt: normalised.scheduledPublishAt,
           ogImageAlt: normalised.ogImageAlt,
@@ -1104,6 +1110,10 @@ function normalisePostInput(input: PostInput): {
   isAgentGenerated: boolean;
   /** undefined = "not mentioned, leave stored value alone". See the doc comment. */
   lastReviewedAt: Date | null | undefined;
+  /** Same three-state rule as lastReviewedAt — the admin form does not send
+   *  this key on a normal save, and collapsing that to null would silently
+   *  revoke a review every time someone fixed a typo. */
+  reviewedByHumanAt: Date | null | undefined;
   scheduledPublishAt: Date | null;
   ogImageAlt: string | null;
 } {
@@ -1123,6 +1133,7 @@ function normalisePostInput(input: PostInput): {
     isAgentGenerated: input.isAgentGenerated ?? false,
     // Deliberately NOT `?? null` — see the doc comment above.
     lastReviewedAt: input.lastReviewedAt,
+    reviewedByHumanAt: input.reviewedByHumanAt,
     scheduledPublishAt:
       input.status === "scheduled" ? (input.scheduledPublishAt ?? null) : null,
     // Trim + truncate; reject empty string in favour of null (so
@@ -1194,6 +1205,7 @@ interface PostRowForView {
   readingTimeMin: number;
   needsReview: boolean;
   isAgentGenerated: boolean;
+  reviewedByHumanAt: Date | null;
   sourceWpId: number | null;
   lastReviewedAt: Date | null;
   publishedAt: Date | null;
@@ -1238,6 +1250,7 @@ function rowToAdminView(row: PostRowForView): AdminPostView {
     readingTimeMin: row.readingTimeMin,
     needsReview: row.needsReview,
     isAgentGenerated: row.isAgentGenerated,
+    reviewedByHumanAt: row.reviewedByHumanAt,
     sourceWpId: row.sourceWpId,
     lastReviewedAt: row.lastReviewedAt,
     publishedAt: row.publishedAt,

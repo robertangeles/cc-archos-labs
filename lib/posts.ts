@@ -54,6 +54,14 @@ export interface PublishedPostView extends PublishedPostListItem {
   tags: string[];
   wordCount: number;
   needsReview: boolean;
+  /** TRUE when the blog writer agent produced this post. Distinct from
+   *  authorName, which is "Metis" for BOTH agent posts and the ~120
+   *  WordPress-migrated ones (there is a single author row). This boolean is
+   *  the only reliable provenance signal today. */
+  isAgentGenerated: boolean;
+  /** When a human explicitly confirmed they read the post. NULL = nobody has.
+   *  Drives the dual byline and the Article editor/contributor fields. */
+  reviewedByHumanAt: Date | null;
   authorBioMd: string | null;
   authorPhotoUrl: string | null;
   authorLinkedinUrl: string | null;
@@ -125,6 +133,8 @@ export async function getPostByIdForPreview(
       wordCount: post.wordCount,
       readingTimeMin: post.readingTimeMin,
       needsReview: post.needsReview,
+      isAgentGenerated: post.isAgentGenerated,
+      reviewedByHumanAt: post.reviewedByHumanAt,
       publishedAt: post.publishedAt,
       lastReviewedAt: post.lastReviewedAt,
       authorSlug: author.slug,
@@ -162,6 +172,8 @@ export async function getPostByIdForPreview(
     wordCount: r.wordCount,
     readingTimeMin: r.readingTimeMin,
     needsReview: r.needsReview,
+    isAgentGenerated: r.isAgentGenerated,
+    reviewedByHumanAt: r.reviewedByHumanAt,
     // Drafts have null publishedAt — fall back to now() so PostHeader
     // doesn't crash on date formatting. The DRAFT PREVIEW banner is
     // the authoritative signal that this isn't a real publish date.
@@ -201,6 +213,8 @@ export async function getPostBySlug(
       wordCount: post.wordCount,
       readingTimeMin: post.readingTimeMin,
       needsReview: post.needsReview,
+      isAgentGenerated: post.isAgentGenerated,
+      reviewedByHumanAt: post.reviewedByHumanAt,
       publishedAt: post.publishedAt,
       lastReviewedAt: post.lastReviewedAt,
       authorSlug: author.slug,
@@ -238,6 +252,8 @@ export async function getPostBySlug(
     wordCount: r.wordCount,
     readingTimeMin: r.readingTimeMin,
     needsReview: r.needsReview,
+    isAgentGenerated: r.isAgentGenerated,
+    reviewedByHumanAt: r.reviewedByHumanAt,
     publishedAt: r.publishedAt ?? new Date(0),
     lastReviewedAt: r.lastReviewedAt,
     authorSlug: r.authorSlug,

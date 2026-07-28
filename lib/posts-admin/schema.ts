@@ -85,6 +85,9 @@ export const PostCreateSchema = z
     needsReview: z.boolean().optional(),
     isAgentGenerated: z.boolean().optional(),
     lastReviewedAt: z.coerce.date().optional().nullable(),
+    // Set by the "Mark human-reviewed" action. Three states like
+    // lastReviewedAt: absent = leave alone, null = clear, date = set.
+    reviewedByHumanAt: z.coerce.date().optional().nullable(),
     scheduledPublishAt: z.coerce.date().optional().nullable(),
     ogImageAlt: z
       .string()
@@ -144,6 +147,9 @@ export const PostUpdateSchema = z
     visibility: PostVisibilitySchema.optional().default("listed"),
     needsReview: z.boolean().optional(),
     lastReviewedAt: z.coerce.date().optional().nullable(),
+    // Set by the "Mark human-reviewed" action. Three states like
+    // lastReviewedAt: absent = leave alone, null = clear, date = set.
+    reviewedByHumanAt: z.coerce.date().optional().nullable(),
     scheduledPublishAt: z.coerce.date().optional().nullable(),
     ogImageAlt: z
       .string()

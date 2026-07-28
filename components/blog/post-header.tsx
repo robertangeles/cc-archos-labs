@@ -19,6 +19,16 @@ export interface PostHeaderProps {
   readingTimeMin: number;
   publishedAt: Date;
   lastReviewedAt: Date | null;
+  /**
+   * Whether this post can truthfully show "Researched by Metis · Reviewed by
+   * <founder>". Computed by showsDualByline() in lib/blog/byline.ts, NOT
+   * re-derived here — the visible byline and the Article JSON-LD must agree,
+   * and the only way to guarantee that is one predicate feeding both.
+   */
+  dualByline?: boolean;
+  /** Founder name for the reviewer credit. From site_setting, so it tracks
+   *  the same source as every other place the founder is named. */
+  reviewerName?: string | null;
 }
 
 export function PostHeader({
@@ -29,6 +39,8 @@ export function PostHeader({
   readingTimeMin,
   publishedAt,
   lastReviewedAt: _lastReviewedAt,
+  dualByline = false,
+  reviewerName,
 }: PostHeaderProps) {
   const publishedDate = formatPublishedDate(publishedAt);
   return (
@@ -49,8 +61,23 @@ export function PostHeader({
       <h1 className="text-display-md text-ink md:text-display-lg">{title}</h1>
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body-sm text-ink-subtle">
-        {authorName ? <span>{authorName}</span> : null}
-        {authorName ? <span aria-hidden>·</span> : null}
+        {/* Two shapes, one rule. The dual byline only renders when the agent
+            wrote the piece AND a human signed off — anything else keeps the
+            single name, because claiming a review that did not happen is worse
+            than claiming nothing. */}
+        {dualByline && reviewerName ? (
+          <>
+            <span>
+              Researched by {authorName ?? "Metis"} · Reviewed by {reviewerName}
+            </span>
+            <span aria-hidden>·</span>
+          </>
+        ) : authorName ? (
+          <>
+            <span>{authorName}</span>
+            <span aria-hidden>·</span>
+          </>
+        ) : null}
         <span>{readingTimeMin} min read</span>
         <span aria-hidden>·</span>
         <span>

@@ -1655,6 +1655,24 @@ export const post = pgTable(
     // No index: only ever read alongside status='scheduled', which the
     // partial index post_due_for_publish_idx already serves.
     isAgentGenerated: boolean("is_agent_generated").notNull().default(false),
+    // When a human explicitly confirmed they read this post. NULL = nobody
+    // has. Drives the "Reviewed by Rob Angeles" byline and the editor +
+    // contributor fields in the Article JSON-LD, so it must only ever be set
+    // by a deliberate human action — never inferred, never backfilled.
+    //
+    // Three existing columns look like they could carry this and none can:
+    //   needs_review       general editorial flag, and false on every
+    //                      PUBLISHED agent post by construction
+    //                      (lib/blog-agent/run.ts:557)
+    //   last_reviewed_at   already drives dateModified / modified_time /
+    //                      sitemap lastmod / llms.txt freshness
+    //   is_agent_generated says who WROTE it, not who checked it
+    //
+    // No index on purpose: only ever read on a row already fetched by slug or
+    // id, never filtered/joined/sorted on. See drizzle/0037.
+    reviewedByHumanAt: timestamp("reviewed_by_human_at", {
+      withTimezone: true,
+    }),
     // WordPress uhiz_posts.ID — the migration idempotency key. NULL for
     // posts authored directly in admin (no WP origin).
     sourceWpId: integer("source_wp_id"),

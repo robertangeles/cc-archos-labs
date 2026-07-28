@@ -44,6 +44,7 @@ const POST_STUB = `
     "category_id" uuid,
     "source_wp_id" integer,
     "last_reviewed_at" timestamp with time zone,
+    "reviewed_by_human_at" timestamp with time zone,
     -- Real column is vector(1024). pgvector is not loaded in this pglite
     -- build, and nothing on the write path reads or writes it, so a nullable
     -- text placeholder is enough to satisfy .returning().

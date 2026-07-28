@@ -10,6 +10,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { isBlogEnabled } from "../../../lib/blog/feature-flag";
+import { showsDualByline } from "../../../lib/blog/byline";
 import { getPostBySlug, getReadNext } from "../../../lib/posts";
 import { SOCIAL_LINKS } from "../../../lib/social-links";
 import { generateToc } from "../../../lib/post-rendering";
@@ -143,6 +144,10 @@ export default async function PostPage({
               readingTimeMin={post.readingTimeMin}
               publishedAt={post.publishedAt}
               lastReviewedAt={post.lastReviewedAt}
+              // Same predicate articleSchema() uses, so the visible byline and
+              // the structured data cannot disagree about who reviewed this.
+              dualByline={showsDualByline(post)}
+              reviewerName={settings.founderName}
             />
 
             <SocialShare

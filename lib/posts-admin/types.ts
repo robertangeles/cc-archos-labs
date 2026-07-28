@@ -58,6 +58,8 @@ export interface AdminPostView {
    * the 120 migrated WordPress posts, which also sit in the review queue.
    */
   isAgentGenerated: boolean;
+  /** When a human confirmed they read this post. NULL = nobody has. */
+  reviewedByHumanAt: Date | null;
   sourceWpId: number | null;
   lastReviewedAt: Date | null;
   publishedAt: Date | null;
@@ -100,6 +102,8 @@ export interface PostInput {
    * are both set) and marks agent output in the admin list.
    */
   isAgentGenerated?: boolean;
+  /** undefined = not mentioned, leave stored value alone. */
+  reviewedByHumanAt?: Date | null;
   lastReviewedAt?: Date | null;
   /**
    * Required when status === 'scheduled', forbidden otherwise. Validated
