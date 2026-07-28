@@ -55,6 +55,11 @@ export async function generateMetadata({
     description: post.seoDescription ?? post.excerpt ?? undefined,
     path: `/blog/${post.slug}`,
     ogType: "article",
+    // Both dates, not just the modified one. publishedAt is the original
+    // appearance; lastReviewedAt falls back to it when the post has never
+    // been reviewed, so an unreviewed post reports the same value twice
+    // rather than claiming an update that never happened.
+    publishedISO: post.publishedAt.toISOString(),
     lastUpdatedISO: (post.lastReviewedAt ?? post.publishedAt).toISOString(),
     articleSection: post.categoryName ?? undefined,
     image: usePostImage ? post.ogImagePath ?? undefined : undefined,

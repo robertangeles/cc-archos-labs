@@ -14,6 +14,7 @@ import {
   R2NotConfiguredError,
 } from "../r2";
 import { compressImageIfOverCap } from "../image-pipeline";
+import { trimAltToWordBoundary } from "./alt-text";
 
 // The persist half of a featured-image upload: compress, measure, checksum,
 // push to R2, write the metadata columns.
@@ -29,7 +30,6 @@ import { compressImageIfOverCap } from "../image-pipeline";
 
 /** Target size after compression. Matches the DB CHECK on og_image_size_kb. */
 const TARGET_SIZE_BYTES = 500 * 1024;
-const ALT_MAX_LEN = 125;
 
 /** Persisted mime → extension. Only the three the DB CHECK permits. */
 const MIME_TO_EXT: Record<string, string> = {
@@ -94,7 +94,7 @@ export async function attachImageToPost(
 ): Promise<AttachedImage> {
   const { postId, slug, buffer: original, alt, logContext } = input;
 
-  const altClean = alt.trim().slice(0, ALT_MAX_LEN);
+  const altClean = trimAltToWordBoundary(alt);
   const originalSizeKb = Math.round(original.byteLength / 1024);
 
   // Sharp detects the format from the bytes, transcodes anything that is not

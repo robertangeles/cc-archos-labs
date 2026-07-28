@@ -6,6 +6,7 @@ import { getDb } from "../db";
 import { author, category, post, postRevision } from "../db/schema";
 import { pingIndexNow } from "../indexnow";
 import { getSiteUrl } from "../site-config";
+import { trimAltToWordBoundary } from "./alt-text";
 import { deriveSlugFromTitle } from "./slug-derivation";
 import { computeWordCount, readingTimeMinutes } from "./word-count";
 import {
@@ -450,7 +451,9 @@ export async function createPost(
             visibility: normalised.visibility,
             needsReview: normalised.needsReview,
             isAgentGenerated: normalised.isAgentGenerated,
-            lastReviewedAt: normalised.lastReviewedAt,
+            // On INSERT there is no stored value to preserve, so the
+            // three-state distinction collapses: absent means NULL.
+            lastReviewedAt: normalised.lastReviewedAt ?? null,
             scheduledPublishAt: normalised.scheduledPublishAt,
             ogImageAlt: normalised.ogImageAlt,
             // Publish semantics on create:
@@ -630,7 +633,13 @@ export async function updatePost(
           status: normalised.status,
           visibility: normalised.visibility,
           needsReview: normalised.needsReview,
-          lastReviewedAt: normalised.lastReviewedAt,
+          // Only write the column when the caller actually supplied it.
+          // Omitting the key leaves the stored value untouched; writing
+          // `undefined` here would depend on Drizzle's set-mapping internals,
+          // so be explicit instead.
+          ...(normalised.lastReviewedAt !== undefined
+            ? { lastReviewedAt: normalised.lastReviewedAt }
+            : {}),
           scheduledPublishAt: normalised.scheduledPublishAt,
           ogImageAlt: normalised.ogImageAlt,
           publishedAt: nextPublishedAt,
@@ -1033,6 +1042,19 @@ export function computeDiffSizePct(before: string, after: string): number {
  * Normalise input from the wire format into a shape the DB layer can
  * consume directly. Slug → lower kebab; null-coercion on optionals.
  * Returns a NEW object — never mutates the caller's input.
+ *
+ * `lastReviewedAt` is the ONE field that deliberately does NOT get
+ * null-coerced. It has three meaningful states, not two:
+ *
+ *     undefined  caller did not mention it  → leave the stored value alone
+ *     null       caller explicitly cleared it → write NULL
+ *     Date       caller set it              → write the date
+ *
+ * The admin post form never sends the key at all (post-form.tsx builds its
+ * PUT body without it), so collapsing undefined → null here silently reset
+ * every post's freshness date on every save, dragging dateModified /
+ * article:modified_time / sitemap lastmod / llms.txt back to publishedAt.
+ * See lib/posts-admin/index.test.ts "preserves lastReviewedAt".
  */
 function normalisePostInput(input: PostInput): {
   slug: string;
@@ -1048,7 +1070,8 @@ function normalisePostInput(input: PostInput): {
   visibility: PostVisibility;
   needsReview: boolean;
   isAgentGenerated: boolean;
-  lastReviewedAt: Date | null;
+  /** undefined = "not mentioned, leave stored value alone". See the doc comment. */
+  lastReviewedAt: Date | null | undefined;
   scheduledPublishAt: Date | null;
   ogImageAlt: string | null;
 } {
@@ -1066,7 +1089,8 @@ function normalisePostInput(input: PostInput): {
     visibility: input.visibility ?? "listed",
     needsReview: input.needsReview ?? false,
     isAgentGenerated: input.isAgentGenerated ?? false,
-    lastReviewedAt: input.lastReviewedAt ?? null,
+    // Deliberately NOT `?? null` — see the doc comment above.
+    lastReviewedAt: input.lastReviewedAt,
     scheduledPublishAt:
       input.status === "scheduled" ? (input.scheduledPublishAt ?? null) : null,
     // Trim + truncate; reject empty string in favour of null (so
@@ -1079,7 +1103,11 @@ function normaliseAltText(raw: string | null | undefined): string | null {
   if (raw == null) return null;
   const trimmed = raw.trim();
   if (!trimmed) return null;
-  return trimmed.slice(0, 125);
+  // Same word-boundary policy as the image pipeline — see lib/posts-admin/alt-text.ts.
+  // Reachable with over-length input from internal callers (the blog agent
+  // constructs PostInput directly); the admin route's Zod .max(125) rejects
+  // before it gets here.
+  return trimAltToWordBoundary(trimmed);
 }
 
 /**

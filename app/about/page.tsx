@@ -22,6 +22,7 @@ import {
 } from "../../lib/site-config";
 import { BOOK_A_CALL_URL, TAKE_ASSESSMENT_URL } from "../../lib/cta-urls";
 import { buildAboutPagePersonLd } from "../../lib/schema-org";
+import { jsonLdScript } from "../../lib/structured-data";
 import { sanitiseName } from "../../lib/sanitise-name";
 import { AnalyticsClient } from "../../components/analytics/analytics-client";
 import {
@@ -189,9 +190,11 @@ export default async function AboutPage({
 
   return (
     <>
+      {/* Serialised via jsonLdScript() — founderName and the sameAs URLs
+          come from the admin-editable site_setting row. */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(personLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(personLd) }}
       />
 
       <AnalyticsClient route="/about" />

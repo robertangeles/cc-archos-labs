@@ -16,6 +16,7 @@ import type { Metadata } from "next";
 import { getSiteSettings, buildPageMetadata } from "../lib/site-config";
 import { BOOK_A_CALL_URL, TAKE_ASSESSMENT_URL } from "../lib/cta-urls";
 import { buildHomePageServicesLd } from "../lib/schema-org";
+import { jsonLdScript } from "../lib/structured-data";
 import { sanitiseName } from "../lib/sanitise-name";
 import { AnalyticsClient } from "../components/analytics/analytics-client";
 import {
@@ -32,9 +33,14 @@ import {
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
-    // Brand-free: buildPageMetadata appends " — Archos Labs" via the layout
-    // title template. Embedding the brand here doubled it in <title> and og:title.
+    // Brand-free title + absoluteTitle. The layout's title template applies
+    // to DESCENDANT segments only, and this file shares the root segment with
+    // app/layout.tsx — so the template can never fire here. Without the flag
+    // the homepage <title> ships with no brand at all while every child route
+    // gets one. absoluteTitle makes buildPageMetadata append it directly.
+    // Do NOT copy this flag to any other route; it double-brands them.
     title: "Your Fractional Data Team for Startups & SMBs",
+    absoluteTitle: true,
     description:
       "No data team? Rob Angeles works with startup founders and SMBs as their fractional data person. Fixed-fee. No retainer. Melbourne, Australia.",
     path: "/",
@@ -219,10 +225,13 @@ export default async function Home({
   return (
     <>
       {/* Page-specific Service JSON-LD. The root Organization + WebSite
-          schemas already render globally in app/layout.tsx. */}
+          schemas already render globally in app/layout.tsx.
+          Serialised via jsonLdScript() — `orgName` comes from the
+          admin-editable site_setting row, so it is untrusted input
+          flowing into a <script> tag. */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(servicesLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(servicesLd) }}
       />
 
       <AnalyticsClient route="/" />

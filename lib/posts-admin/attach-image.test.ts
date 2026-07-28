@@ -233,15 +233,33 @@ describe("filename and R2 key", () => {
 });
 
 describe("alt text", () => {
-  it("trims and caps at 125 characters", async () => {
+  // The cap itself is unchanged at 125. What changed is WHERE the cut lands:
+  // this used to be a bare .slice(), which severed words mid-token and shipped
+  // strings like "...their shadows cast" into og:image:alt and the hero image's
+  // alt attribute. The boundary rules are unit-tested in alt-text.test.ts;
+  // these two assert the pipeline actually routes through them.
+  it("trims whitespace and never exceeds 125 characters", async () => {
     const out = await attachImageToPost({
       postId,
       slug: "my-post",
       buffer: await png(600, 200),
-      alt: `   ${"a".repeat(200)}   `,
+      alt: `   ${"alpha ".repeat(40)}   `,
     });
-    expect(out.alt.length).toBe(125);
-    expect((await postRow(postId)).og_image_alt).toHaveLength(125);
+    expect(out.alt.length).toBeLessThanOrEqual(125);
+    expect(out.alt).toBe(out.alt.trim());
+    expect((await postRow(postId)).og_image_alt).toBe(out.alt);
+  });
+
+  it("cuts at a word boundary rather than mid-word", async () => {
+    const out = await attachImageToPost({
+      postId,
+      slug: "my-post",
+      buffer: await png(600, 200),
+      alt: "alpha ".repeat(40),
+    });
+    for (const token of out.alt.split(" ")) {
+      expect(token).toBe("alpha");
+    }
   });
 });
 

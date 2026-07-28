@@ -149,8 +149,14 @@ export function articleSchema(
   };
 }
 
-/** Serialise a JSON-LD object for embedding in a <script> tag. */
-export function jsonLdScript(data: JsonLd): string {
+/**
+ * Serialise a JSON-LD payload for embedding in a <script> tag.
+ *
+ * Accepts a single node or an array of them — `app/page.tsx` emits three
+ * Service entities in one block, so the array form is a real caller, not
+ * speculative generality.
+ */
+export function jsonLdScript(data: JsonLd | JsonLd[]): string {
   // `</script>` inside a JSON string would close the surrounding script
   // tag prematurely. Escape it. Also escape U+2028 / U+2029 which are
   // valid JSON but invalid JS string literals. Built via the RegExp

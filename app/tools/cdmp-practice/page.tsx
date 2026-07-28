@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { buildPageMetadata, getSiteSettings, getSiteUrl } from "@/lib/site-config";
 import { buildCdmpPracticeExamLd } from "@/lib/schema-org";
+import { jsonLdScript } from "@/lib/structured-data";
 import { getSpecialistAreas, getSpecialistArea } from "@/lib/cdmp/specialist";
 import { isSpecialistAreaSlug } from "@/lib/cdmp/config-shared";
 import { Exam } from "./exam";
@@ -50,13 +51,15 @@ export default async function CdmpPracticePage({
 
   return (
     <>
-      {/* JSON-LD: WebApplication + FAQPage. All values are static
-          string literals from lib/schema-org.ts — no user input. */}
+      {/* JSON-LD: WebApplication + FAQPage. The question/answer copy is
+          static, but `orgName` and `siteUrl` are threaded in from the
+          admin-editable site_setting row — so this is NOT user-input-free
+          and must go through jsonLdScript(). */}
       {schemas.map((schema, i) => (
         <script
           key={i}
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+          dangerouslySetInnerHTML={{ __html: jsonLdScript(schema) }}
         />
       ))}
       <Exam specialistAreas={specialistAreas} lockedArea={lockedArea} />

@@ -73,9 +73,16 @@ export default async function RootLayout({
     logo: `${siteUrl}/images/logo.png`,
     description: settings.description,
     foundingDate: "2026",
+    // Melbourne, not Sydney. Every user-facing surface (home, /about,
+    // /consulting) says Melbourne; this block said Sydney, so the one
+    // machine-readable statement of where the business is was the only
+    // one that was wrong. addressRegion disambiguates from Melbourne,
+    // Florida. Unrelated to the Australia/Sydney IANA strings elsewhere —
+    // those are the timezone, which Melbourne shares.
     address: {
       "@type": "PostalAddress",
-      addressLocality: "Sydney",
+      addressLocality: "Melbourne",
+      addressRegion: "VIC",
       addressCountry: "AU",
     },
     sameAs: [settings.linkedinUrl].filter(Boolean),
