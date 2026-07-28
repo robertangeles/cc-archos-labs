@@ -24,8 +24,19 @@ import { clientIpFromRequest, rateLimit } from "@/lib/rate-limit";
 // That is the spec, not a typo.
 //
 // Reports are logged, never persisted: they are transient diagnostics for
-// building the enforcing allowlist, and a violation report can contain the URL
-// the user was on.
+// building the enforcing allowlist.
+//
+// The document URL is REDACTED to its first path segment before logging.
+// Several public routes carry single-use secrets in the path rather than a
+// query string — /auth/password-reset/[token], /book/manage/[token],
+// /share/chat/[token], /tools/ai-readiness/share/[token] — and the CSP header
+// is applied site-wide, so an unredacted document-uri would drop a live token
+// into Render's log stream. Redacting by position rather than by a list of
+// known routes means a token route added later is covered automatically.
+//
+// blocked-uri is NOT redacted: it names the resource the policy stopped, which
+// is the entire signal needed to build the allowlist, and app tokens do not
+// appear in resource URLs.
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +53,35 @@ type LoggedViolation = {
 /** Narrow an unknown JSON value to a string, or undefined. */
 function str(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+/**
+ * Reduce a document URL to origin + first path segment, dropping everything
+ * deeper along with any query string.
+ *
+ *   /auth/password-reset/9f3c-secret  →  https://host/auth/…
+ *   /blog/some-post                   →  https://host/blog/…
+ *   /                                 →  https://host/
+ *
+ * Enough to know roughly where a violation fired, structurally incapable of
+ * carrying a token. Anything that is not an http(s) URL is dropped rather than
+ * logged raw — this field is attacker-controlled, and `new URL()` happily
+ * parses `javascript:alert(1)` into an origin of "null" with the payload
+ * sitting in the pathname.
+ */
+function redactDocumentUrl(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return "(unparseable)";
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    return "(unparseable)";
+  }
+  const [first] = url.pathname.split("/").filter(Boolean);
+  return first ? `${url.origin}/${first}/…` : `${url.origin}/`;
 }
 
 function fromReportUri(body: unknown): LoggedViolation[] {
@@ -101,7 +141,7 @@ export async function POST(request: Request): Promise<Response> {
       JSON.stringify({
         directive: v.violatedDirective ?? "unknown",
         blocked: v.blockedUrl ?? "unknown",
-        document: v.documentUrl ?? "unknown",
+        document: redactDocumentUrl(v.documentUrl) ?? "unknown",
         disposition: v.disposition ?? "report",
       }),
     );

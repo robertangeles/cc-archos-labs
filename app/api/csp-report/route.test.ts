@@ -51,8 +51,80 @@ describe("POST /api/csp-report", () => {
     expect(logged()).toMatchObject({
       directive: "script-src",
       blocked: "https://evil.example.com/x.js",
-      document: "https://archoslabs.xyz/blog",
+      document: "https://archoslabs.xyz/blog/…",
     });
+  });
+
+  // --- Token redaction. These routes carry single-use secrets in the PATH. ---
+
+  it.each([
+    ["/auth/password-reset/9f3c-live-reset-token", "https://archoslabs.xyz/auth/…"],
+    ["/book/manage/bk_secret_value", "https://archoslabs.xyz/book/…"],
+    ["/share/chat/sh_abcdef123456", "https://archoslabs.xyz/share/…"],
+    [
+      "/tools/ai-readiness/share/rd_secret",
+      "https://archoslabs.xyz/tools/…",
+    ],
+  ])("redacts the token out of %s", async (path, expected) => {
+    await POST(
+      reportUriRequest({
+        "csp-report": {
+          "document-uri": `https://archoslabs.xyz${path}`,
+          "blocked-uri": "inline",
+          "violated-directive": "script-src",
+        },
+      }),
+    );
+
+    const entry = logged();
+    expect(entry.document).toBe(expected);
+    // The whole point: no fragment of the secret survives anywhere in the line.
+    const secret = path.split("/").pop()!;
+    expect(JSON.stringify(entry)).not.toContain(secret);
+  });
+
+  it("keeps the query string out of the log too", async () => {
+    await POST(
+      reportUriRequest({
+        "csp-report": {
+          "document-uri": "https://archoslabs.xyz/search?q=confidential+term",
+          "blocked-uri": "inline",
+          "violated-directive": "script-src",
+        },
+      }),
+    );
+    expect(JSON.stringify(logged())).not.toContain("confidential");
+  });
+
+  it("does not log an unparseable document URL verbatim", async () => {
+    // This field is attacker-controlled; it must never be echoed raw.
+    await POST(
+      reportUriRequest({
+        "csp-report": {
+          "document-uri": "javascript:alert(1)//not-a-url",
+          "blocked-uri": "inline",
+          "violated-directive": "script-src",
+        },
+      }),
+    );
+    expect(logged().document).toBe("(unparseable)");
+  });
+
+  it("still records the blocked resource in full", async () => {
+    // blocked-uri is the allowlist signal — redacting it would defeat the
+    // entire purpose of collecting reports.
+    await POST(
+      reportUriRequest({
+        "csp-report": {
+          "document-uri": "https://archoslabs.xyz/",
+          "blocked-uri": "https://challenges.cloudflare.com/turnstile/v0/api.js",
+          "violated-directive": "script-src",
+        },
+      }),
+    );
+    expect(logged().blocked).toBe(
+      "https://challenges.cloudflare.com/turnstile/v0/api.js",
+    );
   });
 
   it("parses the Reporting API format (Chrome)", async () => {

@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-27T11:24:25.493Z
+generated: 2026-07-28T09:45:31.742Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -64,7 +64,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/admin/login` | [app/admin/login/page.tsx](../app/admin/login/page.tsx) | 2026-05-15 |
 | `/ai-readiness-assessment` | [app/ai-readiness-assessment/page.tsx](../app/ai-readiness-assessment/page.tsx) | 2026-05-15 |
 | `/blog` | [app/blog/page.tsx](../app/blog/page.tsx) | 2026-07-12 |
-| `/blog/[slug]` | [app/blog/[slug]/page.tsx](../app/blog/[slug]/page.tsx) | 2026-07-25 |
+| `/blog/[slug]` | [app/blog/[slug]/page.tsx](../app/blog/[slug]/page.tsx) | 2026-07-27 |
 | `/blog/category/[slug]` | [app/blog/category/[slug]/page.tsx](../app/blog/category/[slug]/page.tsx) | 2026-07-12 |
 | `/book/[slug]` | [app/book/[slug]/page.tsx](../app/book/[slug]/page.tsx) | 2026-05-22 |
 | `/book/[slug]/confirmation/[bookingId]` | [app/book/[slug]/confirmation/[bookingId]/page.tsx](../app/book/[slug]/confirmation/[bookingId]/page.tsx) | 2026-05-17 |
@@ -192,7 +192,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/cron/purge-inactive-leads` | [app/api/cron/purge-inactive-leads/route.ts](../app/api/cron/purge-inactive-leads/route.ts) | 2026-05-18 |
 | `/api/cron/purge-session-metadata` | [app/api/cron/purge-session-metadata/route.ts](../app/api/cron/purge-session-metadata/route.ts) | 2026-05-18 |
 | `/api/cron/write-blog-post` | [app/api/cron/write-blog-post/route.ts](../app/api/cron/write-blog-post/route.ts) | 2026-07-26 |
-| `/api/csp-report` | [app/api/csp-report/route.ts](../app/api/csp-report/route.ts) | unknown |
+| `/api/csp-report` | [app/api/csp-report/route.ts](../app/api/csp-report/route.ts) | 2026-07-27 |
 | `/api/diagnostic/generate` | [app/api/diagnostic/generate/route.ts](../app/api/diagnostic/generate/route.ts) | 2026-06-03 |
 | `/api/diagnostic/report/[sessionId]/pdf` | [app/api/diagnostic/report/[sessionId]/pdf/route.ts](../app/api/diagnostic/report/[sessionId]/pdf/route.ts) | 2026-06-03 |
 | `/api/diagnostic/share` | [app/api/diagnostic/share/route.ts](../app/api/diagnostic/share/route.ts) | 2026-06-03 |

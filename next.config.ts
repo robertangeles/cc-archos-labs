@@ -83,14 +83,21 @@ const nextConfig: NextConfig = {
               // 'unsafe-inline' is present ONLY because the four inline
               // initialisers have no nonce yet. Removing it is the whole point
               // of collecting reports first.
-              "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net",
+              // challenges.cloudflare.com is Turnstile, loaded dynamically by
+              // app/(auth)/turnstile-widget.tsx on login, register,
+              // forgot-password and the booking form. It is DB-toggleable and
+              // currently defaults OFF, so it emits nothing today — but the
+              // widget tolerates a missing script silently ("the form still
+              // works without a token"), so an enforcing CSP would disable the
+              // bot gate on auth and booking with no visible error at all.
+              "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net https://challenges.cloudflare.com",
               "style-src 'self' 'unsafe-inline'",
               // R2 serves blog imagery; the analytics hosts serve tracking pixels.
               "img-src 'self' data: https://pub-cb13acd53ca84910bf06d95811396aed.r2.dev https://www.googletagmanager.com https://www.facebook.com",
               "font-src 'self' data:",
               "connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com https://connect.facebook.net",
-              // GTM's <noscript> iframe.
-              "frame-src https://www.googletagmanager.com",
+              // GTM's <noscript> iframe, and Turnstile's challenge iframe.
+              "frame-src https://www.googletagmanager.com https://challenges.cloudflare.com",
               "frame-ancestors 'self'",
               "base-uri 'self'",
               "form-action 'self'",
