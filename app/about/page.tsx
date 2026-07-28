@@ -177,7 +177,6 @@ export default async function AboutPage({
 
   const personLd = buildAboutPagePersonLd({
     founderName: settings.founderName,
-    orgName: settings.siteName,
     siteUrl,
     sameAs,
   });

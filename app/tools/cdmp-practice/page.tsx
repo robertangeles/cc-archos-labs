@@ -26,10 +26,7 @@ export default async function CdmpPracticePage({
   const sp = await searchParams;
   const settings = await getSiteSettings();
   const siteUrl = getSiteUrl();
-  const schemas = buildCdmpPracticeExamLd({
-    orgName: settings.siteName,
-    siteUrl,
-  });
+  const schemas = buildCdmpPracticeExamLd({ siteUrl });
   const specialistAreas = (await getSpecialistAreas()).map((a) => ({
     slug: a.slug,
     label: a.label,

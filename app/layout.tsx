@@ -18,6 +18,14 @@ import {
   getSiteUrl,
 } from "../lib/site-config";
 import { jsonLdScript } from "../lib/structured-data";
+import {
+  buildGraph,
+  founderNode,
+  metisNode,
+  ref,
+  SCHEMA_IDS,
+} from "../lib/schema-graph";
+import { sameAsFor } from "../lib/social-links";
 import "./globals.css";
 
 // Geist Sans + Geist Mono — DESIGN.md §347 lists Geist Sans as a viable
@@ -62,45 +70,73 @@ export default async function RootLayout({
   // this DB hit.
   const signedInLead = await getSignedInLead();
 
-  // JSON-LD for AI assistants + Google Knowledge Panel. Organization +
-  // Person (founder) schemas — clear, factual, machine-readable. Updated
-  // every time the admin saves site_setting because settings flow through.
-  const orgSchema = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: settings.siteName,
-    url: siteUrl,
-    logo: `${siteUrl}/images/logo.png`,
-    description: settings.description,
-    foundingDate: "2026",
-    // Melbourne, not Sydney. Every user-facing surface (home, /about,
-    // /consulting) says Melbourne; this block said Sydney, so the one
-    // machine-readable statement of where the business is was the only
-    // one that was wrong. addressRegion disambiguates from Melbourne,
-    // Florida. Unrelated to the Australia/Sydney IANA strings elsewhere —
-    // those are the timezone, which Melbourne shares.
-    address: {
-      "@type": "PostalAddress",
-      addressLocality: "Melbourne",
-      addressRegion: "VIC",
-      addressCountry: "AU",
+  // THE entity graph for the whole site. Every other page references these
+  // nodes by @id instead of re-declaring its own copy — see lib/schema-graph.ts
+  // for why that matters. Values still flow from site_setting, so an admin save
+  // updates the graph without a deploy.
+  const graph = buildGraph([
+    {
+      // ProfessionalService alongside Organization: it is the accurate type for
+      // a consulting practice and unlocks service-oriented rich results that
+      // bare Organization does not, without committing to LocalBusiness
+      // semantics (no storefront, no opening hours).
+      "@type": ["ProfessionalService", "Organization"],
+      "@id": SCHEMA_IDS.org,
+      name: settings.siteName,
+      url: siteUrl,
+      logo: `${siteUrl}/images/logo.png`,
+      description: settings.description,
+      foundingDate: "2026",
+      // Melbourne, not Sydney. Every user-facing surface (home, /about,
+      // /consulting) says Melbourne; this block said Sydney, so the one
+      // machine-readable statement of where the business is was the only
+      // one that was wrong. addressRegion disambiguates from Melbourne,
+      // Florida. Unrelated to the Australia/Sydney IANA strings elsewhere —
+      // those are the timezone, which Melbourne shares.
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: "Melbourne",
+        addressRegion: "VIC",
+        addressCountry: "AU",
+      },
+      areaServed: { "@type": "Country", name: "Australia" },
+      // The brand's own accounts, not the founder's — see lib/social-links.ts.
+      sameAs: Array.from(
+        new Set([settings.linkedinUrl, ...sameAsFor("org")].filter(Boolean)),
+      ),
+      founder: ref(SCHEMA_IDS.person),
     },
-    sameAs: [settings.linkedinUrl].filter(Boolean),
-    founder: {
-      "@type": "Person",
-      name: settings.founderName,
-      jobTitle: "Founder & Principal Practitioner",
-      sameAs: [settings.founderLinkedinUrl].filter(Boolean),
-    },
-  };
 
-  const websiteSchema = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: settings.siteName,
-    url: siteUrl,
-    description: settings.description,
-  };
+    founderNode({
+      founderName: settings.founderName,
+      founderLinkedinUrl: settings.founderLinkedinUrl,
+    }),
+
+    // Declared globally so blog posts can reference #metis rather than minting
+    // an anonymous Person on every article.
+    metisNode(),
+
+    {
+      "@type": "WebSite",
+      "@id": SCHEMA_IDS.website,
+      name: settings.siteName,
+      url: siteUrl,
+      description: settings.description,
+      inLanguage: "en-AU",
+      publisher: ref(SCHEMA_IDS.org),
+      // Sitelinks searchbox candidate. /search is noindex by design, which does
+      // not matter here — this points at the endpoint, it does not ask Google
+      // to index the results page.
+      potentialAction: {
+        "@type": "SearchAction",
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: `${siteUrl}/search?q={search_term_string}`,
+        },
+        "query-input": "required name=search_term_string",
+      },
+    },
+  ]);
 
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
@@ -133,13 +169,11 @@ export default async function RootLayout({
               process.env.NEXT_PUBLIC_FB_PIXEL_ID,
           )}
         />
+        {/* One @graph, one script tag. Was two separate blocks with no
+            cross-references between them. */}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: jsonLdScript(orgSchema) }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: jsonLdScript(websiteSchema) }}
+          dangerouslySetInnerHTML={{ __html: jsonLdScript(graph) }}
         />
         <SearchProvider>
           <Header

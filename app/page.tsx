@@ -214,7 +214,7 @@ export default async function Home({
   const sanitisedName = sanitiseName(rawName);
 
   const settings = await getSiteSettings();
-  const servicesLd = buildHomePageServicesLd(settings.siteName);
+  const servicesLd = buildHomePageServicesLd();
 
   const preparedOn = new Date().toLocaleDateString("en-AU", {
     day: "numeric",

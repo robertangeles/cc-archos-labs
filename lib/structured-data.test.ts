@@ -6,6 +6,7 @@ import {
   organizationSchema,
   personSchema,
 } from "./structured-data";
+import { SCHEMA_IDS } from "./schema-graph";
 import { SITE_DEFAULTS, type SiteSettings } from "./site-config-shared";
 import type { PublishedPostView } from "./posts";
 
@@ -100,16 +101,64 @@ describe("breadcrumbSchema", () => {
 });
 
 describe("articleSchema", () => {
-  it("emits Article with author Person + publisher Organization", () => {
+  it("emits Article with an inline author and a publisher reference", () => {
     const ld = articleSchema(post, siteUrl, settings);
     expect(ld["@type"]).toBe("Article");
     expect(ld.headline).toBe("The Translation Layer");
+    // "Rob Angeles" is not an author identity this codebase can vouch for —
+    // see personIdForAuthor — so the Article keeps an inline Person rather
+    // than claiming an @id it has no basis for.
     expect((ld.author as Record<string, unknown>).name).toBe("Rob Angeles");
-    expect((ld.publisher as Record<string, unknown>).name).toBe("Archos Labs");
+    expect((ld.author as Record<string, unknown>)["@id"]).toBeUndefined();
+    // Publisher is a bare reference now. Re-declaring the Organization here is
+    // what made Google resolve two of them.
+    expect(ld.publisher).toEqual({ "@id": SCHEMA_IDS.org });
     expect(ld.dateModified).toBe("2026-05-10T00:00:00.000Z");
     expect(ld.datePublished).toBe("2026-04-01T00:00:00.000Z");
     expect(ld.wordCount).toBe(720);
     expect(ld.keywords).toBe("governance, data");
+  });
+
+  it("references #metis when the author is the agent", () => {
+    // The live case: one author row, renamed to "Metis" by the seed backfill,
+    // used by every agent post. This is the only author the graph can name.
+    const ld = articleSchema(
+      { ...post, authorName: "Metis" },
+      siteUrl,
+      settings,
+    );
+    expect(ld.author).toEqual({ "@id": SCHEMA_IDS.metis });
+  });
+
+  it("NEVER attributes a post to the founder", () => {
+    // Promoting a post to #rob-angeles is a review-status decision keyed on
+    // reviewed_by_human_at, not an author-name match. Until that column exists
+    // no code path may make this claim — it would be a false authorship
+    // statement in machine-readable form.
+    for (const name of ["Rob Angeles", "rob angeles", "Metis", "Someone Else"]) {
+      const ld = articleSchema({ ...post, authorName: name }, siteUrl, settings);
+      expect(JSON.stringify(ld.author)).not.toContain(SCHEMA_IDS.person);
+    }
+  });
+});
+
+describe("personSchema — identity resolution", () => {
+  it("stamps #metis on the agent, case-insensitively", () => {
+    for (const name of ["Metis", "metis", "  METIS  "]) {
+      const ld = personSchema(name, null, null, siteUrl, settings);
+      expect(ld["@id"]).toBe(SCHEMA_IDS.metis);
+    }
+  });
+
+  it("leaves an unrecognised author anonymous rather than guessing", () => {
+    const ld = personSchema("Someone Else", null, null, siteUrl, settings);
+    expect(ld["@id"]).toBeUndefined();
+    expect(ld.name).toBe("Someone Else");
+  });
+
+  it("points worksFor at the org node instead of inlining it", () => {
+    const ld = personSchema("Metis", null, null, siteUrl, settings);
+    expect(ld.worksFor).toEqual({ "@id": SCHEMA_IDS.org });
   });
 });
 
