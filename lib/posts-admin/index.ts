@@ -878,9 +878,12 @@ export async function restoreRevision(
 
   const refreshed = await getAdminPostById(result.postRow.id);
   if (!refreshed) throw new PostNotFoundError(`Post "${postId}" disappeared.`);
-  // Restoring a revision rewrites title/body/excerpt — the live page is stale.
-  // This path had no cache invalidation and no IndexNow ping at all.
+  // Restoring a revision rewrites title, body and excerpt, so the live page
+  // is stale and search engines are looking at superseded content. This path
+  // had neither signal: no cache invalidation and no IndexNow ping. Both now
+  // fire, matching what every other content-changing mutation already does.
   revalidatePostView(refreshed);
+  pingPostIfPublic(refreshed);
   return { post: refreshed, revision: result.revision };
 }
 
