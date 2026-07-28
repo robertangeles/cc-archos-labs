@@ -32,6 +32,24 @@ import { AuthorBio } from "../../../components/blog/author-bio";
 import { ReadNext } from "../../../components/blog/read-next";
 import { SocialShare } from "../../../components/blog/social-share";
 
+// Still force-dynamic, deliberately, after measuring.
+//
+// Swapping this for `export const revalidate = 3600` was tried and REVERTED:
+// it changes the export and nothing else. Measured on a production build,
+// two consecutive requests to the same post both returned
+// `Cache-Control: private, no-cache, no-store` with no `x-nextjs-cache`
+// header — i.e. still rendered from scratch every time.
+//
+// The cause is not local to this route. NO page in this application renders
+// statically: `pnpm build` marks every single `page.tsx` as `ƒ`, and only
+// route handlers and metadata files (feed.xml, llms.txt, sitemap.xml) get
+// `○`. It is not the root layout's cookies() read either — stubbing that out
+// changed nothing at runtime. Whatever opts the whole app into dynamic
+// rendering needs finding before ISR is worth attempting anywhere.
+//
+// Until then this stays honest. The revalidatePath wiring in
+// lib/posts-admin/revalidate.ts is already in place and correct, so the day
+// the blocker is found this becomes a one-line change.
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
