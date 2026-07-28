@@ -74,4 +74,14 @@ describe("trimAltToWordBoundary", () => {
     expect(trimAltToWordBoundary("")).toBe("");
     expect(trimAltToWordBoundary("   ")).toBe("");
   });
+
+  it("never returns empty text for non-empty input, even when the leading token is all separators", () => {
+    // The word-boundary cut lands right after a run of dashes with nothing
+    // else before it. Stripping trailing separators from that run alone
+    // would collapse the result to "" — a truncated word beats no alt text.
+    const input = `${"-".repeat(100)} ${"word".repeat(30)}`;
+    const out = trimAltToWordBoundary(input);
+    expect(out.length).toBeGreaterThan(0);
+    expect(out.length).toBeLessThanOrEqual(ALT_MAX_LEN);
+  });
 });

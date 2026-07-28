@@ -38,5 +38,10 @@ export function trimAltToWordBoundary(raw: string): string {
   const lastSpace = window.lastIndexOf(" ");
   if (lastSpace <= 0) return window;
 
-  return window.slice(0, lastSpace).replace(/[\s.,;:—-]+$/, "");
+  const cut = window.slice(0, lastSpace).replace(/[\s.,;:—-]+$/, "");
+  // If everything before the last space was itself separator characters
+  // (e.g. a run of dashes used as a rule), stripping can collapse the cut
+  // to nothing. A truncated word beats empty alt text — fall back to the
+  // hard slice, same as the no-boundary-found case above.
+  return cut.length > 0 ? cut : window;
 }
