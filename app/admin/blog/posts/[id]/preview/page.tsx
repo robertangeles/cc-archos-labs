@@ -28,6 +28,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { PreviewBanner } from "./preview-banner";
 import { isBlogEnabled } from "../../../../../../lib/blog/feature-flag";
+import { showsDualByline } from "../../../../../../lib/blog/byline";
 import { getPostByIdForPreview, getReadNext, type ReadNextItem } from "../../../../../../lib/posts";
 import { getAdminPostById } from "../../../../../../lib/posts-admin";
 import { generateToc } from "../../../../../../lib/post-rendering";
@@ -109,6 +110,13 @@ export default async function PostPreviewPage({
               readingTimeMin={post.readingTimeMin}
               publishedAt={post.publishedAt}
               lastReviewedAt={post.lastReviewedAt}
+              // Preview exists to check the byline before publishing, so it has
+              // to show the same one the public page will. Omitting these
+              // defaulted the preview to the single-name byline, which meant
+              // clicking "Mark human-reviewed" and then previewing showed no
+              // change — the exact workflow this feature is for.
+              dualByline={showsDualByline(post)}
+              reviewerName={settings.founderName}
             />
 
             {post.ogImagePath && !post.ogImageDeletedAt ? (

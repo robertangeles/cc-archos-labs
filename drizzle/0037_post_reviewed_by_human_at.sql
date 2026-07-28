@@ -56,6 +56,6 @@
 
 ALTER TABLE "post"
   ADD COLUMN IF NOT EXISTS "reviewed_by_human_at" timestamp with time zone;
-
+--> statement-breakpoint
 COMMENT ON COLUMN "post"."reviewed_by_human_at" IS
   'When a human explicitly confirmed they reviewed this post. NULL = never reviewed. Drives the "Reviewed by" byline and the editor/contributor fields in the Article JSON-LD. Distinct from needs_review (a general editorial flag) and last_reviewed_at (content freshness, feeds dateModified).';
