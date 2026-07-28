@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-28T10:11:38.243Z
+generated: 2026-07-28T10:57:00.178Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -70,7 +70,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/book/[slug]/confirmation/[bookingId]` | [app/book/[slug]/confirmation/[bookingId]/page.tsx](../app/book/[slug]/confirmation/[bookingId]/page.tsx) | 2026-05-17 |
 | `/book/manage/[token]` | [app/book/manage/[token]/page.tsx](../app/book/manage/[token]/page.tsx) | 2026-05-17 |
 | `/book/manage/[token]/reschedule` | [app/book/manage/[token]/reschedule/page.tsx](../app/book/manage/[token]/reschedule/page.tsx) | 2026-05-17 |
-| `/consulting` | [app/consulting/page.tsx](../app/consulting/page.tsx) | 2026-07-12 |
+| `/consulting` | [app/consulting/page.tsx](../app/consulting/page.tsx) | 2026-07-28 |
 | `/contact` | [app/contact/page.tsx](../app/contact/page.tsx) | 2026-05-22 |
 | `/search` | [app/search/page.tsx](../app/search/page.tsx) | 2026-06-14 |
 | `/share/chat/[token]` | [app/share/chat/[token]/page.tsx](../app/share/chat/[token]/page.tsx) | 2026-06-08 |
