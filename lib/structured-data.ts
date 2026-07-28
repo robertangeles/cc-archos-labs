@@ -1,11 +1,20 @@
 import "server-only";
 import type { PublishedPostView } from "./posts";
+import { personIdForAuthor, ref, SCHEMA_IDS } from "./schema-graph";
 import type { SiteSettings } from "./site-config-shared";
 
-// JSON-LD emitters for the public /blog surface. Emit one Article + one
-// Person + one BreadcrumbList per post page; one Organization per layout.
-// The page renders them via:
+// JSON-LD emitters for the public /blog surface: one Article, one Person and
+// one BreadcrumbList per post page. The page renders them via:
 //   <script type="application/ld+json" dangerouslySetInnerHTML={...} />
+//
+// These no longer DECLARE the Organization or the founder. Those nodes live in
+// app/layout.tsx's @graph with stable @ids from lib/schema-graph.ts, and the
+// emitters here reference them — re-declaring an Organization on every article
+// is what made Google resolve one per page instead of one per business.
+//
+// The Person a post emits is its AUTHOR, which for the agent pipeline is Metis,
+// not the founder. See personIdForAuthor: an author the graph cannot vouch for
+// stays anonymous rather than being handed someone else's identity.
 //
 // Stringification escapes `</script>` defensively in case any field
 // contains the literal substring (very rare but easy to defuse).
@@ -49,18 +58,19 @@ export function personSchema(
   const sameAs: string[] = [];
   if (authorLinkedinUrl) sameAs.push(authorLinkedinUrl);
   if (settings.modellingRoomUrl) sameAs.push(settings.modellingRoomUrl);
+  // An @id only when we can actually vouch for the identity. An author this
+  // cannot place stays anonymous rather than being assigned someone else's
+  // identity — see personIdForAuthor for why the founder is not a case here.
+  const id = personIdForAuthor(authorName);
   return {
     "@context": "https://schema.org",
     "@type": "Person",
+    ...(id ? { "@id": id } : {}),
     name: authorName,
     url: `${siteUrl}/about`,
     ...(authorPhotoUrl ? { image: authorPhotoUrl } : {}),
     ...(sameAs.length > 0 ? { sameAs } : {}),
-    worksFor: {
-      "@type": "Organization",
-      name: settings.siteName,
-      url: siteUrl,
-    },
+    worksFor: ref(SCHEMA_IDS.org),
   };
 }
 
@@ -104,6 +114,7 @@ export function articleSchema(
 ): JsonLd {
   const url = `${siteUrl}/blog/${post.slug}`;
   const authorName = post.authorName ?? settings.siteName;
+  const authorId = personIdForAuthor(authorName);
   const datePublished = post.publishedAt.toISOString();
   const dateModified = (post.lastReviewedAt ?? post.publishedAt).toISOString();
   return {
@@ -124,26 +135,19 @@ export function articleSchema(
             : `${siteUrl}${post.ogImagePath}`,
         }
       : {}),
-    author: {
-      "@type": "Person",
-      name: authorName,
-      url: post.authorLinkedinUrl ?? `${siteUrl}/about`,
-    },
-    publisher: {
-      "@type": "Organization",
-      name: settings.siteName,
-      url: siteUrl,
-      ...(settings.ogImageUrl
-        ? {
-            logo: {
-              "@type": "ImageObject",
-              url: settings.ogImageUrl.startsWith("http")
-                ? settings.ogImageUrl
-                : `${siteUrl}${settings.ogImageUrl}`,
-            },
-          }
-        : {}),
-    },
+    // Reference the graph node when the author is one we can name, so the
+    // Article attaches to the same entity the Person node declares. Otherwise
+    // keep the inline shape — an Article still needs SOME author.
+    author: authorId
+      ? ref(authorId)
+      : {
+          "@type": "Person",
+          name: authorName,
+          url: post.authorLinkedinUrl ?? `${siteUrl}/about`,
+        },
+    // The Organization is declared once in the layout graph; repeating its
+    // name, url and logo here is what made Google see two of them.
+    publisher: ref(SCHEMA_IDS.org),
     ...(post.categoryName ? { articleSection: post.categoryName } : {}),
     ...(post.tags && post.tags.length > 0 ? { keywords: post.tags.join(", ") } : {}),
   };

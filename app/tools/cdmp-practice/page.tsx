@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { buildPageMetadata, getSiteSettings, getSiteUrl } from "@/lib/site-config";
+import { buildPageMetadata, getSiteUrl } from "@/lib/site-config";
 import { buildCdmpPracticeExamLd } from "@/lib/schema-org";
 import { jsonLdScript } from "@/lib/structured-data";
 import { getSpecialistAreas, getSpecialistArea } from "@/lib/cdmp/specialist";
@@ -24,12 +24,8 @@ export default async function CdmpPracticePage({
   searchParams: Promise<{ mode?: string; area?: string }>;
 }) {
   const sp = await searchParams;
-  const settings = await getSiteSettings();
   const siteUrl = getSiteUrl();
-  const schemas = buildCdmpPracticeExamLd({
-    orgName: settings.siteName,
-    siteUrl,
-  });
+  const schemas = buildCdmpPracticeExamLd({ siteUrl });
   const specialistAreas = (await getSpecialistAreas()).map((a) => ({
     slug: a.slug,
     label: a.label,

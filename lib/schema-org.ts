@@ -1,26 +1,33 @@
 // Schema.org JSON-LD for surfaces that need page-specific structured data.
 //
-// The root Organization + WebSite schemas are already rendered globally in
-// app/layout.tsx (driven by site_setting). This module supplements them
-// with page-specific schemas that don't belong at the layout level.
+// The Organization, founder Person, Metis and WebSite nodes are DECLARED once
+// in app/layout.tsx's @graph. Everything here REFERENCES them by @id via
+// lib/schema-graph.ts rather than re-declaring its own copy — that is what
+// stops Google resolving one organisation per page that mentions it.
 //
-// Current consumers:
-//   - app/page.tsx → homePageServicesLd (three Service entities for the
-//     three service lines listed in the home Services section)
+// Consumers:
+//   - app/page.tsx        → buildHomePageServicesLd  (three Service entities)
+//   - app/about/page.tsx  → buildAboutPagePersonLd   (merges into #rob-angeles)
+//   - app/[...slug]       → buildCmsPageWebPageLd    (WebPage per CMS row)
+//   - /tools/cdmp-practice→ buildCdmpPracticeExamLd  (WebApplication + FAQPage)
+//   - app/consulting      → buildConsultingLd        (Service + FAQPage)
 //
-// Per CLAUDE.md rule, we never publish prices, so the Service entities have
-// no Offer attached. Service.areaServed signals Australia coverage for AIEO
-// queries like "AI consultants in Australia" without committing to LocalBusiness
-// semantics (which Organization already covers via address.PostalAddress).
+// Per CLAUDE.md we never publish prices, so the consulting Service entities
+// carry no Offer. Service.areaServed signals Australia coverage for AIEO
+// queries like "AI consultants in Australia" without committing to
+// LocalBusiness semantics (which Organization already covers via address).
 //
-// All values are static. No user input flows into these objects.
+// Copy here is static, but `siteUrl` and anything sourced from site_setting is
+// admin-editable — every consumer must serialise through jsonLdScript().
+
+import { FOUNDER_JOB_TITLE, ref, SCHEMA_IDS } from "./schema-graph";
 
 type SchemaService = {
   "@context": "https://schema.org";
   "@type": "Service";
   name: string;
   description: string;
-  provider: { "@type": "Organization"; name: string };
+  provider: { "@id": string };
   areaServed: { "@type": "Country"; name: string };
 };
 
@@ -33,9 +40,12 @@ type SchemaService = {
 type SchemaPerson = {
   "@context": "https://schema.org";
   "@type": "Person";
+  /** Same id the layout graph declares, so this MERGES into that node
+   *  instead of introducing a second person with the same name. */
+  "@id": string;
   name: string;
   jobTitle: string;
-  worksFor: { "@type": "Organization"; name: string; url: string };
+  worksFor: { "@id": string };
   url: string;
   knowsAbout: string[];
   sameAs?: string[];
@@ -43,7 +53,6 @@ type SchemaPerson = {
 
 export function buildAboutPagePersonLd(args: {
   founderName: string;
-  orgName: string;
   siteUrl: string;
   /** URLs that identify the founder across the web — LinkedIn, X,
    *  GitHub, Hugging Face, the Modelling Room newsletter, etc. Empty
@@ -58,13 +67,13 @@ export function buildAboutPagePersonLd(args: {
   const person: SchemaPerson = {
     "@context": "https://schema.org",
     "@type": "Person",
+    "@id": SCHEMA_IDS.person,
     name: args.founderName,
-    jobTitle: "Principal Consultant",
-    worksFor: {
-      "@type": "Organization",
-      name: args.orgName,
-      url: args.siteUrl,
-    },
+    // One title across the whole site — see lib/schema-graph.ts. This node and
+    // the layout's share an @id, so two different values here would be
+    // contradictory claims about a single entity rather than two opinions.
+    jobTitle: FOUNDER_JOB_TITLE,
+    worksFor: ref(SCHEMA_IDS.org),
     url: `${args.siteUrl}/about`,
     knowsAbout: [
       "Data Architecture",
@@ -82,7 +91,7 @@ export function buildAboutPagePersonLd(args: {
   return person;
 }
 
-export function buildHomePageServicesLd(orgName: string): SchemaService[] {
+export function buildHomePageServicesLd(): SchemaService[] {
   return [
     {
       "@context": "https://schema.org",
@@ -90,7 +99,7 @@ export function buildHomePageServicesLd(orgName: string): SchemaService[] {
       name: "Fractional Data Leadership",
       description:
         "Part-time, ongoing senior data person for startups and SMBs. Architecture, governance, and a senior data hand to call when something breaks — without the full-time salary.",
-      provider: { "@type": "Organization", name: orgName },
+      provider: ref(SCHEMA_IDS.org),
       areaServed: { "@type": "Country", name: "Australia" },
     },
     {
@@ -99,7 +108,7 @@ export function buildHomePageServicesLd(orgName: string): SchemaService[] {
       name: "Short-Term Data Gigs",
       description:
         "Fixed-scope, fixed-fee data work: cleanup, modelling, lineage, or a specific AI integration. In, done, handed back.",
-      provider: { "@type": "Organization", name: orgName },
+      provider: ref(SCHEMA_IDS.org),
       areaServed: { "@type": "Country", name: "Australia" },
     },
     {
@@ -108,7 +117,7 @@ export function buildHomePageServicesLd(orgName: string): SchemaService[] {
       name: "AI Readiness Diagnostic",
       description:
         "Eight-minute diagnostic that tells founders exactly where their data will break their AI project. No login. Written report.",
-      provider: { "@type": "Organization", name: orgName },
+      provider: ref(SCHEMA_IDS.org),
       areaServed: { "@type": "Country", name: "Australia" },
     },
   ];
@@ -125,8 +134,8 @@ type SchemaWebPage = {
   description: string;
   url: string;
   inLanguage: string;
-  isPartOf: { "@type": "WebSite"; name: string; url: string };
-  publisher: { "@type": "Organization"; name: string; url: string };
+  isPartOf: { "@id": string };
+  publisher: { "@id": string };
   datePublished?: string;
   dateModified?: string;
 };
@@ -135,8 +144,6 @@ export function buildCmsPageWebPageLd(args: {
   title: string;
   description: string;
   url: string;
-  orgName: string;
-  siteUrl: string;
   datePublishedISO?: string;
   dateModifiedISO?: string;
 }): SchemaWebPage {
@@ -147,26 +154,69 @@ export function buildCmsPageWebPageLd(args: {
     description: args.description,
     url: args.url,
     inLanguage: "en-AU",
-    isPartOf: {
-      "@type": "WebSite",
-      name: args.orgName,
-      url: args.siteUrl,
-    },
-    publisher: {
-      "@type": "Organization",
-      name: args.orgName,
-      url: args.siteUrl,
-    },
+    isPartOf: ref(SCHEMA_IDS.website),
+    publisher: ref(SCHEMA_IDS.org),
   };
   if (args.datePublishedISO) ld.datePublished = args.datePublishedISO;
   if (args.dateModifiedISO) ld.dateModified = args.dateModifiedISO;
   return ld;
 }
 
-export function buildCdmpPracticeExamLd(args: {
-  orgName: string;
-  siteUrl: string;
+/**
+ * Service + FAQPage for /consulting — the page a ready-to-buy visitor lands on,
+ * which carried no structured data at all.
+ *
+ * Both arrays are the SAME constants the page renders, passed in rather than
+ * restated here. An FAQPage whose answers do not appear on the page is a
+ * Google structured-data violation, and a second hardcoded copy would drift
+ * away from the visible copy the first time someone edits one and not the other.
+ *
+ * No Offer and no price on the Service entities — CLAUDE.md forbids publishing
+ * rates, and the page itself only says pricing is fixed and scoped up front.
+ */
+export function buildConsultingLd(args: {
+  services: ReadonlyArray<{ name: string; body: string }>;
+  faqs: ReadonlyArray<{ question: string; answer: readonly string[] }>;
+  url: string;
 }) {
+  return [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "@id": args.url,
+      name: "Fractional Data & AI Consulting",
+      url: args.url,
+      inLanguage: "en-AU",
+      isPartOf: ref(SCHEMA_IDS.website),
+      publisher: ref(SCHEMA_IDS.org),
+      about: ref(SCHEMA_IDS.org),
+    },
+    ...args.services.map((s) => ({
+      "@context": "https://schema.org",
+      "@type": "Service",
+      name: s.name,
+      description: s.body,
+      provider: ref(SCHEMA_IDS.org),
+      areaServed: { "@type": "Country", name: "Australia" },
+    })),
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: args.faqs.map((f) => ({
+        "@type": "Question",
+        name: f.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          // Paragraphs are rendered as separate <p> elements; join them so the
+          // answer text matches what a reader sees, whitespace aside.
+          text: f.answer.join(" "),
+        },
+      })),
+    },
+  ];
+}
+
+export function buildCdmpPracticeExamLd(args: { siteUrl: string }) {
   return [
     {
       "@context": "https://schema.org",
@@ -183,11 +233,7 @@ export function buildCdmpPracticeExamLd(args: {
         priceCurrency: "AUD",
         description: "Free for early adopters",
       },
-      provider: {
-        "@type": "Organization",
-        name: args.orgName,
-        url: args.siteUrl,
-      },
+      provider: ref(SCHEMA_IDS.org),
       audience: {
         "@type": "EducationalAudience",
         educationalRole: "Professional",

@@ -37,7 +37,7 @@ import {
   PhilosophyBlock,
   WayOfWorkingSteps,
 } from "../../components/sections/about";
-import { SOCIAL_LINKS } from "../../lib/social-links";
+import { SOCIAL_LINKS, sameAsFor } from "../../lib/social-links";
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
@@ -170,14 +170,16 @@ export default async function AboutPage({
   const siteUrl = getSiteUrl();
   const modellingRoomUrl = settings.modellingRoomUrl.trim();
 
+  // Only the founder's own links go into the Person's sameAs — the brand's
+  // X account (entity: "org" in lib/social-links.ts) would otherwise assert
+  // Rob Angeles and Archos Labs are the same entity. See lib/schema-graph.ts.
   const sameAs = [
-    ...SOCIAL_LINKS.map((link) => link.url),
+    ...sameAsFor("person"),
     modellingRoomUrl,
   ];
 
   const personLd = buildAboutPagePersonLd({
     founderName: settings.founderName,
-    orgName: settings.siteName,
     siteUrl,
     sameAs,
   });

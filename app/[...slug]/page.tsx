@@ -104,8 +104,6 @@ export default async function CatchAllPage({ params }: PageProps) {
     title: page.seoTitle ?? page.title,
     description: page.seoDescription ?? page.excerpt ?? settings.description,
     url: `${siteUrl}/${page.slug}`,
-    orgName: settings.siteName,
-    siteUrl,
     datePublishedISO: page.publishedAt.toISOString(),
     dateModifiedISO: (page.lastReviewedAt ?? page.updatedAt).toISOString(),
   });

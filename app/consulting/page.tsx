@@ -18,7 +18,9 @@
 // won't shadow this route.
 
 import type { Metadata } from "next";
-import { buildPageMetadata } from "../../lib/site-config";
+import { buildPageMetadata, getSiteUrl } from "../../lib/site-config";
+import { buildConsultingLd } from "../../lib/schema-org";
+import { jsonLdScript } from "../../lib/structured-data";
 import { BOOK_A_CALL_URL, TAKE_ASSESSMENT_URL } from "../../lib/cta-urls";
 import { sanitiseName } from "../../lib/sanitise-name";
 import { AnalyticsClient } from "../../components/analytics/analytics-client";
@@ -209,8 +211,24 @@ export default async function ConsultingPage({
     year: "numeric",
   });
 
+  // Built from the SERVICES and OBJECTIONS constants this page already renders,
+  // so the FAQ answers Google reads are literally the ones on screen. An
+  // FAQPage whose content is not visible on the page is a structured-data
+  // policy violation, and a second hardcoded copy would drift the first time
+  // someone edits the visible copy alone.
+  const consultingLd = buildConsultingLd({
+    services: SERVICES,
+    faqs: OBJECTIONS,
+    url: `${getSiteUrl()}/consulting`,
+  });
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(consultingLd) }}
+      />
+
       <AnalyticsClient route="/consulting" />
 
       <main className="flex flex-1 flex-col">

@@ -214,7 +214,7 @@ export default async function Home({
   const sanitisedName = sanitiseName(rawName);
 
   const settings = await getSiteSettings();
-  const servicesLd = buildHomePageServicesLd(settings.siteName);
+  const servicesLd = buildHomePageServicesLd();
 
   const preparedOn = new Date().toLocaleDateString("en-AU", {
     day: "numeric",
@@ -224,11 +224,14 @@ export default async function Home({
 
   return (
     <>
-      {/* Page-specific Service JSON-LD. The root Organization + WebSite
-          schemas already render globally in app/layout.tsx.
-          Serialised via jsonLdScript() — `orgName` comes from the
-          admin-editable site_setting row, so it is untrusted input
-          flowing into a <script> tag. */}
+      {/* Page-specific Service JSON-LD. The Organization, founder and
+          WebSite nodes are declared in app/layout.tsx's @graph; these
+          Services reference the org by @id rather than restating it.
+          Still serialised via jsonLdScript(): the builder takes no
+          settings-derived input today, but every JSON-LD block on this
+          site goes through the escaper regardless — that rule exists
+          precisely so it does not have to be re-audited each time a
+          builder's inputs change. */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdScript(servicesLd) }}
