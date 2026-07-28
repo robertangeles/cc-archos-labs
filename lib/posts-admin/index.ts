@@ -7,6 +7,7 @@ import { author, category, post, postRevision } from "../db/schema";
 import { pingIndexNow } from "../indexnow";
 import { getSiteUrl } from "../site-config";
 import { trimAltToWordBoundary } from "./alt-text";
+import { blogPathsForPost, revalidateBlogPaths } from "./revalidate";
 import { deriveSlugFromTitle } from "./slug-derivation";
 import { computeWordCount, readingTimeMinutes } from "./word-count";
 import {
@@ -524,6 +525,7 @@ export async function createPost(
   // (ogImagePath, ogImageGeneratedAt). Cheap single-row lookup.
   const refreshed = (await getAdminPostById(created.id)) ?? created;
   pingPostIfPublic(refreshed);
+  revalidatePostView(refreshed);
   return { post: refreshed, sideEffects };
 }
 
@@ -683,6 +685,7 @@ export async function updatePost(
 
   const refreshed = (await getAdminPostById(updated.id)) ?? updated;
   pingPostIfPublic(refreshed, previousSlug);
+  revalidatePostView(refreshed, previousSlug);
   return { post: refreshed, sideEffects };
 }
 
@@ -709,6 +712,7 @@ export async function archivePost(id: string): Promise<AdminPostView> {
   // engines drop it from their index. This is the same FAQ-recommended
   // pattern as submitting a redirected URL.
   pingPostUrl(refreshed.slug);
+  revalidatePostView(refreshed);
   return refreshed;
 }
 
@@ -731,6 +735,7 @@ export async function restoreFromArchive(
   const refreshed = await getAdminPostById(id);
   if (!refreshed) throw new PostNotFoundError(`Post "${id}" disappeared.`);
   pingPostIfPublic(refreshed);
+  revalidatePostView(refreshed);
   return refreshed;
 }
 
@@ -759,6 +764,27 @@ function pingPostIfPublic(
   }
   if (urls.length === 0) return;
   void pingIndexNow(urls).catch(() => {});
+}
+
+/**
+ * Drop the ISR cache for a post's public surface.
+ *
+ * Deliberately NOT gated on the post being public, unlike pingPostIfPublic.
+ * Going published -> draft, or listed -> unlisted, is exactly when the cached
+ * page MUST be dropped — gating on "is it public now" would leave the last
+ * public render served for the full revalidate window after an unpublish.
+ */
+function revalidatePostView(
+  view: AdminPostView,
+  previousSlug?: string | null,
+): void {
+  revalidateBlogPaths(
+    blogPathsForPost({
+      slug: view.slug,
+      categorySlug: view.categorySlug,
+      previousSlug,
+    }),
+  );
 }
 
 function pingPostUrl(slug: string): void {
@@ -852,6 +878,12 @@ export async function restoreRevision(
 
   const refreshed = await getAdminPostById(result.postRow.id);
   if (!refreshed) throw new PostNotFoundError(`Post "${postId}" disappeared.`);
+  // Restoring a revision rewrites title, body and excerpt, so the live page
+  // is stale and search engines are looking at superseded content. This path
+  // had neither signal: no cache invalidation and no IndexNow ping. Both now
+  // fire, matching what every other content-changing mutation already does.
+  revalidatePostView(refreshed);
+  pingPostIfPublic(refreshed);
   return { post: refreshed, revision: result.revision };
 }
 

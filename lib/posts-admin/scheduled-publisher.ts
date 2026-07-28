@@ -1,9 +1,10 @@
 import "server-only";
-import { and, eq, lte, sql } from "drizzle-orm";
+import { and, eq, inArray, lte, sql } from "drizzle-orm";
 import { getDb } from "../db";
-import { post, postRevision } from "../db/schema";
+import { category, post, postRevision } from "../db/schema";
 import { pingIndexNow } from "../indexnow";
 import { getSiteUrl } from "../site-config";
+import { blogPathsForPost, revalidateBlogPaths } from "./revalidate";
 
 // Service backing /api/cron/process-scheduled-posts.
 //
@@ -191,6 +192,31 @@ export async function publishScheduledPosts(
     void pingIndexNow(
       publishedSlugs.map((s) => `${siteUrl}/blog/${s}`),
     ).catch(() => {});
+
+    // Drop the ISR cache for everything that just went live.
+    //
+    // This is the load-bearing publish path, not an edge case: the blog agent
+    // creates its posts with status='scheduled', so they NEVER travel through
+    // createPost's direct-publish branch. Every automated post in the site
+    // reaches the public surface through exactly this function.
+    //
+    // The category is fetched here rather than joined into the Stage 1 query
+    // on purpose. That query holds FOR UPDATE ... SKIP LOCKED, and in Postgres
+    // a join under FOR UPDATE locks rows in the joined table too — which would
+    // put category rows under a row lock during every publish tick and let a
+    // locked category silently skip a post. One extra unlocked read after the
+    // commit is far cheaper than that blast radius.
+    const publishedRows = await db
+      .select({ slug: post.slug, categorySlug: category.slug })
+      .from(post)
+      .leftJoin(category, eq(post.categoryId, category.id))
+      .where(inArray(post.slug, publishedSlugs));
+
+    revalidateBlogPaths(
+      publishedRows.flatMap((r) =>
+        blogPathsForPost({ slug: r.slug, categorySlug: r.categorySlug }),
+      ),
+    );
   }
 
   return {
