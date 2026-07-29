@@ -47,7 +47,12 @@ export function PersonCard({
 }: PersonCardProps) {
   return (
     <article className="grid gap-10 md:grid-cols-[1fr_2fr] md:gap-12">
-      <figure className="relative aspect-[4/5] overflow-hidden rounded-xl border border-hairline bg-surface-1">
+      {/* Square to match the source. The photo was 4:5 with a generator
+          watermark in the bottom-right; it is now cropped to a top-anchored
+          square, so the watermark is gone from the file itself rather than
+          merely hidden by the container. Keeping this 4:5 would make
+          object-cover crop the square again and lose the shoulders. */}
+      <figure className="relative aspect-square overflow-hidden rounded-xl border border-hairline bg-surface-1">
         {photoSrc ? (
           <Image
             src={photoSrc}
