@@ -1,5 +1,6 @@
 import "server-only";
 import type { PublishedPostView } from "./posts";
+import { showsDualByline } from "./blog/byline";
 import { personIdForAuthor, ref, SCHEMA_IDS } from "./schema-graph";
 import type { SiteSettings } from "./site-config-shared";
 
@@ -138,13 +139,31 @@ export function articleSchema(
     // Reference the graph node when the author is one we can name, so the
     // Article attaches to the same entity the Person node declares. Otherwise
     // keep the inline shape — an Article still needs SOME author.
-    author: authorId
-      ? ref(authorId)
+    //
+    // A human-reviewed agent post promotes the founder to author AND editor,
+    // with the agent demoted to contributor. That is the E-E-A-T signal: Google
+    // anchors expertise to named humans, and `editor` is the vocabulary for
+    // "this person vouched for the content". Metis stays visible as
+    // contributor rather than being erased — the research is genuinely its
+    // work, and hiding an AI's involvement would be the dishonest version of
+    // this change.
+    //
+    // MUST agree with the on-page byline. Both read showsDualByline().
+    ...(showsDualByline(post)
+      ? {
+          author: ref(SCHEMA_IDS.person),
+          editor: ref(SCHEMA_IDS.person),
+          contributor: ref(SCHEMA_IDS.metis),
+        }
       : {
-          "@type": "Person",
-          name: authorName,
-          url: post.authorLinkedinUrl ?? `${siteUrl}/about`,
-        },
+          author: authorId
+            ? ref(authorId)
+            : {
+                "@type": "Person",
+                name: authorName,
+                url: post.authorLinkedinUrl ?? `${siteUrl}/about`,
+              },
+        }),
     // The Organization is declared once in the layout graph; repeating its
     // name, url and logo here is what made Google see two of them.
     publisher: ref(SCHEMA_IDS.org),

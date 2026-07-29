@@ -155,3 +155,78 @@ describe("updatePost — last_reviewed_at preservation", () => {
     );
   });
 });
+
+describe("updatePost — human-review stamp decays with the content", () => {
+  const REVIEWED = new Date("2026-07-20T00:00:00.000Z");
+
+  async function readReview(id: string): Promise<Date | null> {
+    const res = await harness.client.query<{ reviewed_by_human_at: Date | null }>(
+      `SELECT reviewed_by_human_at FROM "post" WHERE id = $1`,
+      [id],
+    );
+    return res.rows[0].reviewed_by_human_at;
+  }
+
+  async function seedReviewed(): Promise<string> {
+    const id = await harness.createPost({ status: "draft", scheduledPublishAt: null });
+    await harness.client.query(
+      `UPDATE "post" SET reviewed_by_human_at = $2, content_md = $3 WHERE id = $1`,
+      [id, REVIEWED, "Body."],
+    );
+    return id;
+  }
+
+  beforeEach(async () => {
+    harness = await makePostTestDb();
+  });
+  afterEach(async () => {
+    await harness.close();
+  });
+
+  it("keeps the credit through a typo-scale edit", async () => {
+    const id = await seedReviewed();
+    const before = await readPost(id);
+    // "Body." -> "Body!" is a 0% length delta, well under the threshold.
+    await updatePost(id, formBody({ contentMd: "Body!" }), before.updated_at);
+    expect(await readReview(id)).not.toBeNull();
+  });
+
+  it("CLEARS the credit when the body is materially rewritten", async () => {
+    // The claim is about specific text. Once that text is gone, nobody has
+    // vouched for what is now on the page.
+    const id = await seedReviewed();
+    const before = await readPost(id);
+    await updatePost(
+      id,
+      formBody({ contentMd: "An entirely different article body, much longer than before." }),
+      before.updated_at,
+    );
+    expect(await readReview(id)).toBeNull();
+  });
+
+  it("still honours an explicit stamp on the same save", async () => {
+    // This is the "Mark human-reviewed" action itself: it arrives carrying the
+    // very contentMd it is vouching for, so the decay must not undo it.
+    const id = await harness.createPost({ status: "draft", scheduledPublishAt: null });
+    const before = await readPost(id);
+    const stamp = new Date("2026-07-29T12:00:00.000Z");
+    await updatePost(
+      id,
+      formBody({
+        contentMd: "A completely rewritten body that trips the diff threshold.",
+        reviewedByHumanAt: stamp,
+      }),
+      before.updated_at,
+    );
+    const got = await readReview(id);
+    expect(got).not.toBeNull();
+    expect(new Date(got!).toISOString()).toBe(stamp.toISOString());
+  });
+
+  it("does not resurrect a credit that was never set", async () => {
+    const id = await harness.createPost({ status: "draft", scheduledPublishAt: null });
+    const before = await readPost(id);
+    await updatePost(id, formBody({ contentMd: "Rewritten entirely." }), before.updated_at);
+    expect(await readReview(id)).toBeNull();
+  });
+});

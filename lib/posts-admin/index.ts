@@ -191,6 +191,7 @@ export async function listPostsForAdmin(
       readingTimeMin: post.readingTimeMin,
       needsReview: post.needsReview,
       isAgentGenerated: post.isAgentGenerated,
+      reviewedByHumanAt: post.reviewedByHumanAt,
       sourceWpId: post.sourceWpId,
       lastReviewedAt: post.lastReviewedAt,
       publishedAt: post.publishedAt,
@@ -280,6 +281,7 @@ export async function getAdminPostById(
       readingTimeMin: post.readingTimeMin,
       needsReview: post.needsReview,
       isAgentGenerated: post.isAgentGenerated,
+      reviewedByHumanAt: post.reviewedByHumanAt,
       sourceWpId: post.sourceWpId,
       lastReviewedAt: post.lastReviewedAt,
       publishedAt: post.publishedAt,
@@ -455,6 +457,7 @@ export async function createPost(
             // On INSERT there is no stored value to preserve, so the
             // three-state distinction collapses: absent means NULL.
             lastReviewedAt: normalised.lastReviewedAt ?? null,
+            reviewedByHumanAt: normalised.reviewedByHumanAt ?? null,
             scheduledPublishAt: normalised.scheduledPublishAt,
             ogImageAlt: normalised.ogImageAlt,
             // Publish semantics on create:
@@ -642,6 +645,26 @@ export async function updatePost(
           ...(normalised.lastReviewedAt !== undefined
             ? { lastReviewedAt: normalised.lastReviewedAt }
             : {}),
+          // A human review is a claim about SPECIFIC TEXT. Once the body has
+          // materially changed, the person who signed off never saw what is
+          // now on the page — so the credit has to lapse rather than quietly
+          // vouch for words nobody checked. Unlike lastReviewedAt (freshness
+          // metadata, where staleness is cosmetic), this drives a public
+          // authorship claim and the Article editor/contributor fields.
+          //
+          // Same threshold the embedding regen uses, for the same reason: it
+          // is already the project's definition of "the content meaningfully
+          // changed". A typo fix keeps the credit; a rewrite drops it and the
+          // byline reverts to Metis until someone re-reviews.
+          //
+          // An explicit value in the payload still wins — that is the
+          // "Mark human-reviewed" action itself, which arrives with the same
+          // contentMd it is vouching for.
+          ...(normalised.reviewedByHumanAt !== undefined
+            ? { reviewedByHumanAt: normalised.reviewedByHumanAt }
+            : diffSizePct > EMBEDDING_REGEN_THRESHOLD_PCT
+              ? { reviewedByHumanAt: null }
+              : {}),
           scheduledPublishAt: normalised.scheduledPublishAt,
           ogImageAlt: normalised.ogImageAlt,
           publishedAt: nextPublishedAt,
@@ -1104,6 +1127,10 @@ function normalisePostInput(input: PostInput): {
   isAgentGenerated: boolean;
   /** undefined = "not mentioned, leave stored value alone". See the doc comment. */
   lastReviewedAt: Date | null | undefined;
+  /** Same three-state rule as lastReviewedAt — the admin form does not send
+   *  this key on a normal save, and collapsing that to null would silently
+   *  revoke a review every time someone fixed a typo. */
+  reviewedByHumanAt: Date | null | undefined;
   scheduledPublishAt: Date | null;
   ogImageAlt: string | null;
 } {
@@ -1123,6 +1150,7 @@ function normalisePostInput(input: PostInput): {
     isAgentGenerated: input.isAgentGenerated ?? false,
     // Deliberately NOT `?? null` — see the doc comment above.
     lastReviewedAt: input.lastReviewedAt,
+    reviewedByHumanAt: input.reviewedByHumanAt,
     scheduledPublishAt:
       input.status === "scheduled" ? (input.scheduledPublishAt ?? null) : null,
     // Trim + truncate; reject empty string in favour of null (so
@@ -1194,6 +1222,7 @@ interface PostRowForView {
   readingTimeMin: number;
   needsReview: boolean;
   isAgentGenerated: boolean;
+  reviewedByHumanAt: Date | null;
   sourceWpId: number | null;
   lastReviewedAt: Date | null;
   publishedAt: Date | null;
@@ -1238,6 +1267,7 @@ function rowToAdminView(row: PostRowForView): AdminPostView {
     readingTimeMin: row.readingTimeMin,
     needsReview: row.needsReview,
     isAgentGenerated: row.isAgentGenerated,
+    reviewedByHumanAt: row.reviewedByHumanAt,
     sourceWpId: row.sourceWpId,
     lastReviewedAt: row.lastReviewedAt,
     publishedAt: row.publishedAt,

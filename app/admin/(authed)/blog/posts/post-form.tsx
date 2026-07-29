@@ -131,6 +131,9 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
   const [imageStatus, setImageStatus] = useState<AiActionStatus>({
     kind: "idle",
   });
+  const [humanReviewStatus, setHumanReviewStatus] = useState<AiActionStatus>({
+    kind: "idle",
+  });
   const [reviewedStatus, setReviewedStatus] = useState<AiActionStatus>({
     kind: "idle",
   });
@@ -517,6 +520,68 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
     } catch {
       setReviewedStatus({ kind: "error", message: "Network error." });
       setNeedsReview(true);
+    }
+  }
+
+  // Separate from onMarkReviewed on purpose. That one clears needs_review, a
+  // GENERAL editorial flag that is already false on every published agent post
+  // — so its button (gated on initial?.needsReview) never even renders for the
+  // agent pipeline this credit is about. This action stamps a distinct column,
+  // reviewed_by_human_at, which is the only thing that can truthfully support a
+  // "Reviewed by <founder>" byline. Do not merge the two.
+  async function onMarkHumanReviewed() {
+    if (!isEdit) return;
+    setHumanReviewStatus({ kind: "working" });
+    const tags = tagsText
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+    const body = {
+      slug,
+      title,
+      contentMd,
+      excerpt: excerpt || null,
+      seoTitle: seoTitle || null,
+      seoDescription: seoDescription || null,
+      authorId: authorId || null,
+      categoryId: categoryId || null,
+      tags,
+      status,
+      visibility,
+      needsReview,
+      // The whole point of the action. Stamped server-side time would be
+      // better, but the PUT contract takes the value; the admin clock is
+      // close enough for a human-attention timestamp.
+      reviewedByHumanAt: new Date().toISOString(),
+      scheduledPublishAt:
+        status === "scheduled" && scheduledDate && scheduledTime
+          ? melbourneWallToUtcIso(`${scheduledDate}T${scheduledTime}`)
+          : null,
+      ogImageAlt: ogImageAlt.trim() || null,
+      expectedUpdatedAt: lastKnownUpdatedAt.toISOString(),
+    };
+    try {
+      const res = await fetch(`/api/admin/posts/${initial!.id}`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        setHumanReviewStatus({
+          kind: "error",
+          message: json.error ?? "Could not mark human-reviewed.",
+        });
+        return;
+      }
+      setHumanReviewStatus({
+        kind: "ok",
+        message: "Marked human-reviewed — byline updated.",
+      });
+      router.refresh();
+      setTimeout(() => setHumanReviewStatus({ kind: "idle" }), 4000);
+    } catch {
+      setHumanReviewStatus({ kind: "error", message: "Network error." });
     }
   }
 
@@ -1042,6 +1107,37 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
                 ? "Marking…"
                 : "Mark reviewed"}
             </button>
+          ) : null}
+          {/* Only agent posts. A human-written post does not need a
+              "Researched by Metis" credit, and offering the button there would
+              invite a byline that misstates who wrote the piece. */}
+          {isEdit && initial?.isAgentGenerated ? (
+            <button
+              type="button"
+              onClick={onMarkHumanReviewed}
+              disabled={humanReviewStatus.kind === "working"}
+              title={
+                initial?.reviewedByHumanAt
+                  ? "Already marked human-reviewed. Clicking again refreshes the timestamp."
+                  : "Adds 'Reviewed by <founder>' to the public byline and the Article schema."
+              }
+              className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-700 hover:bg-emerald-500/20 disabled:opacity-50 dark:text-emerald-300"
+            >
+              {humanReviewStatus.kind === "working"
+                ? "Marking…"
+                : initial?.reviewedByHumanAt
+                  ? "Human-reviewed ✓"
+                  : "Mark human-reviewed"}
+            </button>
+          ) : null}
+          {humanReviewStatus.kind === "ok" ? (
+            <span className="text-xs text-emerald-600 dark:text-emerald-400">
+              {humanReviewStatus.message}
+            </span>
+          ) : humanReviewStatus.kind === "error" ? (
+            <span className="text-xs text-red-600 dark:text-red-400">
+              {humanReviewStatus.message}
+            </span>
           ) : null}
           {reviewedStatus.kind === "ok" ? (
             <span className="text-xs text-emerald-600 dark:text-emerald-400">

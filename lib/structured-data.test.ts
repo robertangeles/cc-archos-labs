@@ -43,6 +43,8 @@ const post: PublishedPostView = {
   wordCount: 720,
   readingTimeMin: 4,
   needsReview: false,
+  isAgentGenerated: false,
+  reviewedByHumanAt: null,
   publishedAt: new Date("2026-04-01T00:00:00Z"),
   lastReviewedAt: new Date("2026-05-10T00:00:00Z"),
   authorSlug: "robangeles",
@@ -138,6 +140,65 @@ describe("articleSchema", () => {
     for (const name of ["Rob Angeles", "rob angeles", "Metis", "Someone Else"]) {
       const ld = articleSchema({ ...post, authorName: name }, siteUrl, settings);
       expect(JSON.stringify(ld.author)).not.toContain(SCHEMA_IDS.person);
+    }
+  });
+});
+
+describe("articleSchema — human-reviewed byline", () => {
+  const agentPost = { ...post, authorName: "Metis", isAgentGenerated: true };
+
+  it("promotes the founder to author AND editor once a human reviewed it", () => {
+    const ld = articleSchema(
+      { ...agentPost, reviewedByHumanAt: new Date("2026-07-28T00:00:00Z") },
+      siteUrl,
+      settings,
+    );
+    expect(ld.author).toEqual({ "@id": SCHEMA_IDS.person });
+    expect(ld.editor).toEqual({ "@id": SCHEMA_IDS.person });
+    // Metis is demoted, not erased. Hiding the AI's involvement would be the
+    // dishonest version of this feature.
+    expect(ld.contributor).toEqual({ "@id": SCHEMA_IDS.metis });
+  });
+
+  it("leaves an UNREVIEWED agent post attributed to Metis with no editor", () => {
+    // The default state of the three posts published every day.
+    const ld = articleSchema(
+      { ...agentPost, reviewedByHumanAt: null },
+      siteUrl,
+      settings,
+    );
+    expect(ld.author).toEqual({ "@id": SCHEMA_IDS.metis });
+    expect(ld.editor).toBeUndefined();
+    expect(ld.contributor).toBeUndefined();
+  });
+
+  it("NEVER claims the founder reviewed a human-written post", () => {
+    // The ~120 WP-migrated posts read authorName "Metis" only because the seed
+    // backfill collapsed all authors into one row. Marking one reviewed must
+    // not manufacture a "Researched by Metis / Reviewed by Rob" claim over
+    // writing Metis never touched.
+    const ld = articleSchema(
+      {
+        ...post,
+        isAgentGenerated: false,
+        reviewedByHumanAt: new Date("2026-07-28T00:00:00Z"),
+      },
+      siteUrl,
+      settings,
+    );
+    expect(ld.editor).toBeUndefined();
+    expect(ld.contributor).toBeUndefined();
+    expect(JSON.stringify(ld.author)).not.toContain(SCHEMA_IDS.person);
+  });
+
+  it("keeps the publisher reference identical in both branches", () => {
+    for (const reviewedByHumanAt of [null, new Date()]) {
+      const ld = articleSchema(
+        { ...agentPost, reviewedByHumanAt },
+        siteUrl,
+        settings,
+      );
+      expect(ld.publisher).toEqual({ "@id": SCHEMA_IDS.org });
     }
   });
 });
