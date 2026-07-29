@@ -22,33 +22,6 @@ import type { SiteSettings } from "./site-config-shared";
 
 export type JsonLd = Record<string, unknown>;
 
-export function organizationSchema(
-  settings: SiteSettings,
-  siteUrl: string,
-): JsonLd {
-  const sameAs: string[] = [];
-  if (settings.linkedinUrl) sameAs.push(settings.linkedinUrl);
-  if (settings.modellingRoomUrl) sameAs.push(settings.modellingRoomUrl);
-  if (settings.twitterHandle) {
-    sameAs.push(`https://twitter.com/${settings.twitterHandle}`);
-  }
-  return {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: settings.siteName,
-    url: siteUrl,
-    description: settings.description,
-    ...(settings.ogImageUrl
-      ? {
-          logo: settings.ogImageUrl.startsWith("http")
-            ? settings.ogImageUrl
-            : `${siteUrl}${settings.ogImageUrl}`,
-        }
-      : {}),
-    ...(sameAs.length > 0 ? { sameAs } : {}),
-  };
-}
-
 export function personSchema(
   authorName: string,
   authorLinkedinUrl: string | null,

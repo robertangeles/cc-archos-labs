@@ -3,7 +3,6 @@ import {
   articleSchema,
   breadcrumbSchema,
   jsonLdScript,
-  organizationSchema,
   personSchema,
 } from "./structured-data";
 import { SCHEMA_IDS } from "./schema-graph";
@@ -56,17 +55,6 @@ const post: PublishedPostView = {
   categoryName: "AI as Strategy",
   categoryDescription: null,
 };
-
-describe("organizationSchema", () => {
-  it("emits Organization with sameAs from settings", () => {
-    const ld = organizationSchema(settings, siteUrl);
-    expect(ld["@type"]).toBe("Organization");
-    expect(ld.name).toBe("Archos Labs");
-    expect(ld.url).toBe(siteUrl);
-    expect(Array.isArray(ld.sameAs)).toBe(true);
-    expect((ld.sameAs as string[]).length).toBeGreaterThan(0);
-  });
-});
 
 describe("personSchema", () => {
   it("includes LinkedIn + modelling room in sameAs", () => {
