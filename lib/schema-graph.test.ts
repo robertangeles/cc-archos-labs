@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildGraph,
+  dedupeSameAs,
   founderNode,
   FOUNDER_JOB_TITLE,
   metisNode,
@@ -141,6 +142,18 @@ describe("founderNode", () => {
     expect(new Set(sameAs).size).toBe(sameAs.length);
   });
 
+  it("REGRESSION: a settings URL differing only by trailing slash is not a second entry", () => {
+    // This is what actually shipped and what the schema.org validator caught:
+    // settings had no trailing slash, SOCIAL_LINKS had one, and the live merged
+    // node listed the LinkedIn profile twice.
+    const sameAs = founderNode({
+      founderName: "Rob Angeles",
+      founderLinkedinUrl: "https://www.linkedin.com/in/robangeles22",
+    }).sameAs as string[];
+    const linkedin = sameAs.filter((u) => u.includes("linkedin.com/in/"));
+    expect(linkedin).toHaveLength(1);
+  });
+
   it("drops an unconfigured LinkedIn instead of emitting an empty string", () => {
     const sameAs = node().sameAs as string[];
     expect(sameAs).not.toContain("");
@@ -180,6 +193,50 @@ describe("social link entity split", () => {
   it("puts the brand X account on the org, not the person", () => {
     expect(sameAsFor("org")).toContain("https://x.com/archoslabsxyz");
     expect(sameAsFor("person")).not.toContain("https://x.com/archoslabsxyz");
+  });
+});
+
+describe("dedupeSameAs", () => {
+  it("treats a trailing slash as the same URL", () => {
+    // The exact live defect: site_setting stores the LinkedIn profile without a
+    // trailing slash, SOCIAL_LINKS with one, and the merged Person node listed
+    // the same profile twice. A plain Set does not catch this.
+    const out = dedupeSameAs([
+      "https://www.linkedin.com/in/robangeles22",
+      "https://www.linkedin.com/in/robangeles22/",
+    ]);
+    expect(out).toHaveLength(1);
+  });
+
+  it("keeps the first spelling, so callers control what ships", () => {
+    expect(
+      dedupeSameAs(["https://example.com/x/", "https://example.com/x"]),
+    ).toEqual(["https://example.com/x/"]);
+  });
+
+  it("ignores case when comparing", () => {
+    expect(
+      dedupeSameAs(["https://GitHub.com/robertangeles", "https://github.com/robertangeles"]),
+    ).toHaveLength(1);
+  });
+
+  it("drops empty, whitespace and nullish entries", () => {
+    expect(dedupeSameAs(["", "   ", null, undefined, "https://a.test"])).toEqual([
+      "https://a.test",
+    ]);
+  });
+
+  it("keeps genuinely different URLs", () => {
+    const urls = [
+      "https://www.linkedin.com/in/robangeles22",
+      "https://github.com/robertangeles/",
+      "https://huggingface.co/robangeles",
+    ];
+    expect(dedupeSameAs(urls)).toHaveLength(3);
+  });
+
+  it("trims surrounding whitespace off what it emits", () => {
+    expect(dedupeSameAs(["  https://a.test  "])).toEqual(["https://a.test"]);
   });
 });
 

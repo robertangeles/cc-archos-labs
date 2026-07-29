@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-28T21:02:34.367Z
+generated: 2026-07-29T12:34:31.740Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -60,11 +60,11 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/admin/(authed)/site` | [app/admin/(authed)/site/page.tsx](../app/admin/(authed)/site/page.tsx) | 2026-05-18 |
 | `/admin/(authed)/users` | [app/admin/(authed)/users/page.tsx](../app/admin/(authed)/users/page.tsx) | 2026-05-26 |
 | `/admin/(authed)/users/[id]` | [app/admin/(authed)/users/[id]/page.tsx](../app/admin/(authed)/users/[id]/page.tsx) | 2026-05-26 |
-| `/admin/blog/posts/[id]/preview` | [app/admin/blog/posts/[id]/preview/page.tsx](../app/admin/blog/posts/[id]/preview/page.tsx) | 2026-05-24 |
+| `/admin/blog/posts/[id]/preview` | [app/admin/blog/posts/[id]/preview/page.tsx](../app/admin/blog/posts/[id]/preview/page.tsx) | 2026-07-29 |
 | `/admin/login` | [app/admin/login/page.tsx](../app/admin/login/page.tsx) | 2026-05-15 |
 | `/ai-readiness-assessment` | [app/ai-readiness-assessment/page.tsx](../app/ai-readiness-assessment/page.tsx) | 2026-05-15 |
 | `/blog` | [app/blog/page.tsx](../app/blog/page.tsx) | 2026-07-12 |
-| `/blog/[slug]` | [app/blog/[slug]/page.tsx](../app/blog/[slug]/page.tsx) | 2026-07-28 |
+| `/blog/[slug]` | [app/blog/[slug]/page.tsx](../app/blog/[slug]/page.tsx) | 2026-07-29 |
 | `/blog/category/[slug]` | [app/blog/category/[slug]/page.tsx](../app/blog/category/[slug]/page.tsx) | 2026-07-12 |
 | `/book/[slug]` | [app/book/[slug]/page.tsx](../app/book/[slug]/page.tsx) | 2026-05-22 |
 | `/book/[slug]/confirmation/[bookingId]` | [app/book/[slug]/confirmation/[bookingId]/page.tsx](../app/book/[slug]/confirmation/[bookingId]/page.tsx) | 2026-05-17 |
@@ -293,7 +293,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/blog/heading-copy-link-button.tsx](../components/blog/heading-copy-link-button.tsx) | 2026-05-20 |
 | [components/blog/pagination.tsx](../components/blog/pagination.tsx) | 2026-05-20 |
 | [components/blog/post-body.tsx](../components/blog/post-body.tsx) | 2026-05-20 |
-| [components/blog/post-header.tsx](../components/blog/post-header.tsx) | 2026-07-28 |
+| [components/blog/post-header.tsx](../components/blog/post-header.tsx) | 2026-07-29 |
 | [components/blog/read-next.tsx](../components/blog/read-next.tsx) | 2026-05-21 |
 | [components/blog/social-share.tsx](../components/blog/social-share.tsx) | 2026-05-22 |
 | [components/blog/toc.tsx](../components/blog/toc.tsx) | 2026-05-20 |

@@ -84,6 +84,37 @@ export function ref(id: string): { "@id": string } {
 }
 
 /**
+ * Dedupe a `sameAs` list, treating URLs that differ only by a trailing slash
+ * or surrounding whitespace as the same identity.
+ *
+ * A plain `new Set()` is not enough, and the schema.org validator caught it:
+ * `site_setting.founderLinkedinUrl` stores the LinkedIn profile without a
+ * trailing slash while `lib/social-links.ts` stores it with one, so the merged
+ * Person node listed the same profile twice.
+ *
+ * Harmless to a consumer — Google resolves both to one profile — but `sameAs`
+ * is the list asserting "these URLs are this entity", and repeating a member
+ * of it is sloppy in exactly the place this module exists to make tidy.
+ *
+ * Whitespace-only and empty entries are dropped. Order is preserved: the first
+ * spelling of a URL wins, so callers control which form ships.
+ */
+export function dedupeSameAs(urls: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of urls) {
+    const url = (raw ?? "").trim();
+    if (!url) continue;
+    // Compare on a canonical form; emit the caller's original spelling.
+    const key = url.replace(/\/+$/, "").toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(url);
+  }
+  return out;
+}
+
+/**
  * Resolve which Person `@id` a blog author maps to.
  *
  * There is currently exactly ONE row in the `author` table and
@@ -134,13 +165,10 @@ export function founderNode(args: {
 }): JsonLd {
   // The configured LinkedIn wins when set, so the admin can correct it without
   // a deploy; the constant is the fallback rather than a duplicate entry.
-  const sameAs = Array.from(
-    new Set(
-      [args.founderLinkedinUrl, ...sameAsFor("person")].filter(
-        (u) => u.length > 0,
-      ),
-    ),
-  );
+  const sameAs = dedupeSameAs([
+    args.founderLinkedinUrl,
+    ...sameAsFor("person"),
+  ]);
 
   return {
     "@type": "Person",

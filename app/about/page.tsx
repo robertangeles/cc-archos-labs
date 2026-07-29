@@ -38,6 +38,7 @@ import {
   WayOfWorkingSteps,
 } from "../../components/sections/about";
 import { SOCIAL_LINKS, sameAsFor } from "../../lib/social-links";
+import { dedupeSameAs } from "../../lib/schema-graph";
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
@@ -173,10 +174,11 @@ export default async function AboutPage({
   // Only the founder's own links go into the Person's sameAs — the brand's
   // X account (entity: "org" in lib/social-links.ts) would otherwise assert
   // Rob Angeles and Archos Labs are the same entity. See lib/schema-graph.ts.
-  const sameAs = [
-    ...sameAsFor("person"),
-    modellingRoomUrl,
-  ];
+  // Deduped through the same helper the layout's founder node uses: this block
+  // and that one MERGE on a shared @id, so a URL spelled differently in each
+  // (settings stores LinkedIn without a trailing slash, SOCIAL_LINKS with one)
+  // surfaces as a duplicate in the combined node.
+  const sameAs = dedupeSameAs([...sameAsFor("person"), modellingRoomUrl]);
 
   const personLd = buildAboutPagePersonLd({
     founderName: settings.founderName,
