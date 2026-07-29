@@ -2023,3 +2023,18 @@ pressure.
 
 Touched: [[2026-07-27-remove-admin-bypass]], `CONTRIBUTING.md`, `CLAUDE.md`,
 `wiki/index.md`.
+
+## 2026-07-28 — SEO + semantics uplift (4 PRs)
+
+Triggered by a FAT audit report. **Verified every finding against live production first: 10 of 15 were wrong.** JSON-LD was already present everywhere, both disputed URL pairs returned 200, sitemap and robots were reachable, breadcrumbs already shipped, and the logo `alt=""` the audit wanted changed was correct WCAG. The audit also assumed Vercel; the site is on Render.
+
+Shipped four PRs against what was actually true:
+
+- **#220** — stored-XSS fix (4 pages emitted admin-editable text into `<script>` unescaped); the `last_reviewed_at` wipe on every admin save; homepage `<title>` brand suffix (the layout template cannot reach the root segment); `article:published_time`; word-boundary alt trimming; Organization locality Sydney → Melbourne; 5 security headers + CSP Report-Only + a violation collector. `buildPageMetadata` went from 0 direct tests to 20.
+- **#221** — one `@graph` with stable `@id`s replacing per-page anonymous nodes; `sameAs` split by entity; CDMP credential; SearchAction; `/consulting` schema.
+- **#222** — cache invalidation across all 5 post mutations (`restoreRevision` had neither invalidation nor an IndexNow ping). **The ISR half was built, measured, and reverted** — see the correction in [[2026-07-12-seo-crawl-not-indexed-hygiene]].
+- **#223** — conditional "Reviewed by" byline gated on `is_agent_generated AND reviewed_by_human_at`, plus migration 0037.
+
+Full rationale in [[2026-07-28-schema-entity-graph]].
+
+**Outstanding:** migration 0037 needs a manual PROD apply. The author-table collapse (all ~120 WP posts attributed to "Metis") is a real pre-existing bug needing its own ticket. And nothing in this app renders statically — root cause unknown, and it is the actual crawl-budget lever.
