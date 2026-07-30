@@ -24,16 +24,27 @@ export function ga4ConfigSnippet(gaId: string): string {
 // Measurement ("page changes based on browser history events" — ON by default)
 // fires subsequent ones on Next.js client navigations, which use the History
 // API. No per-route JS is needed here as long as Enhanced Measurement is on.
-export function GoogleAnalytics({ gaId }: { gaId?: string }) {
+export function GoogleAnalytics({
+  gaId,
+  nonce,
+}: {
+  gaId?: string;
+  nonce?: string;
+}) {
   if (!isValidGaId(gaId)) return null;
 
   return (
     <>
+      {/* nonce on the external tag too, even though script-src allowlists the
+          host and does not require it: gtag.js reads the nonce off its own
+          script element and copies it onto the tags it injects at runtime. That
+          propagation is what keeps GA4's dynamically-added scripts working. */}
       <Script
         src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
         strategy="afterInteractive"
+        nonce={nonce}
       />
-      <Script id="ga4-init" strategy="afterInteractive">
+      <Script id="ga4-init" strategy="afterInteractive" nonce={nonce}>
         {ga4ConfigSnippet(gaId)}
       </Script>
     </>

@@ -20,10 +20,16 @@ export function gtmSnippet(gtmId: string): string {
 // tracks history-change navigations automatically, and Meta Pixel uses GTM's
 // built-in History Change trigger. Next.js client navigation uses the History
 // API, so both fire on route changes with no per-route JS here.
-export function GoogleTagManager({ gtmId }: { gtmId?: string }) {
+export function GoogleTagManager({
+  gtmId,
+  nonce,
+}: {
+  gtmId?: string;
+  nonce?: string;
+}) {
   if (!gtmId || !GTM_ID_RE.test(gtmId)) return null;
   return (
-    <Script id="gtm-init" strategy="afterInteractive">
+    <Script id="gtm-init" strategy="afterInteractive" nonce={nonce}>
       {gtmSnippet(gtmId)}
     </Script>
   );
