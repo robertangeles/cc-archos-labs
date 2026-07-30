@@ -24,9 +24,12 @@ describe("showsDualByline", () => {
   });
 
   it("does NOT show it on a human-written post, even once reviewed", () => {
-    // The ~120 WordPress-migrated posts. They carry authorName "Metis" purely
-    // because the seed backfill collapsed every author into one row — Metis
-    // never touched that writing, so "Researched by Metis" would be false.
+    // The 253 WordPress-migrated posts. They carry authorName "Metis" because
+    // the site deliberately publishes under a single Metis byline — one author
+    // row, renamed to the public byline. That is intended and must not be
+    // "fixed". But Metis did not RESEARCH that writing, so "Researched by
+    // Metis · Reviewed by Rob" would still be a false claim about it. Hence the
+    // gate reads provenance off the post, not off the byline.
     expect(
       showsDualByline({
         isAgentGenerated: false,
