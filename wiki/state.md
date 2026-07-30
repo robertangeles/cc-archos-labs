@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-29T12:34:31.740Z
+generated: 2026-07-30T02:23:56.647Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -19,7 +19,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/(auth)/login` | [app/(auth)/login/page.tsx](../app/(auth)/login/page.tsx) | 2026-06-03 |
 | `/(auth)/register` | [app/(auth)/register/page.tsx](../app/(auth)/register/page.tsx) | 2026-06-03 |
 | `/[...slug]` | [app/[...slug]/page.tsx](../app/[...slug]/page.tsx) | 2026-07-28 |
-| `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-07-28 |
+| `/about` | [app/about/page.tsx](../app/about/page.tsx) | 2026-07-29 |
 | `/account` | [app/account/page.tsx](../app/account/page.tsx) | 2026-06-07 |
 | `/account/brain` | [app/account/brain/page.tsx](../app/account/brain/page.tsx) | 2026-06-10 |
 | `/account/clients` | [app/account/clients/page.tsx](../app/account/clients/page.tsx) | 2026-06-15 |
@@ -362,7 +362,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/search/search-provider.tsx](../components/search/search-provider.tsx) | 2026-06-14 |
 | [components/search/search-result-row.tsx](../components/search/search-result-row.tsx) | 2026-06-14 |
 | [components/sections/about/index.ts](../components/sections/about/index.ts) | 2026-05-18 |
-| [components/sections/about/person-card.tsx](../components/sections/about/person-card.tsx) | 2026-05-27 |
+| [components/sections/about/person-card.tsx](../components/sections/about/person-card.tsx) | 2026-07-30 |
 | [components/sections/about/philosophy-block.tsx](../components/sections/about/philosophy-block.tsx) | 2026-05-27 |
 | [components/sections/about/selected-work-card.tsx](../components/sections/about/selected-work-card.tsx) | 2026-05-18 |
 | [components/sections/about/way-of-working-steps.tsx](../components/sections/about/way-of-working-steps.tsx) | 2026-05-27 |
