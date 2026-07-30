@@ -2037,4 +2037,9 @@ Shipped four PRs against what was actually true:
 
 Full rationale in [[2026-07-28-schema-entity-graph]].
 
-**Outstanding:** migration 0037 needs a manual PROD apply. The author-table collapse (all ~120 WP posts attributed to "Metis") is a real pre-existing bug needing its own ticket. And nothing in this app renders statically — root cause unknown, and it is the actual crawl-budget lever.
+**Outstanding:** nothing blocking. Migration 0037 was applied to PROD 2026-07-29 (backup taken, verified).
+
+**Two corrections to my own findings, recorded because both were stated confidently and both were wrong:**
+
+- I filed the single "Metis" author row as an author-table collapse bug. It is a deliberate brand decision — see [[2026-07-28-schema-entity-graph]]. One WP author existed, the migration created one row, a seed renamed it. Nothing was lost. Rob confirmed the uniform Metis voice is intended.
+- I called app-wide dynamic rendering "the actual crawl-budget lever". Measured afterwards: a dynamic post page serves in ~0.2s TTFB, faster than the genuinely-cached sitemap. The finding is real, the impact is marginal, and the wiki's "slow TTFB throttles crawl" premise does not hold at that speed.

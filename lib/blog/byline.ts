@@ -39,9 +39,14 @@
 // cannot silently drift apart. Until such a reassignment path exists, the two
 // are the same fact.
 //
-// Known adjacent bug, deliberately NOT fixed here: the backfill collapsing
-// every author into one "Metis" row means the migrated posts are misattributed
-// on their face, independent of this feature. That needs its own change.
+// NOT a bug, so do not "fix" it: the single "Metis" author row is a deliberate
+// brand decision (confirmed 2026-07-29). One WordPress author existed, the
+// migration created one row, and scripts/seed/blog-author-backfill.ts renamed it
+// to the public byline. A single Metis voice across the blog is intended.
+//
+// Which is exactly why this predicate needs `isAgentGenerated` and not the
+// author record: the byline is intentionally uniform, so provenance has to come
+// from the post.
 
 /** The fields the credit decision depends on. Structural, so both the public
  *  post view and any admin view satisfy it without a cast. */

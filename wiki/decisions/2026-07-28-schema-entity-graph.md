@@ -38,7 +38,11 @@ Read the predicate as *"the resolved author is Metis AND a human reviewed it"*. 
 
 ## Known and deliberately not fixed
 
-- **The seed backfill collapsed every author into one "Metis" row**, so the ~120 WordPress-migrated posts are misattributed on their face, independent of any of this. Needs its own change.
+- **The single "Metis" byline is deliberate, not a bug.** An earlier version of this page called it an author-table collapse needing its own ticket. That was wrong and is corrected here. There was only ever ONE WordPress author (Rob's account, `user_login: robangeles`); the migration created one row correctly and nothing was merged or lost. `scripts/seed/blog-author-backfill.ts` then renamed that row from the old "Sparq" display name to "Metis" — its own comment states the intent: *"writes the public byline values that should appear in the Written By card on every post page."* Rob confirmed 2026-07-29 that a single Metis-branded voice across the blog is the intention. **Do not "fix" this.**
+
+  The shape that looked like damage: the byline lives on the `author` row while provenance lives on `post.is_agent_generated`, so one byline legitimately covers 273 human-written and 2 agent-written posts. That is the design, not a leak.
+
+  Worth recording as a general lesson: a one-row lookup table plus a rename is indistinguishable, from the data alone, from a merge that lost information. Ask before filing it as a defect.
 - **FAQ rich results.** The `/consulting` FAQPage markup is valid and its answers match the rendered copy, but Google restricted FAQ SERP snippets to government and health sites in 2023. It will not produce a visible rich result — it helps LLM citation only.
 - **Cross-script `@id` merging** is Google's documented technique, not a spec guarantee. The `curl` checks prove the `@id`s are present and consistent; they do not prove Google's parser merges them. Worth one Rich Results Test pass.
 
