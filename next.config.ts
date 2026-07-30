@@ -143,18 +143,36 @@ const nextConfig: NextConfig = {
               // alone would leave those beacon-based events silently blocked
               // the moment a pixel id is set.
               //
-              // challenges.cloudflare.com is here for the same shape of reason.
-              // Turnstile's core token issuance runs in its iframe and talks to
-              // the parent by postMessage, which no CSP directive governs — that
-              // path is already covered by script-src + frame-src. But api.js
-              // also fetch/sendBeacons to /cdn-cgi/challenge-platform/... from
-              // the TOP-LEVEL page for clearance redemption, and that flow is
-              // gated on the site running Turnstile as part of a Cloudflare Zone
-              // integration. This site IS Cloudflare-fronted, so that is a live
-              // configuration rather than a hypothetical one. The host is
-              // already trusted in script-src, and a host allowed to execute
-              // arbitrary script in the page can do anything a fetch could, so
-              // listing it here grants essentially no additional surface.
+              // challenges.cloudflare.com is here, and NOT because of our
+              // Turnstile widget — do not remove it on the reasoning that
+              // Turnstile is switched off, which it is.
+              //
+              // Observed on production immediately after this policy went
+              // enforcing: a GET to
+              // challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/pat/...
+              // Grep the repo and that path appears in no application code, and
+              // the served HTML of /, /login and /contact reference it zero
+              // times — it is injected by Cloudflare at the edge, after parse,
+              // on pages served through the proxy (`server: cloudflare`,
+              // `cf-ray: ...-SYD`). It is Cloudflare's own bot-management
+              // telemetry, and it is live today with Turnstile off.
+              //
+              // [Inference] It did not appear in two days of Report-Only data
+              // because it fires for bot-suspicious clients, and that traffic was
+              // human. A headless browser triggered it on the first request. Not
+              // directly confirmed — what IS confirmed is that it fires, that we
+              // do not emit it, and that connect-src is the directive governing
+              // it.
+              //
+              // Turnstile's own token issuance, separately, runs in its iframe
+              // and reaches the parent by postMessage, which no directive
+              // governs; script-src + frame-src already cover it. So this entry
+              // would be justified for Turnstile eventually, but it is required
+              // NOW for a different reason.
+              //
+              // The host is already trusted in script-src, and a host allowed to
+              // execute arbitrary script in the page can do anything a fetch
+              // could, so listing it here grants essentially no new surface.
               "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://www.google.com https://www.facebook.com https://connect.facebook.net https://challenges.cloudflare.com",
               // GTM's <noscript> iframe, and Turnstile's challenge iframe.
               "frame-src https://*.googletagmanager.com https://challenges.cloudflare.com",
