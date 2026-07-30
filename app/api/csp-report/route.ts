@@ -2,10 +2,17 @@ import { clientIpFromRequest, rateLimit } from "@/lib/rate-limit";
 
 // Collector for Content-Security-Policy violation reports.
 //
-// This exists so the Report-Only policy in next.config.ts is actually
-// OBSERVABLE. A Report-Only header with nowhere to send reports is inert: it
-// can never be safely promoted to enforcing, because nobody ever learns what
-// enforcing would have broken.
+// This began as the observability half of a Report-Only policy — a Report-Only
+// header with nowhere to send reports is inert, because nobody ever learns what
+// enforcing would have broken. That job is done: the policy in next.config.ts
+// went enforcing on 2026-07-30.
+//
+// The endpoint stays, because an enforcing policy still reports and the reports
+// now mean something sharper. Anything arriving with disposition:"enforce" is a
+// request that was actually BLOCKED, not merely observed. The specific thing to
+// watch for is GTM injecting a tag at runtime: the allowlist covers the hosts
+// the code references, and nothing can cover a tag someone adds to the
+// container later.
 //
 // Two wire formats arrive here, and both are handled, because no single
 // browser sends both:
@@ -23,8 +30,7 @@ import { clientIpFromRequest, rateLimit } from "@/lib/rate-limit";
 // Note the field names differ between the two formats (kebab-case vs camelCase).
 // That is the spec, not a typo.
 //
-// Reports are logged, never persisted: they are transient diagnostics for
-// building the enforcing allowlist.
+// Reports are logged, never persisted: they are transient diagnostics.
 //
 // The document URL is REDACTED to its first path segment before logging.
 // Several public routes carry single-use secrets in the path rather than a

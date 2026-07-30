@@ -2043,3 +2043,23 @@ Full rationale in [[2026-07-28-schema-entity-graph]].
 
 - I filed the single "Metis" author row as an author-table collapse bug. It is a deliberate brand decision — see [[2026-07-28-schema-entity-graph]]. One WP author existed, the migration created one row, a seed renamed it. Nothing was lost. Rob confirmed the uniform Metis voice is intended.
 - I called app-wide dynamic rendering "the actual crawl-budget lever". Measured afterwards: a dynamic post page serves in ~0.2s TTFB, faster than the genuinely-cached sitemap. The finding is real, the impact is marginal, and the wiki's "slow TTFB throttles crawl" premise does not hold at that speed.
+
+## 2026-07-30 — CSP Report-Only → enforcing
+
+Closed the one calendar item left from the SEO/semantics work (#220–#227) two days early, because the report stream had given up everything it could.
+
+**What the reports said.** Two violations total. One was the synthetic probe fired during #220 to prove delivery works. One was a visitor's browser extension beaconing to `k6-….ecs.us-west-1.on.aws/events` — nowhere in our code, deliberately not allowlisted, blocking it is the policy working. Nothing first-party.
+
+**What the reports could not say.** `'unsafe-inline'` in `script-src` means inline scripts never violate, so they never report — and the homepage emits 21 Next.js RSC flight-data blocks plus 4 JSON-LD blocks. The stream was structurally incapable of producing inline data, so waiting the planned week would have added nothing.
+
+**The near-miss.** Driving a real browser against an enforcing copy found `page_view`, `scroll` and `user_engagement` all posting to `https://www.google.com/g/collect` (`gaf=1`), with nothing going to `google-analytics.com` on that load. All blocked. `gtag.js` builds that host at runtime, so it was absent from the source, absent from the served HTML across eight pages, and absent from the reports. Shipping without it would have killed GA4 measurement silently. Added `https://www.google.com` to `connect-src`; see [[2026-07-30-csp-runtime-hosts-invisible-to-reports]].
+
+**Also widened,** to Google's documented GA4/GTM set: `*.google-analytics.com`, `*.analytics.google.com`, `*.googletagmanager.com`. GA4 routes some traffic to regional endpoints (`region1.google-analytics.com`) that the previous `www.`-only entries would have blocked.
+
+**Verified** in a real browser after a daemon reset (a stale tab reported violations quoting the *old* directive string, which briefly looked like the fix had failed): 5 fresh pages, 0 violations, 5 successful `g/collect` hits, GTM initialised, consent banner rendering, R2 imagery loading. Suite green — 150 files, 1853 tests.
+
+**What this does and does not buy.** Enforced: external-script allowlist, `object-src 'none'`, `base-uri`, `form-action`, `frame-ancestors`. Not enforced: inline injection. `'unsafe-inline'` stays because removing it needs a per-request nonce, and `proxy.ts`'s matcher is `/admin`-scoped — widening it puts the Edge runtime in front of every public request. That is a separate decision, recorded as open in [[2026-07-30-csp-enforcing]].
+
+Reporting stays wired after the flip. GTM can inject tags at runtime and no code-derived allowlist covers that; `disposition:"enforce"` is now the early warning.
+
+Pages touched: `decisions/2026-07-30-csp-enforcing.md` (new), `lessons-learned/2026-07-30-csp-runtime-hosts-invisible-to-reports.md` (new), `index.md`.
