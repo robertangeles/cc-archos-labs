@@ -32,6 +32,20 @@ Enforced: the external-script allowlist, `object-src 'none'`, `base-uri 'self'`,
 
 Not enforced: inline script injection. With `'unsafe-inline'` present this is not XSS protection for inline content. The non-script directives close real attack classes regardless, so this is a partial win, not theatre — but it is a partial win.
 
+## Three hosts added, all for the same reason
+
+Each was missing from `connect-src` while being present in a directive that only covers a different transport. All three fail silently.
+
+| Host | Why `connect-src` specifically |
+|---|---|
+| `www.google.com` | `gtag.js` posts `page_view`/`scroll`/`user_engagement` to `/g/collect`. Found by browser trace; invisible to source, HTML and reports |
+| `www.facebook.com` | `fbevents.js`' primary transport is an `Image()` GET (covered by `img-src`), but it falls back to `sendBeacon`/`fetch` against `/tr/` on unload. Found by reading the live script |
+| `challenges.cloudflare.com` | Turnstile's token issuance runs in its iframe via `postMessage` (ungoverned), but `api.js` also fetches `/cdn-cgi/challenge-platform/…` from the top-level page for clearance redemption, gated on Cloudflare Zone integration — which this site has |
+
+Only the first was live. Meta Pixel has no configured ID and Turnstile defaults off, so those two were inert — which is exactly why neither could ever have appeared in the violation stream. The pattern worth keeping: **a host in `script-src` or `img-src` is not thereby allowed to `fetch`**, and third-party tags routinely use more than one transport.
+
+Listing `challenges.cloudflare.com` in `connect-src` grants close to no new surface, since it already holds `script-src` — a host permitted to execute arbitrary script can do anything a `fetch` could.
+
 ## Verification
 
 Five fresh pages driven in a real browser under the enforcing policy: 0 console violations, 5 successful GA4 `g/collect` hits, GTM initialised (`dataLayer` populated, `google_tag_manager` present), consent banner rendering, R2 blog imagery loading. Full suite green: 150 files, 1853 tests.

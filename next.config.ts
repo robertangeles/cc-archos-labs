@@ -131,7 +131,31 @@ const nextConfig: NextConfig = {
               // sync. Nothing in this stack requests them today, and guessing at
               // a list of Google ccTLDs is a worse trade than letting
               // /api/csp-report tell us if one ever fires.
-              "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://www.google.com https://connect.facebook.net",
+              //
+              // www.facebook.com (as opposed to just connect.facebook.net,
+              // which only loads the script) is here because fbevents.js does
+              // not exclusively report events via the img-src-covered Image()
+              // GET beacon: inspecting the live script shows it also falls
+              // back to navigator.sendBeacon and fetch — both connect-src, not
+              // img-src — targeting https://www.facebook.com/tr/, at minimum
+              // on page unload. Meta Pixel is DB-toggleable and has no
+              // configured id today, so this is inert — but the img-src entry
+              // alone would leave those beacon-based events silently blocked
+              // the moment a pixel id is set.
+              //
+              // challenges.cloudflare.com is here for the same shape of reason.
+              // Turnstile's core token issuance runs in its iframe and talks to
+              // the parent by postMessage, which no CSP directive governs — that
+              // path is already covered by script-src + frame-src. But api.js
+              // also fetch/sendBeacons to /cdn-cgi/challenge-platform/... from
+              // the TOP-LEVEL page for clearance redemption, and that flow is
+              // gated on the site running Turnstile as part of a Cloudflare Zone
+              // integration. This site IS Cloudflare-fronted, so that is a live
+              // configuration rather than a hypothetical one. The host is
+              // already trusted in script-src, and a host allowed to execute
+              // arbitrary script in the page can do anything a fetch could, so
+              // listing it here grants essentially no additional surface.
+              "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://www.google.com https://www.facebook.com https://connect.facebook.net https://challenges.cloudflare.com",
               // GTM's <noscript> iframe, and Turnstile's challenge iframe.
               "frame-src https://*.googletagmanager.com https://challenges.cloudflare.com",
               "frame-ancestors 'self'",
