@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Header } from "../components/layout/header";
 import { Footer } from "../components/layout/footer";
@@ -64,6 +65,15 @@ export default async function RootLayout({
 }>) {
   const settings = await getSiteSettings();
   const siteUrl = getSiteUrl();
+  // proxy.ts mints this per request and forwards it on x-nonce. Every inline
+  // script below needs it, because script-src no longer carries
+  // 'unsafe-inline' — an inline script without the nonce does not execute.
+  //
+  // Undefined only if the proxy did not run, which its matcher makes true for
+  // static assets only, never for a document. Left as undefined rather than
+  // defaulted to a constant: a fixed fallback nonce would be worse than none,
+  // since it would look like it was working while being trivially guessable.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   // Read the lead session (if any) once at the root so the Header can
   // render the right auth state. cache() dedupes within the request, so
   // any descendant server component that calls getSignedInLead() reuses
@@ -146,6 +156,7 @@ export default async function RootLayout({
             EEA+UK+CH, granted elsewhere; re-applies any stored choice. */}
         {(process.env.NEXT_PUBLIC_GA_ID || process.env.NEXT_PUBLIC_GTM_ID) && (
           <script
+            nonce={nonce}
             dangerouslySetInnerHTML={{ __html: consentDefaultSnippet() }}
           />
         )}
@@ -155,11 +166,14 @@ export default async function RootLayout({
             or PageViews double-count). No-ops when the id is unset. Placed
             right after GTM's noscript so its own <noscript> beacon sits as
             early in <body> as possible (Meta's placement guidance). */}
-        <MetaPixel pixelId={process.env.NEXT_PUBLIC_FB_PIXEL_ID} />
+        <MetaPixel
+          pixelId={process.env.NEXT_PUBLIC_FB_PIXEL_ID}
+          nonce={nonce}
+        />
         {/* GA4 (gtag.js) — installed in code, NOT in GTM (don't add a GA4 tag
             there too, or page_views double-count). No-ops when the id is unset. */}
-        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
-        <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID} />
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} nonce={nonce} />
+        <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID} nonce={nonce} />
         {/* Cookie-consent banner — shows once; Accept/Reject applies to GA4 +
             Meta live. Enabled whenever any tracker is configured. */}
         <ConsentBanner

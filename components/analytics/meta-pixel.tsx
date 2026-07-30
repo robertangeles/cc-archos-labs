@@ -49,12 +49,18 @@ function PixelRouteTracker() {
 // verifiable end-to-end. Do not also add a Meta Pixel tag inside GTM or every
 // PageView double-counts. Renders nothing when the id is unset/malformed, so
 // dev and preview never load the pixel.
-export function MetaPixel({ pixelId }: { pixelId?: string }) {
+export function MetaPixel({
+  pixelId,
+  nonce,
+}: {
+  pixelId?: string;
+  nonce?: string;
+}) {
   if (!isValidPixelId(pixelId)) return null;
 
   return (
     <>
-      <Script id="meta-pixel-init" strategy="afterInteractive">
+      <Script id="meta-pixel-init" strategy="afterInteractive" nonce={nonce}>
         {metaPixelSnippet(pixelId)}
       </Script>
       <noscript>

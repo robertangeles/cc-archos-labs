@@ -2075,3 +2075,19 @@ So the entry is required today, and the original comment would have told the nex
 [Inference] It stayed out of the Report-Only window because it fires for bot-suspicious clients and that traffic was human — a headless browser triggered it on the first request. Not directly confirmed.
 
 New rule in [[2026-07-30-csp-runtime-hosts-invisible-to-reports]]: a wrong reason attached to a correct line is worse than no comment, because it reads as permission to remove it. Plus a fourth blind spot — resources injected by a proxy or CDN are in no codebase to read.
+
+## 2026-07-30 — 'unsafe-inline' removed from script-src
+
+Same day as the enforcing flip, and only because I checked a claim I had made a few hours earlier instead of standing on it.
+
+[[2026-07-30-csp-enforcing]] filed the nonce work as an architectural decision with a real cost: nonces force dynamic rendering, which would undo the blog ISR work. **Verifying that killed it.** All 51 route files already carry `force-dynamic`; production returns `private, no-cache, no-store` on every public route; the ISR conversion had been built, measured at ~0.21s TTFB and reverted weeks ago. No static rendering existed to lose, so the cost I had quoted as the reason to defer was zero.
+
+**Design.** Nonce plus the existing host allowlist, deliberately NOT `'strict-dynamic'`. The textbook strict policy makes browsers ignore host allowlists, and Cloudflare injects a bot-management script into our pages at the edge that we never see and cannot nonce. Confirmed in practice: Turnstile's `api.js` loads with no nonce and runs, purely on the host allowlist. `style-src` keeps `'unsafe-inline'` — Next and the font loader emit inline styles, and inline CSS is a much weaker vector.
+
+**Two details that had to be right.** Next.js discovers the nonce from the CSP header set on the *request*, not the response — that is what stamps it on the ~30 script tags Next emits per page (32 of 34 nonced; the 2 without are `application/ld+json`, which browsers do not execute, verified empirically). And the CSP had to come out of `next.config.ts` entirely, because two `Content-Security-Policy` headers are each enforced independently.
+
+**A regression my own test caught.** Widening the matcher turned `path.startsWith("/admin")` into a trap — it also matches `/administrator-notes` and `/admin-guide`, which would have been redirected to the login page. Safe before only because the old matcher never fed those paths in, and invisible today because no such route exists. Fixed with segment-boundary matching. A first matcher draft also hand-maintained an asset-extension skip list and silently dropped the CSP from `/sitemap.xml` and `/robots.txt`; replaced with "skip only Next's build output".
+
+**Verified.** 10 pages in a real browser, 0 violations, GTM/GA4/entity-graph all intact. Auth gate: `/admin` 307, `/admin/login` 200, `/api/admin/posts` 401, boundary paths 404 not redirected. 28 new tests; suite 152 files / 1881 tests.
+
+Pages touched: `decisions/2026-07-30-csp-nonce.md` (new), `index.md`. New code: `lib/csp.ts`, `lib/csp.test.ts`, `tests/proxy.test.ts`.
