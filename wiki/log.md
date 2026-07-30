@@ -2063,3 +2063,15 @@ Closed the one calendar item left from the SEO/semantics work (#220–#227) two 
 Reporting stays wired after the flip. GTM can inject tags at runtime and no code-derived allowlist covers that; `disposition:"enforce"` is now the early warning.
 
 Pages touched: `decisions/2026-07-30-csp-enforcing.md` (new), `lessons-learned/2026-07-30-csp-runtime-hosts-invisible-to-reports.md` (new), `index.md`.
+
+### 2026-07-30 — correction to the CSP entry for challenges.cloudflare.com
+
+Post-merge verification on production changed *why* that host is allowlisted, and the original reason was the kind that gets a live line deleted.
+
+It was justified as Turnstile's clearance-redemption path, live because the site is Cloudflare Zone-integrated. The observed mechanism is different: production GETs `challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/pat/…`, that path appears in no application code, the served HTML of `/`, `/login` and `/contact` reference it zero times, and `/login` carries no `sitekey` so `TurnstileWidget` returns null. Cloudflare injects it at the edge, after parse, on proxied pages (`server: cloudflare`, `cf-ray: …-SYD`). It is Cloudflare's own bot-management telemetry, live **with Turnstile off**.
+
+So the entry is required today, and the original comment would have told the next reader "Turnstile is off, this can go". Corrected in `next.config.ts` and in [[2026-07-30-csp-enforcing]].
+
+[Inference] It stayed out of the Report-Only window because it fires for bot-suspicious clients and that traffic was human — a headless browser triggered it on the first request. Not directly confirmed.
+
+New rule in [[2026-07-30-csp-runtime-hosts-invisible-to-reports]]: a wrong reason attached to a correct line is worse than no comment, because it reads as permission to remove it. Plus a fourth blind spot — resources injected by a proxy or CDN are in no codebase to read.

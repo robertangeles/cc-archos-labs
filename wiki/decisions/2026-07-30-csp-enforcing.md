@@ -40,9 +40,11 @@ Each was missing from `connect-src` while being present in a directive that only
 |---|---|
 | `www.google.com` | `gtag.js` posts `page_view`/`scroll`/`user_engagement` to `/g/collect`. Found by browser trace; invisible to source, HTML and reports |
 | `www.facebook.com` | `fbevents.js`' primary transport is an `Image()` GET (covered by `img-src`), but it falls back to `sendBeacon`/`fetch` against `/tr/` on unload. Found by reading the live script |
-| `challenges.cloudflare.com` | Turnstile's token issuance runs in its iframe via `postMessage` (ungoverned), but `api.js` also fetches `/cdn-cgi/challenge-platform/…` from the top-level page for clearance redemption, gated on Cloudflare Zone integration — which this site has |
+| `challenges.cloudflare.com` | Cloudflare's edge-injected bot-management telemetry GETs `/cdn-cgi/challenge-platform/h/b/pat/…` from the top-level page. Observed live on production. **Not** our Turnstile widget, which is off |
 
-Only the first was live. Meta Pixel has no configured ID and Turnstile defaults off, so those two were inert — which is exactly why neither could ever have appeared in the violation stream. The pattern worth keeping: **a host in `script-src` or `img-src` is not thereby allowed to `fetch`**, and third-party tags routinely use more than one transport.
+**Correction, made after the merge.** The `challenges.cloudflare.com` entry was originally justified as Turnstile's clearance-redemption path being live because the site is Cloudflare Zone-integrated. Verifying on production showed the mechanism is different: that path appears in no application code, the served HTML of `/`, `/login` and `/contact` reference it zero times, and `/login` carries no `sitekey` (so `TurnstileWidget` returns null). Cloudflare injects it at the edge, after parse, on proxied pages. The entry is required **today**, with Turnstile off — so the original reasoning would have led a future reader to delete a live dependency. Corrected in `next.config.ts`.
+
+`www.facebook.com` genuinely is inert (no Pixel ID configured), which is exactly why it could never have appeared in the violation stream. The pattern worth keeping: **a host in `script-src` or `img-src` is not thereby allowed to `fetch`**, and third-party tags routinely use more than one transport.
 
 Listing `challenges.cloudflare.com` in `connect-src` grants close to no new surface, since it already holds `script-src` — a host permitted to execute arbitrary script can do anything a `fetch` could.
 
