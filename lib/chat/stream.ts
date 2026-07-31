@@ -14,7 +14,7 @@ import {
 } from "./prompt-config-shared";
 import { getEnabledRules } from "../rules/service";
 import { retrieve } from "../knowledge/retrieve";
-import { encodeProgress } from "./progress-protocol";
+import { encodeProgress, stripDelimiters } from "./progress-protocol";
 import {
   logRetrievalEvent,
   safeReason as safeRetrievalReason,
@@ -507,7 +507,9 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
             for (const label of progressLabels) {
               controller.enqueue(encoder.encode(encodeProgress(label)));
             }
-            controller.enqueue(encoder.encode(toolContent));
+            // Strip any delimiter the model itself produced, so an answer that
+            // mentions a control character cannot be read as an event boundary.
+            controller.enqueue(encoder.encode(stripDelimiters(toolContent)));
             controller.close();
           },
         });

@@ -24,32 +24,46 @@ export function encodeProgress(label: string): string {
 }
 
 /**
+ * Strip the delimiter from model-authored content before it enters the stream.
+ *
+ * Belt to splitProgress's braces. An answer that legitimately contains U+001F
+ * — discussing record separators, or emitting one in a code block — would
+ * otherwise be parsed as an event boundary. Measured on the first
+ * implementation: 40 characters of a real answer silently vanished.
+ */
+export function stripDelimiters(content: string): string {
+  return content.split(PROGRESS_DELIM).join("");
+}
+
+/**
  * Split a raw accumulated stream into the progress labels seen so far and the
  * real content.
  *
- * PURE, and shared by the server tests and the client, so the two agree by
+ * PURE, and shared by the client and the tests, so the two agree by
  * construction rather than by two implementations that look similar.
  *
- * Handles a partially-arrived event: a trailing unterminated segment is neither
- * content nor a completed label, and must not be rendered as either. Getting
- * that wrong would flash half a label into the message body mid-stream.
+ * Parses ONLY THE LEADING RUN of complete events. That is safe because the
+ * server emits every progress event before the answer (see stream.ts), and it
+ * is what makes a stray delimiter inside the answer harmless: once the leading
+ * run ends, the rest is content verbatim, delimiters and all.
+ *
+ * A naive split-on-every-delimiter looked equivalent and lost answer text. It
+ * is the kind of bug that only shows up on the one answer that happens to
+ * mention a control character.
  */
 export function splitProgress(raw: string): { labels: string[]; content: string } {
-  const parts = raw.split(PROGRESS_DELIM);
   const labels: string[] = [];
-  let content = "";
+  let i = 0;
 
-  for (let i = 0; i < parts.length; i++) {
-    if (i % 2 === 0) {
-      // Even segments sit outside any delimiter pair: real content.
-      content += parts[i];
-    } else if (i < parts.length - 1) {
-      // Odd segment with something after it: the closing delimiter arrived.
-      labels.push(parts[i]);
-    }
-    // Odd segment that is last: still streaming. Drop it — it is not content,
-    // and it is not yet a complete label.
+  while (raw[i] === PROGRESS_DELIM) {
+    const end = raw.indexOf(PROGRESS_DELIM, i + 1);
+    // Opening delimiter with no closing one yet: the event is still arriving.
+    // It is neither content nor a completed label — rendering it as either
+    // flashes a broken fragment into the message body.
+    if (end === -1) return { labels, content: "" };
+    labels.push(raw.slice(i + 1, end));
+    i = end + 1;
   }
 
-  return { labels, content };
+  return { labels, content: raw.slice(i) };
 }
