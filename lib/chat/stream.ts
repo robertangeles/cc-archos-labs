@@ -8,11 +8,17 @@ import * as chatService from "./service";
 import { getChatPrompt } from "./prompt-config";
 import {
   audienceFor,
+  coverageNotice,
   ragInstruction,
   resolveSourceBlock,
 } from "./prompt-config-shared";
 import { getEnabledRules } from "../rules/service";
-import { vectorSearch } from "../knowledge/search";
+import { retrieve } from "../knowledge/retrieve";
+import {
+  logRetrievalEvent,
+  safeReason as safeRetrievalReason,
+} from "../knowledge/observability";
+import type { SearchResult } from "../knowledge/search";
 import { recallMemories, formatRecallContext } from "../brain/recall";
 import { getMemoryStatusFromDb } from "../brain/memory";
 import { extractMemories } from "../brain/extract";
@@ -42,6 +48,19 @@ const EMPTY_BRAIN_NOTICE =
   "themselves, say plainly that you don't have anything on them yet and invite " +
   "them to tell you about themselves. NEVER invent, guess, or state any " +
   "personal detail about this user. Fabricating an identity is a critical failure.";
+
+// Defence in depth: on a client turn the excerpts arrive UNLABELLED. The
+// instruction not to name a source is a rule the model follows; withholding
+// the titles is a fact it cannot get around. Belt and braces, because the
+// titles are the asset being protected.
+function formatChunks(
+  chunks: SearchResult[],
+  audience: "internal" | "client",
+): string {
+  return chunks
+    .map((c) => (audience === "internal" ? `[${c.title}]\n${c.content}` : c.content))
+    .join("\n\n---\n\n");
+}
 
 interface StreamMessageArgs {
   conversationId: string;
@@ -86,24 +105,84 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
   const audience = audienceFor(args.userRole);
   const sourceBlock = resolveSourceBlock(corePromptConfig, audience);
 
-  let ragContext = "";
-  try {
-    const results = await vectorSearch(args.userContent, undefined, 5);
-    if (results.length > 0) {
-      // Defence in depth: on a client turn the excerpts arrive UNLABELLED. The
-      // instruction not to name a source is a rule the model follows; withholding
-      // the titles is a fact it cannot get around. Belt and braces, because the
-      // titles are the asset being protected.
-      const chunks = results
-        .filter((r) => r.similarity > 0.3)
-        .map((r) => (audience === "internal" ? `[${r.title}]\n${r.content}` : r.content))
-        .join("\n\n---\n\n");
-      if (chunks) {
-        ragContext = `${ragInstruction(audience)}\n\n${chunks}`;
-      }
+  // History first — retrieval needs it to resolve what the latest message
+  // refers to ("what about the governance angle?"). Drop the turn we just
+  // saved; it is passed separately as the thing being rewritten.
+  const historyRaw = await loadConversationHistory(
+    args.conversationId,
+    args.userId,
+  );
+  const priorTurns = historyRaw.slice(0, -1);
+
+  // Everything below is independent, and until now was awaited one after
+  // another: recall, then workspace, then rules, then retrieval. Four
+  // round-trips in series for no reason. Running them together is what pays
+  // for retrieval's decompose call — the added latency hides inside waits we
+  // were already doing.
+  const [retrieval, brainContext, workspaceContext, rulesBlock] =
+    await Promise.all([
+      retrieveLibrary(),
+      buildBrainContext(),
+      buildWorkspaceContext(args.userId),
+      buildRulesBlock(),
+    ]);
+
+  // Four distinct states, never conflated (see coverageNotice):
+  //   grounded    enough material reached the model — inject it
+  //   thin        some material, below the coverage gate — inject it, caveated
+  //   uncovered   we looked and there is nothing — say so, inject nothing
+  //   degraded    we could not look — a service failure, worded differently
+  const ragContext = retrieval.degraded
+    ? coverageNotice("degraded", audience)
+    : retrieval.chunks.length && retrieval.covered
+      ? `${ragInstruction(audience)}\n\n${formatChunks(retrieval.chunks, audience)}`
+      : retrieval.chunks.length
+        ? // FOUR states, not three. Material cleared the floor but not enough to
+          // call the question covered: inject what there is with the "thin"
+          // caveat, NOT the "uncovered" one. Uncovered copy says nothing was
+          // retrieved, which is false when excerpts sit directly above it.
+          `${ragInstruction(audience)}\n\n${formatChunks(retrieval.chunks, audience)}\n\n${coverageNotice("thin", audience)}`
+        : coverageNotice("uncovered", audience);
+
+  async function retrieveLibrary() {
+    try {
+      return await retrieve({
+        turn: args.userContent,
+        history: priorTurns,
+        apiKey,
+        audience,
+        signal: args.signal,
+      });
+    } catch (err) {
+      // retrieve() is written never to throw; this is belt and braces so a
+      // future edit inside it can never take the whole turn down.
+      logRetrievalEvent({
+        event: "retrieval",
+        audience,
+        strategy: "fanout",
+        subQueries: 0,
+        domains: [],
+        paths: [],
+        candidates: 0,
+        droppedBelowFloor: 0,
+        chunks: 0,
+        distinctSources: 0,
+        sources: [],
+        topScore: null,
+        medianScore: null,
+        ms: 0,
+        decomposeMs: null,
+        degraded: true,
+        reason: safeRetrievalReason(err),
+      });
+      return {
+        chunks: [],
+        distinctSources: 0,
+        aboveFloor: 0,
+        covered: false,
+        degraded: true,
+      };
     }
-  } catch {
-    // Knowledge search unavailable — continue without RAG
   }
 
   // Brain recall. Three cases:
@@ -116,27 +195,24 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
   //  3. brain has notes but NONE matched this query → inject nothing. Recall is
   //     relevance-ranked, so an empty result for one query does NOT mean an empty
   //     brain; claiming "no record" here would make Metis deny a user it knows.
-  let brainContext = "";
-  try {
-    const recall = await recallMemories(args.userId, args.userContent);
-    if (recall.source === "brain" && recall.memories.length > 0) {
-      brainContext = formatRecallContext(recall.memories);
-    } else {
+  async function buildBrainContext(): Promise<string> {
+    try {
+      const recall = await recallMemories(args.userId, args.userContent);
+      if (recall.source === "brain" && recall.memories.length > 0) {
+        return formatRecallContext(recall.memories);
+      }
       const status = await getMemoryStatusFromDb(args.userId);
-      if (!status.hasMemory) brainContext = EMPTY_BRAIN_NOTICE;
+      return status.hasMemory ? "" : EMPTY_BRAIN_NOTICE;
+    } catch {
+      // Recall/status unavailable — continue without a memory block.
+      return "";
     }
-  } catch {
-    // Recall/status unavailable — continue without a memory block.
   }
 
-  // Phase 0 workspace memory: inject a snapshot of the user's active-org
-  // projects/clients. Fail-soft internally (returns "" on any error).
-  const workspaceContext = await buildWorkspaceContext(args.userId);
-
-  const rules = await getEnabledRules(args.userId);
-  const rulesBlock = rules.length > 0
-    ? rules.map((r) => r.content).join("\n\n")
-    : "";
+  async function buildRulesBlock(): Promise<string> {
+    const rules = await getEnabledRules(args.userId);
+    return rules.length > 0 ? rules.map((r) => r.content).join("\n\n") : "";
+  }
 
   // sourceBlock sits directly after the core prompt so the source regime is
   // established before any retrieved material appears. It is "" for a stored
@@ -156,11 +232,6 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
   } catch {
     // No attachments on failure — chat continues normally.
   }
-
-  const historyRaw = await loadConversationHistory(
-    args.conversationId,
-    args.userId,
-  );
 
   // Fit system + attachments + history inside the CONFIGURED model's window
   // (total-overflow guard). Trims oldest history and omits low-priority docs.

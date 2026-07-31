@@ -2320,3 +2320,121 @@ because The Unified Star Schema is correctly `dmbok` by topic while being
 `searchKnowledge` currently has no production caller — `generate.ts` was the
 last one. Not removed: Phase 3's `retrieve()` will use it for the per-sub-query
 keyword fallback.
+
+## 2026-07-31 — Metis live RAG Phase 3: multi-perspective retrieval
+
+**1.72 → 4.75 distinct books per turn.** The thing this whole project was for.
+
+Built the design, then measured it against the real corpus, and the measurements
+deleted most of it:
+
+- **Domain-scoped fan-out: DELETED.** It made diversity WORSE — 3.88 → 3.38.
+  Filtering a sub-query to a topic domain narrows to one shelf, and the shelves
+  are uneven (engineering 10 books, analytics 2), so a domain-scoped search
+  returns chunks concentrated in FEWER documents. The intuition is backwards when
+  the domains are unbalanced.
+- **Diversity swap (step 6): DELETED.** Fired 0/8 questions, +0.00 books. The
+  kill criterion was written into the code before the measurement and the
+  measurement met it. Its unit tests went with it.
+- **Rewrite-on-every-turn: DELETED.** Haiku measured 1.5-1.8s. Rewriting is only
+  worth that where the turn cannot stand alone — measured: a context-dependent
+  follow-up goes top-1 0.421 → 0.617 rewritten, while a long self-contained
+  question already gets 3.88 books from the raw turn. Now conditional.
+- **KEPT:** the per-document cap over a wide pool. That is the load-bearing step
+  — K=8 gives 2.13 books, K=12 gives 2.88, K=30 gives 3.88.
+
+**Two bugs no unit test could have caught, both found end to end:**
+
+The decompose timeout was 700ms against a measured 1.5-1.8s latency. It timed
+out on EVERY turn, silently reducing retrieval to a single raw query at the
+starved K=12 — worse than not trying. Every unit test passed throughout, because
+the fallback path is correct; it was just always being taken.
+
+`degraded` was lying. `searchKnowledge` catches a vector failure and quietly
+retries with keyword search, so a dead embedding API returns results and looks
+healthy — an invalid key produced 4 chunks and degraded=false. retrieve() now
+does the fallback itself so `paths` reports what actually served. Verified by
+breaking the env key: paths ["keyword"], degraded true, 8 chunks from 5 sources
+still served.
+
+Also parallelised the four context builders in stream.ts. Recall, workspace,
+rules and retrieval were awaited one after another for no reason; running them
+together is what pays for the rewrite call.
+
+Three states now distinguished and never conflated: grounded / uncovered /
+degraded, each audience-aware. Telling a CLIENT "I could not reach the library"
+would confirm a library exists — asserted by a test that fails if any
+corpus-implying word appears in the client wording, verified by mutation.
+
+Suite: 156 files / 1937 tests. Gated behind RETRIEVE_FANOUT_ENABLED (default
+false); with it off retrieval is one wide query at 3.88 books, still well above
+the 1.72 baseline.
+
+Pages touched: `decisions/2026-07-31-multi-perspective-retrieval.md` (new),
+`index.md`. New code: `lib/knowledge/retrieve.ts`, `lib/knowledge/observability.ts`,
+`lib/knowledge/retrieve.test.ts`, `tests/eval/retrieval-diversity.eval.test.ts`.
+
+### Review follow-ups on PR #233 (verdict was BLOCKED)
+
+**Mixed score scales corrupted ranking while reporting healthy.** I had flagged
+`degraded` only when EVERY sub-query fell back to keyword. Review pointed out the
+realistic case is 2 of 3 succeeding — and keyword scores (10-31) numerically
+dwarf cosine (0-1), so in that mix the keyword chunks take every top slot
+regardless of relevance while `degraded=false`. My own code comment claimed "the
+keyword path is already flagged degraded", true only in the all-keyword case.
+
+Fixed by never mixing: if any vector search succeeded, use vector results only
+and discard keyword ones. Keyword serves solely when vector is entirely
+unavailable. `degraded` now fires for a total outage OR for any dropped
+sub-query.
+
+**A fourth state.** The partial-coverage branch injected real titled excerpts and
+then appended the "uncovered" notice — which says "nothing relevant was
+retrieved, so naming one would be an invention". False with excerpts directly
+above it, and a direct contradiction of the "three states, never conflated"
+design. Added a distinct `thin` state: use what is there, name those works, say
+where you go past what they support.
+
+**A concurrency bug found while fixing the first item.** `paths` was populated by
+`push()` from inside N concurrent callbacks and then used to index the results
+array. Completion order of concurrent promises is not `Promise.all` output order,
+so the two could not be zipped — the pool filter would have mis-attributed which
+sub-query used which path. Each sub-query now carries its path back in its own
+result object.
+
+**Also self-caught before review returned:** `needsRewrite` matched bare pronouns
+anywhere in the string and fired on 4 of 5 real questions, because "a bank THAT
+has failed two audits" is a relative pronoun, not a back-reference. It would have
+paid the 1.8s rewrite on nearly every question.
+
+Diversity unchanged at 4.75 books after all four fixes. 156 files / 1955 tests.
+
+### PR #233 re-review: APPROVE, plus two things worth doing anyway
+
+Re-review confirmed both blocking fixes. Two non-blocking items raised, both taken:
+
+**Partial fan-out failure was invisible.** A sub-query failing BOTH vector and
+keyword while others succeeded did not set `degraded` — 3 sub-queries, 2 hits and
+1 total outage reported as healthy. The user-facing state machine only sees that
+flag, so anything it cannot see effectively did not happen. `failures.length > 0`
+now counts.
+
+**The orchestration had no runnable test.** `retrieve.test.ts` covered only the
+pure helpers; the only end-to-end exercise is DB- and API-key-gated and skipped
+in CI. That is the exact code broken twice in one sitting — once by indexing
+results with a `paths` array populated from concurrent callbacks, once by mixing
+score scales — and neither would have been caught by a test.
+
+Added `lib/knowledge/retrieve.orchestration.test.ts`: searches mocked, so it runs
+everywhere. Nine cases across pool selection, degraded accounting and coverage.
+
+Writing it exposed a third thing: the first two tests passed for the wrong
+reason. With fan-out on, the decompose call is a real fetch, the fake key made it
+fail, retrieve() fell back to ONE sub-query, and every multi-sub-query scenario
+silently became a single-query one. Stubbed the decompose response so sub-query
+count is deterministic.
+
+Both guards mutation-tested: reinstating the mixed pool fails a test, and
+dropping `failures.length` from the degraded check fails another.
+
+156 files / 1964 tests.

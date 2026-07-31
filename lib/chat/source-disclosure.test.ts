@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   audienceFor,
   ChatPromptSchema,
+  coverageNotice,
   ragInstruction,
   resolveSourceBlock,
   type ChatPrompt,
@@ -236,5 +237,83 @@ describe("ChatPromptSchema", () => {
       sourceProtection: "x".repeat(8001),
     });
     expect(parsed.success).toBe(false);
+  });
+});
+
+describe("coverageNotice", () => {
+  // "I looked and found nothing" and "I could not look" are different facts.
+  // Conflating them teaches the user the notice is noise.
+  it("words uncovered and degraded differently for each audience", () => {
+    const combos = [
+      coverageNotice("uncovered", "internal"),
+      coverageNotice("uncovered", "client"),
+      coverageNotice("degraded", "internal"),
+      coverageNotice("degraded", "client"),
+    ];
+    expect(new Set(combos).size).toBe(4);
+  });
+
+  it("tells an internal turn plainly that the library is empty or unreachable", () => {
+    expect(coverageNotice("uncovered", "internal")).toMatch(/library/i);
+    expect(coverageNotice("degraded", "internal")).toMatch(/could not be reached/i);
+  });
+
+  // The leak that matters: "I could not reach the library" confirms a library
+  // exists, which is precisely what the protection block denies.
+  it("never reveals a corpus to a client turn, in either state", () => {
+    for (const state of ["uncovered", "degraded"] as const) {
+      const text = coverageNotice(state, "client");
+      for (const banned of [
+        /\blibrary\b/i,
+        /\bsources?\b/i,
+        /\bbooks?\b/i,
+        /\bdocuments?\b/i,
+        /\bcorpus\b/i,
+        /\bretriev/i,
+        /\bknowledge base\b/i,
+      ]) {
+        expect(text, `client ${state} notice leaks ${banned}: ${text}`).not.toMatch(banned);
+      }
+    }
+  });
+
+  it("forbids naming a work when nothing was retrieved", () => {
+    // Nothing came back, so any named work would be invented.
+    expect(coverageNotice("uncovered", "internal")).toMatch(/not name a work|NOT name a work/i);
+    expect(coverageNotice("degraded", "internal")).toMatch(/not name any work|do not name/i);
+  });
+});
+
+describe("coverageNotice — the thin state", () => {
+  // The defect this locks down: the partial-coverage branch injected real,
+  // titled excerpts and then appended the UNCOVERED notice, which asserts
+  // "nothing relevant was retrieved, so naming a work would be an invention".
+  // Flatly false with excerpts directly above it, and worse than saying nothing.
+  it("never claims nothing was retrieved", () => {
+    for (const audience of ["internal", "client"] as const) {
+      const text = coverageNotice("thin", audience);
+      expect(text).not.toMatch(/nothing (?:relevant )?was retrieved/i);
+      expect(text).not.toMatch(/no substantive material/i);
+      expect(text).not.toMatch(/would be an invention/i);
+    }
+  });
+
+  it("is distinct from every other state, for both audiences", () => {
+    const all = (["uncovered", "thin", "degraded"] as const).flatMap((s) => [
+      coverageNotice(s, "internal"),
+      coverageNotice(s, "client"),
+    ]);
+    expect(new Set(all).size).toBe(6);
+  });
+
+  it("lets an internal turn name the works it was actually given", () => {
+    expect(coverageNotice("thin", "internal")).toMatch(/name those works/i);
+  });
+
+  it("still leaks nothing to a client turn", () => {
+    const text = coverageNotice("thin", "client");
+    for (const banned of [/\blibrary\b/i, /\bsources?\b/i, /\bbooks?\b/i, /\bmaterial\b/i, /\bretriev/i]) {
+      expect(text, `thin client notice leaks ${banned}: ${text}`).not.toMatch(banned);
+    }
   });
 });
