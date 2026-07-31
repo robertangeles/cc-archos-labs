@@ -4,6 +4,7 @@ import {
   COVERAGE_GATE,
   DEFAULT_FLOOR,
   mergeDiverse,
+  needsRewrite,
 } from "./retrieve";
 import type { SearchResult } from "./search";
 
@@ -128,5 +129,41 @@ describe("constants", () => {
       "analytics",
       "startup",
     ]);
+  });
+});
+
+describe("needsRewrite", () => {
+  // Rewriting costs a ~1.8s model call, so this heuristic decides whether every
+  // turn pays it. An earlier version matched bare pronouns anywhere in the
+  // string and fired on 4 of 5 real questions, because "that" is normally a
+  // RELATIVE pronoun ("a bank that has failed"), not a back-reference.
+  it.each([
+    "how do I sequence data governance for a bank that has failed two audits and blames the vendor",
+    "what is the best way to structure a data quality programme that survives a budget cut",
+    "should we build a data mesh or a central warehouse for a mid-size insurer this year",
+    "how do I convince an executive sponsor that master data management is worth funding",
+    "explain the trade-offs between a lakehouse and a dimensional warehouse for regulatory reporting",
+  ])("skips the rewrite for a self-contained question: %s", (q) => {
+    expect(needsRewrite(q)).toBe(false);
+  });
+
+  it.each([
+    "what about the governance angle",
+    "how do I handle that",
+    "so what do I drop first",
+    "ok",
+    "go on",
+    "and the second one",
+    "why",
+  ])("rewrites a context-dependent follow-up: %s", (q) => {
+    expect(needsRewrite(q)).toBe(true);
+  });
+
+  it.each([
+    "can you go deeper on the second point about stewardship and how it applies to a regulated insurer",
+    "you mentioned the operating model earlier — how does that change for a smaller organisation with no CDO",
+  ])("rewrites a LONG turn that still points backwards: %s", (q) => {
+    expect(q.length).toBeGreaterThan(80);
+    expect(needsRewrite(q)).toBe(true);
   });
 });

@@ -167,14 +167,27 @@ const MIN_TURN_CHARS = 24;
 // So the rewrite earns its latency exactly where the turn cannot stand alone,
 // and nowhere else. A long question that already reads as a search query skips
 // the call entirely and goes straight to a wide single-query search.
-const REFERENTIAL =
-  /\b(that|those|it|this|they|them|the (?:same|above|other|first|second|last))\b|^\s*(?:what about|how about|and|but|so|ok|okay|right|go on|continue|more on|why|and what)\b/i;
+// Distinguishing a turn that needs context from one that stands alone is
+// mostly a LENGTH question. An earlier version also matched bare pronouns
+// anywhere in the string and false-positived on 4 of 5 real questions, because
+// "that" is usually a RELATIVE pronoun ("a bank that has failed two audits"),
+// not a back-reference. That heuristic would have paid the 1.8s on almost every
+// question — nearly as bad as rewriting unconditionally.
+//
+// Two reliable signals remain:
+//   1. the turn is too short to be a search query on its own
+//   2. it OPENS with a continuation marker, or explicitly points back at
+//      something already said
+const CONTINUATION =
+  /^\s*(?:what about|how about|and(?:\s|$)|but(?:\s|$)|so(?:\s|$)|ok(?:ay)?(?:\s|$)|right(?:\s|$)|go on|continue|more on|why(?:\s|$)|tell me more|expand|keep going)/i;
+const BACK_REFERENCE =
+  /\b(?:you (?:said|mentioned|suggested|wrote)|as (?:you|above)|the (?:second|third|last|previous|first) (?:point|one|option|approach)|go deeper on|more on (?:that|this)|that (?:point|approach|option|idea)|earlier)\b/i;
 const SELF_CONTAINED_CHARS = 80;
 
 export function needsRewrite(turn: string): boolean {
   const t = turn.trim();
   if (t.length < SELF_CONTAINED_CHARS) return true;
-  return REFERENTIAL.test(t);
+  return CONTINUATION.test(t) || BACK_REFERENCE.test(t);
 }
 
 // No domain tagging, deliberately. Measured: filtering each sub-query to a
