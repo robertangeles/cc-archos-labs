@@ -49,6 +49,9 @@ export async function POST(
     const { stream, cleanup } = await streamMessage({
       conversationId: id,
       userId: auth.user.id,
+      // Read from the server-side session, never the request body — this value
+      // decides whether the turn may name the practice library.
+      userRole: auth.user.role,
       userContent: parsed.data.content,
       modelOverride: parsed.data.model,
       systemPrompt: convo.conversation.systemPrompt,

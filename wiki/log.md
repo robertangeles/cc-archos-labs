@@ -2126,3 +2126,44 @@ Neither is caused by this work; both are fixed in Phase 2.
 
 Pages touched: `decisions/2026-07-31-retrieval-floor-calibration.md` (new),
 `index.md`. New code: `scripts/retrieval-baseline.mjs`.
+
+## 2026-07-31 — Metis live RAG: audience-scoped source disclosure (Phase 1)
+
+Went to rewrite the RAG injection instruction and found the reason the whole
+attribution half of the plan was unbuildable: the stored Metis prompt has a
+`## KNOWLEDGE SOURCE PROTECTION` section forbidding Metis from ever naming a
+document title, "under all conditions", with no overrides — while
+`lib/chat/stream.ts:81` injected "Cite the source title when relevant" on every
+single turn. Both have been shipping together for months. The stored block
+almost certainly wins, so the stream.ts instruction was dead text.
+
+That protection is a deliberate commercial decision — the curated library is the
+moat. Rob's call: keep it for clients, lift it for himself. The rule is right
+for a prospect and wrong for the person who owns the shelf.
+
+**Built:** `sourceProtection` / `sourceAttribution` as two optional, mutually
+exclusive fields on the chat prompt setting, chosen by `users.role` via
+`audienceFor`. Not one rule with an "unless admin" exception — the protection
+text asserts nothing overrides it, and an absolute with a carve-out invites the
+model to reason about whether the carve-out applies, which is exactly the crack
+an injection attempt widens.
+
+Defence in depth: client turns now receive excerpts with titles STRIPPED. The
+instruction is a rule the model follows; withholding the titles is a fact it
+cannot reason around.
+
+Fail-closed and locked down by exhaustive tests: `"Admin"`, `" admin"`,
+`"administrator"`, `""`, null and undefined all resolve to client. A client turn
+never receives the attribution block even when protection is unset. A stored row
+predating the split behaves byte-for-byte as before.
+
+Noted, not fixed: `users.role` defaults to `"admin"` in the schema
+(`lib/db/schema.ts:1140`). All three live insert paths set `"member"` explicitly,
+so nothing is wrong today, but it is a footgun for any future insert path.
+
+Suite: 153 files / 1904 tests green, tsc + lint clean. The stored PROD prompt
+split is written and dry-run verified (8258 -> 6381 chars) but NOT applied.
+
+Pages touched: `decisions/2026-07-31-audience-scoped-source-disclosure.md` (new),
+`index.md`. New code: `lib/chat/source-disclosure.test.ts`,
+`scripts/split-chat-prompt-source-blocks.mjs`.

@@ -6,6 +6,11 @@ import {
 } from "../llm/config";
 import * as chatService from "./service";
 import { getChatPrompt } from "./prompt-config";
+import {
+  audienceFor,
+  ragInstruction,
+  resolveSourceBlock,
+} from "./prompt-config-shared";
 import { getEnabledRules } from "../rules/service";
 import { vectorSearch } from "../knowledge/search";
 import { recallMemories, formatRecallContext } from "../brain/recall";
@@ -41,6 +46,12 @@ const EMPTY_BRAIN_NOTICE =
 interface StreamMessageArgs {
   conversationId: string;
   userId: string;
+  /**
+   * The caller's `users.role`. Decides whether this turn may name the library
+   * (see audienceFor). Omitted resolves to the `client` audience — attribution
+   * is opt-in, never inherited.
+   */
+  userRole?: string | null;
   userContent: string;
   modelOverride?: string;
   systemPrompt?: string | null;
@@ -67,19 +78,28 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
   const corePromptConfig = await getChatPrompt();
   const corePrompt = corePromptConfig.systemPrompt;
 
+  // Which source-handling regime governs this turn. `internal` (admin) may name
+  // the library; `client` may not. Everything downstream that touches source
+  // material — the excerpt labels, the RAG instruction, the appended source
+  // block — reads from this one value so they can never disagree with one
+  // another the way stream.ts and the stored prompt did before the split.
+  const audience = audienceFor(args.userRole);
+  const sourceBlock = resolveSourceBlock(corePromptConfig, audience);
+
   let ragContext = "";
   try {
     const results = await vectorSearch(args.userContent, undefined, 5);
     if (results.length > 0) {
+      // Defence in depth: on a client turn the excerpts arrive UNLABELLED. The
+      // instruction not to name a source is a rule the model follows; withholding
+      // the titles is a fact it cannot get around. Belt and braces, because the
+      // titles are the asset being protected.
       const chunks = results
         .filter((r) => r.similarity > 0.3)
-        .map((r) => `[${r.title}]\n${r.content}`)
+        .map((r) => (audience === "internal" ? `[${r.title}]\n${r.content}` : r.content))
         .join("\n\n---\n\n");
       if (chunks) {
-        ragContext =
-          "Use the following knowledge base context to inform your response. " +
-          "Cite the source title when relevant. If the context doesn't help, ignore it.\n\n" +
-          chunks;
+        ragContext = `${ragInstruction(audience)}\n\n${chunks}`;
       }
     }
   } catch {
@@ -118,7 +138,10 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     ? rules.map((r) => r.content).join("\n\n")
     : "";
 
-  const systemParts = [corePrompt, brainContext, workspaceContext, ragContext, args.systemPrompt ?? "", rulesBlock].filter(Boolean);
+  // sourceBlock sits directly after the core prompt so the source regime is
+  // established before any retrieved material appears. It is "" for a stored
+  // prompt that predates the split (that row still carries its rules inline).
+  const systemParts = [corePrompt, sourceBlock, brainContext, workspaceContext, ragContext, args.systemPrompt ?? "", rulesBlock].filter(Boolean);
   const systemText = systemParts.join("\n\n");
 
   // Attached documents (Attach Files). Graceful degrade: a missing table (deploy
