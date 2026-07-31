@@ -171,8 +171,8 @@ async function generateOneTask(
 ): Promise<GeneratedQuestion | null> {
   try {
     // Scoped by is_cdmp_source, NOT by category. Passing "dmbok" here used to
-    // pull in every document that happened to carry that topic label — 15 of
-    // PROD's 19, including The Trusted Advisor and The Pragmatic Programmer.
+    // pull in every document that happened to carry that topic label — 8 of
+    // PROD's 19 carried it and 6 were wrong for an exam, including The Trusted Advisor and The Pragmatic Programmer.
     // Certification questions were being generated from a consulting book.
     const chunks = await searchCdmpSources(
       chapter.label,

@@ -25,10 +25,10 @@
 -- that is not DAMA syllabus. Under the old scheme there was no way to express
 -- "yes to the first, no to the second".
 --
--- Measured consequence in PROD on 2026-07-31: 15 of the 19 ready documents
--- carried category='dmbok' while being wrong for the exam pool — including
--- The Trusted Advisor, Flawless Consulting, The Pragmatic Programmer and
--- Designing Data-Intensive Applications. Certification questions were being
+-- Measured consequence in PROD on 2026-07-31: 8 of 19 ready documents carried
+-- category='dmbok', and 6 of those 8 were wrong for the exam pool — The Trusted
+-- Advisor, Flawless Consulting, Clean Architecture, The Pragmatic Programmer,
+-- Designing Data-Intensive Applications and Data Strategy. Certification questions were being
 -- generated from a book about consulting relationships. Identified by reading
 -- sample chunks from every document; see
 -- wiki/decisions/2026-07-31-corpus-taxonomy-and-cdmp-pool.md.

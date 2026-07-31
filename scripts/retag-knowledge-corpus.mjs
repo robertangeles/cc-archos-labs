@@ -4,9 +4,9 @@
 // WHY: the stored corpus carried raw filenames as titles (one is literally
 // 'ABUIABA9GAAghIK0ugYowM2h3QY' — Chip Huyen's Designing Machine Learning
 // Systems) and used the free-text `category` as if it were an exam-approval
-// flag. Measured in PROD 2026-07-31: 15 of 19 documents were tagged 'dmbok'
-// and therefore feeding CDMP certification question generation, including
-// The Trusted Advisor, Flawless Consulting and The Pragmatic Programmer.
+// flag. Measured in PROD 2026-07-31: 8 of 19 documents were tagged 'dmbok', and
+// 6 of those 8 were wrong for a certification pool — The Trusted Advisor,
+// Flawless Consulting and The Pragmatic Programmer among them.
 //
 // Every document below was identified by READING SAMPLE CHUNKS, not by parsing
 // the filename — filenames here are unreliable and several are meaningless.

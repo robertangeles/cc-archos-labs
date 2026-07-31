@@ -19,10 +19,16 @@ searchKnowledge(chapter.label, "dmbok", config.chunksPerQuestion)
 ```
 
 `category` is a free-text **topic** label. It was being read as an **approval**
-flag. Measured in PROD 2026-07-31: 15 of the 19 ready documents carried
-`category='dmbok'` and were therefore feeding CDMP question generation —
-including *The Trusted Advisor*, *Flawless Consulting*, *Clean Architecture*,
-*The Pragmatic Programmer* and *Designing Data-Intensive Applications*.
+flag. Measured in PROD 2026-07-31: 8 of the 19 ready documents carried
+`category='dmbok'`, and **6 of those 8 had no business in a certification
+pool** — *The Trusted Advisor*, *Flawless Consulting*, *Clean Architecture*,
+*The Pragmatic Programmer*, *Designing Data-Intensive Applications* and
+*Data Strategy*.
+
+(An earlier draft of this page said 15. That number came from an inference
+about stored categories rather than a query, and was wrong — the correct figure
+is 6. Counted directly: `SELECT category, count(*) FROM knowledge_document
+WHERE status='ready' GROUP BY category`.)
 
 A data-management certification exam was drawing questions from a book about
 consulting relationships. Nothing failed. No error, no log, no user-visible

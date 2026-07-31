@@ -141,7 +141,7 @@ export async function searchKnowledge(
 // Everything below is scoped by `is_cdmp_source`, NOT by category. Those are
 // different questions and conflating them was a live production defect: until
 // migration 0039 the exam generator selected material with
-// `searchKnowledge(label, "dmbok", n)`, and 15 of PROD's 19 documents carried
+// `searchKnowledge(label, "dmbok", n)`, and 6 of PROD's 8 'dmbok'-tagged documents carried
 // category='dmbok' while being wrong for a certification exam — The Trusted
 // Advisor and The Pragmatic Programmer among them.
 //

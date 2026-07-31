@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 // CDMP certification questions must be generated ONLY from documents explicitly
 // approved as exam sources. Until migration 0039 they were selected with
 // `searchKnowledge(label, "dmbok", n)` — a TOPIC label used as an approval flag
-// — and 15 of PROD's 19 documents carried that label while being wrong for a
+// — and 6 of PROD's 8 'dmbok'-tagged documents carried that label while being wrong for a
 // certification exam. The Trusted Advisor, Flawless Consulting, Clean
 // Architecture and The Pragmatic Programmer were all feeding a data-management
 // certification practice exam.

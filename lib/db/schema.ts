@@ -1964,7 +1964,7 @@ export const knowledgeDocument = pgTable("knowledge_document", {
   //
   // lib/cdmp/generate.ts used to select exam material with
   // `searchKnowledge(label, "dmbok", n)` — treating a topic label as an
-  // approval flag. In PROD that meant 15 documents fed the certification pool
+  // approval flag. In PROD that meant 6 documents fed the certification pool
   // that had no business there, The Trusted Advisor among them. The two
   // questions are genuinely different: The Unified Star Schema is
   // data-management by topic but out-of-syllabus for DAMA, and the old scheme

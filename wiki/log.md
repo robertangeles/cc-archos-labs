@@ -2218,8 +2218,8 @@ Pages touched: `decisions/2026-07-31-audience-scoped-source-disclosure.md`,
 
 **Fixed a live PROD defect.** `lib/cdmp/generate.ts:173` selected CDMP
 certification-exam material with `searchKnowledge(label, "dmbok", n)` — reading a
-free-text TOPIC label as an approval flag. 15 of 19 PROD documents carried that
-label, so The Trusted Advisor, Flawless Consulting, Clean Architecture and The
+free-text TOPIC label as an approval flag. 8 of 19 PROD documents carried that
+label and 6 of them were wrong for a certification pool, so The Trusted Advisor, Flawless Consulting, Clean Architecture and The
 Pragmatic Programmer were all feeding a data-management certification practice
 exam. Nothing failed; the questions were just quietly wrong.
 
