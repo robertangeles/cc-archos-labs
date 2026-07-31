@@ -140,6 +140,53 @@ export function ragInstruction(audience: Audience): string {
   );
 }
 
+/**
+ * Notice injected when retrieval found nothing substantive, or could not run.
+ *
+ * These are DIFFERENT STATES and must read differently. "I looked and there is
+ * nothing there" is honest scoping; "I could not look" is a degraded service.
+ * Conflating them teaches the user that the gap notice is noise, which destroys
+ * the value of both.
+ *
+ * Modelled on EMPTY_BRAIN_NOTICE in stream.ts: the ABSENCE of context is not a
+ * signal a model reads. On an empty brain it invents a persona; on an empty
+ * shelf it answers with the same confidence as a grounded turn. The empty state
+ * has to be stated, in the present tense, next to the question.
+ *
+ * Audience-aware for the same reason everything else here is: telling a client
+ * "I could not reach the library" confirms a library exists, which is exactly
+ * what the protection block forbids. The client wording conveys the same
+ * epistemic fact without the disclosure.
+ */
+export function coverageNotice(
+  state: "uncovered" | "degraded",
+  audience: Audience,
+): string {
+  if (state === "degraded") {
+    return audience === "internal"
+      ? "## Retrieval unavailable\n" +
+          "The practice library could not be reached for this turn. Answer from " +
+          "your own judgement and say plainly, once, that you are doing so " +
+          "without your usual reference material. Do NOT present this answer as " +
+          "grounded, and do not name any work — you have not seen one."
+      : "## Reference material unavailable\n" +
+          "You are answering from general expertise this turn. Say once, plainly, " +
+          "that this is your read rather than settled practice. Do not explain " +
+          "why, and do not imply anything was consulted or unavailable.";
+  }
+  return audience === "internal"
+    ? "## Nothing in the library covers this\n" +
+        "The library has no substantive material on this question. Say so " +
+        "plainly — a gap named is worth more than an answer dressed up as " +
+        "grounded — then answer from your own judgement, flagged as such. Do " +
+        "NOT name a work: nothing relevant was retrieved, so naming one would " +
+        "be an invention."
+    : "## Outside the well-trodden ground\n" +
+        "This sits outside established practice. Answer from judgement and mark " +
+        "it as your call rather than the standard play. Do not imply you " +
+        "consulted anything, and do not say anything is missing.";
+}
+
 export const CHAT_PROMPT_STARTER: ChatPrompt = {
   systemPrompt:
     "Replace this with your real workspace chat system prompt (minimum 50 characters). " +

@@ -2320,3 +2320,56 @@ because The Unified Star Schema is correctly `dmbok` by topic while being
 `searchKnowledge` currently has no production caller — `generate.ts` was the
 last one. Not removed: Phase 3's `retrieve()` will use it for the per-sub-query
 keyword fallback.
+
+## 2026-07-31 — Metis live RAG Phase 3: multi-perspective retrieval
+
+**1.72 → 4.75 distinct books per turn.** The thing this whole project was for.
+
+Built the design, then measured it against the real corpus, and the measurements
+deleted most of it:
+
+- **Domain-scoped fan-out: DELETED.** It made diversity WORSE — 3.88 → 3.38.
+  Filtering a sub-query to a topic domain narrows to one shelf, and the shelves
+  are uneven (engineering 10 books, analytics 2), so a domain-scoped search
+  returns chunks concentrated in FEWER documents. The intuition is backwards when
+  the domains are unbalanced.
+- **Diversity swap (step 6): DELETED.** Fired 0/8 questions, +0.00 books. The
+  kill criterion was written into the code before the measurement and the
+  measurement met it. Its unit tests went with it.
+- **Rewrite-on-every-turn: DELETED.** Haiku measured 1.5-1.8s. Rewriting is only
+  worth that where the turn cannot stand alone — measured: a context-dependent
+  follow-up goes top-1 0.421 → 0.617 rewritten, while a long self-contained
+  question already gets 3.88 books from the raw turn. Now conditional.
+- **KEPT:** the per-document cap over a wide pool. That is the load-bearing step
+  — K=8 gives 2.13 books, K=12 gives 2.88, K=30 gives 3.88.
+
+**Two bugs no unit test could have caught, both found end to end:**
+
+The decompose timeout was 700ms against a measured 1.5-1.8s latency. It timed
+out on EVERY turn, silently reducing retrieval to a single raw query at the
+starved K=12 — worse than not trying. Every unit test passed throughout, because
+the fallback path is correct; it was just always being taken.
+
+`degraded` was lying. `searchKnowledge` catches a vector failure and quietly
+retries with keyword search, so a dead embedding API returns results and looks
+healthy — an invalid key produced 4 chunks and degraded=false. retrieve() now
+does the fallback itself so `paths` reports what actually served. Verified by
+breaking the env key: paths ["keyword"], degraded true, 8 chunks from 5 sources
+still served.
+
+Also parallelised the four context builders in stream.ts. Recall, workspace,
+rules and retrieval were awaited one after another for no reason; running them
+together is what pays for the rewrite call.
+
+Three states now distinguished and never conflated: grounded / uncovered /
+degraded, each audience-aware. Telling a CLIENT "I could not reach the library"
+would confirm a library exists — asserted by a test that fails if any
+corpus-implying word appears in the client wording, verified by mutation.
+
+Suite: 156 files / 1937 tests. Gated behind RETRIEVE_FANOUT_ENABLED (default
+false); with it off retrieval is one wide query at 3.88 books, still well above
+the 1.72 baseline.
+
+Pages touched: `decisions/2026-07-31-multi-perspective-retrieval.md` (new),
+`index.md`. New code: `lib/knowledge/retrieve.ts`, `lib/knowledge/observability.ts`,
+`lib/knowledge/retrieve.test.ts`, `tests/eval/retrieval-diversity.eval.test.ts`.

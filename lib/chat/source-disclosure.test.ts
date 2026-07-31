@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   audienceFor,
   ChatPromptSchema,
+  coverageNotice,
   ragInstruction,
   resolveSourceBlock,
   type ChatPrompt,
@@ -236,5 +237,49 @@ describe("ChatPromptSchema", () => {
       sourceProtection: "x".repeat(8001),
     });
     expect(parsed.success).toBe(false);
+  });
+});
+
+describe("coverageNotice", () => {
+  // "I looked and found nothing" and "I could not look" are different facts.
+  // Conflating them teaches the user the notice is noise.
+  it("words uncovered and degraded differently for each audience", () => {
+    const combos = [
+      coverageNotice("uncovered", "internal"),
+      coverageNotice("uncovered", "client"),
+      coverageNotice("degraded", "internal"),
+      coverageNotice("degraded", "client"),
+    ];
+    expect(new Set(combos).size).toBe(4);
+  });
+
+  it("tells an internal turn plainly that the library is empty or unreachable", () => {
+    expect(coverageNotice("uncovered", "internal")).toMatch(/library/i);
+    expect(coverageNotice("degraded", "internal")).toMatch(/could not be reached/i);
+  });
+
+  // The leak that matters: "I could not reach the library" confirms a library
+  // exists, which is precisely what the protection block denies.
+  it("never reveals a corpus to a client turn, in either state", () => {
+    for (const state of ["uncovered", "degraded"] as const) {
+      const text = coverageNotice(state, "client");
+      for (const banned of [
+        /\blibrary\b/i,
+        /\bsources?\b/i,
+        /\bbooks?\b/i,
+        /\bdocuments?\b/i,
+        /\bcorpus\b/i,
+        /\bretriev/i,
+        /\bknowledge base\b/i,
+      ]) {
+        expect(text, `client ${state} notice leaks ${banned}: ${text}`).not.toMatch(banned);
+      }
+    }
+  });
+
+  it("forbids naming a work when nothing was retrieved", () => {
+    // Nothing came back, so any named work would be invented.
+    expect(coverageNotice("uncovered", "internal")).toMatch(/not name a work|NOT name a work/i);
+    expect(coverageNotice("degraded", "internal")).toMatch(/not name any work|do not name/i);
   });
 });
