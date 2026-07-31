@@ -1,0 +1,1452 @@
+{
+  "measuredAt": "2026-07-31T01:48:23.892Z",
+  "corpus": {
+    "docs": 19,
+    "chunks": 3897,
+    "target": "prod"
+  },
+  "config": {
+    "EMBED_MODEL": "openai/text-embedding-3-large",
+    "EMBED_DIMS": 1024,
+    "TODAY_K": 5,
+    "TODAY_FLOOR": 0.3,
+    "WIDE_K": 30,
+    "CAP_PER_DOC": 2,
+    "FINAL_K": 8
+  },
+  "diversity": {
+    "todayAvgBooks": 1.722,
+    "candidateAvgBooks": 3.833,
+    "singleBookTurnsToday": 8,
+    "total": 18
+  },
+  "floor": {
+    "answerableTop1": {
+      "min": 0.49174949729514417,
+      "median": 0.6056129472887365,
+      "max": 0.7033990788723865
+    },
+    "unanswerableTop1": {
+      "min": 0.3076849242398423,
+      "median": 0.4469236817165769,
+      "max": 0.4664758480026847
+    },
+    "top1Separation": 0.0253,
+    "recommended": {
+      "threshold": 0.42,
+      "margin": 7,
+      "ansMin": 15,
+      "unansMax": 8,
+      "gate": 12
+    }
+  },
+  "answerable": [
+    {
+      "question": "how do I sequence data governance for a bank that has failed two audits and blames the vendor",
+      "topScore": 0.5527070066867542,
+      "allScores": [
+        0.5527070066867542,
+        0.5496305788145338,
+        0.5444473302137364,
+        0.5354629892902493,
+        0.5344977795807039,
+        0.5290855870754697,
+        0.5231182283181678,
+        0.5200342884161785,
+        0.517131740372415,
+        0.516775842132025,
+        0.5155659244062202,
+        0.5123347314864329,
+        0.5095867446448751,
+        0.5090999555961538,
+        0.5078604488018206,
+        0.5067979612226216,
+        0.5065413207244434,
+        0.5059814017810478,
+        0.5021066811498769,
+        0.5000539470516535,
+        0.49942354395179467,
+        0.49795379453704824,
+        0.49776800486456163,
+        0.4974220890663301,
+        0.49698458107766375,
+        0.49661016657598933,
+        0.4965527913026635,
+        0.4963444119126763,
+        0.4955663429223329,
+        0.49472216866057694
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 2
+      },
+      "candidate": {
+        "chunks": 6,
+        "books": 3
+      },
+      "todayTitles": [
+        "DMBOK 2nd Edition",
+        "The Data Warehouse Toolkit, 3rd Edition"
+      ],
+      "candidateTitles": [
+        "DMBOK 2nd Edition",
+        "The Data Warehouse Toolkit, 3rd Edition",
+        "Building A Scalable Data Warehouse With Data Vault 2.0 "
+      ]
+    },
+    {
+      "question": "the client keeps agreeing in the room then nothing changes after the meeting",
+      "topScore": 0.5117262284272265,
+      "allScores": [
+        0.5117262284272265,
+        0.49388674134192434,
+        0.4905478671933058,
+        0.48442433880909896,
+        0.4786009095679946,
+        0.4718739106793943,
+        0.4690542044709347,
+        0.4646646276965045,
+        0.4610190553091257,
+        0.46057794849340206,
+        0.4578014038720234,
+        0.4552464090234729,
+        0.4550688851512834,
+        0.4498916438930928,
+        0.44862962025695663,
+        0.44519648305179294,
+        0.4449623029805243,
+        0.44484972934652167,
+        0.4437546046407793,
+        0.442782798493649,
+        0.4420293814499541,
+        0.44038206270716995,
+        0.43955465601053934,
+        0.4362588916605268,
+        0.4357853044007123,
+        0.4357695557357828,
+        0.4315655846585744,
+        0.4310637321809274,
+        0.42756906536440864,
+        0.4251518705235384
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 1
+      },
+      "candidate": {
+        "chunks": 4,
+        "books": 2
+      },
+      "todayTitles": [
+        "peter-bloch-flawless-consulting"
+      ],
+      "candidateTitles": [
+        "peter-bloch-flawless-consulting",
+        "_OceanofPDF.com_The_Trusted_Advisor_20th_Anniversary_Edition_-_David_H_Maister"
+      ]
+    },
+    {
+      "question": "should we build a data mesh or a central warehouse for a mid-size insurer",
+      "topScore": 0.6402970959408935,
+      "allScores": [
+        0.6402970959408935,
+        0.6025074544124687,
+        0.6008040075650563,
+        0.5932017997769174,
+        0.5908327283700112,
+        0.5822984334441417,
+        0.5789403300866789,
+        0.5789314077839957,
+        0.5789288866944355,
+        0.5739925015719084,
+        0.5712837583055854,
+        0.5708515249174142,
+        0.566820966987755,
+        0.5635084193564319,
+        0.5628537896733581,
+        0.5622303108046075,
+        0.5614159665700145,
+        0.5593088617166941,
+        0.5591019479661594,
+        0.5575654794379243,
+        0.5527298614006895,
+        0.5510923796916909,
+        0.5509701328053909,
+        0.549194666865468,
+        0.5482001158397669,
+        0.546857722635003,
+        0.5456519132357514,
+        0.5434890974201356,
+        0.5410277160034447,
+        0.5408670161539101
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 1
+      },
+      "candidate": {
+        "chunks": 7,
+        "books": 4
+      },
+      "todayTitles": [
+        "deciphering-data-architectures-choosing-between-a-modern-data-warehouse-data-fabric-data-lakehouse-and-data-mesh"
+      ],
+      "candidateTitles": [
+        "deciphering-data-architectures-choosing-between-a-modern-data-warehouse-data-fabric-data-lakehouse-and-data-mesh",
+        "implementing-data-mesh-principles-and-practice-to-design-build-and-implement-data-mesh-early-releasenbsped-9781098156169",
+        "The Data Warehouse Toolkit, 3rd Edition",
+        "Fundamentals of Data Engineering"
+      ]
+    },
+    {
+      "question": "what about the governance angle",
+      "topScore": 0.544241793679614,
+      "allScores": [
+        0.544241793679614,
+        0.5319612969080828,
+        0.5214261187826655,
+        0.502799952994303,
+        0.5003466340552412,
+        0.4967279460175277,
+        0.49609988838496766,
+        0.49489382097478174,
+        0.4867653884439187,
+        0.48442622166774507,
+        0.48344128765643424,
+        0.4825125501817499,
+        0.4806861839566996,
+        0.4772568454372925,
+        0.47455975200731904,
+        0.47428229249989295,
+        0.4728348280383434,
+        0.4720718026863371,
+        0.46697951079695155,
+        0.4647460657982876,
+        0.46278713853777753,
+        0.4604434342671575,
+        0.4600557702389978,
+        0.4594522503130083,
+        0.4571056486429994,
+        0.45542686281610767,
+        0.4537940669845125,
+        0.4477205857371055,
+        0.4448082230486725,
+        0.4441759540196042
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 2
+      },
+      "candidate": {
+        "chunks": 8,
+        "books": 5
+      },
+      "todayTitles": [
+        "implementing-data-mesh-principles-and-practice-to-design-build-and-implement-data-mesh-early-releasenbsped-9781098156169",
+        "DMBOK 2nd Edition"
+      ],
+      "candidateTitles": [
+        "implementing-data-mesh-principles-and-practice-to-design-build-and-implement-data-mesh-early-releasenbsped-9781098156169",
+        "DMBOK 2nd Edition",
+        "The Data Warehouse Toolkit, 3rd Edition",
+        "Fundamentals of Data Engineering",
+        "competing-on-analytics-updated-with-a-new-introduction-the-new-science-of-winning-9781633693739-1633693732"
+      ]
+    },
+    {
+      "question": "how do I price and scope a discovery engagement without giving the work away",
+      "topScore": 0.49174949729514417,
+      "allScores": [
+        0.49174949729514417,
+        0.4496686851066327,
+        0.4477295490284854,
+        0.44737557520477433,
+        0.44579895432425887,
+        0.44205599076435,
+        0.44058396907834163,
+        0.4402928190008617,
+        0.43970508445046663,
+        0.4360497013325809,
+        0.43489689875970927,
+        0.4241235982259546,
+        0.42385466226577506,
+        0.4237492217098835,
+        0.4211974468835986,
+        0.41881834071574553,
+        0.4158134436802554,
+        0.413867928636657,
+        0.4137051175230946,
+        0.41205869656790495,
+        0.40822226502569203,
+        0.40769716536831324,
+        0.40714602023524094,
+        0.4066456873607551,
+        0.4044780607003189,
+        0.4041050777838122,
+        0.40299519648487114,
+        0.4028685660797827,
+        0.402598272410854,
+        0.40125626931469993
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 3
+      },
+      "candidate": {
+        "chunks": 8,
+        "books": 4
+      },
+      "todayTitles": [
+        "the_mckinsey_way",
+        "peter-bloch-flawless-consulting",
+        "_OceanofPDF.com_The_Trusted_Advisor_20th_Anniversary_Edition_-_David_H_Maister"
+      ],
+      "candidateTitles": [
+        "the_mckinsey_way",
+        "peter-bloch-flawless-consulting",
+        "_OceanofPDF.com_The_Trusted_Advisor_20th_Anniversary_Edition_-_David_H_Maister",
+        "_OceanofPDF.com_McKinsey_mind_-_Ethan_m_raisiel"
+      ]
+    },
+    {
+      "question": "how do I structure a data quality programme that survives a budget cut",
+      "topScore": 0.6082279981830268,
+      "allScores": [
+        0.6082279981830268,
+        0.5866857381397421,
+        0.5780489053060387,
+        0.5613870235081282,
+        0.560068434360827,
+        0.5526139186445361,
+        0.5503925783201898,
+        0.5500701115081779,
+        0.5485429908491353,
+        0.5475243322344066,
+        0.5429633363635538,
+        0.5421999147114981,
+        0.5411907651669324,
+        0.5353322631823011,
+        0.5334975059738178,
+        0.532407309331445,
+        0.5314320634406342,
+        0.5271985133801741,
+        0.5214000580159267,
+        0.5207245018573052,
+        0.5204998280484966,
+        0.5169250930745932,
+        0.5157478286004852,
+        0.5125581747306067,
+        0.5118194626102869,
+        0.5106724713024761,
+        0.5093780415676171,
+        0.5093765946395465,
+        0.5078934025218934,
+        0.5065657008501976
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 1
+      },
+      "candidate": {
+        "chunks": 8,
+        "books": 4
+      },
+      "todayTitles": [
+        "DMBOK 2nd Edition"
+      ],
+      "candidateTitles": [
+        "DMBOK 2nd Edition",
+        "staff-engineer-leadership-beyond-the-management-track",
+        "The Data Warehouse Toolkit, 3rd Edition",
+        "Building A Scalable Data Warehouse With Data Vault 2.0 "
+      ]
+    },
+    {
+      "question": "establishing data stewardship roles and real accountability",
+      "topScore": 0.6269296795985009,
+      "allScores": [
+        0.6269296795985009,
+        0.5965445280542535,
+        0.5954350155418909,
+        0.589783126769952,
+        0.5840877433834517,
+        0.5820886994923223,
+        0.5814070386254213,
+        0.581101924534786,
+        0.577345090308011,
+        0.5667790275658537,
+        0.5630795522535524,
+        0.561238862771661,
+        0.5522405503963524,
+        0.55008882208544,
+        0.5486690763314076,
+        0.547990095887976,
+        0.5469315306426461,
+        0.5454360444809145,
+        0.5444979765089479,
+        0.5438032501944878,
+        0.5434092784780158,
+        0.5432938792385034,
+        0.5415881544398257,
+        0.5408139447806174,
+        0.5375829655090104,
+        0.5345319844018285,
+        0.5322350622498982,
+        0.5314936167289166,
+        0.5311203367479695,
+        0.5307456176514033
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 1
+      },
+      "candidate": {
+        "chunks": 6,
+        "books": 4
+      },
+      "todayTitles": [
+        "DMBOK 2nd Edition"
+      ],
+      "candidateTitles": [
+        "DMBOK 2nd Edition",
+        "The Data Warehouse Toolkit, 3rd Edition",
+        "implementing-data-mesh-principles-and-practice-to-design-build-and-implement-data-mesh-early-releasenbsped-9781098156169",
+        "Building A Scalable Data Warehouse With Data Vault 2.0 "
+      ]
+    },
+    {
+      "question": "building trust with a sceptical executive sponsor who has been burned before",
+      "topScore": 0.5608023687966135,
+      "allScores": [
+        0.5608023687966135,
+        0.5377091548921454,
+        0.5272765096366642,
+        0.5217965671081131,
+        0.5212260198790134,
+        0.5198820740048128,
+        0.5194649329581076,
+        0.5169868246423905,
+        0.5169444320827038,
+        0.5167588561170389,
+        0.5157974963013595,
+        0.5100832751680908,
+        0.5092860204716423,
+        0.5072163523387634,
+        0.5027113734528449,
+        0.5022199676136329,
+        0.501074157183032,
+        0.4975382019524136,
+        0.49567205913338985,
+        0.4932153514003008,
+        0.49237166170761903,
+        0.4912199615643442,
+        0.4910938681824303,
+        0.49043660999378647,
+        0.4899184595103162,
+        0.4898860869739703,
+        0.4893967596388873,
+        0.4877195862084298,
+        0.48743813691303206,
+        0.48572179344203414
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 1
+      },
+      "candidate": {
+        "chunks": 7,
+        "books": 5
+      },
+      "todayTitles": [
+        "_OceanofPDF.com_The_Trusted_Advisor_20th_Anniversary_Edition_-_David_H_Maister"
+      ],
+      "candidateTitles": [
+        "_OceanofPDF.com_The_Trusted_Advisor_20th_Anniversary_Edition_-_David_H_Maister",
+        "the_mckinsey_way",
+        "_OceanofPDF.com_McKinsey_mind_-_Ethan_m_raisiel",
+        "deciphering-data-architectures-choosing-between-a-modern-data-warehouse-data-fabric-data-lakehouse-and-data-mesh",
+        "peter-bloch-flawless-consulting"
+      ]
+    },
+    {
+      "question": "slowly changing dimensions in a conformed dimensional model",
+      "topScore": 0.7033990788723865,
+      "allScores": [
+        0.7033990788723865,
+        0.6843555786687615,
+        0.6787855913995368,
+        0.6553949517181298,
+        0.6519352479898413,
+        0.6438644025197723,
+        0.6433491073858869,
+        0.6419765588100108,
+        0.6348655683346504,
+        0.6292177746287436,
+        0.6227389743378018,
+        0.6207059771117684,
+        0.6199325107471916,
+        0.6183983182857552,
+        0.6161474201596588,
+        0.6150034305284131,
+        0.6105616220002351,
+        0.60972085698525,
+        0.6082796833714263,
+        0.6082758288490967,
+        0.6065846990195123,
+        0.6046701660888857,
+        0.6043418147300731,
+        0.6034901231518407,
+        0.6020414207040646,
+        0.6005106323689587,
+        0.5987742706892524,
+        0.5954266940287639,
+        0.5952750417883584,
+        0.5943559502124037
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 3
+      },
+      "candidate": {
+        "chunks": 6,
+        "books": 4
+      },
+      "todayTitles": [
+        "Building A Scalable Data Warehouse With Data Vault 2.0 ",
+        "Fundamentals of Data Engineering",
+        "The Data Warehouse Toolkit, 3rd Edition"
+      ],
+      "candidateTitles": [
+        "Building A Scalable Data Warehouse With Data Vault 2.0 ",
+        "Fundamentals of Data Engineering",
+        "The Data Warehouse Toolkit, 3rd Edition",
+        "deciphering-data-architectures-choosing-between-a-modern-data-warehouse-data-fabric-data-lakehouse-and-data-mesh"
+      ]
+    },
+    {
+      "question": "how do I frame a recommendation the client is going to resist",
+      "topScore": 0.5573850011027577,
+      "allScores": [
+        0.5573850011027577,
+        0.5552651233521771,
+        0.5496027467924678,
+        0.5430821985931535,
+        0.5406057957847774,
+        0.5391352630487957,
+        0.538698008595851,
+        0.5375890691719039,
+        0.5366189922801877,
+        0.5364027186840288,
+        0.5348522879545238,
+        0.5343640866108426,
+        0.5323991665276833,
+        0.531510647255211,
+        0.5311994027583653,
+        0.5285677655736041,
+        0.5266924714675102,
+        0.5253685792352573,
+        0.5248693961094475,
+        0.5235466206526684,
+        0.5228495633947957,
+        0.5193002109024649,
+        0.5180576787989105,
+        0.5164028744737521,
+        0.5133650186365537,
+        0.5117242326062926,
+        0.509072665877722,
+        0.5038798778631036,
+        0.5027413772826413,
+        0.5026281638081245
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 2
+      },
+      "candidate": {
+        "chunks": 5,
+        "books": 3
+      },
+      "todayTitles": [
+        "peter-bloch-flawless-consulting",
+        "_OceanofPDF.com_The_Trusted_Advisor_20th_Anniversary_Edition_-_David_H_Maister"
+      ],
+      "candidateTitles": [
+        "peter-bloch-flawless-consulting",
+        "_OceanofPDF.com_The_Trusted_Advisor_20th_Anniversary_Edition_-_David_H_Maister",
+        "_OceanofPDF.com_McKinsey_mind_-_Ethan_m_raisiel"
+      ]
+    },
+    {
+      "question": "master data management for an organisation running three different CRMs",
+      "topScore": 0.6156289279016074,
+      "allScores": [
+        0.6156289279016074,
+        0.5881435347589977,
+        0.5876568956508472,
+        0.5844627411359449,
+        0.5831221985945434,
+        0.5823691155408766,
+        0.5819502780662029,
+        0.5787708067938168,
+        0.5782813207165862,
+        0.576933334203682,
+        0.5722783938130112,
+        0.5696936243386496,
+        0.5676577535786771,
+        0.566386709304725,
+        0.5577677095685436,
+        0.5490016615310335,
+        0.5452377270673108,
+        0.5439789513045602,
+        0.5430360674442382,
+        0.542756192149319,
+        0.5403618474523301,
+        0.5380884334448764,
+        0.5356041304198974,
+        0.5348551800728143,
+        0.5298023649342827,
+        0.5277594749400674,
+        0.5245701480352754,
+        0.524222557851409,
+        0.5239354933288455,
+        0.5178848415184021
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 1
+      },
+      "candidate": {
+        "chunks": 6,
+        "books": 3
+      },
+      "todayTitles": [
+        "DMBOK 2nd Edition"
+      ],
+      "candidateTitles": [
+        "DMBOK 2nd Edition",
+        "Building A Scalable Data Warehouse With Data Vault 2.0 ",
+        "The Data Warehouse Toolkit, 3rd Edition"
+      ]
+    },
+    {
+      "question": "designing an idempotent data pipeline that survives replays and backfills",
+      "topScore": 0.6234063226627782,
+      "allScores": [
+        0.6234063226627782,
+        0.5865431460155596,
+        0.5775141109457939,
+        0.5720847478225662,
+        0.5607613930258398,
+        0.55441055740482,
+        0.5543177282063216,
+        0.5502925128019028,
+        0.5484442409248487,
+        0.5478064502729401,
+        0.5427244914428646,
+        0.5421970680089736,
+        0.5398001567010174,
+        0.5367566721236326,
+        0.5349181526574946,
+        0.5290532975503366,
+        0.5261384414150302,
+        0.5238593394539253,
+        0.5225597440702734,
+        0.5213948112289458,
+        0.519790979385168,
+        0.5165264806900048,
+        0.5162852456610245,
+        0.5154190350568897,
+        0.5144694120174418,
+        0.5131260294521918,
+        0.5129758719811058,
+        0.5117220206349651,
+        0.510416233334562,
+        0.508869244340022
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 1
+      },
+      "candidate": {
+        "chunks": 4,
+        "books": 3
+      },
+      "todayTitles": [
+        "Designing Data Intensive Applications by Martin Kleppmann"
+      ],
+      "candidateTitles": [
+        "Designing Data Intensive Applications by Martin Kleppmann",
+        "The Data Warehouse Toolkit, 3rd Edition",
+        "Fundamentals of Data Engineering"
+      ]
+    },
+    {
+      "question": "structuring a hypothesis-driven problem breakdown for a client engagement",
+      "topScore": 0.6640296603953022,
+      "allScores": [
+        0.6640296603953022,
+        0.642554842724453,
+        0.6214461105702852,
+        0.6202305053779162,
+        0.6161927705620202,
+        0.6103511431598356,
+        0.6001136927846453,
+        0.5988828062997299,
+        0.5904225976757337,
+        0.5846524551840008,
+        0.577897324404644,
+        0.5669925335741787,
+        0.5534590127665078,
+        0.5435431210561718,
+        0.5413677025930355,
+        0.5396122492728777,
+        0.5390144453340203,
+        0.5388618463234554,
+        0.5286843099949007,
+        0.5274526369969893,
+        0.524205867193505,
+        0.5228184937534363,
+        0.5225269684462385,
+        0.5216915791736475,
+        0.5188170750214646,
+        0.5172081258383776,
+        0.5105415620815263,
+        0.5101164701842457,
+        0.5098186252609685,
+        0.5092391574138309
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 2
+      },
+      "candidate": {
+        "chunks": 6,
+        "books": 3
+      },
+      "todayTitles": [
+        "_OceanofPDF.com_McKinsey_mind_-_Ethan_m_raisiel",
+        "the_mckinsey_way"
+      ],
+      "candidateTitles": [
+        "_OceanofPDF.com_McKinsey_mind_-_Ethan_m_raisiel",
+        "the_mckinsey_way",
+        "peter-bloch-flawless-consulting"
+      ]
+    },
+    {
+      "question": "what metrics actually prove a data programme is delivering value",
+      "topScore": 0.5790794364054435,
+      "allScores": [
+        0.5790794364054435,
+        0.5614559235630809,
+        0.5542986443587181,
+        0.5430758350006349,
+        0.5377402584875375,
+        0.534872428880976,
+        0.530499500669504,
+        0.5270089576990694,
+        0.5208511433330223,
+        0.5073390750393237,
+        0.5069213929458978,
+        0.5059712959422188,
+        0.5050650932829268,
+        0.5042448114394363,
+        0.5021650434754895,
+        0.4982035754617442,
+        0.4945564252539505,
+        0.49368756657980306,
+        0.4925243651119495,
+        0.49236201381205624,
+        0.4919837005783978,
+        0.49166428223747627,
+        0.489649042341162,
+        0.48783343401945345,
+        0.4867518424365298,
+        0.48583633052878794,
+        0.4852365469877691,
+        0.4845632780136644,
+        0.4826680963336689,
+        0.48176268885888374
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 2
+      },
+      "candidate": {
+        "chunks": 8,
+        "books": 5
+      },
+      "todayTitles": [
+        "DMBOK 2nd Edition",
+        "implementing-data-mesh-principles-and-practice-to-design-build-and-implement-data-mesh-early-releasenbsped-9781098156169"
+      ],
+      "candidateTitles": [
+        "DMBOK 2nd Edition",
+        "implementing-data-mesh-principles-and-practice-to-design-build-and-implement-data-mesh-early-releasenbsped-9781098156169",
+        "competing-on-analytics-updated-with-a-new-introduction-the-new-science-of-winning-9781633693739-1633693732",
+        "_OceanofPDF.com_Data_strategy_-_Bernard_Marr",
+        "Building A Scalable Data Warehouse With Data Vault 2.0 "
+      ]
+    },
+    {
+      "question": "migrating a legacy warehouse without a big-bang cutover",
+      "topScore": 0.5135052143616259,
+      "allScores": [
+        0.5135052143616259,
+        0.5106509179753835,
+        0.5019800791047556,
+        0.4979306069191515,
+        0.49539567671338847,
+        0.49539460980186956,
+        0.49514569738989,
+        0.4919114257426572,
+        0.49058193314910836,
+        0.4902558084682723,
+        0.48929280124728014,
+        0.4891893740112867,
+        0.48769565496237777,
+        0.487532326934215,
+        0.486744714810216,
+        0.4855471024079656,
+        0.4854818810661963,
+        0.48336786743193305,
+        0.48279829056188683,
+        0.48274737678190727,
+        0.4821330200603322,
+        0.4785825443301419,
+        0.47621612621394094,
+        0.476144458547042,
+        0.47601694281172113,
+        0.4756399550973436,
+        0.47479171745067206,
+        0.47445295421712363,
+        0.47418311739485797,
+        0.473969524541071
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 3
+      },
+      "candidate": {
+        "chunks": 8,
+        "books": 5
+      },
+      "todayTitles": [
+        "deciphering-data-architectures-choosing-between-a-modern-data-warehouse-data-fabric-data-lakehouse-and-data-mesh",
+        "The Data Warehouse Toolkit, 3rd Edition",
+        "DMBOK 2nd Edition"
+      ],
+      "candidateTitles": [
+        "deciphering-data-architectures-choosing-between-a-modern-data-warehouse-data-fabric-data-lakehouse-and-data-mesh",
+        "The Data Warehouse Toolkit, 3rd Edition",
+        "DMBOK 2nd Edition",
+        "Fundamentals of Data Engineering",
+        "Designing Data Intensive Applications by Martin Kleppmann"
+      ]
+    },
+    {
+      "question": "data lineage and impact analysis for regulatory reporting",
+      "topScore": 0.6055572748903996,
+      "allScores": [
+        0.6055572748903996,
+        0.601849405906924,
+        0.5711022468683976,
+        0.5487675396190248,
+        0.543667118932185,
+        0.508576273049645,
+        0.5084499644265166,
+        0.5064213034018968,
+        0.5035866464675471,
+        0.49871060120764565,
+        0.48532297736572394,
+        0.48457039827622095,
+        0.4818735469562976,
+        0.4805126045912833,
+        0.4687743415478822,
+        0.46714150876030947,
+        0.4669716206186718,
+        0.4650370164854416,
+        0.46480652343334816,
+        0.46326887893922586,
+        0.4628956898472093,
+        0.46156996629445823,
+        0.4595906149973237,
+        0.45426543092972116,
+        0.4538742817045125,
+        0.45366753639414514,
+        0.45341285118836194,
+        0.4503060781705329,
+        0.44958065042798023,
+        0.4481042857976105
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 1
+      },
+      "candidate": {
+        "chunks": 8,
+        "books": 5
+      },
+      "todayTitles": [
+        "DMBOK 2nd Edition"
+      ],
+      "candidateTitles": [
+        "DMBOK 2nd Edition",
+        "Fundamentals of Data Engineering",
+        "The Data Warehouse Toolkit, 3rd Edition",
+        "implementing-data-mesh-principles-and-practice-to-design-build-and-implement-data-mesh-early-releasenbsped-9781098156169",
+        "Building A Scalable Data Warehouse With Data Vault 2.0 "
+      ]
+    },
+    {
+      "question": "how do I say no to a client without damaging the relationship",
+      "topScore": 0.6056129472887365,
+      "allScores": [
+        0.6056129472887365,
+        0.4989648585017885,
+        0.48089357601905847,
+        0.47571100837591995,
+        0.47492304221343096,
+        0.4703015697171429,
+        0.46793719695983427,
+        0.46749646703032677,
+        0.46279765236463133,
+        0.4602486621540134,
+        0.4528767559966922,
+        0.451082885132553,
+        0.44672736893276876,
+        0.44657686317946066,
+        0.4436244299678851,
+        0.44349767152893793,
+        0.4423541801009413,
+        0.4411153144313731,
+        0.44017831738323787,
+        0.43954203023267846,
+        0.43923293761955795,
+        0.4388867496349629,
+        0.4373785897337612,
+        0.4370692401666687,
+        0.4360362984163545,
+        0.43497008351564337,
+        0.4342840846063316,
+        0.4341754262064411,
+        0.4325850819904309,
+        0.42991727657072853
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 2
+      },
+      "candidate": {
+        "chunks": 5,
+        "books": 3
+      },
+      "todayTitles": [
+        "peter-bloch-flawless-consulting",
+        "_OceanofPDF.com_The_Trusted_Advisor_20th_Anniversary_Edition_-_David_H_Maister"
+      ],
+      "candidateTitles": [
+        "peter-bloch-flawless-consulting",
+        "_OceanofPDF.com_The_Trusted_Advisor_20th_Anniversary_Edition_-_David_H_Maister",
+        "_OceanofPDF.com_McKinsey_mind_-_Ethan_m_raisiel"
+      ]
+    },
+    {
+      "question": "the difference between data architecture and enterprise architecture",
+      "topScore": 0.6061874911858034,
+      "allScores": [
+        0.6061874911858034,
+        0.582016207208673,
+        0.5618834325940097,
+        0.555012881089774,
+        0.5451370038924584,
+        0.5396226613666303,
+        0.5368865992717989,
+        0.5359196209752789,
+        0.5345413799130374,
+        0.5323013663482535,
+        0.5241024125347873,
+        0.5212796627551629,
+        0.5167773094739851,
+        0.5048396052894125,
+        0.5009433225153971,
+        0.48733814797453645,
+        0.4853354532672607,
+        0.48399510441591986,
+        0.48234652779870446,
+        0.4766933958101689,
+        0.4729834972604514,
+        0.4708796062147814,
+        0.46929508539842446,
+        0.4655813141471581,
+        0.4587323318153087,
+        0.45428008396401176,
+        0.45090420737767445,
+        0.4489778665075199,
+        0.4488912100291076,
+        0.44840345591176944
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 2
+      },
+      "candidate": {
+        "chunks": 7,
+        "books": 4
+      },
+      "todayTitles": [
+        "Fundamentals of Data Engineering",
+        "DMBOK 2nd Edition"
+      ],
+      "candidateTitles": [
+        "Fundamentals of Data Engineering",
+        "DMBOK 2nd Edition",
+        "deciphering-data-architectures-choosing-between-a-modern-data-warehouse-data-fabric-data-lakehouse-and-data-mesh",
+        "Building A Scalable Data Warehouse With Data Vault 2.0 "
+      ]
+    }
+  ],
+  "unanswerable": [
+    {
+      "question": "when should a founder kill a product bet that is not working",
+      "topScore": 0.37885076991613564,
+      "allScores": [
+        0.37885076991613564,
+        0.36563397771251416,
+        0.35911668890819304,
+        0.3587967016745204,
+        0.35485682101113014,
+        0.35402656401950483,
+        0.3535420053299644,
+        0.3512499353938088,
+        0.35029629982804855,
+        0.3500587331506174,
+        0.34944596239102255,
+        0.34868718734235915,
+        0.34762531854773293,
+        0.34669126820823215,
+        0.3464718519708797,
+        0.3461728858954989,
+        0.34529407718248095,
+        0.3448643431019276,
+        0.3429207353057109,
+        0.3419323430107095,
+        0.34145946694471596,
+        0.34130112950671754,
+        0.3397556146012892,
+        0.337366435685308,
+        0.33635005574318366,
+        0.33629362267807905,
+        0.3360677838553584,
+        0.3353376585915089,
+        0.33502270701889925,
+        0.3341401018967938
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 4
+      },
+      "candidate": {
+        "chunks": 8,
+        "books": 6
+      },
+      "todayTitles": [
+        "Fundamentals of Data Engineering",
+        "The Pragmatic Programmer Your Journey to Mastery, 20th Anniversary Edition by Andrew Hunt David Hurst Thomas",
+        "the_mckinsey_way",
+        "deciphering-data-architectures-choosing-between-a-modern-data-warehouse-data-fabric-data-lakehouse-and-data-mesh"
+      ],
+      "candidateTitles": [
+        "Fundamentals of Data Engineering",
+        "The Pragmatic Programmer Your Journey to Mastery, 20th Anniversary Edition by Andrew Hunt David Hurst Thomas",
+        "the_mckinsey_way",
+        "deciphering-data-architectures-choosing-between-a-modern-data-warehouse-data-fabric-data-lakehouse-and-data-mesh",
+        "staff-engineer-leadership-beyond-the-management-track",
+        "implementing-data-mesh-principles-and-practice-to-design-build-and-implement-data-mesh-early-releasenbsped-9781098156169"
+      ]
+    },
+    {
+      "question": "how do I structure an early-stage cap table with two cofounders",
+      "topScore": 0.32552857253385936,
+      "allScores": [
+        0.32552857253385936,
+        0.32057417326233706,
+        0.3083703121801522,
+        0.3078192038060956,
+        0.3074174982585618,
+        0.3060774116505429,
+        0.3045387765719465,
+        0.30351032524113497,
+        0.3034602249234617,
+        0.29839548998856413,
+        0.2981316440513291,
+        0.2972544898963647,
+        0.2967658977707809,
+        0.2961406080918685,
+        0.2939458541013297,
+        0.2927834574685765,
+        0.2925887184303255,
+        0.292001269372546,
+        0.289543449567194,
+        0.2893765714188219,
+        0.2893002045417674,
+        0.28910175443201824,
+        0.28797914486709064,
+        0.287958796767531,
+        0.28626007577360235,
+        0.2856723639202017,
+        0.28491429395532,
+        0.2844091265986268,
+        0.2832841894969479,
+        0.28309087618020046
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 4
+      },
+      "candidate": {
+        "chunks": 7,
+        "books": 6
+      },
+      "todayTitles": [
+        "staff-engineer-leadership-beyond-the-management-track",
+        "Fundamentals of Data Engineering",
+        "_OceanofPDF.com_McKinsey_mind_-_Ethan_m_raisiel",
+        "competing-on-analytics-updated-with-a-new-introduction-the-new-science-of-winning-9781633693739-1633693732"
+      ],
+      "candidateTitles": [
+        "staff-engineer-leadership-beyond-the-management-track",
+        "Fundamentals of Data Engineering",
+        "_OceanofPDF.com_McKinsey_mind_-_Ethan_m_raisiel",
+        "competing-on-analytics-updated-with-a-new-introduction-the-new-science-of-winning-9781633693739-1633693732",
+        "_OceanofPDF.com_The_Trusted_Advisor_20th_Anniversary_Edition_-_David_H_Maister",
+        "DMBOK 2nd Edition"
+      ]
+    },
+    {
+      "question": "what is reasonable seed round dilution right now",
+      "topScore": 0.3076849242398423,
+      "allScores": [
+        0.3076849242398423,
+        0.2988711325112209,
+        0.283250930468959,
+        0.2832482675617417,
+        0.2824330019847251,
+        0.282030620587322,
+        0.2817588505480566,
+        0.28126503601673947,
+        0.2753350784040507,
+        0.2753174935869285,
+        0.2744545680234819,
+        0.27310351407215605,
+        0.2714415129120854,
+        0.26999445092856345,
+        0.26846917658975,
+        0.2681970307623952,
+        0.26758831349388545,
+        0.26629570753304965,
+        0.2648762908553133,
+        0.26388760767400854,
+        0.26388029233581933,
+        0.263367385687862,
+        0.2627351315327596,
+        0.2621577941381691,
+        0.261959099351038,
+        0.26167563702511143,
+        0.2607483427755334,
+        0.2588005446836268,
+        0.25756008510231987,
+        0.25744289266452935
+      ],
+      "today": {
+        "chunks": 1,
+        "books": 1
+      },
+      "candidate": {
+        "chunks": 1,
+        "books": 1
+      },
+      "todayTitles": [
+        "_OceanofPDF.com_McKinsey_mind_-_Ethan_m_raisiel"
+      ],
+      "candidateTitles": [
+        "_OceanofPDF.com_McKinsey_mind_-_Ethan_m_raisiel"
+      ]
+    },
+    {
+      "question": "how do I hire my first sales rep before product market fit",
+      "topScore": 0.44836719787000257,
+      "allScores": [
+        0.44836719787000257,
+        0.44723781455041967,
+        0.4250113027795235,
+        0.41918308298429174,
+        0.4060296386629483,
+        0.4014646507795586,
+        0.3972353820410395,
+        0.3948739356524782,
+        0.39173914180294267,
+        0.38647039981408626,
+        0.38618824614045943,
+        0.38374576940747374,
+        0.3791869899840463,
+        0.37632957264600697,
+        0.37388277537529524,
+        0.36598971173473527,
+        0.36232288387605394,
+        0.3616814595791914,
+        0.3609695707794589,
+        0.3607694193318597,
+        0.3604587523951208,
+        0.3590131105081322,
+        0.35787498849662946,
+        0.35403659428833634,
+        0.35114282101436656,
+        0.35082826478410034,
+        0.35082781328154944,
+        0.34977896028723166,
+        0.34958370626041657,
+        0.3478170310801988
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 4
+      },
+      "candidate": {
+        "chunks": 8,
+        "books": 5
+      },
+      "todayTitles": [
+        "the_mckinsey_way",
+        "_OceanofPDF.com_McKinsey_mind_-_Ethan_m_raisiel",
+        "_OceanofPDF.com_The_Trusted_Advisor_20th_Anniversary_Edition_-_David_H_Maister",
+        "Fundamentals of Data Engineering"
+      ],
+      "candidateTitles": [
+        "the_mckinsey_way",
+        "_OceanofPDF.com_McKinsey_mind_-_Ethan_m_raisiel",
+        "_OceanofPDF.com_The_Trusted_Advisor_20th_Anniversary_Edition_-_David_H_Maister",
+        "Fundamentals of Data Engineering",
+        "staff-engineer-leadership-beyond-the-management-track"
+      ]
+    },
+    {
+      "question": "should I raise a bridge round or cut burn to extend runway",
+      "topScore": 0.33831977168820604,
+      "allScores": [
+        0.33831977168820604,
+        0.29282898661876033,
+        0.2927540836291763,
+        0.2828272512848151,
+        0.2761226160599597,
+        0.2729526873602446,
+        0.26385196147857637,
+        0.25396953291002156,
+        0.24634027691726423,
+        0.2456562676446299,
+        0.24190895153622294,
+        0.2398931497440242,
+        0.23980635905362258,
+        0.23772544712680066,
+        0.2365000141155318,
+        0.23522148475692495,
+        0.234082904615305,
+        0.2337848646945444,
+        0.23138651226698992,
+        0.23127505358053657,
+        0.23094732439903332,
+        0.22895105064621546,
+        0.22784921114810197,
+        0.22717290584980154,
+        0.2253987377551392,
+        0.22534580965738138,
+        0.2244034257778159,
+        0.22435385282671616,
+        0.22415215750940565,
+        0.22367630788723647
+      ],
+      "today": {
+        "chunks": 1,
+        "books": 1
+      },
+      "candidate": {
+        "chunks": 1,
+        "books": 1
+      },
+      "todayTitles": [
+        "Building A Scalable Data Warehouse With Data Vault 2.0 "
+      ],
+      "candidateTitles": [
+        "Building A Scalable Data Warehouse With Data Vault 2.0 "
+      ]
+    },
+    {
+      "question": "how do I run a founder-led sales motion at seed stage",
+      "topScore": 0.4664758480026847,
+      "allScores": [
+        0.4664758480026847,
+        0.4630186906849316,
+        0.4405529672751848,
+        0.4391864385044002,
+        0.42745836306683216,
+        0.41808745609253795,
+        0.4104267543061555,
+        0.4035164413369595,
+        0.40285900912794226,
+        0.40285607227572795,
+        0.4004036701397118,
+        0.39891541936433184,
+        0.39818296082579896,
+        0.39612432938816045,
+        0.3944121746724998,
+        0.39267943834884034,
+        0.3913859798825834,
+        0.3902194437915756,
+        0.3893738648502436,
+        0.3893274636293076,
+        0.3885782474080208,
+        0.3879340966387952,
+        0.3878073732326772,
+        0.38736862030083663,
+        0.38658258019396885,
+        0.3860071081778762,
+        0.3858693552494241,
+        0.3855673853056285,
+        0.3850002637619028,
+        0.38439132221233274
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 4
+      },
+      "candidate": {
+        "chunks": 8,
+        "books": 4
+      },
+      "todayTitles": [
+        "_OceanofPDF.com_McKinsey_mind_-_Ethan_m_raisiel",
+        "_OceanofPDF.com_The_Trusted_Advisor_20th_Anniversary_Edition_-_David_H_Maister",
+        "the_mckinsey_way",
+        "staff-engineer-leadership-beyond-the-management-track"
+      ],
+      "candidateTitles": [
+        "_OceanofPDF.com_McKinsey_mind_-_Ethan_m_raisiel",
+        "_OceanofPDF.com_The_Trusted_Advisor_20th_Anniversary_Edition_-_David_H_Maister",
+        "the_mckinsey_way",
+        "staff-engineer-leadership-beyond-the-management-track"
+      ]
+    },
+    {
+      "question": "what does a good startup board meeting agenda look like",
+      "topScore": 0.44799420968428416,
+      "allScores": [
+        0.44799420968428416,
+        0.4344806331544344,
+        0.4279516604669371,
+        0.4248246028089815,
+        0.4161841985101433,
+        0.41021876609734265,
+        0.40851495908978863,
+        0.40643706164115,
+        0.4031888037382677,
+        0.4016412124202531,
+        0.40130995875656117,
+        0.40009376897615834,
+        0.3934355998145904,
+        0.391405140331579,
+        0.39090753638378994,
+        0.39003028139742457,
+        0.38638208276838415,
+        0.38569361003688696,
+        0.38429678977179704,
+        0.3816727627979716,
+        0.37988121420135745,
+        0.37965524918987836,
+        0.3784352367841852,
+        0.3777341246853625,
+        0.3740361894209574,
+        0.3733385861391858,
+        0.37222247380683027,
+        0.3707568632268543,
+        0.367508997048523,
+        0.3670917689612794
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 2
+      },
+      "candidate": {
+        "chunks": 8,
+        "books": 5
+      },
+      "todayTitles": [
+        "deciphering-data-architectures-choosing-between-a-modern-data-warehouse-data-fabric-data-lakehouse-and-data-mesh",
+        "peter-bloch-flawless-consulting"
+      ],
+      "candidateTitles": [
+        "deciphering-data-architectures-choosing-between-a-modern-data-warehouse-data-fabric-data-lakehouse-and-data-mesh",
+        "peter-bloch-flawless-consulting",
+        "staff-engineer-leadership-beyond-the-management-track",
+        "the_mckinsey_way",
+        "_OceanofPDF.com_McKinsey_mind_-_Ethan_m_raisiel"
+      ]
+    },
+    {
+      "question": "how do I choose between a freemium and a sales-led go-to-market",
+      "topScore": 0.4469236817165769,
+      "allScores": [
+        0.4469236817165769,
+        0.44672608232035627,
+        0.4430872477868577,
+        0.4370102813349349,
+        0.42926423486362497,
+        0.42476590544195125,
+        0.4230579662345473,
+        0.42175646281156753,
+        0.4190830386521929,
+        0.41678029104264014,
+        0.4158185122306277,
+        0.40856638715951155,
+        0.408105866567936,
+        0.4062959196081577,
+        0.40570998609001363,
+        0.40409082219138504,
+        0.397043529791241,
+        0.3928111578218718,
+        0.39112030417937627,
+        0.38962049598562754,
+        0.3851170669957422,
+        0.38449173361963696,
+        0.3826901641713981,
+        0.37958380197372643,
+        0.37645065180263093,
+        0.3734029165491055,
+        0.3730203423245748,
+        0.3728012669502676,
+        0.3715254072859029,
+        0.37102563270240585
+      ],
+      "today": {
+        "chunks": 5,
+        "books": 4
+      },
+      "candidate": {
+        "chunks": 8,
+        "books": 5
+      },
+      "todayTitles": [
+        "Fundamentals of Data Engineering",
+        "_OceanofPDF.com_The_Trusted_Advisor_20th_Anniversary_Edition_-_David_H_Maister",
+        "competing-on-analytics-updated-with-a-new-introduction-the-new-science-of-winning-9781633693739-1633693732",
+        "_OceanofPDF.com_McKinsey_mind_-_Ethan_m_raisiel"
+      ],
+      "candidateTitles": [
+        "Fundamentals of Data Engineering",
+        "_OceanofPDF.com_The_Trusted_Advisor_20th_Anniversary_Edition_-_David_H_Maister",
+        "competing-on-analytics-updated-with-a-new-introduction-the-new-science-of-winning-9781633693739-1633693732",
+        "_OceanofPDF.com_McKinsey_mind_-_Ethan_m_raisiel",
+        "the_mckinsey_way"
+      ]
+    }
+  ]
+}

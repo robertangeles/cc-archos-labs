@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-30T04:09:10.399Z
+generated: 2026-07-31T02:10:33.710Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -282,11 +282,11 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/analytics/consent.test.ts](../components/analytics/consent.test.ts) | 2026-07-25 |
 | [components/analytics/consent.ts](../components/analytics/consent.ts) | 2026-07-25 |
 | [components/analytics/google-analytics.test.tsx](../components/analytics/google-analytics.test.tsx) | 2026-07-24 |
-| [components/analytics/google-analytics.tsx](../components/analytics/google-analytics.tsx) | 2026-07-24 |
+| [components/analytics/google-analytics.tsx](../components/analytics/google-analytics.tsx) | 2026-07-30 |
 | [components/analytics/google-tag-manager.test.tsx](../components/analytics/google-tag-manager.test.tsx) | 2026-07-24 |
-| [components/analytics/google-tag-manager.tsx](../components/analytics/google-tag-manager.tsx) | 2026-07-24 |
+| [components/analytics/google-tag-manager.tsx](../components/analytics/google-tag-manager.tsx) | 2026-07-30 |
 | [components/analytics/meta-pixel.test.tsx](../components/analytics/meta-pixel.test.tsx) | 2026-07-25 |
-| [components/analytics/meta-pixel.tsx](../components/analytics/meta-pixel.tsx) | 2026-07-25 |
+| [components/analytics/meta-pixel.tsx](../components/analytics/meta-pixel.tsx) | 2026-07-30 |
 | [components/blog/author-bio.tsx](../components/blog/author-bio.tsx) | 2026-07-25 |
 | [components/blog/category-chips.tsx](../components/blog/category-chips.tsx) | 2026-05-20 |
 | [components/blog/editorial-list-row.tsx](../components/blog/editorial-list-row.tsx) | 2026-05-21 |

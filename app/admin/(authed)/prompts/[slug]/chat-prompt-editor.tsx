@@ -142,7 +142,50 @@ export function ChatPromptEditor() {
           />
           <span className="text-xs leading-[1.5] text-ink-subtle">
             Min 50 chars, max 20,000. Defines the assistant persona, tone,
-            guardrails, and domain context for all workspace chat users.
+            guardrails, and domain context for all workspace chat users. Keep
+            source-handling rules out of here — they belong in the two blocks
+            below, which are chosen per audience.
+          </span>
+        </label>
+
+        <label className="flex flex-col gap-y-2">
+          <span className={labelClass}>
+            Source handling — client sessions
+          </span>
+          <textarea
+            value={prompt.sourceProtection ?? ""}
+            onChange={(e) =>
+              setPrompt((p) => ({ ...p, sourceProtection: e.target.value }))
+            }
+            rows={10}
+            className={`${inputClass} resize-y font-mono text-[13px] leading-[1.55]`}
+          />
+          <span className="text-xs leading-[1.5] text-ink-subtle">
+            Appended for every user whose role is not <code>admin</code>. This is
+            where the library stays protected — no titles, no confirmation that a
+            document was used. Client turns also receive the excerpts unlabelled,
+            so the model cannot name what it was never given.
+          </span>
+        </label>
+
+        <label className="flex flex-col gap-y-2">
+          <span className={labelClass}>
+            Source handling — internal sessions
+          </span>
+          <textarea
+            value={prompt.sourceAttribution ?? ""}
+            onChange={(e) =>
+              setPrompt((p) => ({ ...p, sourceAttribution: e.target.value }))
+            }
+            rows={10}
+            className={`${inputClass} resize-y font-mono text-[13px] leading-[1.55]`}
+          />
+          <span className="text-xs leading-[1.5] text-ink-subtle">
+            Appended only for <code>admin</code> users. This is where Metis is
+            allowed to name a work, argue across two of them, and separate the
+            material from its own judgement. Exactly one of these two blocks
+            reaches any given turn — never both, so they can safely contradict
+            each other.
           </span>
         </label>
 

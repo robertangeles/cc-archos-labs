@@ -2091,3 +2091,125 @@ Same day as the enforcing flip, and only because I checked a claim I had made a 
 **Verified.** 10 pages in a real browser, 0 violations, GTM/GA4/entity-graph all intact. Auth gate: `/admin` 307, `/admin/login` 200, `/api/admin/posts` 401, boundary paths 404 not redirected. 28 new tests; suite 152 files / 1881 tests.
 
 Pages touched: `decisions/2026-07-30-csp-nonce.md` (new), `index.md`. New code: `lib/csp.ts`, `lib/csp.test.ts`, `tests/proxy.test.ts`.
+
+## 2026-07-31 — Metis live RAG: Phase 0 baseline + floor calibration
+
+Ran `/plan-ceo-review` on making the pgvector book library lift a Metis session.
+The starting premise ("RAG is separate from the chat session") was wrong — RAG
+already runs on every turn at `lib/chat/stream.ts:72`. The real defects are that
+retrieval is single-perspective, the query is the raw last user turn, the model
+has no tool to search the books, failure is silent, and grounding is invisible.
+
+**I also had to correct my own overclaim.** I asserted single-query top-5
+"cannot structurally" reach three books. An outside-voice reviewer challenged
+it, so I measured instead of arguing — and the reviewer was right. One test
+query did return three books. Measured truth: avg 1.72 distinct books, 8 of 18
+turns single-source. Real problem, smaller than claimed, and cheaper to fix.
+
+**Findings** (see `decisions/2026-07-31-retrieval-floor-calibration.md`):
+- `K=30 + cap 2/doc + take 8` lifts diversity 1.72 → 3.83 with zero model calls.
+- The 0.3 floor never fires — 25/25 chunks cleared it. The gap signal is
+  currently unreachable code.
+- Depth at 0.42 (+7-chunk margin) beats top-1 score (0.025 margin) as the
+  covered/uncovered discriminator.
+- Threshold 0.40 looked better (+14) but was censored by the K=30 window edge.
+
+**Two live PROD defects found in the same subsystem:**
+- `lib/cdmp/generate.ts:173` scopes to `category='dmbok'`, which in PROD now
+  includes *The Trusted Advisor*, *Flawless Consulting*, *Clean Architecture*
+  and *The Pragmatic Programmer*. The CDMP practice exam is drawing
+  certification questions from a consulting relationship book, today.
+- Several PROD titles are raw filenames; Metis cites `ABUIABA9GAAghIK0ugYowM2h3QY`
+  as a source.
+
+Neither is caused by this work; both are fixed in Phase 2.
+
+Pages touched: `decisions/2026-07-31-retrieval-floor-calibration.md` (new),
+`index.md`. New code: `scripts/retrieval-baseline.mjs`.
+
+## 2026-07-31 — Metis live RAG: audience-scoped source disclosure (Phase 1)
+
+Went to rewrite the RAG injection instruction and found the reason the whole
+attribution half of the plan was unbuildable: the stored Metis prompt has a
+`## KNOWLEDGE SOURCE PROTECTION` section forbidding Metis from ever naming a
+document title, "under all conditions", with no overrides — while
+`lib/chat/stream.ts:81` injected "Cite the source title when relevant" on every
+single turn. Both have been shipping together for months. The stored block
+almost certainly wins, so the stream.ts instruction was dead text.
+
+That protection is a deliberate commercial decision — the curated library is the
+moat. Rob's call: keep it for clients, lift it for himself. The rule is right
+for a prospect and wrong for the person who owns the shelf.
+
+**Built:** `sourceProtection` / `sourceAttribution` as two optional, mutually
+exclusive fields on the chat prompt setting, chosen by `users.role` via
+`audienceFor`. Not one rule with an "unless admin" exception — the protection
+text asserts nothing overrides it, and an absolute with a carve-out invites the
+model to reason about whether the carve-out applies, which is exactly the crack
+an injection attempt widens.
+
+Defence in depth: client turns now receive excerpts with titles STRIPPED. The
+instruction is a rule the model follows; withholding the titles is a fact it
+cannot reason around.
+
+Fail-closed and locked down by exhaustive tests: `"Admin"`, `" admin"`,
+`"administrator"`, `""`, null and undefined all resolve to client. A client turn
+never receives the attribution block even when protection is unset. A stored row
+predating the split behaves byte-for-byte as before.
+
+Noted, not fixed: `users.role` defaults to `"admin"` in the schema
+(`lib/db/schema.ts:1140`). All three live insert paths set `"member"` explicitly,
+so nothing is wrong today, but it is a footgun for any future insert path.
+
+Suite: 153 files / 1904 tests green, tsc + lint clean. The stored PROD prompt
+split is written and dry-run verified (8258 -> 6381 chars) but NOT applied.
+
+Pages touched: `decisions/2026-07-31-audience-scoped-source-disclosure.md` (new),
+`index.md`. New code: `lib/chat/source-disclosure.test.ts`,
+`scripts/split-chat-prompt-source-blocks.mjs`.
+
+## 2026-07-31 — Metis live RAG: the prompt was the binding constraint
+
+Measured the Phase 1 prompt change before building any retrieval machinery, which
+is why it was sequenced first. `scripts/prompt-ab.mjs`, 10 consulting questions,
+identical retrieved chunks in both arms so the prompt is the only variable.
+
+```
+                                  OLD      NEW
+  works named per answer          0.00     2.00
+  takes a position                10/10    10/10
+  surfaces + resolves a tension    4/10     9/10
+  separates source from judgement  0/10     9/10
+```
+
+The old arm named ZERO works across all ten questions. Not few — zero, every
+time. That is the stored protection block beating the contradicting "Cite the
+source title when relevant" instruction on every turn, exactly as the two-
+instruction analysis predicted.
+
+"Takes a position" was already 10/10 — the identity section handles that, and no
+retrieval work would have moved it. The two metrics that did move are precisely
+the ones the library exists for.
+
+**The binding constraint on holistic output was the prompt, not retrieval.** One
+text change, zero extra model calls, no taxonomy dependency. Retrieval still
+bounds the ceiling — at 1.72 books/turn, naming 2.00 works means Metis is already
+naming essentially everything that reaches it — so Phase 3's diversity work is
+now an improvement on a working system rather than the fix for a broken one.
+
+Two process notes worth keeping:
+
+The first A/B run reported 0/8 on every metric and looked like a clean finding.
+It was a judge parse failure — the script swallowed the raw output and returned
+zeros. A silent zero is indistinguishable from a real zero in an aggregate.
+The script now throws on an empty completion (with finish_reason) and keeps the
+raw text on a parse failure. **Never let a measurement fail to a plausible value.**
+
+CI caught a broken wiki ref `[[metis-workspace-chat]]` in the frontmatter of the
+two decision docs added earlier the same day — a page name I invented and never
+checked resolved. Typecheck/test/build never ran. `pnpm wiki:lint` before pushing
+would have caught it locally.
+
+Pages touched: `decisions/2026-07-31-audience-scoped-source-disclosure.md`,
+`decisions/2026-07-31-retrieval-floor-calibration.md`. New code:
+`scripts/prompt-ab.mjs`, `scripts/_metis-source-blocks.mjs`.
