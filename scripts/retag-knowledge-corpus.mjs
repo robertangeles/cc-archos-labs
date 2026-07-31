@@ -138,18 +138,25 @@ const snapPath = `knowledge-corpus-before-retag-${isLocal ? "dev" : "prod"}-${st
 writeFileSync(snapPath, JSON.stringify(current, null, 2));
 console.log(`\nSnapshot written to ${snapPath}`);
 
-for (const m of MAPPING) {
-  await sql`
-    UPDATE knowledge_document
-    SET title = ${m.title},
-        category = ${m.domain},
-        author = ${m.author},
-        publication_year = ${m.year},
-        is_cdmp_source = ${m.isCdmp},
-        updated_at = now()
-    WHERE id = ${m.id}`;
-}
-console.log(`Applied to ${MAPPING.length} documents.`);
+// One transaction. 19 separate UPDATEs would leave the corpus half-retagged if
+// any one failed — and a half-retagged corpus is worse than an untouched one,
+// because is_cdmp_source would be true for some documents and default-false for
+// others, so the exam pool would be silently incomplete rather than obviously
+// wrong.
+await sql.begin(async (tx) => {
+  for (const m of MAPPING) {
+    await tx`
+      UPDATE knowledge_document
+      SET title = ${m.title},
+          category = ${m.domain},
+          author = ${m.author},
+          publication_year = ${m.year},
+          is_cdmp_source = ${m.isCdmp},
+          updated_at = now()
+      WHERE id = ${m.id}`;
+  }
+});
+console.log(`Applied to ${MAPPING.length} documents in one transaction.`);
 
 const after = await sql`
   SELECT category, count(*)::int n, count(*) FILTER (WHERE is_cdmp_source)::int cdmp
