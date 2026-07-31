@@ -7,6 +7,9 @@ export interface SearchResult {
   chunkId: string;
   documentId: string;
   title: string;
+  /** Author(s) as they should be cited. Null for a document ingested before
+   *  migration 0039, or one genuinely without an author. */
+  author: string | null;
   category: string | null;
   content: string;
   similarity: number;
@@ -27,7 +30,7 @@ export async function vectorSearch(
 
   const rows = await db.execute(sql`
     SELECT c.id AS chunk_id, c.document_id, c.content,
-           d.title, d.category,
+           d.title, d.author, d.category,
            1 - (c.embedding <=> ${vectorStr}::vector) AS similarity
     FROM knowledge_chunk c
     JOIN knowledge_document d ON d.id = c.document_id
@@ -43,12 +46,14 @@ export async function vectorSearch(
     document_id: string;
     content: string;
     title: string;
+    author: string | null;
     category: string | null;
     similarity: number;
   }>).map((row) => ({
     chunkId: row.chunk_id,
     documentId: row.document_id,
     title: row.title,
+    author: row.author,
     category: row.category,
     content: row.content,
     similarity: row.similarity,
@@ -91,7 +96,7 @@ export async function keywordSearch(
 
   const rows = await db.execute(sql`
     SELECT c.id AS chunk_id, c.document_id, c.content,
-           d.title, d.category,
+           d.title, d.author, d.category,
            (${scoreExpr}) AS similarity
     FROM knowledge_chunk c
     JOIN knowledge_document d ON d.id = c.document_id
@@ -107,6 +112,7 @@ export async function keywordSearch(
     document_id: string;
     content: string;
     title: string;
+    author: string | null;
     category: string | null;
     similarity: number;
   }>)
@@ -115,6 +121,7 @@ export async function keywordSearch(
       chunkId: row.chunk_id,
       documentId: row.document_id,
       title: row.title,
+      author: row.author,
       category: row.category,
       content: row.content,
       similarity: row.similarity,
@@ -168,7 +175,7 @@ export async function searchCdmpSources(
 
   const rows = await db.execute(sql`
     SELECT c.id AS chunk_id, c.document_id, c.content,
-           d.title, d.category,
+           d.title, d.author, d.category,
            1 - (c.embedding <=> ${vectorStr}::vector) AS similarity
     FROM knowledge_chunk c
     JOIN knowledge_document d ON d.id = c.document_id
@@ -184,12 +191,14 @@ export async function searchCdmpSources(
     document_id: string;
     content: string;
     title: string;
+    author: string | null;
     category: string | null;
     similarity: number;
   }>).map((row) => ({
     chunkId: row.chunk_id,
     documentId: row.document_id,
     title: row.title,
+    author: row.author,
     category: row.category,
     content: row.content,
     similarity: row.similarity,
@@ -213,7 +222,7 @@ export async function getChunksByChapter(chapter: string): Promise<ChapterChunk[
   const db = getDb();
   const rows = await db.execute(sql`
     SELECT c.id AS chunk_id, c.document_id, c.content,
-           d.title, d.category, c.embedding::text AS embedding
+           d.title, d.author, d.category, c.embedding::text AS embedding
     FROM knowledge_chunk c
     JOIN knowledge_document d ON d.id = c.document_id
     WHERE d.is_cdmp_source = true AND d.status = 'ready'
@@ -225,12 +234,14 @@ export async function getChunksByChapter(chapter: string): Promise<ChapterChunk[
     document_id: string;
     content: string;
     title: string;
+    author: string | null;
     category: string | null;
     embedding: string;
   }>).map((row) => ({
     chunkId: row.chunk_id,
     documentId: row.document_id,
     title: row.title,
+    author: row.author,
     category: row.category,
     content: row.content,
     similarity: 0,

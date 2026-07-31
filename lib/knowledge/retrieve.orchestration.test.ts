@@ -29,6 +29,7 @@ const chunk = (doc: string, similarity: number): SearchResult => ({
   chunkId: `c${seq++}`,
   documentId: doc,
   title: doc,
+  author: null,
   category: null,
   content: "x",
   similarity,

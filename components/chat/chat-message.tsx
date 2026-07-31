@@ -4,6 +4,8 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Copy, Check, Download, X, Share2 } from "lucide-react";
+import { SourceCitations } from "./source-citations";
+import type { SourceRef } from "@/lib/chat/stream-events";
 
 interface ChatMessageProps {
   role: "user" | "assistant" | "system";
@@ -12,12 +14,15 @@ interface ChatMessageProps {
   model?: string | null;
   isStreaming?: boolean;
   isInterrupted?: boolean;
+  /** Works this answer was grounded in. Renders the citation strip. */
+  sources?: SourceRef[];
   onPublish?: (content: string) => void;
 }
 
 export function ChatMessage({
   role,
   content,
+  sources,
   contentType,
   model: _model,
   isStreaming,
@@ -119,6 +124,10 @@ export function ChatMessage({
                 {content}
               </ReactMarkdown>
             </div>
+          )}
+
+          {!isUser && sources && sources.length > 0 && (
+            <SourceCitations sources={sources} />
           )}
 
           {!isUser && content && !isStreaming && (

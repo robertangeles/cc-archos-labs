@@ -27,6 +27,7 @@ const chunk = (title: string, content = "some substantive passage"): SearchResul
   chunkId: `chunk-${seq++}`,
   documentId: `doc-${title}`,
   title,
+  author: `${title} author`,
   category: null,
   content,
   similarity: 0.6,
@@ -230,5 +231,86 @@ describe("search_library — dedup across hops", () => {
     expect(out.omittedForLength).toBeGreaterThan(0);
     // A chunk that never reached the model must stay available to a later call.
     expect(ctx.seenChunkIds.size).toBe(out.excerpts.length);
+  });
+});
+
+describe("search_library reports what it served, for the citation strip", () => {
+  // Without this the strip shows only the PRE-TURN retrieval. A work the model
+  // looked up mid-answer and then named in its prose would be missing from the
+  // strip — which is exactly the "named but not cited" signature the strip
+  // exists to flag as a fabricated attribution. Reporting a real retrieval as a
+  // fabrication is worse than showing no strip at all.
+  it("collects the works it served, deduped by title", async () => {
+    const servedSources: Array<{ title: string; author: string | null }> = [];
+    libraryImpl = async () => [
+      chunk("Flawless Consulting"),
+      chunk("Flawless Consulting"), // second chunk, same work
+      chunk("DAMA-DMBOK"),
+    ];
+    await executeWorkspaceTool(
+      "search_library",
+      { query: "resistance" },
+      { orgId: "org-1", audience: "internal", servedSources },
+    );
+    expect(servedSources.map((s) => s.title)).toEqual([
+      "Flawless Consulting",
+      "DAMA-DMBOK",
+    ]);
+    expect(servedSources[0].author).toBe("Flawless Consulting author");
+  });
+
+  it("accumulates across several calls in one loop", async () => {
+    const servedSources: Array<{ title: string; author: string | null }> = [];
+    const ctx = {
+      orgId: "org-1",
+      audience: "internal" as const,
+      seenChunkIds: new Set<string>(),
+      servedSources,
+    };
+    libraryImpl = async () => [chunk("Flawless Consulting")];
+    await executeWorkspaceTool("search_library", { query: "a" }, ctx);
+    libraryImpl = async () => [chunk("The Trusted Advisor")];
+    await executeWorkspaceTool("search_library", { query: "b" }, ctx);
+    expect(servedSources.map((s) => s.title)).toEqual([
+      "Flawless Consulting",
+      "The Trusted Advisor",
+    ]);
+  });
+
+  it("does not record a work that was dropped for length", async () => {
+    const servedSources: Array<{ title: string; author: string | null }> = [];
+    const long = "word ".repeat(1200).trim();
+    libraryImpl = async () => [
+      chunk("Book A", long),
+      chunk("Book B", long),
+      chunk("Book C", long),
+    ];
+    const out = JSON.parse(
+      await executeWorkspaceTool(
+        "search_library",
+        { query: "x" },
+        { orgId: "org-1", audience: "internal", servedSources },
+      ),
+    );
+    expect(out.omittedForLength).toBeGreaterThan(0);
+    // A work the model never saw must not appear in its citation strip.
+    expect(servedSources.length).toBe(out.excerpts.length);
+  });
+
+  it("records nothing when everything was already shown", async () => {
+    const a = chunk("DAMA-DMBOK");
+    const servedSources: Array<{ title: string; author: string | null }> = [];
+    libraryImpl = async () => [a];
+    await executeWorkspaceTool(
+      "search_library",
+      { query: "x" },
+      {
+        orgId: "org-1",
+        audience: "internal",
+        seenChunkIds: new Set([a.chunkId]),
+        servedSources,
+      },
+    );
+    expect(servedSources).toEqual([]);
   });
 });

@@ -14,7 +14,7 @@ import {
 } from "./prompt-config-shared";
 import { getEnabledRules } from "../rules/service";
 import { retrieve } from "../knowledge/retrieve";
-import { encodeProgress, stripDelimiters } from "./progress-protocol";
+import { encodeEvent, stripDelimiters } from "./stream-events";
 import {
   logRetrievalEvent,
   safeReason as safeRetrievalReason,
@@ -133,6 +133,11 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
   //   thin        some material, below the coverage gate — inject it, caveated
   //   uncovered   we looked and there is nothing — say so, inject nothing
   //   degraded    we could not look — a service failure, worded differently
+  // The citation strip is INTERNAL ONLY. Naming a work to a client turn is the
+  // exact disclosure the protection block forbids, and a visible source list is
+  // a louder version of it than anything the model could say in prose.
+  const citedSources = audience === "internal" ? retrieval.sources : [];
+
   const ragContext = retrieval.degraded
     ? coverageNotice("degraded", audience)
     : retrieval.chunks.length && retrieval.covered
@@ -178,6 +183,7 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
       });
       return {
         chunks: [],
+        sources: [],
         distinctSources: 0,
         aboveFloor: 0,
         covered: false,
@@ -321,6 +327,13 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     const encoder = new TextEncoder();
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
+        // Same library-grounded system prompt as every other branch, so the
+        // same citation strip. These branches also carry their own URL
+        // citations for the web results; the two answer different questions —
+        // which pages it read, and which of YOUR works it was grounded in.
+        if (citedSources.length > 0) {
+          controller.enqueue(encoder.encode(encodeEvent({ t: "s", sources: citedSources })));
+        }
         controller.enqueue(encoder.encode(content));
         controller.close();
       },
@@ -335,6 +348,8 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
           modelId,
           tokens,
           false,
+          undefined,
+          citedSources,
         );
         extractMemories(args.userId, args.userContent, args.conversationId).catch(() => {});
       }
@@ -378,6 +393,13 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     const encoder = new TextEncoder();
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
+        // Same library-grounded system prompt as every other branch, so the
+        // same citation strip. These branches also carry their own URL
+        // citations for the web results; the two answer different questions —
+        // which pages it read, and which of YOUR works it was grounded in.
+        if (citedSources.length > 0) {
+          controller.enqueue(encoder.encode(encodeEvent({ t: "s", sources: citedSources })));
+        }
         controller.enqueue(encoder.encode(content));
         controller.close();
       },
@@ -392,6 +414,8 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
           modelId,
           tokens,
           false,
+          undefined,
+          citedSources,
         );
         extractMemories(args.userId, args.userContent, args.conversationId).catch(() => {});
       }
@@ -484,9 +508,17 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
       // the answer. The loop's answer is non-streamed, so this is the only
       // feedback the user gets during a wait that can reach 20 seconds.
       const progressLabels: string[] = [];
+      // Works search_library finds MID-ANSWER. Without these the strip shows
+      // only the pre-turn retrieval, so a work the model looked up and then
+      // named in its prose would be missing from the strip — the exact
+      // "named but not cited" signature the strip exists to flag as
+      // fabrication. Reporting a real retrieval as a fabrication is worse than
+      // showing no strip at all.
+      const toolSources: Array<{ title: string; author: string | null }> = [];
       try {
         toolContent = await runWorkspaceToolTurn({
           onProgress: (pr) => progressLabels.push(pr.label),
+          servedSources: toolSources,
           messages: [...systemMessage, ...priorMessages] as ChatMessage[],
           orgId: toolOrgId,
           audience,
@@ -500,12 +532,32 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
       } catch {
         toolContent = "";
       }
+      // Merge, deduped by title, keeping pre-turn works first (they are
+      // relevance-ranked; tool finds are appended in the order looked up).
+      // Still audience-gated: toolSources is only ever populated on a turn
+      // whose ctx.audience allowed titles in the first place, and citedSources
+      // is [] for a client turn regardless.
+      const allSources =
+        audience === "internal"
+          ? [
+              ...citedSources,
+              ...toolSources.filter(
+                (t) => !citedSources.some((c) => c.title === t.title),
+              ),
+            ]
+          : [];
+
       if (toolContent) {
         const encoder = new TextEncoder();
         const stream = new ReadableStream<Uint8Array>({
           start(controller) {
+            if (allSources.length > 0) {
+              controller.enqueue(
+                encoder.encode(encodeEvent({ t: "s", sources: allSources })),
+              );
+            }
             for (const label of progressLabels) {
-              controller.enqueue(encoder.encode(encodeProgress(label)));
+              controller.enqueue(encoder.encode(encodeEvent({ t: "p", label })));
             }
             // Strip any delimiter the model itself produced, so an answer that
             // mentions a control character cannot be read as an event boundary.
@@ -523,6 +575,8 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
             modelId,
             0,
             false,
+            undefined,
+            allSources,
           );
           extractMemories(
             args.userId,
@@ -559,6 +613,9 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     throw new StreamError("No response body from OpenRouter", 502);
   }
 
+  const sourcesPreamble =
+    citedSources.length > 0 ? encodeEvent({ t: "s", sources: citedSources }) : "";
+
   let buffer = "";
   let _inputTokens = 0;
   let outputTokens = 0;
@@ -573,6 +630,10 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      // Sources first, before any token: they are known the moment retrieval
+      // finished, and the client needs them to render the strip alongside the
+      // streaming answer rather than after it.
+      if (sourcesPreamble) controller.enqueue(encoder.encode(sourcesPreamble));
       const reader = openRouterResponse.body!.getReader();
       try {
         while (true) {
@@ -622,6 +683,8 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
         modelId,
         outputTokens,
         aborted,
+        undefined,
+        citedSources,
       );
       if (!aborted) {
         extractMemories(args.userId, args.userContent, args.conversationId).catch(() => {});

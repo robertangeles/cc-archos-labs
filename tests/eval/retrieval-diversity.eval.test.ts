@@ -403,3 +403,45 @@ describe.skipIf(!ENABLED)("retrieve() end to end", () => {
   );
 });
 
+
+// The citation strip's data, end to end: retrieve() must return distinct works
+// with real titles and authors. Before the corpus retag these were filenames
+// like "ABUIABA9GAAghIK0ugYowM2h3QY" — a strip showing that is worse than none.
+describe.skipIf(!ENABLED)("citation sources", () => {
+  it("returns real titles and authors, deduped by work", async () => {
+    const { retrieve } = await import("@/lib/knowledge/retrieve");
+    const r = await retrieve({
+      turn: "how do I build trust with a sceptical executive sponsor who has been burned",
+      history: [],
+      apiKey: KEY!,
+      audience: "internal",
+    });
+    console.log("  cited works:");
+    for (const s of r.sources) console.log(`    ${s.title} — ${s.author ?? "(no author)"}`);
+
+    expect(r.sources.length).toBeGreaterThan(1);
+    // One entry per work, however many chunks it contributed.
+    expect(new Set(r.sources.map((s) => s.title)).size).toBe(r.sources.length);
+    // Every work carries an author after the retag.
+    expect(r.sources.every((s) => s.author && s.author.length > 0)).toBe(true);
+    // And no filename survivors.
+    for (const s of r.sources) {
+      expect(s.title).not.toMatch(/OceanofPDF|ABUIABA|^[a-z0-9-]+$/);
+    }
+  }, 120_000);
+
+  it("a client turn is never handed sources to cite", async () => {
+    const { retrieve } = await import("@/lib/knowledge/retrieve");
+    // retrieve() itself is audience-agnostic; stream.ts does the gating. This
+    // asserts the data exists so the gate is the ONLY thing standing between a
+    // client turn and a named work — which is why that gate is source-asserted
+    // and mutation-tested in lib/chat/source-disclosure.test.ts.
+    const r = await retrieve({
+      turn: "how do I build trust with a sceptical executive sponsor",
+      history: [],
+      apiKey: KEY!,
+      audience: "client",
+    });
+    expect(r.sources.length).toBeGreaterThan(0);
+  }, 120_000);
+});

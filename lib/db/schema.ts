@@ -2998,6 +2998,14 @@ export const message = pgTable(
     model: varchar("model", { length: 100 }),
     tokens: integer("tokens").default(0),
     isInterrupted: boolean("is_interrupted").notNull().default(false),
+    // Snapshot of the works this answer was grounded in (migration 0041).
+    // Display metadata for the citation strip, deliberately denormalised: it
+    // must keep showing what was true AT ANSWER TIME even if the document is
+    // later retagged, retitled or deleted — all three happened to 19 documents
+    // on 2026-07-31. A FK would make a historical citation mutate or vanish.
+    // The JSONB snapshot exception in the DB standards covers exactly this,
+    // as it does for conversation_share. NULL = no citation recorded.
+    sources: jsonb("sources").$type<Array<{ title: string; author: string | null }>>(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

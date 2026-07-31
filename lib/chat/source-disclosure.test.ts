@@ -317,3 +317,62 @@ describe("coverageNotice — the thin state", () => {
     }
   });
 });
+
+describe("citation strip is internal-only", () => {
+  // The strip lists works by name. Showing it to a client is a louder version
+  // of the exact disclosure the protection block forbids — louder because it is
+  // a list, not a passing mention the model might soften.
+  //
+  // Asserted at the source level: stream.ts must gate citedSources on audience,
+  // and the realistic regression is someone "simplifying" that ternary away
+  // while wiring a UI change.
+  it("stream.ts only cites sources for an internal audience", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync(
+      new URL("../../lib/chat/stream.ts", import.meta.url),
+      "utf8",
+    );
+    expect(src).toMatch(
+      /citedSources\s*=\s*audience === "internal"\s*\?\s*retrieval\.sources\s*:\s*\[\]/,
+    );
+    // And nothing else may assign it.
+    expect(src.match(/const citedSources/g) ?? []).toHaveLength(1);
+  });
+});
+
+describe("the citation strip covers every grounded branch", () => {
+  const src = () =>
+    import("node:fs").then(({ readFileSync }) =>
+      readFileSync(new URL("../../lib/chat/stream.ts", import.meta.url), "utf8"),
+    );
+
+  // The strip's whole value is that a work named in the answer but absent from
+  // the strip means fabrication. That inference only holds if EVERY branch that
+  // grounds an answer in the library also cites it — otherwise the strip
+  // reports real retrievals as fabrications, which is worse than no strip.
+  it("merges works search_library found mid-answer into the strip", async () => {
+    const s = await src();
+    // The tool loop must collect served works and union them with the pre-turn set.
+    expect(s).toMatch(/servedSources:\s*toolSources/);
+    expect(s).toMatch(/const allSources\s*=/);
+    expect(s).toMatch(/toolSources\.filter\(/);
+    // And the merged set, not the stale pre-turn one, is what ships.
+    expect(s).toMatch(/encodeEvent\(\{ t: "s", sources: allSources \}\)/);
+  });
+
+  it("keeps the tool-loop merge audience-gated", async () => {
+    const s = await src();
+    // allSources must be [] for a client turn regardless of what tools found.
+    expect(s).toMatch(/const allSources\s*=\s*\n?\s*audience === "internal"/);
+  });
+
+  it("cites the library on the web-search and perplexity branches too", async () => {
+    const s = await src();
+    // Both build the same ragContext, so both must carry the strip. Counted
+    // rather than spot-checked: a branch added later without it is the failure.
+    const emits = s.match(/encodeEvent\(\{ t: "s", sources:/g) ?? [];
+    expect(emits.length).toBeGreaterThanOrEqual(3);
+    const saves = s.match(/undefined,\s*\n\s*(citedSources|allSources),/g) ?? [];
+    expect(saves.length).toBeGreaterThanOrEqual(3);
+  });
+});

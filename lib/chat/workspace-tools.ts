@@ -17,7 +17,7 @@ import {
 //
 // A tool-using turn's final answer is produced non-streamed, so the caller
 // delivers it as a single chunk (like the web-search path), preceded by
-// progress events — see lib/chat/progress-protocol.ts.
+// progress events — see lib/chat/stream-events.ts.
 
 export function isWorkspaceToolsEnabled(): boolean {
   return process.env.WORKSPACE_TOOLS_ENABLED === "true";
@@ -88,6 +88,9 @@ export async function runWorkspaceToolTurn(args: {
   orgId: string | null;
   audience: "internal" | "client";
   seenChunkIds?: Set<string>;
+  /** Collected by reference: works search_library served this turn, for the
+   *  citation strip. */
+  servedSources?: Array<{ title: string; author: string | null }>;
   modelId: string;
   apiKey: string;
   signal?: AbortSignal;
@@ -99,6 +102,7 @@ export async function runWorkspaceToolTurn(args: {
       orgId: args.orgId,
       audience: args.audience,
       seenChunkIds: args.seenChunkIds,
+      servedSources: args.servedSources,
     },
     buildCallModel(args.modelId, args.apiKey, args.orgId, args.signal),
     args.onProgress,

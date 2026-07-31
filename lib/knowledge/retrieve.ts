@@ -324,6 +324,9 @@ export interface RetrieveArgs {
 
 export interface RetrieveResult {
   chunks: SearchResult[];
+  /** Distinct works behind the chunks, for the citation strip. Deduped by
+   *  title so a book contributing two chunks is cited once. */
+  sources: Array<{ title: string; author: string | null }>;
   /** Distinct documents represented — the metric this module exists to move. */
   distinctSources: number;
   /** Chunks above the floor across the whole candidate pool. Compared against
@@ -384,6 +387,7 @@ export async function retrieve(args: RetrieveArgs): Promise<RetrieveResult> {
     });
     return {
       chunks: args.previous,
+      sources: distinctWorks(args.previous),
       distinctSources: sources.size,
       aboveFloor: args.previous.length,
       covered: args.previous.length >= COVERAGE_GATE,
@@ -491,7 +495,14 @@ export async function retrieve(args: RetrieveArgs): Promise<RetrieveResult> {
       degraded: true,
       reason: failures[0].error,
     });
-    return { chunks: [], distinctSources: 0, aboveFloor: 0, covered: false, degraded: true };
+    return {
+      chunks: [],
+      sources: [],
+      distinctSources: 0,
+      aboveFloor: 0,
+      covered: false,
+      degraded: true,
+    };
   }
 
   const merged = mergeDiverse(pool, o);
@@ -522,6 +533,7 @@ export async function retrieve(args: RetrieveArgs): Promise<RetrieveResult> {
 
   return {
     chunks: merged.chunks,
+    sources: distinctWorks(merged.chunks),
     distinctSources: sources.length,
     aboveFloor,
     covered: aboveFloor >= COVERAGE_GATE,
@@ -533,4 +545,17 @@ function median(xs: number[]): number {
   const s = [...xs].sort((a, b) => a - b);
   const mid = Math.floor(s.length / 2);
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+}
+
+/** Distinct works behind a chunk set, in the order they first appear (i.e. by
+ *  relevance, since the chunks are already ranked). Deduped by title so a book
+ *  contributing two chunks is cited once. */
+function distinctWorks(
+  chunks: SearchResult[],
+): Array<{ title: string; author: string | null }> {
+  const byTitle = new Map<string, { title: string; author: string | null }>();
+  for (const c of chunks) {
+    if (!byTitle.has(c.title)) byTitle.set(c.title, { title: c.title, author: c.author });
+  }
+  return [...byTitle.values()];
 }
