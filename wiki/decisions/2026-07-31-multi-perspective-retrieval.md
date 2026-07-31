@@ -69,14 +69,49 @@ itself so `paths` reports what actually served, and a total embed outage sets
 Verified by breaking the env key: `paths: ["keyword"]`, `degraded: true`, 8
 chunks from 5 sources still served.
 
-## Known limitation
+## Score scales are never mixed
 
-Vector and keyword scores are on different scales — cosine 0-1 versus a points
-total that lands in the tens (observed `topScore: 31`). So on the keyword path
-every candidate clears the 0.42 floor and `covered` is meaningless. Not
-normalised, because inventing a mapping between "cosine 0.6" and "13 points"
-would be a fabricated equivalence. The keyword path is already flagged
-`degraded`, which `stream.ts` treats as its own state ahead of coverage.
+Vector returns cosine similarity (0-1); keyword returns a points total landing
+in the tens (observed `topScore: 31`). Both arrive as `similarity` and
+`mergeDiverse` sorts on it.
+
+A first version only flagged the case where EVERY sub-query fell back to
+keyword. Review caught that the realistic case is 2 of 3 succeeding — and in
+that mix the keyword chunks take every top slot regardless of relevance, while
+`degraded` reported healthy. Simulated and confirmed.
+
+The pool is now kept homogeneous: if any vector search succeeded, only vector
+results are used and keyword results are discarded. Keyword serves solely when
+vector is entirely unavailable. `degraded` fires in both cases — a total outage,
+or any sub-query whose results had to be dropped.
+
+On the keyword-only path the floor and `covered` remain meaningless (points, not
+cosine). Not normalised — a mapping between "cosine 0.6" and "13 points" would
+be invented — but that path is flagged `degraded`, which `stream.ts` treats
+ahead of coverage.
+
+## Four states, not three
+
+An early version had three. Review found the partial-coverage branch injected
+real titled excerpts and then appended the *uncovered* notice, which asserts
+"nothing relevant was retrieved, so naming one would be an invention" — flatly
+false with excerpts directly above it. Telling the model both at once is worse
+than telling it neither.
+
+```
+grounded    enough material            -> inject it
+thin        some, below the gate       -> inject it, with the THIN caveat
+uncovered   nothing                    -> inject nothing, say so
+degraded    could not look             -> service failure, worded separately
+```
+
+## A concurrency bug found while fixing the above
+
+`paths` was populated by `push()` from inside N concurrent callbacks, then used
+to index the results array. The completion order of concurrent promises is not
+`Promise.all`'s output order, so the two could not be zipped — the pool-filtering
+fix would have silently mis-attributed which sub-query used which path. Each
+sub-query now carries its own path back in its result.
 
 ## Three states, never conflated
 

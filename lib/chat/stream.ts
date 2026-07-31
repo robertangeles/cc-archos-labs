@@ -127,20 +127,21 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
       buildRulesBlock(),
     ]);
 
-  // Three distinct states, never conflated (see coverageNotice):
-  //   grounded    material reached the model — inject it
-  //   uncovered   we looked and the library has nothing — say so
+  // Four distinct states, never conflated (see coverageNotice):
+  //   grounded    enough material reached the model — inject it
+  //   thin        some material, below the coverage gate — inject it, caveated
+  //   uncovered   we looked and there is nothing — say so, inject nothing
   //   degraded    we could not look — a service failure, worded differently
   const ragContext = retrieval.degraded
     ? coverageNotice("degraded", audience)
     : retrieval.chunks.length && retrieval.covered
       ? `${ragInstruction(audience)}\n\n${formatChunks(retrieval.chunks, audience)}`
       : retrieval.chunks.length
-        ? // Some material cleared the floor but not enough to call the question
-          // covered. Inject what there is AND the caveat — a thin result
-          // presented as grounded is the failure the coverage gate exists to
-          // catch.
-          `${ragInstruction(audience)}\n\n${formatChunks(retrieval.chunks, audience)}\n\n${coverageNotice("uncovered", audience)}`
+        ? // FOUR states, not three. Material cleared the floor but not enough to
+          // call the question covered: inject what there is with the "thin"
+          // caveat, NOT the "uncovered" one. Uncovered copy says nothing was
+          // retrieved, which is false when excerpts sit directly above it.
+          `${ragInstruction(audience)}\n\n${formatChunks(retrieval.chunks, audience)}\n\n${coverageNotice("thin", audience)}`
         : coverageNotice("uncovered", audience);
 
   async function retrieveLibrary() {

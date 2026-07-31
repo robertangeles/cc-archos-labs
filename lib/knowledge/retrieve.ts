@@ -411,41 +411,69 @@ export async function retrieve(args: RetrieveArgs): Promise<RetrieveResult> {
       ? Math.max(o.perQueryK, 30)
       : o.perQueryK;
 
-  const paths: RetrievalEvent["paths"] = [];
-  const settled = await Promise.all(
-    decomposed.subQueries.map(async (sq) => {
+  // Each sub-query carries its own path back. An earlier version pushed to a
+  // shared `paths` array from inside concurrent callbacks and then indexed the
+  // results by it — the ordering of a push from N concurrent promises is not
+  // the ordering of Promise.all's output, so the two could not be zipped.
+  type Outcome =
+    | { path: "vector" | "keyword"; rows: SearchResult[] }
+    | { path: "failed"; error: string };
+
+  const settled: Outcome[] = await Promise.all(
+    decomposed.subQueries.map(async (sq): Promise<Outcome> => {
       // Deliberately NOT searchKnowledge. That helper catches a vector failure
       // and silently retries with keyword search, so a dead embedding API
       // returns results and looks entirely healthy — measured: an invalid API
       // key produced 4 chunks and degraded=false. The fallback is worth having;
-      // being unable to SEE it is not. Doing it here means `paths` reports what
-      // actually served, and a total embed outage is reported as degraded.
+      // being unable to SEE it is not.
       //
       // No category filter — see DECOMPOSE_SYSTEM. vectorSearch still accepts
       // one for the CDMP path and the search_library tool, where scoping is the
       // caller's explicit intent rather than a heuristic.
       try {
-        const rows = await vectorSearch(sq.query, undefined, perQueryK);
-        paths.push("vector");
-        return rows;
+        return { path: "vector", rows: await vectorSearch(sq.query, undefined, perQueryK) };
       } catch (vectorErr) {
         try {
-          const rows = await keywordSearch(sq.query, undefined, perQueryK);
-          paths.push("keyword");
-          return rows;
+          return { path: "keyword", rows: await keywordSearch(sq.query, undefined, perQueryK) };
         } catch {
-          paths.push("failed");
-          return { error: safeReason(vectorErr) } as const;
+          return { path: "failed", error: safeReason(vectorErr) };
         }
       }
     }),
   );
 
-  const failures = settled.filter((r): r is { error: string } => "error" in r);
-  const pool = settled.filter((r): r is SearchResult[] => Array.isArray(r)).flat();
+  const paths: RetrievalEvent["paths"] = settled.map((r) => r.path);
+  const failures = settled.filter((r): r is Extract<Outcome, { path: "failed" }> => r.path === "failed");
+  const vectorRows = settled.filter((r) => r.path === "vector");
+  const keywordRows = settled.filter((r) => r.path === "keyword");
 
-  // Every sub-query failed — retrieval is DOWN, which is a different state from
-  // the library having nothing. The caller must be able to tell them apart.
+  // NEVER MIX SCORE SCALES.
+  //
+  // vectorSearch returns cosine similarity (0-1). keywordSearch returns a points
+  // total — 10 per title hit, 3 per content hit — landing in the tens. Both
+  // arrive as `similarity` and mergeDiverse sorts on it, so one keyword fallback
+  // among several vector searches puts unrankable 10-31 values beside 0.4-0.7
+  // ones and the keyword chunks take every top slot regardless of relevance.
+  //
+  // An earlier version only flagged the case where EVERY sub-query fell back.
+  // That is the rare one; the realistic one is 2 of 3 succeeding. So the pool is
+  // kept homogeneous: if any vector search succeeded, use vector results only
+  // and discard the keyword ones. Keyword serves solely when vector is entirely
+  // unavailable.
+  const usedKeywordOnly = vectorRows.length === 0 && keywordRows.length > 0;
+  const pool = (usedKeywordOnly ? keywordRows : vectorRows).flatMap((r) =>
+    "rows" in r ? r.rows : [],
+  );
+  const discardedKeywordQueries = usedKeywordOnly ? 0 : keywordRows.length;
+
+  // Degraded whenever semantic retrieval was not fully healthy: keyword served
+  // everything, or some sub-queries fell back and their results had to be
+  // dropped to keep the pool rankable. Either way the turn is working from less
+  // than it should be and the operator has to be able to see it.
+  const degradedRetrieval = usedKeywordOnly || discardedKeywordQueries > 0;
+
+  // Every sub-query failed outright — retrieval is DOWN, which is a different
+  // state from the library having nothing. The caller must tell them apart.
   if (pool.length === 0 && failures.length > 0) {
     emit({
       strategy: decomposed.fallbackReason ? "raw_fallback" : "fanout",
@@ -458,21 +486,6 @@ export async function retrieve(args: RetrieveArgs): Promise<RetrieveResult> {
     });
     return { chunks: [], distinctSources: 0, aboveFloor: 0, covered: false, degraded: true };
   }
-
-  // Every sub-query fell back to keyword: the DB is up but the embedding API is
-  // not. Results came back, so this is not "no coverage" — but it is degraded
-  // semantic retrieval and the operator has to be able to see it.
-  const allKeyword = paths.length > 0 && paths.every((p) => p === "keyword");
-
-  // SCORE SCALES DO NOT MATCH. vectorSearch returns cosine similarity (0-1);
-  // keywordSearch returns a points total (10 per title hit, 3 per content hit)
-  // that routinely lands in the tens. So on the keyword path every candidate
-  // clears the 0.42 floor and `covered` is meaningless — observed topScore 31.
-  //
-  // Not normalised here on purpose: inventing a mapping between "cosine 0.6"
-  // and "13 points" would be a fabricated equivalence, and the keyword path is
-  // already flagged `degraded`, which stream.ts treats as its own state ahead
-  // of coverage. Fix it properly if keyword search ever becomes a primary path.
 
   const merged = mergeDiverse(pool, o);
   const aboveFloor = pool.filter((c) => c.similarity > o.floor).length;
@@ -492,8 +505,12 @@ export async function retrieve(args: RetrieveArgs): Promise<RetrieveResult> {
     topScore: scores.length ? Math.max(...scores) : null,
     medianScore: scores.length ? median(scores) : null,
     decomposeMs: decomposed.ms,
-    degraded: allKeyword,
-    reason: allKeyword ? "vector search unavailable; keyword fallback served" : undefined,
+    degraded: degradedRetrieval,
+    reason: usedKeywordOnly
+      ? "vector search unavailable; keyword fallback served"
+      : discardedKeywordQueries > 0
+        ? `${discardedKeywordQueries} sub-query(s) fell back to keyword; results discarded to keep scores rankable`
+        : undefined,
   });
 
   return {
@@ -501,7 +518,7 @@ export async function retrieve(args: RetrieveArgs): Promise<RetrieveResult> {
     distinctSources: sources.length,
     aboveFloor,
     covered: aboveFloor >= COVERAGE_GATE,
-    degraded: allKeyword,
+    degraded: degradedRetrieval,
   };
 }
 

@@ -2373,3 +2373,38 @@ the 1.72 baseline.
 Pages touched: `decisions/2026-07-31-multi-perspective-retrieval.md` (new),
 `index.md`. New code: `lib/knowledge/retrieve.ts`, `lib/knowledge/observability.ts`,
 `lib/knowledge/retrieve.test.ts`, `tests/eval/retrieval-diversity.eval.test.ts`.
+
+### Review follow-ups on PR #233 (verdict was BLOCKED)
+
+**Mixed score scales corrupted ranking while reporting healthy.** I had flagged
+`degraded` only when EVERY sub-query fell back to keyword. Review pointed out the
+realistic case is 2 of 3 succeeding — and keyword scores (10-31) numerically
+dwarf cosine (0-1), so in that mix the keyword chunks take every top slot
+regardless of relevance while `degraded=false`. My own code comment claimed "the
+keyword path is already flagged degraded", true only in the all-keyword case.
+
+Fixed by never mixing: if any vector search succeeded, use vector results only
+and discard keyword ones. Keyword serves solely when vector is entirely
+unavailable. `degraded` now fires for a total outage OR for any dropped
+sub-query.
+
+**A fourth state.** The partial-coverage branch injected real titled excerpts and
+then appended the "uncovered" notice — which says "nothing relevant was
+retrieved, so naming one would be an invention". False with excerpts directly
+above it, and a direct contradiction of the "three states, never conflated"
+design. Added a distinct `thin` state: use what is there, name those works, say
+where you go past what they support.
+
+**A concurrency bug found while fixing the first item.** `paths` was populated by
+`push()` from inside N concurrent callbacks and then used to index the results
+array. Completion order of concurrent promises is not `Promise.all` output order,
+so the two could not be zipped — the pool filter would have mis-attributed which
+sub-query used which path. Each sub-query now carries its path back in its own
+result object.
+
+**Also self-caught before review returned:** `needsRewrite` matched bare pronouns
+anywhere in the string and fired on 4 of 5 real questions, because "a bank THAT
+has failed two audits" is a relative pronoun, not a back-reference. It would have
+paid the 1.8s rewrite on nearly every question.
+
+Diversity unchanged at 4.75 books after all four fixes. 156 files / 1955 tests.

@@ -283,3 +283,37 @@ describe("coverageNotice", () => {
     expect(coverageNotice("degraded", "internal")).toMatch(/not name any work|do not name/i);
   });
 });
+
+describe("coverageNotice — the thin state", () => {
+  // The defect this locks down: the partial-coverage branch injected real,
+  // titled excerpts and then appended the UNCOVERED notice, which asserts
+  // "nothing relevant was retrieved, so naming a work would be an invention".
+  // Flatly false with excerpts directly above it, and worse than saying nothing.
+  it("never claims nothing was retrieved", () => {
+    for (const audience of ["internal", "client"] as const) {
+      const text = coverageNotice("thin", audience);
+      expect(text).not.toMatch(/nothing (?:relevant )?was retrieved/i);
+      expect(text).not.toMatch(/no substantive material/i);
+      expect(text).not.toMatch(/would be an invention/i);
+    }
+  });
+
+  it("is distinct from every other state, for both audiences", () => {
+    const all = (["uncovered", "thin", "degraded"] as const).flatMap((s) => [
+      coverageNotice(s, "internal"),
+      coverageNotice(s, "client"),
+    ]);
+    expect(new Set(all).size).toBe(6);
+  });
+
+  it("lets an internal turn name the works it was actually given", () => {
+    expect(coverageNotice("thin", "internal")).toMatch(/name those works/i);
+  });
+
+  it("still leaks nothing to a client turn", () => {
+    const text = coverageNotice("thin", "client");
+    for (const banned of [/\blibrary\b/i, /\bsources?\b/i, /\bbooks?\b/i, /\bmaterial\b/i, /\bretriev/i]) {
+      expect(text, `thin client notice leaks ${banned}: ${text}`).not.toMatch(banned);
+    }
+  });
+});

@@ -159,7 +159,7 @@ export function ragInstruction(audience: Audience): string {
  * epistemic fact without the disclosure.
  */
 export function coverageNotice(
-  state: "uncovered" | "degraded",
+  state: "uncovered" | "thin" | "degraded",
   audience: Audience,
 ): string {
   if (state === "degraded") {
@@ -174,6 +174,25 @@ export function coverageNotice(
           "that this is your read rather than settled practice. Do not explain " +
           "why, and do not imply anything was consulted or unavailable.";
   }
+  if (state === "thin") {
+    // A FOURTH state, and it exists because conflating it with "uncovered" was
+    // a real defect: material WAS retrieved and injected, and the uncovered
+    // copy asserts "nothing relevant was retrieved, so naming one would be an
+    // invention" — flatly false with excerpts sitting directly above it.
+    // Telling the model both at once is worse than telling it neither.
+    return audience === "internal"
+      ? "## Thin coverage\n" +
+          "What you were given above is all the library has on this, and it is " +
+          "thin — enough to inform an answer, not enough to ground one. Use it " +
+          "and name those works, but say plainly where you go past what they " +
+          "support and into your own judgement. Do not stretch a handful of " +
+          "passages into a confident position."
+      : "## Limited established ground\n" +
+          "There is less settled practice behind this than usual. Answer, and " +
+          "mark clearly where you move from the standard play to your own call. " +
+          "Do not imply anything was consulted or is missing.";
+  }
+
   return audience === "internal"
     ? "## Nothing in the library covers this\n" +
         "The library has no substantive material on this question. Say so " +
