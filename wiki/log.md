@@ -2673,3 +2673,68 @@ and a "found files to scan" assertion now fails loudly if it ever regresses.
 
 Mutation-verified against all three: restoring the original line fails two
 assertions, dropping `isEvalSupported` fails a third.
+
+## 2026-07-31 — The startup shelf, and bulk ingest
+
+**Library: 19 → 36 documents. Startup shelf: 0 → 16.** The gap that mattered
+most, given Metis Workspace is built for solo consultants and founders without
+in-house capability.
+
+`scripts/ingest-bulk.mjs` takes a folder. It is not a loop around
+`ingest:pdf` — that needs a hand-typed title and defaults `category` to
+`dmbok`, which would have shelved 22 startup books next to the DAMA syllabus.
+Each book is identified from its own opening pages: real title, author, year,
+domain. `is_cdmp_source` is always false; nothing becomes exam material by
+accident.
+
+**5 of 22 rejected, each for a different reason, none of them "it looked thin":**
+
+- *Venture Deals*, *High Output Management* — image-only scans, 2 chars/page
+- *Secrets of Sand Hill Road* — unparseable PDF structure
+- *Good Strategy Bad Strategy* — 7 pages; a summary, not the book
+- *Zero to One* — **269,000 characters of font-encoded gibberish**. Its text
+  opens `&RS\ULJKW ... 3HWHU 7KLHO` — "Copyright ... Peter Thiel" shifted by
+  three. pdf-parse returned raw glyph codes. Every size measure said healthy.
+
+**Chunk count is the wrong detector, and finding that out was the point.** Zero
+to One had 269k chars and 16 chunks; The Lean Startup had 137 chunks across
+1087 pages and is completely fine. The tell is WORD LENGTH: readable books
+average 4.6–5.5 characters per word, that file averaged 27.6, scans average 0.
+
+**A threshold I guessed and had to throw away.** A printable-character ratio
+looked sensible and rejected three good books: real typeset books run 85–99%
+(em dashes, curly quotes, accented names) against the bad file's 79%. Six
+points of separation versus word length's fivefold. Measured across all 22 and
+deleted it — a second signal whose populations overlap does not add confidence,
+it just costs recall.
+
+**A live failure mid-ingest.** *Shoe Dog* aborted the run with
+`invalid byte sequence for encoding "UTF8": 0x00`. Postgres text columns reject
+NUL, and PDF extraction produces them from embedded fonts often enough to be a
+when-not-if. Now stripped at extraction along with the other C0 controls; tab
+and newline are kept, because the chunker splits on paragraph breaks and losing
+newlines would collapse a whole book into one chunk.
+
+The per-book transaction meant the failure cost nothing: five books were in
+cleanly, Shoe Dog rolled back whole, and the content-hash dedup let the rerun
+resume exactly where it stopped.
+
+**Verified end to end** — questions that had NOTHING this morning:
+
+```
+"when should a founder kill a product bet"  Fishkin, Belsky, Ries, Blank
+"hire my first sales rep before PMF"        Kazanjy, Blank
+"seed dilution and term sheets"             Fishkin, Elad Gil, Blank, Kazanjy
+```
+
+Also extracted `scripts/lib/pdf-ingest.mjs` so chunking lives in one place
+rather than three, and batched embeddings 64 per request — 2,295 chunks would
+otherwise have been 2,295 sequential round trips.
+
+**Noticed, not fixed:** "how do I know if I have product market fit" returned 36
+chunks above the floor from a SINGLE work — The Startup Owner's Manual is 397
+chunks and can dominate a candidate pool on its own topic. The per-document cap
+still limits what reaches the model, but a wider `perQueryK` would give it
+alternatives. Left for the telemetry to judge rather than tuned blind.
+
+PROD and DEV both at 36 documents / 6,192 chunks. CDMP pool still exactly 2.
