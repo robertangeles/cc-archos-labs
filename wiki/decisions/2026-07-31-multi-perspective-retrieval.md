@@ -113,14 +113,6 @@ to index the results array. The completion order of concurrent promises is not
 fix would have silently mis-attributed which sub-query used which path. Each
 sub-query now carries its own path back in its result.
 
-## Three states, never conflated
-
-```
-grounded    material reached the model     -> inject it, with the RAG instruction
-uncovered   we looked, library has nothing -> say so; answer from judgement
-degraded    we could not look              -> a service failure, worded differently
-```
-
 `coverageNotice()` is audience-aware for the same reason everything else is:
 telling a client "I could not reach the library" confirms a library exists,
 which the protection block forbids. The client wording carries the same
