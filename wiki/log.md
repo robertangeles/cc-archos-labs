@@ -2438,3 +2438,70 @@ Both guards mutation-tested: reinstating the mixed pool fails a test, and
 dropping `failures.length` from the degraded check fails another.
 
 156 files / 1964 tests.
+
+## 2026-07-31 — Metis live RAG Phase 4: search_library + progress streaming
+
+**RETRIEVE_FANOUT_ENABLED=true on PROD.** Set via the Render API; deploy
+`dep-d9m4ikegekts73f8lua0`.
+
+**search_library shipped.** Metis can now chase a thread mid-answer instead of
+working only from one pre-turn retrieval — the last piece of the original ask.
+
+**Per-tool org gating, not per-loop.** The loop used to be skipped entirely when
+no org resolved, which silently disabled the whole capability for org-less
+users. `search_library` reads a shared shelf with no tenant data, so the guard
+protecting the other four has nothing to protect there. `toolsFor(orgId)` now
+returns just the library when there is no org; the four workspace tools
+hard-fail on a null orgId rather than querying with one.
+
+**Two security properties, both mutation-tested:**
+- A client turn NEVER receives a document title through the tool. Tool results
+  reach the model through a different door from the pre-turn excerpts and needed
+  the same rule; the mutation that returns titles unconditionally fails a test.
+- Results are deduped against the turn's pre-turn set by chunkId. The model
+  seeing the same passage twice reads it as two sources agreeing, which is
+  exactly the wrong inference.
+
+**The result budget was a real defect, not a nicety.** `json()` ends with
+`.slice(0, 4000)`. A book chunk is ~1000 tokens ≈ 4000+ chars, so a two-chunk
+result was cut mid-word every time — and a severed sentence reads to a model
+like a finished thought. `search_library` now packs whole chunks to its own
+budget and does NOT go through `json()`; a single over-budget chunk is cut at a
+word boundary and only ever as the first item.
+
+**Progress streaming (D5).** A tool turn's answer is non-streamed, so the pane
+was blank for up to 20 seconds — which reads as a hang, and the user aborts
+before the better answer arrives. Progress events now share the response stream,
+wrapped in U+001F (a control character that cannot occur in prose), shown live
+and stripped from the saved message. `splitProgress` is pure and shared by the
+client and the tests, so the two agree by construction rather than by two
+similar implementations. It handles the half-arrived event explicitly: a
+trailing unterminated segment is neither content nor a label, and rendering it
+as either flashes a broken fragment into the message body.
+
+Labels say what is happening, not what is installed — "Consulting the practice
+library", never the raw tool name.
+
+Suite: 158 files / 1985 tests, tsc + lint + production build clean.
+
+### PR #234 review follow-ups
+
+**A bug I wrote, hidden by a test I wrote.** `packChunks` truncated an
+oversized first chunk at `content.lastIndexOf(" ", 9000)`. With no space in
+range that returns -1, and `slice(0, -1)` means "everything except the last
+character" — so a 50,000-char chunk became 49,999. Effectively unbounded, and
+`jsonLibrary()` has no cap of its own, so the payload budget did nothing.
+
+My test for that exact case asserted only `excerpts.length === 1`, never the
+size. It passed while the bug was live. Now asserts the actual bound; reverting
+the fix fails with `expected 49999 to be less than 10000`.
+
+**Dedup did not survive a second hop.** `seenChunkIds` was built once from the
+pre-turn retrieval and never grew, so two different `search_library` queries
+returning overlapping chunks put the same passage in front of the model twice —
+the exact "two sources agreeing" misread the dedup exists to prevent. The loop's
+own guard only catches literally identical calls, not overlapping results. The
+set now grows as chunks are served, and records only what actually reached the
+model (a chunk dropped for length stays available to a later call).
+
+Fifth time this session a green test measured the wrong thing.

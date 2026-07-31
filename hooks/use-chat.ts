@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import { splitProgress } from "@/lib/chat/progress-protocol";
 
 export interface ChatConversation {
   id: string;
@@ -34,6 +35,9 @@ export function useChat({ defaultModel }: UseChatOptions) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
+  // Latest tool-loop progress label, or null. Display-only: a tool turn's
+  // answer is non-streamed, so this is the sole feedback during the wait.
+  const [toolProgress, setToolProgress] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const refreshConversations = useCallback(async () => {
@@ -152,10 +156,17 @@ export function useChat({ defaultModel }: UseChatOptions) {
           if (done) break;
           const chunk = decoder.decode(value, { stream: true });
           accumulated += chunk;
-          if (!imageGen) setStreamingContent(accumulated);
+          if (!imageGen) {
+            // A tool-using turn interleaves progress events (delimiter-wrapped)
+            // ahead of its answer. Show the latest as a status line and keep
+            // them out of the message body — see lib/chat/progress-protocol.ts.
+            const { labels, content } = splitProgress(accumulated);
+            setToolProgress(labels.length ? labels[labels.length - 1] : null);
+            setStreamingContent(content);
+          }
         }
 
-        let msgContent = accumulated;
+        let msgContent = splitProgress(accumulated).content;
         let msgContentType: string | undefined;
 
         if (imageGen && accumulated) {
@@ -178,6 +189,7 @@ export function useChat({ defaultModel }: UseChatOptions) {
         };
         setMessages((prev) => [...prev, assistantMsg]);
         setStreamingContent("");
+        setToolProgress(null);
         refreshConversations();
       } catch (err) {
         if ((err as Error).name === "AbortError") {
@@ -228,6 +240,7 @@ export function useChat({ defaultModel }: UseChatOptions) {
     isLoading,
     isSending,
     streamingContent,
+    toolProgress,
     refreshConversations,
     loadConversation,
     loadMore,

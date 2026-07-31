@@ -14,6 +14,7 @@ import {
 } from "./prompt-config-shared";
 import { getEnabledRules } from "../rules/service";
 import { retrieve } from "../knowledge/retrieve";
+import { encodeProgress, stripDelimiters } from "./progress-protocol";
 import {
   logRetrievalEvent,
   safeReason as safeRetrievalReason,
@@ -463,24 +464,39 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     return { stream, cleanup };
   }
 
-  // Workspace tool loop (C2): flag-gated. When on + the user has an org, let the
-  // model call allowlisted org-scoped tools to reason over the workspace. A
+  // Tool loop (C2): flag-gated. When on, the model may call allowlisted tools
+  // mid-answer — search_library to chase a thread into the practice library,
+  // plus the org-scoped workspace tools when an org resolves. A
   // tool-using turn's final answer is produced non-streamed, so it ships as a
   // single chunk (like web search). On any failure or empty answer, fall through
   // to normal streaming (ungrounded). Only reached for standard models — the
   // web-search / perplexity / image branches above already returned.
   if (isWorkspaceToolsEnabled()) {
+    // NOT gated on the org resolving. It used to be, and that silently disabled
+    // the one capability the loop exists for: search_library reads a shared
+    // shelf with no tenant data, so the guard protecting the other four tools
+    // has nothing to protect there. Gating is now per-tool (toolsFor), and the
+    // org-scoped four hard-fail on a null orgId.
     const toolOrgId = await resolveToolOrgId(args.userId);
-    if (toolOrgId) {
+    {
       let toolContent = "";
+      // Progress events are buffered here and replayed into the stream ahead of
+      // the answer. The loop's answer is non-streamed, so this is the only
+      // feedback the user gets during a wait that can reach 20 seconds.
+      const progressLabels: string[] = [];
       try {
-        toolContent = await runWorkspaceToolTurn(
-          [...systemMessage, ...priorMessages] as ChatMessage[],
-          toolOrgId,
+        toolContent = await runWorkspaceToolTurn({
+          onProgress: (pr) => progressLabels.push(pr.label),
+          messages: [...systemMessage, ...priorMessages] as ChatMessage[],
+          orgId: toolOrgId,
+          audience,
+          // Anything the pre-turn retrieval already showed the model. Seeing a
+          // passage twice reads as two sources agreeing.
+          seenChunkIds: new Set(retrieval.chunks.map((c) => c.chunkId)),
           modelId,
           apiKey,
-          args.signal,
-        );
+          signal: args.signal,
+        });
       } catch {
         toolContent = "";
       }
@@ -488,11 +504,18 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
         const encoder = new TextEncoder();
         const stream = new ReadableStream<Uint8Array>({
           start(controller) {
-            controller.enqueue(encoder.encode(toolContent));
+            for (const label of progressLabels) {
+              controller.enqueue(encoder.encode(encodeProgress(label)));
+            }
+            // Strip any delimiter the model itself produced, so an answer that
+            // mentions a control character cannot be read as an event boundary.
+            controller.enqueue(encoder.encode(stripDelimiters(toolContent)));
             controller.close();
           },
         });
         const cleanup = async () => {
+          // toolContent only — progress events are display-only and must never
+          // reach the stored message.
           await chatService.saveMessage(
             args.conversationId,
             "assistant",

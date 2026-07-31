@@ -12,9 +12,11 @@ vi.mock("../clients/service", () => ({ listClients: m.listClients }));
 vi.mock("../kanban/service", () => ({ getBoard: m.getBoard }));
 vi.mock("./memory", () => ({ recallWorkspaceFromDb: m.recallWorkspaceFromDb }));
 
-import { executeWorkspaceTool, WORKSPACE_TOOLS } from "./traversal";
+import { executeWorkspaceTool, WORKSPACE_TOOLS,
+  type ToolContext,
+} from "./traversal";
 
-const CTX = { orgId: "org-1" };
+const CTX: ToolContext = { orgId: "org-1", audience: "internal" };
 const PID = "22222222-2222-2222-2222-222222222222";
 
 beforeEach(() => {

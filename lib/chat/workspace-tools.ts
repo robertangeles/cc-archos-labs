@@ -1,18 +1,23 @@
 import "server-only";
 import { OPENROUTER_URL, buildAuthHeaders } from "../llm/config";
 import { getOrgIdFromCookies, resolveOrgContext } from "../auth/org-context";
+import { toolsFor } from "../brain/traversal";
 import {
   runToolLoop,
-  WORKSPACE_TOOLS,
   type ChatMessage,
   type CallModel,
+  type OnProgress,
 } from "./tool-loop";
 
-// C2 stream integration helpers. Flag-gated + org-scoped: when enabled and the
-// user has an org, the chat model can call allowlisted workspace tools to reason
-// over the workspace (SPK-1 decided the agentic-loop path). A tool-using turn's
-// final answer is produced non-streamed, so the caller delivers it as a single
-// chunk (like the web-search path).
+// C2 stream integration helpers. Flag-gated, and gated PER TOOL rather than per
+// loop: when enabled, the chat model can always call search_library (a shared
+// shelf with no tenant data), and additionally the org-scoped workspace tools
+// when an org resolves. The loop used to be skipped entirely without an org,
+// which silently disabled the library search for org-less users.
+//
+// A tool-using turn's final answer is produced non-streamed, so the caller
+// delivers it as a single chunk (like the web-search path), preceded by
+// progress events — see lib/chat/progress-protocol.ts.
 
 export function isWorkspaceToolsEnabled(): boolean {
   return process.env.WORKSPACE_TOOLS_ENABLED === "true";
@@ -42,8 +47,14 @@ export async function resolveToolOrgId(userId: string): Promise<string | null> {
 export function buildCallModel(
   modelId: string,
   apiKey: string,
+  orgId: string | null,
   signal?: AbortSignal,
 ): CallModel {
+  // PER-TOOL gating. The loop used to be skipped entirely when the user had no
+  // org, which silently disabled the one capability it was turned on for —
+  // search_library reads a shared shelf with no tenant data, so the org guard
+  // that protects the other four has nothing to protect there.
+  const tools = toolsFor(orgId);
   return async (messages, offerTools) => {
     const res = await fetch(OPENROUTER_URL, {
       method: "POST",
@@ -52,7 +63,7 @@ export function buildCallModel(
         model: modelId,
         stream: false,
         messages,
-        ...(offerTools ? { tools: WORKSPACE_TOOLS } : {}),
+        ...(offerTools ? { tools } : {}),
       }),
       signal,
     });
@@ -72,17 +83,25 @@ export function buildCallModel(
  * Returns "" if the loop produced no answer (caller then falls back to normal
  * streaming, ungrounded).
  */
-export async function runWorkspaceToolTurn(
-  messages: ChatMessage[],
-  orgId: string,
-  modelId: string,
-  apiKey: string,
-  signal?: AbortSignal,
-): Promise<string> {
+export async function runWorkspaceToolTurn(args: {
+  messages: ChatMessage[];
+  orgId: string | null;
+  audience: "internal" | "client";
+  seenChunkIds?: Set<string>;
+  modelId: string;
+  apiKey: string;
+  signal?: AbortSignal;
+  onProgress?: OnProgress;
+}): Promise<string> {
   const result = await runToolLoop(
-    messages,
-    { orgId },
-    buildCallModel(modelId, apiKey, signal),
+    args.messages,
+    {
+      orgId: args.orgId,
+      audience: args.audience,
+      seenChunkIds: args.seenChunkIds,
+    },
+    buildCallModel(args.modelId, args.apiKey, args.orgId, args.signal),
+    args.onProgress,
   );
   return result.finalContent;
 }

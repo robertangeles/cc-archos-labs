@@ -47,6 +47,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
     hasMore,
     isSending,
     streamingContent,
+    toolProgress,
     refreshConversations,
     loadConversation,
     loadMore,
@@ -124,7 +125,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, streamingContent]);
+  }, [messages, streamingContent, toolProgress]);
 
   // Load the active conversation's attached documents; clear on new chat.
   const activeConversationId = activeConversation?.id ?? null;
@@ -440,6 +441,24 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
                   onPublish={connectedPlatforms.length > 0 ? setPublishContent : undefined}
                 />
               ))}
+              {toolProgress && !streamingContent && (
+                // A tool-using turn produces its answer non-streamed, so
+                // without this the pane is blank for up to 20 seconds and reads
+                // as a hang. Naming what it is doing turns dead time into
+                // visible work — and it is the one moment where showing the
+                // machinery builds trust rather than leaking it.
+                <div
+                  className="flex items-center gap-x-2 py-2 text-body-sm text-ink-subtle"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <span
+                    className="inline-block h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-ink-subtle"
+                    aria-hidden="true"
+                  />
+                  <span>{toolProgress}</span>
+                </div>
+              )}
               {streamingContent && (
                 <ChatMessage
                   role="assistant"
