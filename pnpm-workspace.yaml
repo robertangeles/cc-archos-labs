@@ -1,4 +1,9 @@
 allowBuilds:
+  # false: canvas is an OPTIONAL native dep of pdfjs-dist, used only for
+  # server-side PDF *rendering*. We do browser-side text extraction, which never
+  # touches it. Building it needs a native toolchain (cairo, pango, libjpeg) that
+  # CI does not have, so allowing the build would break `pnpm install` there.
+  canvas: false
   esbuild: true
   puppeteer: true
   sharp: true

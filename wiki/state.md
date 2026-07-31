@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-31T08:33:25.802Z
+generated: 2026-07-31T10:28:00.690Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -300,12 +300,12 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/booking/calendar-picker.tsx](../components/booking/calendar-picker.tsx) | 2026-05-17 |
 | [components/chat/chat-empty-state.tsx](../components/chat/chat-empty-state.tsx) | 2026-06-08 |
 | [components/chat/chat-input.tsx](../components/chat/chat-input.tsx) | 2026-07-07 |
-| [components/chat/chat-message.tsx](../components/chat/chat-message.tsx) | 2026-06-14 |
+| [components/chat/chat-message.tsx](../components/chat/chat-message.tsx) | 2026-07-31 |
 | [components/chat/chat-model-picker.tsx](../components/chat/chat-model-picker.tsx) | 2026-06-09 |
 | [components/chat/chat-sidebar.tsx](../components/chat/chat-sidebar.tsx) | 2026-06-15 |
 | [components/chat/chat-skill-form.tsx](../components/chat/chat-skill-form.tsx) | 2026-06-08 |
 | [components/chat/image-gen-config.tsx](../components/chat/image-gen-config.tsx) | 2026-06-09 |
-| [components/chat/source-citations.tsx](../components/chat/source-citations.tsx) | unknown |
+| [components/chat/source-citations.tsx](../components/chat/source-citations.tsx) | 2026-07-31 |
 | [components/clients/client-detail.tsx](../components/clients/client-detail.tsx) | 2026-06-15 |
 | [components/clients/client-form.tsx](../components/clients/client-form.tsx) | 2026-06-15 |
 | [components/clients/clients-view.tsx](../components/clients/clients-view.tsx) | 2026-06-15 |
