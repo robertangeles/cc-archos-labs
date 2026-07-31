@@ -2505,3 +2505,18 @@ set now grows as chunks are served, and records only what actually reached the
 model (a chunk dropped for length stays available to a later call).
 
 Fifth time this session a green test measured the wrong thing.
+
+### Both flags live on PROD
+
+`RETRIEVE_FANOUT_ENABLED=true` and `WORKSPACE_TOOLS_ENABLED=true`, set via the
+Render API.
+
+The second one had never been set anywhere — not in `.env.example`, not in
+PROD, not locally — so the tool loop built back in the workspace-memory work
+had never once executed in production, and `search_library` would have shipped
+dark. A feature behind a flag nobody has turned on is indistinguishable from a
+feature that was never built.
+
+What changes for a user: a turn where Metis decides to use a tool is no longer
+streamed. Up to 5 model round-trips, 20s wall clock, with progress events
+filling the wait. Both flags revert in seconds without a deploy.
