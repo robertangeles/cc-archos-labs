@@ -24,7 +24,7 @@ import {
   ATTRIBUTION,
   PROTECTION_HEADING,
   extractProtection,
-} from "./_metis-source-blocks.mjs";
+} from "./metis-source-blocks.mjs";
 
 const url = process.env.DATABASE_URL;
 if (!url) { console.error("DATABASE_URL not set"); process.exit(1); }

@@ -49,7 +49,7 @@ import {
   NEW_RAG_INSTRUCTION,
   OLD_RAG_INSTRUCTION,
   extractProtection,
-} from "./_metis-source-blocks.mjs";
+} from "./metis-source-blocks.mjs";
 
 const QUESTIONS = [
   "How do I sequence data governance for a bank that has failed two audits and blames the vendor?",

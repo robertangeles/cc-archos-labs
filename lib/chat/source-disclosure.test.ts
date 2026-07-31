@@ -115,7 +115,7 @@ describe("ragInstruction", () => {
 });
 
 describe("script copies stay in sync with the source of truth", () => {
-  // scripts/_metis-source-blocks.mjs duplicates the internal RAG instruction
+  // scripts/metis-source-blocks.mjs duplicates the internal RAG instruction
   // because plain node scripts cannot import a `server-only` module. A drifted
   // copy would silently make the prompt A/B a measurement of a prompt that
   // never ships — the worst kind of wrong, because the number still looks real.
@@ -126,7 +126,7 @@ describe("script copies stay in sync with the source of truth", () => {
   it("NEW_RAG_INSTRUCTION matches ragInstruction('internal') exactly", async () => {
     const { readFileSync } = await import("node:fs");
     const src = readFileSync(
-      new URL("../../scripts/_metis-source-blocks.mjs", import.meta.url),
+      new URL("../../scripts/metis-source-blocks.mjs", import.meta.url),
       "utf8",
     );
     // The runtime string cannot be compared to the source text line by line:
@@ -142,7 +142,7 @@ describe("script copies stay in sync with the source of truth", () => {
       s.replace(/\\n/g, "").replace(/[\\"'+\s]/g, "");
     expect(
       normalise(src).includes(normalise(ragInstruction("internal"))),
-      "scripts/_metis-source-blocks.mjs NEW_RAG_INSTRUCTION has drifted from ragInstruction('internal')",
+      "scripts/metis-source-blocks.mjs NEW_RAG_INSTRUCTION has drifted from ragInstruction('internal')",
     ).toBe(true);
   });
 });
