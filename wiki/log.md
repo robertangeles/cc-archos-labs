@@ -2621,3 +2621,55 @@ holds if every grounded branch cites. A source-level test now counts the emit
 and persist sites so a branch added later without one fails.
 
 Suite: 160 files / 2006 tests.
+
+## 2026-07-31 — Knowledge upload broken by CSP
+
+Uploading to the knowledge base failed with "Evaluating a string as JavaScript
+violates ... 'unsafe-eval' is not an allowed source of script".
+
+**Root cause**, `app/admin/(authed)/knowledge/page.tsx:74`:
+
+```js
+Function('return import("https://cdnjs.cloudflare.com/.../pdf.min.mjs")')()
+```
+
+Two separate violations, and fixing either alone still leaves the other:
+1. `Function(string)` is exactly what `'unsafe-eval'` governs
+2. `cdnjs.cloudflare.com` is not in `script-src`, so the import — and the worker
+   it then loaded — would have been blocked anyway
+
+The `Function()` wrapper existed to stop the bundler rewriting the CDN URL. It
+worked fine while CSP was Report-Only; it broke the moment PR #228 flipped the
+policy to enforcing, on a screen nobody visits daily, so it sat broken until
+someone tried to upload a book.
+
+**Fix:** `pdfjs-dist@4.4.168` installed and imported normally. No URL to protect
+means no `Function()` needed; the bundler code-splits it and emits the worker to
+`.next/static/media/`, served from `'self'`. Verified: zero cdnjs references in
+the built client bundle.
+
+Also set `isEvalSupported: false` on `getDocument` — pdf.js uses `new Function`
+internally on some font paths, so bundling alone is not enough; without the flag
+it trips the same rule from inside node_modules, which is a much harder error to
+trace.
+
+**NOT fixed by adding `'unsafe-eval'` and cdnjs to the CSP.** That reopens
+site-wide, on every page, the hole PR #230 closed — to serve one admin form.
+
+**A bug the CDN build was hiding.** It was typed `any`, so `.map(item => item.str ?? "")`
+looked fine. With real types, `getTextContent()` returns `TextItem |
+TextMarkedContent` and only `TextItem` has `str` — marked-content items were
+each contributing `""`. Now filtered by type guard.
+
+**Guard added** (`lib/csp-client-safety.test.ts`): scans app/, components/,
+hooks/ for code built from strings and for script URLs outside `SCRIPT_HOSTS`,
+and requires `isEvalSupported: false` wherever `getDocument` is called. Comments
+are stripped first so this write-up is not read as a violation.
+
+Writing it produced the same failure it exists to catch: the repo path contains
+spaces, `new URL().pathname` percent-encodes them, `readdirSync` found nothing,
+and all four scans passed against an EMPTY file list. `fileURLToPath` fixes it,
+and a "found files to scan" assertion now fails loudly if it ever regresses.
+
+Mutation-verified against all three: restoring the original line fails two
+assertions, dropping `isEvalSupported` fails a third.

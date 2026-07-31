@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { TextItem } from "pdfjs-dist/types/src/display/api";
 
 interface KnowledgeDoc {
   id: string;
@@ -70,20 +71,57 @@ export default function AdminKnowledgePage() {
   }, [upload, documents, fetchDocuments]);
 
   async function extractPdfText(file: File): Promise<string> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pdfjsLib: any = await (Function('return import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs")')());
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
+    // pdf.js is BUNDLED, not fetched, and loaded through a real dynamic import.
+    //
+    // This used to be:
+    //   Function('return import("https://cdnjs.cloudflare.com/.../pdf.min.mjs")')()
+    //
+    // which broke the moment CSP went from Report-Only to enforcing. Two
+    // separate violations, and fixing either alone still leaves the other:
+    //   1. Function(string) is exactly what 'unsafe-eval' governs
+    //   2. cdnjs.cloudflare.com is not in script-src, so even the import would
+    //      have been blocked, as would the worker it then loaded
+    //
+    // The Function() wrapper existed to stop the bundler rewriting the URL. With
+    // the package installed there is no URL to protect, so a plain dynamic
+    // import works, code-splits away from the rest of the admin bundle, and
+    // carries the request nonce like any other bundled script.
+    //
+    // NOT fixed by adding 'unsafe-eval' + cdnjs to the CSP: that would reopen
+    // site-wide, for every page, the exact hole PR #230 closed — to serve one
+    // admin upload form.
+    const pdfjsLib = await import("pdfjs-dist");
+
+    // pdf.js ships its own worker. Resolved through the bundler so it is served
+    // from our own origin ('self'), not a CDN.
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+      "pdfjs-dist/build/pdf.worker.min.mjs",
+      import.meta.url,
+    ).toString();
 
     const arrayBuffer = await file.arrayBuffer();
-    const doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const doc = await pdfjsLib.getDocument({
+      data: arrayBuffer,
+      // pdf.js uses `new Function` internally for some font and colour-space
+      // paths. Bundling it is not enough on its own — without this it trips the
+      // SAME CSP rule from inside the library, which is a far more confusing
+      // error to land on. Text extraction does not need those paths.
+      isEvalSupported: false,
+    }).promise;
     const pages: string[] = [];
 
     for (let i = 1; i <= doc.numPages; i++) {
       const page = await doc.getPage(i);
       const content = await page.getTextContent();
+      // getTextContent returns TextItem | TextMarkedContent. Only TextItem
+      // carries text; TextMarkedContent is structure (tagged-PDF markers) and
+      // has no `str` at all. The CDN build was typed `any`, so this went
+      // unnoticed — the old code read `.str` off marked-content items and
+      // silently contributed "" for each. Filtering is what the empty string
+      // was standing in for.
       const text = content.items
-        .map((item: { str?: string }) => item.str ?? "")
+        .filter((item): item is TextItem => "str" in item)
+        .map((item) => item.str)
         .join(" ");
       pages.push(text);
     }

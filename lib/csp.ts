@@ -13,7 +13,7 @@
  * Hosts that serve executable script. Kept as a host allowlist rather than
  * folded into 'strict-dynamic' — see the note on buildCsp.
  */
-const SCRIPT_HOSTS = [
+export const SCRIPT_HOSTS = [
   "https://*.googletagmanager.com",
   "https://connect.facebook.net",
   "https://challenges.cloudflare.com",

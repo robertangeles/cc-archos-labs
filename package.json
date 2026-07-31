@@ -61,6 +61,7 @@
     "next": "16.2.5",
     "p-limit": "^7.3.0",
     "pdf-parse": "1.1.1",
+    "pdfjs-dist": "4.4.168",
     "postgres": "^3.4.9",
     "puppeteer": "^24.43.1",
     "react": "19.2.4",
