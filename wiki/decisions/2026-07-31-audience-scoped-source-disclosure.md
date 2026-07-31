@@ -3,7 +3,7 @@ title: Source disclosure is scoped by audience, not global
 category: decision
 created: 2026-07-31
 updated: 2026-07-31
-related: [[metis-workspace-chat]], [[2026-07-31-retrieval-floor-calibration]]
+related: [[2026-07-31-retrieval-floor-calibration]]
 ---
 
 Metis may name the practice library to `admin` users and never to anyone else;

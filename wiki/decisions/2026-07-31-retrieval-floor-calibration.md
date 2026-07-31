@@ -3,7 +3,7 @@ title: Retrieval similarity floor — calibrated from data, not guessed
 category: decision
 created: 2026-07-31
 updated: 2026-07-31
-related: [[metis-workspace-chat]], [[deployment-architecture]]
+related: [[deployment-architecture]]
 ---
 
 The chat RAG floor of 0.3 never fires; the honest discriminator is retrieval
