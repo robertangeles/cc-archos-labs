@@ -2213,3 +2213,73 @@ would have caught it locally.
 Pages touched: `decisions/2026-07-31-audience-scoped-source-disclosure.md`,
 `decisions/2026-07-31-retrieval-floor-calibration.md`. New code:
 `scripts/prompt-ab.mjs`, `scripts/_metis-source-blocks.mjs`.
+
+## 2026-07-31 — Metis live RAG Phase 2: corpus integrity
+
+**Fixed a live PROD defect.** `lib/cdmp/generate.ts:173` selected CDMP
+certification-exam material with `searchKnowledge(label, "dmbok", n)` — reading a
+free-text TOPIC label as an approval flag. 15 of 19 PROD documents carried that
+label, so The Trusted Advisor, Flawless Consulting, Clean Architecture and The
+Pragmatic Programmer were all feeding a data-management certification practice
+exam. Nothing failed; the questions were just quietly wrong.
+
+The fix is a separate axis, not a better string. `is_cdmp_source` (migration
+0039) defaults FALSE — a new document is not exam material until approved. The
+Unified Star Schema is the case that proves the axes differ: data-management by
+topic, but built on a proprietary technique that is not DAMA syllabus. Pool is
+now exactly DMBOK 2e + Kimball, verified by querying real chapter labels.
+
+**Also landed:** `users.role` default flipped `admin` -> `member` (migration
+0038). Since the audience split that column decides whether Metis may name the
+library, so its default is a security boundary and was failing open.
+
+**Client sessions now get the reasoning instruction without the attribution.**
+Naming sources and surfacing a tension are different concerns that happened to
+arrive in the same commit; only the first is commercially sensitive. Client turns
+now get take-a-position and name-the-tension, phrased so the output never implies
+a corpus exists — with a test asserting the instruction carries no
+source-implying vocabulary, verified by mutation.
+
+PROVEN: zero attribution leak. Across 3 runs / 30 client answers, works named
+stayed 0.00-0.10, and every regex hit was legitimate domain vocabulary ("source
+system", "single source of truth", "a time block" — not Peter Block).
+
+NOT PROVEN: the reasoning lift itself. The judge cannot resolve it at n=10. Two
+runs of the IDENTICAL control arm at temperature 0 scored tension 2/10 and 6/10 —
+a 4-point swing on unchanged inputs, larger than the 1-2 point effect being
+measured. temperature 0 did not fix it (OpenRouter may route to different
+providers between runs). The instruction change is kept on design grounds and
+because the internal arm shows the same instruction class works at scale
+(0.00 -> 2.00 works named, 0/10 -> 9/10 separates-judgement — both far outside
+the noise band). Proving the client-side lift needs a larger n or a rubric the
+judge can score reproducibly.
+
+**All 19 documents identified from chunk CONTENT, not filenames.** One was titled
+`ABUIABA9GAAghIK0ugYowM2h3QY`; it is Chip Huyen's Designing Machine Learning
+Systems. Two documents have damaged extraction: The Unified Star Schema is
+BROKEN (10 chunks for ~250pp — over 90% missing) and Designing ML Systems is
+SUSPECT (letter-spaced OCR garble in tables). Both re-verified by hand.
+
+**E5:** the silent `chunks.slice(0, 500)` in both chunking paths now throws.
+DMBOK sat at 496, four from the ceiling, so the next long book would have been
+half-ingested behind a healthy-looking "ready" badge. Cap raised to 2000 and made
+injectable so the guard is testable without 1.5M words of input.
+
+**E7:** `scripts/pull-prod-books.mjs` brings PROD books to DEV. Direction is
+enforced structurally — the target must resolve to localhost, and there is no
+flag that overrides it. Verified by trying to run it backwards. DEV went from 3
+documents to 19 (3,897 chunks), so retrieval work is finally testable locally.
+
+**Process failures worth keeping** — see
+`lessons-learned/2026-07-31-verification-failures.md`. Five checks that passed
+while proving nothing, including an A/B whose control moved 4/10 between runs
+while the treatment moved 1, and a mutation test that flagged a different line
+than the one deliberately broken. Mutation testing caught every real one.
+
+Suite: 155 files / 1919 tests green.
+
+Pages touched: `decisions/2026-07-31-corpus-taxonomy-and-cdmp-pool.md` (new),
+`lessons-learned/2026-07-31-verification-failures.md` (new), `index.md`.
+New code: migrations 0038 + 0039, `scripts/retag-knowledge-corpus.mjs`,
+`scripts/pull-prod-books.mjs`, `lib/cdmp/corpus-scope.test.ts`,
+`lib/knowledge/chunking.test.ts`.

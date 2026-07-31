@@ -39,6 +39,14 @@ const N = Number(arg("--questions", "8"));
 // The chat model lives in the encrypted integration config, which this script
 // cannot read. Pass --model to match production exactly.
 const CHAT_MODEL = arg("--model", "anthropic/claude-sonnet-4-6");
+// Which audience's NEW arm to measure. `internal` asks whether attribution
+// works; `client` asks whether the reasoning lift transfers WITHOUT it — and,
+// just as importantly, whether anything leaks when it does.
+const AUDIENCE = arg("--audience", "internal");
+if (!["internal", "client"].includes(AUDIENCE)) {
+  console.error("--audience must be internal or client");
+  process.exit(1);
+}
 const JUDGE_MODEL = arg("--judge", "anthropic/claude-sonnet-4-6");
 
 const isLocal = /127\.0\.0\.1|localhost/.test(url);
@@ -46,6 +54,7 @@ const sql = postgres(url, { max: 1, ssl: isLocal ? false : "require" });
 
 import {
   ATTRIBUTION,
+  CLIENT_RAG_INSTRUCTION,
   NEW_RAG_INSTRUCTION,
   OLD_RAG_INSTRUCTION,
   extractProtection,
@@ -76,6 +85,12 @@ async function openrouter(model, messages, jsonMode = false) {
     body: JSON.stringify({
       model,
       messages,
+      // temperature 0 on BOTH generation and judging. Without it the control
+      // arm — identical prompt, identical questions — swung 4/10 to 8/10 on
+      // tension between two runs, which is larger than the effect being
+      // measured. An A/B whose control moves more than its treatment is not a
+      // measurement, and it very nearly got reported as one.
+      temperature: 0,
       ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
     }),
   });
@@ -143,7 +158,14 @@ if (!protection) {
 // OLD arm reconstructs the pre-split assembly exactly: protection inline in the
 // system prompt, plus the RAG block carrying the contradicting cite instruction.
 const OLD_SYSTEM = `${core}\n\n${protection}`;
-const NEW_SYSTEM = `${core}\n\n${p.sourceAttribution ?? ATTRIBUTION}`;
+// The client arm keeps the protection block — only the RAG instruction changes.
+// That is the point: same disclosure regime, better reasoning.
+const NEW_SYSTEM =
+  AUDIENCE === "internal"
+    ? `${core}\n\n${p.sourceAttribution ?? ATTRIBUTION}`
+    : `${core}\n\n${protection}`;
+const NEW_INSTRUCTION =
+  AUDIENCE === "internal" ? NEW_RAG_INSTRUCTION : CLIENT_RAG_INSTRUCTION;
 console.log(`Prompt row: ${p.sourceProtection ? "already split" : "unsplit — arms derived in memory, nothing written"}`);
 
 const JUDGE = `You are scoring a consultant's answer. Return ONLY JSON:
@@ -156,7 +178,7 @@ const JUDGE = `You are scoring a consultant's answer. Return ONLY JSON:
 }
 Judge only what is present. Do not reward length.`;
 
-console.log(`Target: ${isLocal ? "DEV" : "PROD"} | chat=${CHAT_MODEL} | judge=${JUDGE_MODEL}`);
+console.log(`Target: ${isLocal ? "DEV" : "PROD"} | chat=${CHAT_MODEL} | judge=${JUDGE_MODEL} | NEW arm audience=${AUDIENCE}`);
 console.log(`${Math.min(N, QUESTIONS.length)} questions x 2 arms\n`);
 
 const results = [];
@@ -169,17 +191,22 @@ for (const q of QUESTIONS.slice(0, N)) {
     ORDER BY c.embedding <=> ${vec}::vector LIMIT 5`;
   const kept = chunks.filter((c) => c.sim > 0.3);
   const titles = [...new Set(kept.map((c) => c.title))];
-  // Identical material for both arms — labelled, because both arms are
-  // internal-audience assemblies. Only the instruction differs.
-  const material = kept.map((c) => `[${c.title}]\n${c.content}`).join("\n\n---\n\n");
+  // The OLD arm always sees labelled excerpts (that is what shipped). The NEW
+  // arm sees what production would give that audience: labelled for internal,
+  // stripped for client. Stripping is half the client protection, so measuring
+  // the client arm with labels would measure a system that does not exist.
+  const labelled = kept.map((c) => `[${c.title}]\n${c.content}`).join("\n\n---\n\n");
+  const unlabelled = kept.map((c) => c.content).join("\n\n---\n\n");
+  const materialFor = (arm) =>
+    arm === "new" && AUDIENCE === "client" ? unlabelled : labelled;
 
   const answers = {};
   for (const [arm, system, instruction] of [
     ["old", OLD_SYSTEM, OLD_RAG_INSTRUCTION],
-    ["new", NEW_SYSTEM, NEW_RAG_INSTRUCTION],
+    ["new", NEW_SYSTEM, NEW_INSTRUCTION],
   ]) {
     answers[arm] = await openrouter(CHAT_MODEL, [
-      { role: "system", content: `${system}\n\n${instruction}\n\n${material}` },
+      { role: "system", content: `${system}\n\n${instruction}\n\n${materialFor(arm)}` },
       { role: "user", content: q },
     ]);
   }
@@ -234,7 +261,9 @@ const ho = hedgeAvg("old"), hn = hedgeAvg("new");
 console.log(`  hedging (lower better)          ${ho?.toFixed(1) ?? "n/a"}      ${hn?.toFixed(1) ?? "n/a"}`);
 console.log("=".repeat(64));
 
-const path = "prompt-ab-results.json";
+// Audience in the filename so the internal-arm baseline is not overwritten
+// by a client-arm run — they answer different questions and both are evidence.
+const path = `prompt-ab-results-${AUDIENCE}.json`;
 writeFileSync(path, JSON.stringify({ measuredAt: new Date().toISOString(), chatModel: CHAT_MODEL, judgeModel: JUDGE_MODEL, results }, null, 2));
 console.log(`\nFull answers + scores written to ${path}`);
 

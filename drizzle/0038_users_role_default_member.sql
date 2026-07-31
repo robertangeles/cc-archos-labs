@@ -1,0 +1,53 @@
+-- Migration 0038: users.role default 'admin' -> 'member'
+--
+-- Hand-written, matching the convention since 0031: the drizzle-kit journal
+-- stops at 0030 and `db:generate` prompts on every out-of-sync table, so
+-- migrations here are authored directly and applied via scripts/db-apply.mjs
+-- against __drizzle_applied.
+--
+-- Changes a column DEFAULT only. No DROP, no data rewrite, no lock beyond a
+-- brief ACCESS EXCLUSIVE on the catalog entry (SET DEFAULT does not rewrite
+-- the table). No `-- safety:` header required by the CI migration-safety check.
+--
+--
+-- WHY
+--
+-- `role` was a UI permission when it was written: admin = backstage access,
+-- member = authenticated public-account holder. Defaulting to 'admin' was
+-- harmless because every insert path sets the value explicitly.
+--
+-- As of 2026-07-31 it is no longer only a UI permission. lib/chat/prompt-config-shared.ts
+-- `audienceFor()` reads it to decide whether a Metis turn may NAME the practice
+-- library — the curated book corpus that the KNOWLEDGE SOURCE PROTECTION block
+-- exists to keep out of client hands. See
+-- wiki/decisions/2026-07-31-audience-scoped-source-disclosure.md.
+--
+-- A default of 'admin' means the failure mode of a forgotten field is "this
+-- account can read out the library", which is precisely the wrong direction for
+-- a disclosure boundary. Every guard around it is written to fail closed; the
+-- column default was the one piece still failing open.
+--
+--
+-- WHY IT IS SAFE TO CHANGE NOW
+--
+-- All four insert paths write `role` explicitly, so no existing behaviour
+-- depends on the default (verified 2026-07-31):
+--
+--   app/api/auth/register/route.ts:152      role: "member"
+--   lib/auth/oauth-google.ts:356            role: "member"
+--   lib/diagnostic/report.ts:155            role: "member"
+--   scripts/backfill-users-from-leads.mjs   role='member'
+--
+-- Existing rows are untouched — SET DEFAULT applies only to future inserts that
+-- omit the column. PROD today is 2 admin / 8 member and stays exactly that.
+--
+-- Deliberately NOT converted to a pgEnum in this migration. The column comment
+-- from the original schema still applies ("promote to a pgEnum once we know
+-- which other roles we need"), and widening the change to a type conversion
+-- would turn a one-line default flip into a table rewrite for no benefit here.
+
+ALTER TABLE "users"
+  ALTER COLUMN "role" SET DEFAULT 'member';
+--> statement-breakpoint
+COMMENT ON COLUMN "users"."role" IS
+  'Application-level role. v1 values: admin | member. admin = full backstage access AND permission for Metis to name the practice library to this user (see lib/chat/prompt-config-shared.ts audienceFor). Defaults to member so a forgotten field fails closed on source disclosure.';

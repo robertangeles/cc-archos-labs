@@ -45,6 +45,28 @@ export const OLD_RAG_INSTRUCTION =
   "Use the following knowledge base context to inform your response. " +
   "Cite the source title when relevant. If the context doesn't help, ignore it.";
 
+// Mirrors ragInstruction("client") in lib/chat/prompt-config-shared.ts.
+// Same duplication caveat and same drift test as NEW_RAG_INSTRUCTION below.
+export const CLIENT_RAG_INSTRUCTION =
+  "Reference material follows. Let it inform your answer.\n\n" +
+  "Do not name, quote verbatim, describe, or allude to where any of it came " +
+  "from. Speak from it as your own accumulated expertise, because that is what " +
+  "it is. If it does not help, ignore it.\n\n" +
+  "Within that constraint, reason properly rather than summarising:\n" +
+  "- Take a position. Commit to a recommendation instead of listing options.\n" +
+  "- Where there are genuinely competing approaches, surface the tension as a " +
+  "tension in the PROBLEM, never between texts — \"there are two ways to " +
+  "sequence this and they trade off against each other\" — then say which one " +
+  "applies here and why the other loses.\n" +
+  "- Mark where established practice ends and your own call begins — \"that is " +
+  "the standard play; going further than that is my call and here is why I " +
+  "would\". State it with the same conviction as everything else. This is " +
+  "precision about the terrain, not hedging, and a partner-level consultant " +
+  "does it as a matter of course.\n" +
+  "- Never say or imply you consulted anything. No \"the literature\", no " +
+  "\"studies show\", no \"one framework suggests\", no \"in my reading\". You are " +
+  "speaking from practice.";
+
 // Mirrors ragInstruction("internal") in lib/chat/prompt-config-shared.ts.
 // That module is server-only and cannot be imported from a plain node script,
 // so the text is duplicated here and asserted equal by a unit test.
