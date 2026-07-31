@@ -20,6 +20,11 @@
 // Idempotent: re-running after a successful apply detects the split is already
 // done and exits without touching the row.
 import postgres from "postgres";
+import {
+  ATTRIBUTION,
+  PROTECTION_HEADING,
+  extractProtection,
+} from "./_metis-source-blocks.mjs";
 
 const url = process.env.DATABASE_URL;
 if (!url) { console.error("DATABASE_URL not set"); process.exit(1); }
@@ -28,36 +33,7 @@ const isLocal = /127\.0\.0\.1|localhost/.test(url);
 const sql = postgres(url, { max: 1, ssl: isLocal ? false : "require" });
 
 const KEY = "workspace_chat_prompt";
-const SECTION = "## KNOWLEDGE SOURCE PROTECTION";
-
-// The internal-session block. This is the substantive half of the change: it is
-// what lets Metis do the thing the library exists for — hold a position and
-// argue across named works — rather than blending them into an unattributable
-// summary. Deliberately NOT a citation format. Citation markers make prose read
-// like a literature review; naming a work mid-sentence is how a consultant
-// actually talks.
-const ATTRIBUTION = `## SOURCE HANDLING — INTERNAL SESSION
-
-You are working with the practice's own library, with someone who owns it. Name
-what you draw on and argue with it.
-
-- Name the work in prose as you use it — "Block's point about naming the
-  resistance", "Kimball would model this as a conformed dimension". Not
-  footnotes, not citation markers, not a reference list at the end.
-- When two works pull in different directions, say so, then commit: which one
-  applies HERE, and why the other one loses in this situation. A tension you
-  name and resolve is worth more than three works agreeing.
-- Separate what the material says from what you think. "The material covers X;
-  what it does not address, and what I would actually do, is Y." Never blur
-  those two together.
-- When the library has nothing useful on the question, say that plainly and
-  answer from your own judgement, flagged as such. Silence about a gap reads as
-  false grounding.
-- Never invent a title, an author, or a claim. If you did not draw on a work,
-  do not name it.
-
-This block applies to internal sessions only. It replaces the client-session
-source rules entirely — the two never appear together.`;
+const SECTION = PROTECTION_HEADING;
 
 const [row] = await sql`SELECT value FROM site_setting WHERE key = ${KEY}`;
 if (!row) {
@@ -74,20 +50,12 @@ if (value.sourceProtection || value.sourceAttribution) {
   process.exit(0);
 }
 
-const start = original.indexOf(SECTION);
-if (start === -1) {
+const { core: remaining, protection } = extractProtection(original);
+if (!protection) {
   console.error(`Could not find '${SECTION}' in the stored systemPrompt.`);
   console.error("Refusing to guess. Inspect the prompt and update this script.");
   process.exit(1);
 }
-
-// The section runs to the next top-level heading, or to the end.
-const rest = original.slice(start + SECTION.length);
-const nextHeading = rest.search(/^## /m);
-const end = nextHeading === -1 ? original.length : start + SECTION.length + nextHeading;
-
-const protection = original.slice(start, end).trim();
-const remaining = (original.slice(0, start) + original.slice(end)).replace(/\n{3,}/g, "\n\n").trim();
 
 console.log(`Target: ${isLocal ? "DEV (local)" : "PROD (remote)"}`);
 console.log(`Mode:   ${APPLY ? "APPLY — will write" : "DRY RUN — writes nothing"}\n`);

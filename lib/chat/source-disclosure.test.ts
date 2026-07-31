@@ -114,6 +114,19 @@ describe("ragInstruction", () => {
   });
 });
 
+describe("script copies stay in sync with the source of truth", () => {
+  // scripts/_metis-source-blocks.mjs duplicates the internal RAG instruction
+  // because plain node scripts cannot import a `server-only` module. A drifted
+  // copy would silently make the prompt A/B a measurement of a prompt that
+  // never ships — the worst kind of wrong, because the number still looks real.
+  it("NEW_RAG_INSTRUCTION matches ragInstruction('internal') exactly", async () => {
+    const { NEW_RAG_INSTRUCTION } = await import(
+      "../../scripts/_metis-source-blocks.mjs"
+    );
+    expect(NEW_RAG_INSTRUCTION).toBe(ragInstruction("internal"));
+  });
+});
+
 describe("ChatPromptSchema", () => {
   it("accepts a legacy row with neither source block", () => {
     const parsed = ChatPromptSchema.safeParse({

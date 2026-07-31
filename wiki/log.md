@@ -2167,3 +2167,49 @@ split is written and dry-run verified (8258 -> 6381 chars) but NOT applied.
 Pages touched: `decisions/2026-07-31-audience-scoped-source-disclosure.md` (new),
 `index.md`. New code: `lib/chat/source-disclosure.test.ts`,
 `scripts/split-chat-prompt-source-blocks.mjs`.
+
+## 2026-07-31 — Metis live RAG: the prompt was the binding constraint
+
+Measured the Phase 1 prompt change before building any retrieval machinery, which
+is why it was sequenced first. `scripts/prompt-ab.mjs`, 10 consulting questions,
+identical retrieved chunks in both arms so the prompt is the only variable.
+
+```
+                                  OLD      NEW
+  works named per answer          0.00     2.00
+  takes a position                10/10    10/10
+  surfaces + resolves a tension    4/10     9/10
+  separates source from judgement  0/10     9/10
+```
+
+The old arm named ZERO works across all ten questions. Not few — zero, every
+time. That is the stored protection block beating the contradicting "Cite the
+source title when relevant" instruction on every turn, exactly as the two-
+instruction analysis predicted.
+
+"Takes a position" was already 10/10 — the identity section handles that, and no
+retrieval work would have moved it. The two metrics that did move are precisely
+the ones the library exists for.
+
+**The binding constraint on holistic output was the prompt, not retrieval.** One
+text change, zero extra model calls, no taxonomy dependency. Retrieval still
+bounds the ceiling — at 1.72 books/turn, naming 2.00 works means Metis is already
+naming essentially everything that reaches it — so Phase 3's diversity work is
+now an improvement on a working system rather than the fix for a broken one.
+
+Two process notes worth keeping:
+
+The first A/B run reported 0/8 on every metric and looked like a clean finding.
+It was a judge parse failure — the script swallowed the raw output and returned
+zeros. A silent zero is indistinguishable from a real zero in an aggregate.
+The script now throws on an empty completion (with finish_reason) and keeps the
+raw text on a parse failure. **Never let a measurement fail to a plausible value.**
+
+CI caught a broken wiki ref `[[metis-workspace-chat]]` in the frontmatter of the
+two decision docs added earlier the same day — a page name I invented and never
+checked resolved. Typecheck/test/build never ran. `pnpm wiki:lint` before pushing
+would have caught it locally.
+
+Pages touched: `decisions/2026-07-31-audience-scoped-source-disclosure.md`,
+`decisions/2026-07-31-retrieval-floor-calibration.md`. New code:
+`scripts/prompt-ab.mjs`, `scripts/_metis-source-blocks.mjs`.

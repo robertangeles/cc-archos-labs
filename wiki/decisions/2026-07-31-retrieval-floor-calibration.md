@@ -59,7 +59,11 @@ of near-misses and nothing behind them.
 
 ## Decision
 
-- **Retrieval floor: 0.42** (was 0.3).
+**Not yet applied — these are the values Phase 3 will use.** `lib/chat/stream.ts`
+still filters at `> 0.3`; changing it is part of the retrieval work, not this
+calibration.
+
+- **Retrieval floor: 0.42** (from 0.3).
 - **Gap signal (E8a) fires when fewer than 12 chunks clear 0.42.** Covered
   questions clear it with ≥15; uncovered peak at 8.
 - Both constants are owned by the eval harness and retuned when the corpus
