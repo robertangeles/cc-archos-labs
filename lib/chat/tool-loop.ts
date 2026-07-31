@@ -43,6 +43,28 @@ export type CallModel = (
   offerTools: boolean,
 ) => Promise<ChatMessage>;
 
+// Progress events for a tool-using turn. The final answer of such a turn is
+// produced NON-streamed, so without these the user watches a blank pane for up
+// to WALL_CLOCK_MS while the loop works. Twenty seconds of nothing reads as a
+// hang, and the user aborts before the better answer arrives.
+export interface ToolProgress {
+  /** What the loop is doing, already user-facing. */
+  label: string;
+  hop: number;
+}
+export type OnProgress = (p: ToolProgress) => void;
+
+// User-facing labels. Deliberately NOT the raw tool name — "search_library"
+// leaks the shape of the system, and on a client turn even naming the library
+// is a disclosure. These say what is happening, not what is installed.
+const TOOL_LABELS: Record<string, string> = {
+  search_library: "Consulting the practice library",
+  search_workspace: "Checking your workspace",
+  list_projects: "Looking at your projects",
+  list_clients: "Looking at your clients",
+  get_project_cards: "Reading the project board",
+};
+
 export interface ToolLoopResult {
   messages: ChatMessage[]; // conversation incl. the assistant + tool turns
   finalContent: string; // the final assistant answer (may be "")
@@ -54,6 +76,7 @@ export async function runToolLoop(
   messages: ChatMessage[],
   ctx: ToolContext,
   callModel: CallModel,
+  onProgress?: OnProgress,
 ): Promise<ToolLoopResult> {
   const convo = [...messages];
   const start = Date.now();
@@ -78,6 +101,10 @@ export async function runToolLoop(
 
     usedTools = true;
     for (const call of calls) {
+      onProgress?.({
+        label: TOOL_LABELS[call.function.name] ?? "Working",
+        hop: hop + 1,
+      });
       const key = `${call.function.name}:${call.function.arguments}`;
       let result: string;
       if (seen.has(key)) {
@@ -101,6 +128,7 @@ export async function runToolLoop(
   }
 
   // Hit the hop cap with tools still in play — force an answer WITHOUT tools.
+  onProgress?.({ label: "Pulling it together", hop: MAX_HOPS });
   const final = await callModel(convo, false);
   convo.push(final);
   return {

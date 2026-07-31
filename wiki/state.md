@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-31T02:10:33.710Z
+generated: 2026-07-31T07:17:17.231Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -171,7 +171,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/chat/conversations/[id]` | [app/api/chat/conversations/[id]/route.ts](../app/api/chat/conversations/[id]/route.ts) | 2026-06-08 |
 | `/api/chat/conversations/[id]/attachments` | [app/api/chat/conversations/[id]/attachments/route.ts](../app/api/chat/conversations/[id]/attachments/route.ts) | 2026-07-07 |
 | `/api/chat/conversations/[id]/attachments/[documentId]` | [app/api/chat/conversations/[id]/attachments/[documentId]/route.ts](../app/api/chat/conversations/[id]/attachments/[documentId]/route.ts) | 2026-07-07 |
-| `/api/chat/conversations/[id]/messages` | [app/api/chat/conversations/[id]/messages/route.ts](../app/api/chat/conversations/[id]/messages/route.ts) | 2026-06-09 |
+| `/api/chat/conversations/[id]/messages` | [app/api/chat/conversations/[id]/messages/route.ts](../app/api/chat/conversations/[id]/messages/route.ts) | 2026-07-31 |
 | `/api/chat/conversations/[id]/share` | [app/api/chat/conversations/[id]/share/route.ts](../app/api/chat/conversations/[id]/share/route.ts) | 2026-06-08 |
 | `/api/chat/conversations/search` | [app/api/chat/conversations/search/route.ts](../app/api/chat/conversations/search/route.ts) | 2026-06-08 |
 | `/api/chat/documents/[documentId]/file` | [app/api/chat/documents/[documentId]/file/route.ts](../app/api/chat/documents/[documentId]/file/route.ts) | 2026-07-07 |

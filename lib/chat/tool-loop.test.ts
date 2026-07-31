@@ -8,7 +8,7 @@ vi.mock("../brain/traversal", () => ({
 
 import { runToolLoop, type ChatMessage, type CallModel } from "./tool-loop";
 
-const CTX = { orgId: "org-1" };
+const CTX = { orgId: "org-1", audience: "internal" as const };
 const toolCall = (id: string, name: string, args: unknown) => ({
   id,
   type: "function" as const,

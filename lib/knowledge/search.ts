@@ -256,3 +256,18 @@ export async function getChapterChunkCounts(): Promise<Map<string, number>> {
   }
   return counts;
 }
+
+/**
+ * Library search for the search_library tool. Vector-only and deliberately
+ * narrow: the tool is for checking ONE idea mid-answer, not for re-running the
+ * turn's whole retrieval.
+ *
+ * Returns chunkId so the caller can drop anything the pre-turn retrieval
+ * already showed the model.
+ */
+export async function searchLibraryChunks(
+  query: string,
+  topK = 4,
+): Promise<SearchResult[]> {
+  return vectorSearch(query, undefined, topK);
+}

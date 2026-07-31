@@ -1,11 +1,12 @@
 import "server-only";
 import { OPENROUTER_URL, buildAuthHeaders } from "../llm/config";
 import { getOrgIdFromCookies, resolveOrgContext } from "../auth/org-context";
+import { toolsFor } from "../brain/traversal";
 import {
   runToolLoop,
-  WORKSPACE_TOOLS,
   type ChatMessage,
   type CallModel,
+  type OnProgress,
 } from "./tool-loop";
 
 // C2 stream integration helpers. Flag-gated + org-scoped: when enabled and the
@@ -42,8 +43,14 @@ export async function resolveToolOrgId(userId: string): Promise<string | null> {
 export function buildCallModel(
   modelId: string,
   apiKey: string,
+  orgId: string | null,
   signal?: AbortSignal,
 ): CallModel {
+  // PER-TOOL gating. The loop used to be skipped entirely when the user had no
+  // org, which silently disabled the one capability it was turned on for —
+  // search_library reads a shared shelf with no tenant data, so the org guard
+  // that protects the other four has nothing to protect there.
+  const tools = toolsFor(orgId);
   return async (messages, offerTools) => {
     const res = await fetch(OPENROUTER_URL, {
       method: "POST",
@@ -52,7 +59,7 @@ export function buildCallModel(
         model: modelId,
         stream: false,
         messages,
-        ...(offerTools ? { tools: WORKSPACE_TOOLS } : {}),
+        ...(offerTools ? { tools } : {}),
       }),
       signal,
     });
@@ -72,17 +79,25 @@ export function buildCallModel(
  * Returns "" if the loop produced no answer (caller then falls back to normal
  * streaming, ungrounded).
  */
-export async function runWorkspaceToolTurn(
-  messages: ChatMessage[],
-  orgId: string,
-  modelId: string,
-  apiKey: string,
-  signal?: AbortSignal,
-): Promise<string> {
+export async function runWorkspaceToolTurn(args: {
+  messages: ChatMessage[];
+  orgId: string | null;
+  audience: "internal" | "client";
+  seenChunkIds?: Set<string>;
+  modelId: string;
+  apiKey: string;
+  signal?: AbortSignal;
+  onProgress?: OnProgress;
+}): Promise<string> {
   const result = await runToolLoop(
-    messages,
-    { orgId },
-    buildCallModel(modelId, apiKey, signal),
+    args.messages,
+    {
+      orgId: args.orgId,
+      audience: args.audience,
+      seenChunkIds: args.seenChunkIds,
+    },
+    buildCallModel(args.modelId, args.apiKey, args.orgId, args.signal),
+    args.onProgress,
   );
   return result.finalContent;
 }

@@ -63,7 +63,7 @@ describe("buildCallModel", () => {
         choices: [{ message: { content: "hi", tool_calls: [{ id: "t1" }] } }],
       }),
     });
-    const msg = await buildCallModel("anthropic/claude", "KEY")(
+    const msg = await buildCallModel("anthropic/claude", "KEY", "org-1")(
       [{ role: "user", content: "x" }],
       true,
     );
@@ -79,7 +79,7 @@ describe("buildCallModel", () => {
       ok: true,
       json: async () => ({ choices: [{ message: { content: "final" } }] }),
     });
-    const msg = await buildCallModel("m", "KEY")(
+    const msg = await buildCallModel("m", "KEY", "org-1")(
       [{ role: "user", content: "x" }],
       false,
     );
@@ -91,7 +91,7 @@ describe("buildCallModel", () => {
   it("throws on a non-OK response (caller falls back to streaming)", async () => {
     fetchMock().mockResolvedValue({ ok: false, status: 500 });
     await expect(
-      buildCallModel("m", "KEY")([{ role: "user", content: "x" }], true),
+      buildCallModel("m", "KEY", "org-1")([{ role: "user", content: "x" }], true),
     ).rejects.toThrow("OpenRouter 500");
   });
 });
