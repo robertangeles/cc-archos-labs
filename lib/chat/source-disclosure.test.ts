@@ -119,11 +119,31 @@ describe("script copies stay in sync with the source of truth", () => {
   // because plain node scripts cannot import a `server-only` module. A drifted
   // copy would silently make the prompt A/B a measurement of a prompt that
   // never ships — the worst kind of wrong, because the number still looks real.
+  // Read as TEXT rather than imported: tsconfig excludes scripts/**/*, so a
+  // module import type-checks locally under vitest and then fails `tsc
+  // --noEmit` in CI. Reading the source also makes this independent of module
+  // format — it would still catch drift if the script became CJS or TS.
   it("NEW_RAG_INSTRUCTION matches ragInstruction('internal') exactly", async () => {
-    const { NEW_RAG_INSTRUCTION } = await import(
-      "../../scripts/_metis-source-blocks.mjs"
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync(
+      new URL("../../scripts/_metis-source-blocks.mjs", import.meta.url),
+      "utf8",
     );
-    expect(NEW_RAG_INSTRUCTION).toBe(ragInstruction("internal"));
+    // The runtime string cannot be compared to the source text line by line:
+    // the literal is built by concatenation ("...excerpt " + "is labelled..."),
+    // so no runtime line appears contiguously in the source. Normalising away
+    // whitespace, quotes, the `+` joins and escaped newlines makes both sides
+    // one comparable run of significant characters.
+    // Order matters: drop escaped-newline sequences before stripping lone
+    // backslashes, or `\n` would survive as a stray `n`. Backslashes must go
+    // too — the source escapes its inner quotes (\"Block's point\") while the
+    // runtime string carries them bare.
+    const normalise = (s: string) =>
+      s.replace(/\\n/g, "").replace(/[\\"'+\s]/g, "");
+    expect(
+      normalise(src).includes(normalise(ragInstruction("internal"))),
+      "scripts/_metis-source-blocks.mjs NEW_RAG_INSTRUCTION has drifted from ragInstruction('internal')",
+    ).toBe(true);
   });
 });
 
