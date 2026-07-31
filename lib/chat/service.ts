@@ -151,12 +151,16 @@ export async function saveMessage(
   tokens?: number,
   isInterrupted?: boolean,
   contentType?: "text" | "image_url" | "image_base64",
+  sources?: Array<{ title: string; author: string | null }>,
 ) {
   const db = getDb();
   const [msg] = await db
     .insert(message)
     .values({
       conversationId,
+      // Empty array and null both mean "nothing to cite"; store null so the
+      // column reads the same for an ungrounded answer and a pre-0041 row.
+      sources: sources && sources.length > 0 ? sources : null,
       role,
       content,
       contentType: contentType ?? "text",

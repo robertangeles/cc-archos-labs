@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-07-31T07:17:17.231Z
+generated: 2026-07-31T08:33:25.802Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -270,7 +270,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate` | [app/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate/route.ts](../app/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate/route.ts) | 2026-07-06 |
 | `/api/workflows/[id]/steps/[stepId]/prompt` | [app/api/workflows/[id]/steps/[stepId]/prompt/route.ts](../app/api/workflows/[id]/steps/[stepId]/prompt/route.ts) | 2026-07-06 |
 
-## Components (128)
+## Components (129)
 
 | File | Last shipped |
 |------|--------------|
@@ -305,6 +305,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/chat/chat-sidebar.tsx](../components/chat/chat-sidebar.tsx) | 2026-06-15 |
 | [components/chat/chat-skill-form.tsx](../components/chat/chat-skill-form.tsx) | 2026-06-08 |
 | [components/chat/image-gen-config.tsx](../components/chat/image-gen-config.tsx) | 2026-06-09 |
+| [components/chat/source-citations.tsx](../components/chat/source-citations.tsx) | unknown |
 | [components/clients/client-detail.tsx](../components/clients/client-detail.tsx) | 2026-06-15 |
 | [components/clients/client-form.tsx](../components/clients/client-form.tsx) | 2026-06-15 |
 | [components/clients/clients-view.tsx](../components/clients/clients-view.tsx) | 2026-06-15 |

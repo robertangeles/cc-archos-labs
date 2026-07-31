@@ -17,7 +17,7 @@ import {
 //
 // A tool-using turn's final answer is produced non-streamed, so the caller
 // delivers it as a single chunk (like the web-search path), preceded by
-// progress events — see lib/chat/progress-protocol.ts.
+// progress events — see lib/chat/stream-events.ts.
 
 export function isWorkspaceToolsEnabled(): boolean {
   return process.env.WORKSPACE_TOOLS_ENABLED === "true";

@@ -317,3 +317,25 @@ describe("coverageNotice — the thin state", () => {
     }
   });
 });
+
+describe("citation strip is internal-only", () => {
+  // The strip lists works by name. Showing it to a client is a louder version
+  // of the exact disclosure the protection block forbids — louder because it is
+  // a list, not a passing mention the model might soften.
+  //
+  // Asserted at the source level: stream.ts must gate citedSources on audience,
+  // and the realistic regression is someone "simplifying" that ternary away
+  // while wiring a UI change.
+  it("stream.ts only cites sources for an internal audience", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync(
+      new URL("../../lib/chat/stream.ts", import.meta.url),
+      "utf8",
+    );
+    expect(src).toMatch(
+      /citedSources\s*=\s*audience === "internal"\s*\?\s*retrieval\.sources\s*:\s*\[\]/,
+    );
+    // And nothing else may assign it.
+    expect(src.match(/const citedSources/g) ?? []).toHaveLength(1);
+  });
+});

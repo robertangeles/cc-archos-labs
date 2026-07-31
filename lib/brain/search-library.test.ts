@@ -27,6 +27,7 @@ const chunk = (title: string, content = "some substantive passage"): SearchResul
   chunkId: `chunk-${seq++}`,
   documentId: `doc-${title}`,
   title,
+  author: `${title} author`,
   category: null,
   content,
   similarity: 0.6,

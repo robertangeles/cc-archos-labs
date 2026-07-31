@@ -48,6 +48,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
     isSending,
     streamingContent,
     toolProgress,
+    streamingSources,
     refreshConversations,
     loadConversation,
     loadMore,
@@ -438,6 +439,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
                   contentType={msg.contentType}
                   model={msg.model}
                   isInterrupted={msg.isInterrupted}
+                  sources={msg.sources}
                   onPublish={connectedPlatforms.length > 0 ? setPublishContent : undefined}
                 />
               ))}
@@ -464,6 +466,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
                   role="assistant"
                   content={streamingContent}
                   model={activeConversation?.model}
+                  sources={streamingSources}
                   isStreaming
                 />
               )}

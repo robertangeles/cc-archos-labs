@@ -14,7 +14,7 @@ import {
 } from "./prompt-config-shared";
 import { getEnabledRules } from "../rules/service";
 import { retrieve } from "../knowledge/retrieve";
-import { encodeProgress, stripDelimiters } from "./progress-protocol";
+import { encodeEvent, stripDelimiters } from "./stream-events";
 import {
   logRetrievalEvent,
   safeReason as safeRetrievalReason,
@@ -133,6 +133,11 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
   //   thin        some material, below the coverage gate — inject it, caveated
   //   uncovered   we looked and there is nothing — say so, inject nothing
   //   degraded    we could not look — a service failure, worded differently
+  // The citation strip is INTERNAL ONLY. Naming a work to a client turn is the
+  // exact disclosure the protection block forbids, and a visible source list is
+  // a louder version of it than anything the model could say in prose.
+  const citedSources = audience === "internal" ? retrieval.sources : [];
+
   const ragContext = retrieval.degraded
     ? coverageNotice("degraded", audience)
     : retrieval.chunks.length && retrieval.covered
@@ -178,6 +183,7 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
       });
       return {
         chunks: [],
+        sources: [],
         distinctSources: 0,
         aboveFloor: 0,
         covered: false,
@@ -504,8 +510,13 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
         const encoder = new TextEncoder();
         const stream = new ReadableStream<Uint8Array>({
           start(controller) {
+            if (citedSources.length > 0) {
+              controller.enqueue(
+                encoder.encode(encodeEvent({ t: "s", sources: citedSources })),
+              );
+            }
             for (const label of progressLabels) {
-              controller.enqueue(encoder.encode(encodeProgress(label)));
+              controller.enqueue(encoder.encode(encodeEvent({ t: "p", label })));
             }
             // Strip any delimiter the model itself produced, so an answer that
             // mentions a control character cannot be read as an event boundary.
@@ -523,6 +534,8 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
             modelId,
             0,
             false,
+            undefined,
+            citedSources,
           );
           extractMemories(
             args.userId,
@@ -559,6 +572,9 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     throw new StreamError("No response body from OpenRouter", 502);
   }
 
+  const sourcesPreamble =
+    citedSources.length > 0 ? encodeEvent({ t: "s", sources: citedSources }) : "";
+
   let buffer = "";
   let _inputTokens = 0;
   let outputTokens = 0;
@@ -573,6 +589,10 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      // Sources first, before any token: they are known the moment retrieval
+      // finished, and the client needs them to render the strip alongside the
+      // streaming answer rather than after it.
+      if (sourcesPreamble) controller.enqueue(encoder.encode(sourcesPreamble));
       const reader = openRouterResponse.body!.getReader();
       try {
         while (true) {
@@ -622,6 +642,8 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
         modelId,
         outputTokens,
         aborted,
+        undefined,
+        citedSources,
       );
       if (!aborted) {
         extractMemories(args.userId, args.userContent, args.conversationId).catch(() => {});

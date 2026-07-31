@@ -2520,3 +2520,52 @@ feature that was never built.
 What changes for a user: a turn where Metis decides to use a tool is no longer
 streamed. Up to 5 model round-trips, 20s wall clock, with progress events
 filling the wait. Both flags revert in seconds without a deploy.
+
+## 2026-07-31 — Metis live RAG Phase 5: the citation strip
+
+Metis already named works inside its prose. That is a claim; this is the
+receipt. A reader had no way to tell a work it genuinely drew on from one it
+recalled from training and dressed up as a retrieval — and a work named in the
+answer but absent from the strip is a fabricated attribution, which nothing
+previously caught.
+
+Shows what was ACTUALLY put in front of the model:
+
+```
+Grounded in
+  DAMA-DMBOK: Data Management Body of Knowledge, 2nd Edition — DAMA International
+  Flawless Consulting (2nd Edition) — Peter Block
+  The Trusted Advisor (20th Anniversary Edition) — Maister, Green and Galford
+```
+
+**INTERNAL ONLY.** A named list is a louder disclosure than a passing mention
+the model might soften, so `citedSources` is gated on audience in stream.ts.
+Asserted at source level and mutation-tested — citing for every audience fails a
+test — because the realistic regression is someone simplifying that ternary away
+while wiring a UI change.
+
+**Persisted (migration 0041, `message.sources` jsonb).** A citation that
+disappears on refresh is half a feature: the moment you most want to check a
+claim is when you come back to it later. Deliberately denormalised rather than a
+`message_source` join table — the strip must keep showing what was true AT
+ANSWER TIME even if the document is later retagged, retitled or deleted, all
+three of which happened to 19 documents earlier today. A FK would make a
+historical citation mutate under an old answer, or vanish with the row.
+
+**Protocol generalised.** `progress-protocol.ts` became `stream-events.ts`:
+typed JSON events (`{t:"p"}` progress, `{t:"s"}` sources) instead of raw label
+text, still leading-run-only so a stray delimiter in the answer stays harmless.
+A malformed event is skipped rather than thrown on — it is display metadata, and
+losing the answer over a citation would be a far worse failure.
+
+`author` now flows through SearchResult and every search query; `retrieve()`
+returns works deduped by title, so a book contributing two chunks is cited once.
+
+Design: a footnote, not a badge. No relevance percentages, no chunk previews, no
+"3 sources" pill. Title and author. The moment it competes with the answer it
+stops being something you glance at to check a claim.
+
+Wording is "Grounded in", not "Drew on" — these are the works RETRIEVED, and
+Metis may have been given five and used two. "Drew on" would overclaim.
+
+Suite: 160 files / 1995 tests, tsc + lint + production build clean.

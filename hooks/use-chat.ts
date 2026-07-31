@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { splitProgress } from "@/lib/chat/progress-protocol";
+import { parseStream, type SourceRef } from "@/lib/chat/stream-events";
 
 export interface ChatConversation {
   id: string;
@@ -19,6 +19,9 @@ export interface ChatMessage {
   contentType?: string;
   model?: string | null;
   isInterrupted?: boolean;
+  /** Works this answer was grounded in. Absent on user messages, ungrounded
+   *  answers, and every message written before migration 0041. */
+  sources?: SourceRef[];
   createdAt: string;
 }
 
@@ -38,6 +41,9 @@ export function useChat({ defaultModel }: UseChatOptions) {
   // Latest tool-loop progress label, or null. Display-only: a tool turn's
   // answer is non-streamed, so this is the sole feedback during the wait.
   const [toolProgress, setToolProgress] = useState<string | null>(null);
+  // Works the in-flight answer is grounded in. Rendered alongside the streaming
+  // text so the strip appears with the answer rather than after it.
+  const [streamingSources, setStreamingSources] = useState<SourceRef[]>([]);
   const abortRef = useRef<AbortController | null>(null);
 
   const refreshConversations = useCallback(async () => {
@@ -157,16 +163,18 @@ export function useChat({ defaultModel }: UseChatOptions) {
           const chunk = decoder.decode(value, { stream: true });
           accumulated += chunk;
           if (!imageGen) {
-            // A tool-using turn interleaves progress events (delimiter-wrapped)
-            // ahead of its answer. Show the latest as a status line and keep
-            // them out of the message body — see lib/chat/progress-protocol.ts.
-            const { labels, content } = splitProgress(accumulated);
-            setToolProgress(labels.length ? labels[labels.length - 1] : null);
-            setStreamingContent(content);
+            // The stream carries delimiter-wrapped events ahead of the answer:
+            // which works it drew on, and (for a tool turn) what it is doing.
+            // Both are display metadata and must stay out of the message body.
+            const parsed = parseStream(accumulated);
+            setToolProgress(parsed.progress);
+            if (parsed.sources.length > 0) setStreamingSources(parsed.sources);
+            setStreamingContent(parsed.content);
           }
         }
 
-        let msgContent = splitProgress(accumulated).content;
+        const finalParsed = parseStream(accumulated);
+        let msgContent = finalParsed.content;
         let msgContentType: string | undefined;
 
         if (imageGen && accumulated) {
@@ -184,12 +192,14 @@ export function useChat({ defaultModel }: UseChatOptions) {
           role: "assistant",
           content: msgContent,
           contentType: msgContentType,
+          sources: finalParsed.sources.length > 0 ? finalParsed.sources : undefined,
           model: activeConversation?.model ?? defaultModel,
           createdAt: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, assistantMsg]);
         setStreamingContent("");
         setToolProgress(null);
+        setStreamingSources([]);
         refreshConversations();
       } catch (err) {
         if ((err as Error).name === "AbortError") {
@@ -241,6 +251,7 @@ export function useChat({ defaultModel }: UseChatOptions) {
     isSending,
     streamingContent,
     toolProgress,
+    streamingSources,
     refreshConversations,
     loadConversation,
     loadMore,
