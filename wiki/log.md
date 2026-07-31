@@ -2091,3 +2091,38 @@ Same day as the enforcing flip, and only because I checked a claim I had made a 
 **Verified.** 10 pages in a real browser, 0 violations, GTM/GA4/entity-graph all intact. Auth gate: `/admin` 307, `/admin/login` 200, `/api/admin/posts` 401, boundary paths 404 not redirected. 28 new tests; suite 152 files / 1881 tests.
 
 Pages touched: `decisions/2026-07-30-csp-nonce.md` (new), `index.md`. New code: `lib/csp.ts`, `lib/csp.test.ts`, `tests/proxy.test.ts`.
+
+## 2026-07-31 — Metis live RAG: Phase 0 baseline + floor calibration
+
+Ran `/plan-ceo-review` on making the pgvector book library lift a Metis session.
+The starting premise ("RAG is separate from the chat session") was wrong — RAG
+already runs on every turn at `lib/chat/stream.ts:72`. The real defects are that
+retrieval is single-perspective, the query is the raw last user turn, the model
+has no tool to search the books, failure is silent, and grounding is invisible.
+
+**I also had to correct my own overclaim.** I asserted single-query top-5
+"cannot structurally" reach three books. An outside-voice reviewer challenged
+it, so I measured instead of arguing — and the reviewer was right. One test
+query did return three books. Measured truth: avg 1.72 distinct books, 8 of 18
+turns single-source. Real problem, smaller than claimed, and cheaper to fix.
+
+**Findings** (see `decisions/2026-07-31-retrieval-floor-calibration.md`):
+- `K=30 + cap 2/doc + take 8` lifts diversity 1.72 → 3.83 with zero model calls.
+- The 0.3 floor never fires — 25/25 chunks cleared it. The gap signal is
+  currently unreachable code.
+- Depth at 0.42 (+7-chunk margin) beats top-1 score (0.025 margin) as the
+  covered/uncovered discriminator.
+- Threshold 0.40 looked better (+14) but was censored by the K=30 window edge.
+
+**Two live PROD defects found in the same subsystem:**
+- `lib/cdmp/generate.ts:173` scopes to `category='dmbok'`, which in PROD now
+  includes *The Trusted Advisor*, *Flawless Consulting*, *Clean Architecture*
+  and *The Pragmatic Programmer*. The CDMP practice exam is drawing
+  certification questions from a consulting relationship book, today.
+- Several PROD titles are raw filenames; Metis cites `ABUIABA9GAAghIK0ugYowM2h3QY`
+  as a source.
+
+Neither is caused by this work; both are fixed in Phase 2.
+
+Pages touched: `decisions/2026-07-31-retrieval-floor-calibration.md` (new),
+`index.md`. New code: `scripts/retrieval-baseline.mjs`.
