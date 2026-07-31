@@ -1,0 +1,173 @@
+[
+  {
+    "id": "fef259c0-a2e3-4d32-95d8-b1d4655bbf9c",
+    "title": "DMBOK 2nd Edition",
+    "category": "dmbok",
+    "chunk_count": 496,
+    "author": null,
+    "publication_year": null,
+    "is_cdmp_source": false
+  },
+  {
+    "id": "1970d592-701d-4d36-ac43-a5d057a75d6c",
+    "title": "The Data Warehouse Toolkit, 3rd Edition",
+    "category": "dmbok",
+    "chunk_count": 443,
+    "author": null,
+    "publication_year": null,
+    "is_cdmp_source": false
+  },
+  {
+    "id": "e1782b2c-e443-4a30-821d-7409a61ca311",
+    "title": "Building A Scalable Data Warehouse With Data Vault 2.0 ",
+    "category": "supplementary",
+    "chunk_count": 365,
+    "author": null,
+    "publication_year": null,
+    "is_cdmp_source": false
+  },
+  {
+    "id": "a5a0c896-9d58-4f24-a61e-b40ef379b646",
+    "title": "Designing Data Intensive Applications by Martin Kleppmann",
+    "category": "dmbok",
+    "chunk_count": 455,
+    "author": null,
+    "publication_year": null,
+    "is_cdmp_source": false
+  },
+  {
+    "id": "f7e5f1c7-e438-4e6e-8f01-175faf72e006",
+    "title": "The-Unified-Star-Schema",
+    "category": "supplementary",
+    "chunk_count": 10,
+    "author": null,
+    "publication_year": null,
+    "is_cdmp_source": false
+  },
+  {
+    "id": "ba578da5-3e46-47d5-a4ab-0e78ea882ee0",
+    "title": "ABUIABA9GAAghIK0ugYowM2h3QY",
+    "category": "supplementary",
+    "chunk_count": 142,
+    "author": null,
+    "publication_year": null,
+    "is_cdmp_source": false
+  },
+  {
+    "id": "d58487e8-133a-4563-982c-c4f7ff03fd18",
+    "title": "implementing-data-mesh-principles-and-practice-to-design-build-and-implement-data-mesh-early-releasenbsped-9781098156169",
+    "category": "supplementary",
+    "chunk_count": 77,
+    "author": null,
+    "publication_year": null,
+    "is_cdmp_source": false
+  },
+  {
+    "id": "f6123cee-4028-4d0f-88d2-a9de9f8cdfe5",
+    "title": "_OceanofPDF.com_The_Trusted_Advisor_20th_Anniversary_Edition_-_David_H_Maister",
+    "category": "dmbok",
+    "chunk_count": 123,
+    "author": null,
+    "publication_year": null,
+    "is_cdmp_source": false
+  },
+  {
+    "id": "db2e42d0-005f-4710-a535-d885b00b391a",
+    "title": "peter-bloch-flawless-consulting",
+    "category": "dmbok",
+    "chunk_count": 179,
+    "author": null,
+    "publication_year": null,
+    "is_cdmp_source": false
+  },
+  {
+    "id": "bafaa1d2-cd31-4ab9-855f-7218168134a1",
+    "title": "the_mckinsey_way",
+    "category": "supplementary",
+    "chunk_count": 72,
+    "author": null,
+    "publication_year": null,
+    "is_cdmp_source": false
+  },
+  {
+    "id": "f1128438-a433-4d8a-87b4-da5f4a7336d3",
+    "title": "_OceanofPDF.com_McKinsey_mind_-_Ethan_m_raisiel",
+    "category": "supplementary",
+    "chunk_count": 96,
+    "author": null,
+    "publication_year": null,
+    "is_cdmp_source": false
+  },
+  {
+    "id": "bbfa89a5-92e3-4392-9000-a24331d17cea",
+    "title": "_OceanofPDF.com_Data_strategy_-_Bernard_Marr",
+    "category": "dmbok",
+    "chunk_count": 175,
+    "author": null,
+    "publication_year": null,
+    "is_cdmp_source": false
+  },
+  {
+    "id": "045da7fd-ed55-4fdd-98d8-24f128a7e447",
+    "title": "competing-on-analytics-updated-with-a-new-introduction-the-new-science-of-winning-9781633693739-1633693732",
+    "category": "supplementary",
+    "chunk_count": 192,
+    "author": null,
+    "publication_year": null,
+    "is_cdmp_source": false
+  },
+  {
+    "id": "ad8ff382-8db3-4fe6-81ff-28abf82bcc3f",
+    "title": "clean-architecture-a-comprehensive-beginners-guide-to-learn-the-realms-of-clean-architecture-from-a-z",
+    "category": "dmbok",
+    "chunk_count": 53,
+    "author": null,
+    "publication_year": null,
+    "is_cdmp_source": false
+  },
+  {
+    "id": "86f99015-b8bd-44f4-8993-295e219792d5",
+    "title": "The Pragmatic Programmer Your Journey to Mastery, 20th Anniversary Edition by Andrew Hunt David Hurst Thomas",
+    "category": "dmbok",
+    "chunk_count": 158,
+    "author": null,
+    "publication_year": null,
+    "is_cdmp_source": false
+  },
+  {
+    "id": "7b916e9a-9543-4fa2-8748-2f1c84041110",
+    "title": "the-art-of-doing-science-and-engineering-020345071x-0203456424-9056995014",
+    "category": "supplementary",
+    "chunk_count": 232,
+    "author": null,
+    "publication_year": null,
+    "is_cdmp_source": false
+  },
+  {
+    "id": "0d3af391-89cf-444d-976b-025dc2cde416",
+    "title": "staff-engineer-leadership-beyond-the-management-track",
+    "category": "supplementary",
+    "chunk_count": 153,
+    "author": null,
+    "publication_year": null,
+    "is_cdmp_source": false
+  },
+  {
+    "id": "b744afc4-ff07-4d13-b1a6-4bc354d72b17",
+    "title": "deciphering-data-architectures-choosing-between-a-modern-data-warehouse-data-fabric-data-lakehouse-and-data-mesh",
+    "category": "supplementary",
+    "chunk_count": 165,
+    "author": null,
+    "publication_year": null,
+    "is_cdmp_source": false
+  },
+  {
+    "id": "f5bd5514-9a5e-4c15-b564-d763cd51cef1",
+    "title": "Fundamentals of Data Engineering",
+    "category": "supplementary",
+    "chunk_count": 311,
+    "author": null,
+    "publication_year": null,
+    "is_cdmp_source": false
+  }
+]

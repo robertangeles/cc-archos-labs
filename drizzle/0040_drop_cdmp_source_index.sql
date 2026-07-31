@@ -1,0 +1,46 @@
+-- safety: verified against origin/main on 2026-07-31 by Rob Angeles
+--
+-- Migration 0040: drop knowledge_document_cdmp_source_idx
+--
+-- Removes the partial index added by 0039 one migration earlier. It never did
+-- any work, and worse, its comment asserted that it did.
+--
+--
+-- WHY IT WAS WRONG
+--
+-- 0039 created:
+--   CREATE INDEX knowledge_document_cdmp_source_idx
+--     ON knowledge_document (id) WHERE is_cdmp_source = true;
+--
+-- Two independent reasons that index is useless:
+--
+--   1. knowledge_document has 19 rows and is a curated book shelf, not user
+--      data. It occupies a single page. Postgres will sequential-scan it under
+--      every plan regardless of what indexes exist — a one-page seq scan beats
+--      any index scan, and the planner knows it.
+--
+--   2. The indexed KEY is `id`, which is already the primary key. The predicate
+--      column (`is_cdmp_source`) is only a static filter baked into the index
+--      definition, not something the index lets you look up by. So even at a
+--      scale where an index mattered, this one adds nothing the PK does not
+--      already provide.
+--
+-- The project's index rule says every index must state the query it serves.
+-- 0039's comment did state one — and the statement was false. A false rationale
+-- is worse than a redundant index: the next person reads it, believes the query
+-- is served, and builds on that. Removing both is cheaper than correcting the
+-- comment and keeping dead weight.
+--
+--
+-- WHY THIS IS SAFE
+--
+-- DROP INDEX takes a brief ACCESS EXCLUSIVE lock on the table. On 19 rows that
+-- is sub-millisecond. No query plan depends on the index (see above), no
+-- constraint is backed by it, and it is not a UNIQUE index so no uniqueness
+-- guarantee is lost. IF EXISTS so a re-run is a no-op.
+--
+-- The `-- safety:` header above is present because the CI migration-safety
+-- check flags DROP INDEX as destructive by pattern. The check is right to ask;
+-- this is the deliberate answer.
+
+DROP INDEX IF EXISTS "knowledge_document_cdmp_source_idx";

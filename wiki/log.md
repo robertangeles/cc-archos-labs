@@ -2283,3 +2283,40 @@ Pages touched: `decisions/2026-07-31-corpus-taxonomy-and-cdmp-pool.md` (new),
 New code: migrations 0038 + 0039, `scripts/retag-knowledge-corpus.mjs`,
 `scripts/pull-prod-books.mjs`, `lib/cdmp/corpus-scope.test.ts`,
 `lib/knowledge/chunking.test.ts`.
+
+### Review follow-ups on PR #232
+
+**Dropped an index I had just added (migration 0040).** The review was right and
+I was wrong: `knowledge_document_cdmp_source_idx` did nothing. The table has 19
+rows and always seq-scans, and the indexed key was `id` — already the primary
+key — with `is_cdmp_source` only a static predicate baked into the definition.
+The 0039 comment asserted it served the CDMP retrieval query. That was false,
+and a false rationale is worse than a redundant index because the next reader
+believes it. Both are gone.
+
+**Closed a multi-host gap in the pull guard.** `postgres://u:p@127.0.0.1:5432,evil-host/db`
+passed the localhost check — it starts with a local authority — but postgres.js
+supports comma-separated failover hosts and would connect to the second if the
+first were down. The guard now parses the authority and rejects any containing a
+comma. Six cases asserted including IPv6 loopback and multi-host-with-localhost-
+first.
+
+**Snapshot loss and recovery.** The reviewing agent deleted both retag snapshots
+from the repo root, mistaking them for its own scratch files. They were the
+deliberate pre-write safety net. Fully reconstructed for PROD from
+`doc-samples.json` (captured pre-retag, with untruncated titles, category and
+chunk_count for all 19 rows); the three new columns were provably NULL/false
+beforehand since 0039 created them minutes earlier and the dry-run printed
+`author: (null) -> X` on every row. Cross-checked against the independently
+committed `retrieval-baseline-prod.json` — all 14 pre-retag titles it recorded
+are accounted for, none unexplained. Committed as
+`prod-corpus-pre-retag-reconstructed.json`.
+
+**Known, accepted:** during the window between the PROD retag and this PR
+merging, old code's `category='dmbok'` filter matches 3 documents rather than 2,
+because The Unified Star Schema is correctly `dmbok` by topic while being
+`is_cdmp_source: false`. One off-syllabus book, self-resolving on merge.
+
+`searchKnowledge` currently has no production caller — `generate.ts` was the
+last one. Not removed: Phase 3's `retrieve()` will use it for the per-sub-query
+keyword fallback.

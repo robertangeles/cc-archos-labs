@@ -62,16 +62,12 @@ ALTER TABLE "knowledge_document"
   ADD COLUMN IF NOT EXISTS "is_cdmp_source" boolean NOT NULL DEFAULT false;
 --> statement-breakpoint
 
--- Partial index, per the project's index rule: low-selectivity boolean, and the
--- query it serves is stated. Only 2 of 19 rows are true, so the partial index is
--- a handful of pages rather than a scan over the whole table.
---
---   Query: CDMP question generation joins chunks to their document and keeps
---   only certification-approved sources —
---     SELECT ... FROM knowledge_chunk c
---     JOIN knowledge_document d ON d.id = c.document_id
---     WHERE d.is_cdmp_source = true AND d.status = 'ready' ...
---   (lib/knowledge/search.ts: searchCdmpSources / getChunksByChapter)
+-- NOTE: this migration also created knowledge_document_cdmp_source_idx, a
+-- partial index on (id) WHERE is_cdmp_source = true. Migration 0040 drops it.
+-- It never did any work: the table has 19 rows and always seq-scans, and the
+-- indexed key was already the primary key. The comment here originally claimed
+-- it served the CDMP retrieval query, which was false. Left in place rather
+-- than edited out of history so the 0040 rationale has something to point at.
 CREATE INDEX IF NOT EXISTS "knowledge_document_cdmp_source_idx"
   ON "knowledge_document" ("id")
   WHERE "is_cdmp_source" = true;

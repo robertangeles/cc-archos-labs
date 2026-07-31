@@ -38,7 +38,16 @@ if (!TARGET_URL) {
   process.exit(1);
 }
 
-const isLocal = (u) => /(?:@|\/\/)(?:127\.0\.0\.1|localhost|\[::1\])[:/]/.test(u);
+// A multi-host connection string (`host1,host2` — a real postgres.js/libpq
+// failover feature) would otherwise pass: `@127.0.0.1:5432,elsewhere:5432/db`
+// starts with a local authority and matches, but the driver fails over to the
+// second host if the first is down. Reject any authority carrying a comma
+// rather than trying to validate each host.
+const isLocal = (u) => {
+  const authority = u.replace(/^[a-z+]+:\/\//i, "").split("/")[0];
+  if (authority.includes(",")) return false;
+  return /(?:@|^)(?:127\.0\.0\.1|localhost|\[::1\])(?::|$)/.test(authority);
+};
 
 // THE GUARD. Everything else in this script is a copy loop; this is the part
 // that matters. A remote target is refused unconditionally.
