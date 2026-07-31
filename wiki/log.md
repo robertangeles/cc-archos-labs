@@ -2483,3 +2483,25 @@ Labels say what is happening, not what is installed — "Consulting the practice
 library", never the raw tool name.
 
 Suite: 158 files / 1985 tests, tsc + lint + production build clean.
+
+### PR #234 review follow-ups
+
+**A bug I wrote, hidden by a test I wrote.** `packChunks` truncated an
+oversized first chunk at `content.lastIndexOf(" ", 9000)`. With no space in
+range that returns -1, and `slice(0, -1)` means "everything except the last
+character" — so a 50,000-char chunk became 49,999. Effectively unbounded, and
+`jsonLibrary()` has no cap of its own, so the payload budget did nothing.
+
+My test for that exact case asserted only `excerpts.length === 1`, never the
+size. It passed while the bug was live. Now asserts the actual bound; reverting
+the fix fails with `expected 49999 to be less than 10000`.
+
+**Dedup did not survive a second hop.** `seenChunkIds` was built once from the
+pre-turn retrieval and never grew, so two different `search_library` queries
+returning overlapping chunks put the same passage in front of the model twice —
+the exact "two sources agreeing" misread the dedup exists to prevent. The loop's
+own guard only catches literally identical calls, not overlapping results. The
+set now grows as chunks are served, and records only what actually reached the
+model (a chunk dropped for length stays available to a later call).
+
+Fifth time this session a green test measured the wrong thing.

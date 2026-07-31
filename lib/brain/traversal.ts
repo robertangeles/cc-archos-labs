@@ -26,8 +26,10 @@ export interface ToolContext {
    *  gets content only — the same rule the pre-turn excerpts follow, applied
    *  here because tool results reach the model through a different door. */
   audience: "internal" | "client";
-  /** chunkIds already injected by this turn's pre-turn retrieval. The model
-   *  seeing the same passage twice over-weights it. */
+  /** chunkIds already put in front of the model this turn. Seeded from the
+   *  pre-turn retrieval and MUTATED as search_library serves more, so a second
+   *  tool call cannot re-serve what the first one did. Shared by reference
+   *  across every hop of one tool loop. */
   seenChunkIds?: Set<string>;
 }
 
@@ -67,10 +69,14 @@ function packChunks(
     //
     // A single chunk larger than the whole budget is truncated at a word
     // boundary rather than dropped — returning nothing would be worse — but
-    // only ever as the first item, so it can never sever a later one.
+    // only ever as the first item, so it can never sever a later one. If no
+    // space falls in range (lastIndexOf returns -1), fall back to a hard cut
+    // at the budget: slice(0, -1) would otherwise mean "drop the last
+    // character", leaving the content effectively untruncated.
+    const spaceIdx = c.content.lastIndexOf(" ", LIBRARY_RESULT_CHARS);
     const content =
       excerpts.length === 0 && c.content.length > LIBRARY_RESULT_CHARS
-        ? c.content.slice(0, c.content.lastIndexOf(" ", LIBRARY_RESULT_CHARS))
+        ? c.content.slice(0, spaceIdx > 0 ? spaceIdx : LIBRARY_RESULT_CHARS)
         : c.content;
     const item =
       audience === "internal" ? { work: c.title, excerpt: content } : { excerpt: content };
@@ -215,6 +221,18 @@ export async function executeWorkspaceTool(
           });
         }
         const { excerpts, omitted } = packChunks(fresh, ctx.audience);
+
+        // Record what we just served so a LATER search_library call in the same
+        // loop does not serve it again. seenChunkIds starts as the pre-turn
+        // retrieval set and grows across hops — without this, two different
+        // queries returning overlapping chunks put the same passage in front of
+        // the model twice, which is the exact "two sources agreeing" misread
+        // this dedup exists to prevent. The loop's own guard only catches
+        // literally identical calls, not overlapping results.
+        if (ctx.seenChunkIds) {
+          for (const r of fresh.slice(0, excerpts.length)) ctx.seenChunkIds.add(r.chunkId);
+        }
+
         return jsonLibrary({ excerpts, alreadySeen: dropped, omittedForLength: omitted });
       }
       case "search_workspace": {

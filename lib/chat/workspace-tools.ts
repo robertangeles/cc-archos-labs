@@ -9,11 +9,15 @@ import {
   type OnProgress,
 } from "./tool-loop";
 
-// C2 stream integration helpers. Flag-gated + org-scoped: when enabled and the
-// user has an org, the chat model can call allowlisted workspace tools to reason
-// over the workspace (SPK-1 decided the agentic-loop path). A tool-using turn's
-// final answer is produced non-streamed, so the caller delivers it as a single
-// chunk (like the web-search path).
+// C2 stream integration helpers. Flag-gated, and gated PER TOOL rather than per
+// loop: when enabled, the chat model can always call search_library (a shared
+// shelf with no tenant data), and additionally the org-scoped workspace tools
+// when an org resolves. The loop used to be skipped entirely without an org,
+// which silently disabled the library search for org-less users.
+//
+// A tool-using turn's final answer is produced non-streamed, so the caller
+// delivers it as a single chunk (like the web-search path), preceded by
+// progress events — see lib/chat/progress-protocol.ts.
 
 export function isWorkspaceToolsEnabled(): boolean {
   return process.env.WORKSPACE_TOOLS_ENABLED === "true";

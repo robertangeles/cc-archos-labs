@@ -138,7 +138,12 @@ describe("search_library — result budget", () => {
       { query: "x" },
       { orgId: "org-1", audience: "internal" },
     );
-    expect(JSON.parse(out).excerpts.length).toBe(1);
+    const parsed = JSON.parse(out);
+    expect(parsed.excerpts.length).toBe(1);
+    // No space anywhere in the content: lastIndexOf(" ", ...) returns -1, and
+    // slice(0, -1) means "drop the last char" — near-unbounded, not truncated.
+    // Assert the actual bound, not just that an excerpt exists.
+    expect(parsed.excerpts[0].excerpt.length).toBeLessThan(10_000);
   });
 });
 
@@ -177,4 +182,53 @@ describe("per-tool org gating", () => {
       expect(JSON.parse(out).error).toMatch(/no workspace/i);
     },
   );
+});
+
+describe("search_library — dedup across hops", () => {
+  // The tool loop's own guard only catches literally identical calls
+  // (name:arguments). Two DIFFERENT queries can return overlapping chunks, and
+  // serving the same passage twice is the "two sources agreeing" misread this
+  // dedup exists to prevent — so the set has to grow as results are served.
+  it("does not re-serve a chunk an earlier call in the same loop returned", async () => {
+    const shared = chunk("DAMA-DMBOK");
+    const ctx = {
+      orgId: "org-1",
+      audience: "internal" as const,
+      seenChunkIds: new Set<string>(),
+    };
+
+    libraryImpl = async () => [shared, chunk("Flawless Consulting")];
+    const first = JSON.parse(
+      await executeWorkspaceTool("search_library", { query: "stewardship" }, ctx),
+    );
+    expect(first.excerpts.length).toBe(2);
+
+    // A different query that happens to surface the same chunk again.
+    libraryImpl = async () => [shared, chunk("The Trusted Advisor")];
+    const second = JSON.parse(
+      await executeWorkspaceTool("search_library", { query: "accountability" }, ctx),
+    );
+    expect(second.alreadySeen).toBe(1);
+    expect(JSON.stringify(second)).not.toContain("DAMA-DMBOK");
+    expect(JSON.stringify(second)).toContain("The Trusted Advisor");
+  });
+
+  it("only records chunks it actually served, not ones dropped for length", async () => {
+    const ctx = {
+      orgId: "org-1",
+      audience: "internal" as const,
+      seenChunkIds: new Set<string>(),
+    };
+    const long = "word ".repeat(1200).trim();
+    const a = chunk("Book A", long);
+    const b = chunk("Book B", long);
+    const c = chunk("Book C", long);
+    libraryImpl = async () => [a, b, c];
+    const out = JSON.parse(
+      await executeWorkspaceTool("search_library", { query: "x" }, ctx),
+    );
+    expect(out.omittedForLength).toBeGreaterThan(0);
+    // A chunk that never reached the model must stay available to a later call.
+    expect(ctx.seenChunkIds.size).toBe(out.excerpts.length);
+  });
 });
