@@ -2569,3 +2569,23 @@ Wording is "Grounded in", not "Drew on" — these are the works RETRIEVED, and
 Metis may have been given five and used two. "Drew on" would overclaim.
 
 Suite: 160 files / 1995 tests, tsc + lint + production build clean.
+
+### Citation strip: two leaks found before review returned
+
+**A shared conversation must never carry the strip.** `createShareSnapshot` uses
+an explicit column list, so `sources` was already excluded — but by accident of
+the current code, with nothing saying so. A share link is PUBLIC (token-only, no
+auth, no audience), so replacing that list with a bare `.select()` while tidying
+something else would publish the shelf to anyone holding a link. Documented and
+locked by a source-level test; adding `sources` to the snapshot fails it.
+
+**Sources bled between answers.** Reset happened only on the success path — not
+on abort, not on conversation switch, not at send start. So an aborted turn left
+the previous answer's citations on screen next to the next answer. For a feature
+whose whole purpose is trustworthy attribution, pointing at the wrong answer is
+worse than showing nothing.
+
+All four reset points now go through one `resetStreamingState`, so a future
+transient field cannot be forgotten at three of four call sites the way this
+one was. An interrupted answer now also keeps its sources — the citation is as
+true of the partial text as of the whole.
