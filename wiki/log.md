@@ -2589,3 +2589,35 @@ All four reset points now go through one `resetStreamingState`, so a future
 transient field cannot be forgotten at three of four call sites the way this
 one was. An interrupted answer now also keeps its sources — the citation is as
 true of the partial text as of the whole.
+
+### Citation strip: the hole review found
+
+**The strip was structurally incomplete on the one path built to extend
+retrieval.** `citedSources` was computed once from the pre-turn `retrieve()`,
+before the tool loop ran. So when Metis called `search_library` mid-answer,
+found a new work and named it in its prose, the strip omitted it.
+
+That is exactly the "named in the answer but absent from the strip" signature
+the strip exists to flag as a fabricated attribution — meaning it would have
+reported a genuine retrieval as a fabrication. Worse than showing no strip, and
+live on PROD since `WORKSPACE_TOOLS_ENABLED` was set.
+
+`search_library` now collects the works it serves into a `servedSources` array
+passed by reference through `ToolContext` — the same pattern `seenChunkIds`
+already uses — and stream.ts unions them with the pre-turn set, deduped by
+title, still audience-gated. Only works the model actually SAW are recorded: one
+dropped for length stays out of the strip.
+
+**Web-search and Perplexity now cite too.** Both build the same library-grounded
+system prompt as every other branch but neither emitted a sources event. They
+carry their own URL citations, which answer a different question — which pages
+it read, versus which of your works it was grounded in.
+
+Image generation correctly still does not: that branch sends no system prompt
+at all, so nothing grounds it.
+
+The inference the strip supports — "named but not cited means fabricated" — only
+holds if every grounded branch cites. A source-level test now counts the emit
+and persist sites so a branch added later without one fails.
+
+Suite: 160 files / 2006 tests.

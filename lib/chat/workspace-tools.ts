@@ -88,6 +88,9 @@ export async function runWorkspaceToolTurn(args: {
   orgId: string | null;
   audience: "internal" | "client";
   seenChunkIds?: Set<string>;
+  /** Collected by reference: works search_library served this turn, for the
+   *  citation strip. */
+  servedSources?: Array<{ title: string; author: string | null }>;
   modelId: string;
   apiKey: string;
   signal?: AbortSignal;
@@ -99,6 +102,7 @@ export async function runWorkspaceToolTurn(args: {
       orgId: args.orgId,
       audience: args.audience,
       seenChunkIds: args.seenChunkIds,
+      servedSources: args.servedSources,
     },
     buildCallModel(args.modelId, args.apiKey, args.orgId, args.signal),
     args.onProgress,

@@ -327,6 +327,13 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     const encoder = new TextEncoder();
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
+        // Same library-grounded system prompt as every other branch, so the
+        // same citation strip. These branches also carry their own URL
+        // citations for the web results; the two answer different questions —
+        // which pages it read, and which of YOUR works it was grounded in.
+        if (citedSources.length > 0) {
+          controller.enqueue(encoder.encode(encodeEvent({ t: "s", sources: citedSources })));
+        }
         controller.enqueue(encoder.encode(content));
         controller.close();
       },
@@ -341,6 +348,8 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
           modelId,
           tokens,
           false,
+          undefined,
+          citedSources,
         );
         extractMemories(args.userId, args.userContent, args.conversationId).catch(() => {});
       }
@@ -384,6 +393,13 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
     const encoder = new TextEncoder();
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
+        // Same library-grounded system prompt as every other branch, so the
+        // same citation strip. These branches also carry their own URL
+        // citations for the web results; the two answer different questions —
+        // which pages it read, and which of YOUR works it was grounded in.
+        if (citedSources.length > 0) {
+          controller.enqueue(encoder.encode(encodeEvent({ t: "s", sources: citedSources })));
+        }
         controller.enqueue(encoder.encode(content));
         controller.close();
       },
@@ -398,6 +414,8 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
           modelId,
           tokens,
           false,
+          undefined,
+          citedSources,
         );
         extractMemories(args.userId, args.userContent, args.conversationId).catch(() => {});
       }
@@ -490,9 +508,17 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
       // the answer. The loop's answer is non-streamed, so this is the only
       // feedback the user gets during a wait that can reach 20 seconds.
       const progressLabels: string[] = [];
+      // Works search_library finds MID-ANSWER. Without these the strip shows
+      // only the pre-turn retrieval, so a work the model looked up and then
+      // named in its prose would be missing from the strip — the exact
+      // "named but not cited" signature the strip exists to flag as
+      // fabrication. Reporting a real retrieval as a fabrication is worse than
+      // showing no strip at all.
+      const toolSources: Array<{ title: string; author: string | null }> = [];
       try {
         toolContent = await runWorkspaceToolTurn({
           onProgress: (pr) => progressLabels.push(pr.label),
+          servedSources: toolSources,
           messages: [...systemMessage, ...priorMessages] as ChatMessage[],
           orgId: toolOrgId,
           audience,
@@ -506,13 +532,28 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
       } catch {
         toolContent = "";
       }
+      // Merge, deduped by title, keeping pre-turn works first (they are
+      // relevance-ranked; tool finds are appended in the order looked up).
+      // Still audience-gated: toolSources is only ever populated on a turn
+      // whose ctx.audience allowed titles in the first place, and citedSources
+      // is [] for a client turn regardless.
+      const allSources =
+        audience === "internal"
+          ? [
+              ...citedSources,
+              ...toolSources.filter(
+                (t) => !citedSources.some((c) => c.title === t.title),
+              ),
+            ]
+          : [];
+
       if (toolContent) {
         const encoder = new TextEncoder();
         const stream = new ReadableStream<Uint8Array>({
           start(controller) {
-            if (citedSources.length > 0) {
+            if (allSources.length > 0) {
               controller.enqueue(
-                encoder.encode(encodeEvent({ t: "s", sources: citedSources })),
+                encoder.encode(encodeEvent({ t: "s", sources: allSources })),
               );
             }
             for (const label of progressLabels) {
@@ -535,7 +576,7 @@ export async function streamMessage(args: StreamMessageArgs): Promise<{
             0,
             false,
             undefined,
-            citedSources,
+            allSources,
           );
           extractMemories(
             args.userId,

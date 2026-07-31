@@ -31,6 +31,13 @@ export interface ToolContext {
    *  tool call cannot re-serve what the first one did. Shared by reference
    *  across every hop of one tool loop. */
   seenChunkIds?: Set<string>;
+  /** Works search_library actually served this turn, collected by reference the
+   *  same way. Without this the citation strip shows only the PRE-TURN
+   *  retrieval — so a work the model found mid-answer and named in its prose
+   *  would be missing from the strip, which is precisely the
+   *  "named-but-not-cited" signature the strip exists to flag as fabrication.
+   *  Reporting a real retrieval as a fabrication is worse than no strip. */
+  servedSources?: Array<{ title: string; author: string | null }>;
 }
 
 const UUID_RE =
@@ -229,8 +236,19 @@ export async function executeWorkspaceTool(
         // the model twice, which is the exact "two sources agreeing" misread
         // this dedup exists to prevent. The loop's own guard only catches
         // literally identical calls, not overlapping results.
+        const served = fresh.slice(0, excerpts.length);
         if (ctx.seenChunkIds) {
-          for (const r of fresh.slice(0, excerpts.length)) ctx.seenChunkIds.add(r.chunkId);
+          for (const r of served) ctx.seenChunkIds.add(r.chunkId);
+        }
+        // Record the works so the citation strip can include what was found
+        // mid-answer, not just what the pre-turn retrieval supplied. Deduped by
+        // title: a work contributing two chunks is cited once.
+        if (ctx.servedSources) {
+          for (const r of served) {
+            if (!ctx.servedSources.some((x) => x.title === r.title)) {
+              ctx.servedSources.push({ title: r.title, author: r.author });
+            }
+          }
         }
 
         return jsonLibrary({ excerpts, alreadySeen: dropped, omittedForLength: omitted });
