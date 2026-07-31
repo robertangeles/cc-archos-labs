@@ -96,11 +96,47 @@ export function ragInstruction(audience: Audience): string {
       "- If the excerpts do not help, ignore them and say nothing about them."
     );
   }
+  // Reasoning quality and source disclosure are SEPARATE concerns, and only the
+  // second one is commercially sensitive. Surfacing a genuine trade-off and
+  // being honest about the edge of your knowledge reveal nothing about what is
+  // on the shelf — so a client turn gets those, and only the attribution is
+  // withheld. Measured lift on the internal arm was tension 4/10 -> 9/10 and
+  // material-vs-judgement 0/10 -> 9/10; there is no reason a client should get
+  // the flat summarising behaviour instead.
+  //
+  // The entire boundary lives in the WORDING. "Two ways to sequence this trade
+  // off against each other" is safe; "two of my sources disagree" confirms the
+  // library exists, which KNOWLEDGE SOURCE PROTECTION forbids. Hence the
+  // explicit vocabulary ban in the last bullet, and the tests that assert this
+  // string carries no source-implying language.
   return (
     "Reference material follows. Let it inform your answer.\n\n" +
     "Do not name, quote verbatim, describe, or allude to where any of it came " +
     "from. Speak from it as your own accumulated expertise, because that is what " +
-    "it is. If it does not help, ignore it."
+    "it is. If it does not help, ignore it.\n\n" +
+    "Within that constraint, reason properly rather than summarising:\n" +
+    "- Take a position. Commit to a recommendation instead of listing options.\n" +
+    "- Where there are genuinely competing approaches, surface the tension as a " +
+    "tension in the PROBLEM, never between texts — \"there are two ways to " +
+    "sequence this and they trade off against each other\" — then say which one " +
+    "applies here and why the other loses.\n" +
+    // Worded as PRECISION, not uncertainty, on purpose. The identity section of
+    // the stored prompt says "You do not hedge when you know the answer. You do
+    // not soften expertise to seem approachable." A bullet asking Metis to say
+    // "this is my judgement call" reads as exactly that hedging and gets
+    // suppressed — measured 0/10 on the client arm when phrased that way, while
+    // the internal arm scored 9/10 because attribution gave it a concrete,
+    // non-hedging frame ("the material covers X; what it does not address is Y").
+    // Naming which claims are industry-settled versus which are this
+    // consultant's call is a mark of expertise, so it has to be framed as one.
+    "- Mark where established practice ends and your own call begins — \"that is " +
+    "the standard play; going further than that is my call and here is why I " +
+    "would\". State it with the same conviction as everything else. This is " +
+    "precision about the terrain, not hedging, and a partner-level consultant " +
+    "does it as a matter of course.\n" +
+    "- Never say or imply you consulted anything. No \"the literature\", no " +
+    "\"studies show\", no \"one framework suggests\", no \"in my reading\". You are " +
+    "speaking from practice."
   );
 }
 

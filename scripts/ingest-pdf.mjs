@@ -32,6 +32,8 @@ const EMBED_MODEL = process.env.OPENROUTER_EMBED_MODEL ?? "openai/text-embedding
 const EMBED_DIMS = 1024;
 const MAX_TOKENS = 1000;
 const OVERLAP = 200;
+// Keep in step with MAX_CHUNKS_PER_DOCUMENT in lib/knowledge/chunking.ts.
+const MAX_CHUNKS = 2000;
 
 const sql = postgres(url, { max: 1, ssl: "require" });
 
@@ -133,7 +135,20 @@ function chunkText(text) {
     if (tokens > 0) chunks.push({ text: ct, tokenCount: tokens });
   }
 
-  return chunks.slice(0, 500);
+  // Fails loud rather than truncating — the old `.slice(0, 500)` discarded the
+  // tail of a long book silently, and chunk_count then recorded the truncated
+  // number so the admin page showed a healthy-looking document. Mirrors
+  // MAX_CHUNKS_PER_DOCUMENT in lib/knowledge/chunking.ts.
+  if (chunks.length > MAX_CHUNKS) {
+    console.error(
+      `\nABORT: produced ${chunks.length} chunks, over the ${MAX_CHUNKS} limit.\n` +
+        `Refusing to truncate silently — a half-ingested book is indistinguishable\n` +
+        `from a complete one once it is in the vector store. Split the source, or\n` +
+        `raise MAX_CHUNKS here and in lib/knowledge/chunking.ts deliberately.`,
+    );
+    process.exit(1);
+  }
+  return chunks;
 }
 
 console.log("Chunking...");

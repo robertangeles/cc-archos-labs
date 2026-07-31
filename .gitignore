@@ -72,3 +72,6 @@ wiki/.graph.json
 # a real .txt file under public/, name it explicitly in a !-include below.
 public/*.txt
 .gstack/
+
+# Retag snapshots — timestamped local safety copies, regenerated on every --apply
+knowledge-corpus-before-retag-*.json

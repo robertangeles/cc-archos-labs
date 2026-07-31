@@ -112,6 +112,56 @@ describe("ragInstruction", () => {
   it("produces materially different instructions per audience", () => {
     expect(ragInstruction("internal")).not.toBe(ragInstruction("client"));
   });
+
+  // Reasoning quality and source disclosure are separate concerns. A client
+  // turn is entitled to the first without the second — withholding it made
+  // Metis measurably worse at reasoning for no protective benefit.
+  it("gives client turns the reasoning lift, not just a ban", () => {
+    const text = ragInstruction("client");
+    expect(text).toMatch(/take a position/i);
+    expect(text).toMatch(/tension/i);
+    // Epistemic honesty, framed as precision rather than hedging — the stored
+    // identity block forbids hedging, and phrasing this as "my judgement call"
+    // measured 0/10 on the client arm because of that conflict.
+    expect(text).toMatch(/established practice ends/i);
+    expect(text).toMatch(/not hedging/i);
+  });
+
+  // The whole boundary is carried by wording, so the wording is asserted.
+  // Anything here that implies a corpus exists confirms what KNOWLEDGE SOURCE
+  // PROTECTION is written to deny — and a future edit adding "where two sources
+  // disagree" would read as a harmless clarification while breaking it.
+  it("client instruction never uses vocabulary that implies a corpus exists", () => {
+    const text = ragInstruction("client");
+    for (const banned of [
+      /\bsources?\b/i,
+      /\bdocuments?\b/i,
+      /\bbooks?\b/i,
+      /\bauthors?\b/i,
+      /\bthe literature\b/i,
+      /\bknowledge base\b/i,
+      /\bcorpus\b/i,
+      /\blibrary\b/i,
+      /\bretrieved\b/i,
+      /\bcitation\b/i,
+    ]) {
+      // "Never say ... no 'the literature'" is an instruction ABOUT the word,
+      // so allow it only inside the explicit prohibition line.
+      const offending = text
+        .split("\n")
+        .filter((l) => banned.test(l) && !/^- Never say or imply/.test(l));
+      expect(
+        offending,
+        `client instruction leaks corpus-implying vocabulary ${banned}: ${offending.join(" | ")}`,
+      ).toEqual([]);
+    }
+  });
+
+  it("still forbids client turns from surfacing tension BETWEEN texts", () => {
+    // The safe framing is a tension in the problem; the unsafe one is a
+    // disagreement between things Metis read. The instruction must say so.
+    expect(ragInstruction("client")).toMatch(/never between texts/i);
+  });
 });
 
 describe("script copies stay in sync with the source of truth", () => {
@@ -144,6 +194,26 @@ describe("script copies stay in sync with the source of truth", () => {
       normalise(src).includes(normalise(ragInstruction("internal"))),
       "scripts/metis-source-blocks.mjs NEW_RAG_INSTRUCTION has drifted from ragInstruction('internal')",
     ).toBe(true);
+    expect(
+      normalise(src).includes(normalise(ragInstruction("client"))),
+      "scripts/metis-source-blocks.mjs CLIENT_RAG_INSTRUCTION has drifted from ragInstruction('client')",
+    ).toBe(true);
+  });
+});
+
+describe("users.role default", () => {
+  // audienceFor reads users.role to decide whether Metis may name the practice
+  // library. That makes the column default part of the security boundary, not a
+  // convenience: an insert path that omits the field must produce someone who
+  // CANNOT read the library out. It defaulted to 'admin' until migration 0038,
+  // which failed open in exactly the wrong direction.
+  it("defaults to member so a forgotten field fails closed", async () => {
+    const { users } = await import("../db/schema");
+    const col = users.role as unknown as { hasDefault: boolean; default: unknown };
+    expect(col.hasDefault).toBe(true);
+    expect(col.default).toBe("member");
+    // The property that actually matters, stated directly.
+    expect(audienceFor(col.default as string)).toBe("client");
   });
 });
 

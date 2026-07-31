@@ -1,6 +1,29 @@
 const MAX_TOKENS = 1000;
 const OVERLAP_TOKENS = 200;
-const MAX_CHUNKS_PER_DOCUMENT = 500;
+
+// Raised from 500 and now enforced by THROWING rather than by silently
+// truncating. The old `chunks.slice(0, 500)` discarded the tail of any long
+// book without a word: chunk_count recorded the truncated number, so the admin
+// page showed "496 chunks, ready" and looked healthy. DMBOK landed at 496 —
+// four chunks from the ceiling — so the next long book would have lost its
+// ending with no signal at all.
+//
+// 2000 chunks is roughly 1.6M tokens of source text, comfortably past any book
+// in the library (the largest today is 496). A document that exceeds it is
+// telling you something is wrong with the input, not that the cap is too small.
+export const MAX_CHUNKS_PER_DOCUMENT = 2000;
+
+export class ChunkLimitError extends Error {
+  override name = "ChunkLimitError";
+  constructor(produced: number, limit: number = MAX_CHUNKS_PER_DOCUMENT) {
+    super(
+      `Document produced ${produced} chunks, over the ${limit} limit. ` +
+        `Refusing to truncate silently — a partially ingested book looks identical ` +
+        `to a complete one once it is in the vector store. Split the source or raise ` +
+        `MAX_CHUNKS_PER_DOCUMENT deliberately.`,
+    );
+  }
+}
 
 export interface ChunkResult {
   text: string;
@@ -33,6 +56,9 @@ export function chunkText(
   text: string,
   maxTokens = MAX_TOKENS,
   overlap = OVERLAP_TOKENS,
+  // Injectable so the fail-loud guard is testable without generating ~1.5M
+  // words of input. Defaults to the real cap in every production call.
+  maxChunks = MAX_CHUNKS_PER_DOCUMENT,
 ): ChunkResult[] {
   const cleaned = text.replace(/\r\n/g, "\n").trim();
   if (!cleaned) return [];
@@ -92,5 +118,8 @@ export function chunkText(
     }
   }
 
-  return chunks.slice(0, MAX_CHUNKS_PER_DOCUMENT);
+  if (chunks.length > maxChunks) {
+    throw new ChunkLimitError(chunks.length, maxChunks);
+  }
+  return chunks;
 }

@@ -2,7 +2,7 @@ import "server-only";
 import { randomInt } from "node:crypto";
 import { generateStructured } from "@/lib/claude";
 import {
-  searchKnowledge,
+  searchCdmpSources,
   getChunksByChapter,
   type SearchResult,
   type ChapterChunk,
@@ -170,9 +170,12 @@ async function generateOneTask(
   config: CdmpConfig,
 ): Promise<GeneratedQuestion | null> {
   try {
-    const chunks = await searchKnowledge(
+    // Scoped by is_cdmp_source, NOT by category. Passing "dmbok" here used to
+    // pull in every document that happened to carry that topic label — 8 of
+    // PROD's 19 carried it and 6 were wrong for an exam, including The Trusted Advisor and The Pragmatic Programmer.
+    // Certification questions were being generated from a consulting book.
+    const chunks = await searchCdmpSources(
       chapter.label,
-      "dmbok",
       config.chunksPerQuestion,
     );
 

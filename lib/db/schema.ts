@@ -1137,7 +1137,15 @@ export const users = pgTable(
     // Free-form text (not enum) for forward flexibility — promote to a
     // pgEnum once we know which other roles we need (author, reviewer,
     // viewer, etc.). v1 values: 'admin' | 'member'.
-    role: text("role").notNull().default("admin"),
+    //
+    // Defaults to 'member', NOT 'admin' (migration 0038). Since 2026-07-31 this
+    // column is a source-disclosure boundary, not only a UI permission:
+    // audienceFor() in lib/chat/prompt-config-shared.ts reads it to decide
+    // whether Metis may name the practice library. An insert path that forgets
+    // this field must produce someone who CANNOT read the library out, so the
+    // default has to fail closed. All four live insert paths set it explicitly
+    // anyway; the default is the backstop for the fifth one.
+    role: text("role").notNull().default("member"),
     // Argon2id hash (`$argon2id$v=19$m=19456,t=2,p=1$...`). NULL for
     // OAuth-only users + the legacy admin row before Phase 1 backfill.
     passwordHash: text("password_hash"),
@@ -1938,8 +1946,33 @@ export const knowledgeDocument = pgTable("knowledge_document", {
   title: text("title").notNull(),
   // 'pdf' | 'text' | 'url'. Determines which parser the ingest pipeline uses.
   sourceType: text("source_type").notNull(),
-  // Free-text category for admin filtering (e.g. 'dmbok', 'supplementary').
+  // TOPIC domain. Since migration 0039 the values are the five canonical
+  // domains: 'dmbok' | 'consulting' | 'engineering' | 'analytics' | 'startup'.
+  // Still text rather than an enum so a new shelf can be added without a
+  // migration; the retag script is the source of truth for the vocabulary.
+  //
+  // This is NOT a permission. It says what a document is about, nothing more.
+  // See is_cdmp_source below for why that distinction is load-bearing.
   category: text("category"),
+  // Author(s) as they should be cited, e.g. 'Peter Block'. User-facing: an
+  // internal-session Metis turn names the work it draws on, so this renders
+  // into chat output. Nullable — a document may legitimately have no author.
+  author: text("author"),
+  publicationYear: integer("publication_year"),
+  // Whether CDMP certification practice-exam questions may be drawn from this
+  // document. DELIBERATELY SEPARATE from category (migration 0039).
+  //
+  // lib/cdmp/generate.ts used to select exam material with
+  // `searchKnowledge(label, "dmbok", n)` — treating a topic label as an
+  // approval flag. In PROD that meant 6 documents fed the certification pool
+  // that had no business there, The Trusted Advisor among them. The two
+  // questions are genuinely different: The Unified Star Schema is
+  // data-management by topic but out-of-syllabus for DAMA, and the old scheme
+  // had no way to say so.
+  //
+  // Defaults false: a newly ingested document is not exam material until
+  // someone approves it.
+  isCdmpSource: boolean("is_cdmp_source").notNull().default(false),
   // sha256 of the raw file bytes. UNIQUE so re-uploading the same file
   // is rejected at the DB layer rather than silently duplicated.
   contentHash: text("content_hash").notNull().unique(),
