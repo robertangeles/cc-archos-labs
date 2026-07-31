@@ -2408,3 +2408,33 @@ has failed two audits" is a relative pronoun, not a back-reference. It would hav
 paid the 1.8s rewrite on nearly every question.
 
 Diversity unchanged at 4.75 books after all four fixes. 156 files / 1955 tests.
+
+### PR #233 re-review: APPROVE, plus two things worth doing anyway
+
+Re-review confirmed both blocking fixes. Two non-blocking items raised, both taken:
+
+**Partial fan-out failure was invisible.** A sub-query failing BOTH vector and
+keyword while others succeeded did not set `degraded` — 3 sub-queries, 2 hits and
+1 total outage reported as healthy. The user-facing state machine only sees that
+flag, so anything it cannot see effectively did not happen. `failures.length > 0`
+now counts.
+
+**The orchestration had no runnable test.** `retrieve.test.ts` covered only the
+pure helpers; the only end-to-end exercise is DB- and API-key-gated and skipped
+in CI. That is the exact code broken twice in one sitting — once by indexing
+results with a `paths` array populated from concurrent callbacks, once by mixing
+score scales — and neither would have been caught by a test.
+
+Added `lib/knowledge/retrieve.orchestration.test.ts`: searches mocked, so it runs
+everywhere. Nine cases across pool selection, degraded accounting and coverage.
+
+Writing it exposed a third thing: the first two tests passed for the wrong
+reason. With fan-out on, the decompose call is a real fetch, the fake key made it
+fail, retrieve() fell back to ONE sub-query, and every multi-sub-query scenario
+silently became a single-query one. Stubbed the decompose response so sub-query
+count is deterministic.
+
+Both guards mutation-tested: reinstating the mixed pool fails a test, and
+dropping `failures.length` from the degraded check fails another.
+
+156 files / 1964 tests.

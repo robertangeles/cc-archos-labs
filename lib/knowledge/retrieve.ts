@@ -466,11 +466,18 @@ export async function retrieve(args: RetrieveArgs): Promise<RetrieveResult> {
   );
   const discardedKeywordQueries = usedKeywordOnly ? 0 : keywordRows.length;
 
-  // Degraded whenever semantic retrieval was not fully healthy: keyword served
-  // everything, or some sub-queries fell back and their results had to be
-  // dropped to keep the pool rankable. Either way the turn is working from less
-  // than it should be and the operator has to be able to see it.
-  const degradedRetrieval = usedKeywordOnly || discardedKeywordQueries > 0;
+  // Degraded whenever semantic retrieval was not fully healthy:
+  //   - keyword served everything (embed API down), or
+  //   - some sub-queries fell back and their results were discarded to keep the
+  //     pool rankable, or
+  //   - a sub-query failed outright while others succeeded.
+  //
+  // That last case used to be invisible: with 3 sub-queries, 2 vector hits and
+  // 1 total failure, the turn reported healthy while a third of the fan-out
+  // never ran. The user-facing state machine only sees this flag, so anything
+  // it cannot see effectively did not happen.
+  const degradedRetrieval =
+    usedKeywordOnly || discardedKeywordQueries > 0 || failures.length > 0;
 
   // Every sub-query failed outright — retrieval is DOWN, which is a different
   // state from the library having nothing. The caller must tell them apart.
