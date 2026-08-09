@@ -37,9 +37,9 @@ import {
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
     // Brand-free: the layout template appends " — Archos Labs" (see app/page.tsx).
-    title: "Fractional Data & AI Consulting for Startups",
+    title: "Fractional Semantic Data & AI Consulting",
     description:
-      "Fractional data leadership, short-term gigs, and AI readiness diagnostics for startups and SMBs. Fixed-fee. No retainer. Melbourne, Australia.",
+      "Fractional semantic data leadership, short-term gigs, and AI readiness diagnostics for startups and SMBs. Fixed-fee. No retainer. Melbourne, Australia.",
     path: "/consulting",
   });
 }
@@ -65,7 +65,7 @@ const DIAGNOSTIC_CTA = {
 const SERVICES = [
   {
     deliverable: "Ongoing",
-    name: "Fractional Data Leadership",
+    name: "Fractional Semantic Data Leadership",
     body:
       "Part-time, ongoing work as your senior data person. Architecture decisions, governance, someone to call when something breaks — without the full-time salary. You get senior expertise for the hours you actually need.",
     bestFor:
@@ -244,7 +244,7 @@ export default async function ConsultingPage({
 
         {/* 1. Hero */}
         <Hero
-          eyebrow="Fractional Data · Short-Term Gigs · AI Readiness"
+          eyebrow="Fractional Semantic Data · Short-Term Gigs · AI Readiness"
           gradient="off"
           headline={
             <>
@@ -254,7 +254,7 @@ export default async function ConsultingPage({
           }
           subhead={
             <span className="mx-auto block max-w-[520px]">
-              Fractional data leadership and short-term gigs for founders
+              Fractional semantic data leadership and short-term gigs for founders
               and small teams. Fixed-fee. Scoped before we start.
               Delivered by the same person you spoke to.
             </span>

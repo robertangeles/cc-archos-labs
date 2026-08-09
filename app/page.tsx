@@ -39,10 +39,10 @@ export async function generateMetadata(): Promise<Metadata> {
     // the homepage <title> ships with no brand at all while every child route
     // gets one. absoluteTitle makes buildPageMetadata append it directly.
     // Do NOT copy this flag to any other route; it double-brands them.
-    title: "Your Fractional Data Team for Startups & SMBs",
+    title: "Fractional Semantic Data Expert, Melbourne",
     absoluteTitle: true,
     description:
-      "No data team? Rob Angeles works with startup founders and SMBs as their fractional data person. Fixed-fee. No retainer. Melbourne, Australia.",
+      "No data team? Rob Angeles works with startup founders and SMBs as their fractional semantic data expert. Fixed-fee. No retainer. Melbourne, Australia.",
     path: "/",
   });
 }
@@ -78,7 +78,7 @@ const STATS = [
 const SERVICES = [
   {
     deliverable: "Ongoing",
-    name: "Fractional Data Leadership",
+    name: "Fractional Semantic Data Leadership",
     body:
       "Part-time, ongoing work as your senior data person. Architecture decisions, governance, and someone to call when something breaks — without the full-time salary.",
     bestFor: "Startups and SMBs that need ongoing data support.",
@@ -105,7 +105,7 @@ const PROOF_POINTS = [
     eyebrow: "Startup · Full platform build",
     title: "Their data team. For four years.",
     body:
-      "Early-stage platform with no data architecture. Built the transactional model, the analytics layer, and the full migration from the legacy system. Sole data architect from design through delivery.",
+      "Early-stage platform with no data architecture. Built the transactional model, the analytics layer, and the full migration from the legacy system. Sole architect of the semantic layer from design through delivery.",
     stat: "4 years  ·  greenfield to production",
   },
   {
@@ -252,7 +252,7 @@ export default async function Home({
 
         {/* 1. Hero */}
         <Hero
-          eyebrow="Fractional Data · AI Readiness · Short-Term Gigs"
+          eyebrow="Fractional Semantic Data · AI Readiness · Short-Term Gigs"
           gradient="off"
           headline={
             <>
@@ -267,7 +267,7 @@ export default async function Home({
               Startups and small businesses building on AI need solid data
               underneath it. Most can&rsquo;t afford a full-time senior data
               hire. I work with founders and technical leads as their
-              fractional data person — or on short gigs when you need a
+              fractional semantic data expert — or on short gigs when you need a
               specific problem solved fast.
             </>
           }

@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getSiteSettings } from "../../lib/site-config";
+import { FOUNDER_JOB_TITLE } from "../../lib/schema-graph";
 
 // Programmatic Open Graph card for /about. Next.js serves this at
 // /about/opengraph-image and the metadata API references it
@@ -102,7 +103,7 @@ export default async function AboutOpenGraphImage() {
               color: "#A1A1AA",
             }}
           >
-            Principal Consultant · Archos Labs
+            {FOUNDER_JOB_TITLE} · {settings.siteName}
           </span>
         </div>
       </div>

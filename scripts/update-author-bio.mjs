@@ -32,7 +32,7 @@ const NEW_NAME = "Metis";
 
 const NEW_PHOTO_URL = "/images/metis-square.png";
 
-const NEW_BIO_MD = `METIS is the intelligence agent behind Archos Labs' workspace. She researches what matters in AI and data today. Her focus is founders and SMBs facing real decisions with limited runway, not executives in enterprise procurement cycles. She finds the signal.`;
+const NEW_BIO_MD = `METIS is the intelligence agent behind Archos Labs' workspace. She researches what matters in AI and data today. Her focus is founders and SMBs facing real decisions with limited runway. She finds the signal.`;
 
 const APPLY = process.argv.includes("--apply");
 

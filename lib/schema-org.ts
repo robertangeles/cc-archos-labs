@@ -96,9 +96,9 @@ export function buildHomePageServicesLd(): SchemaService[] {
     {
       "@context": "https://schema.org",
       "@type": "Service",
-      name: "Fractional Data Leadership",
+      name: "Fractional Semantic Data Leadership",
       description:
-        "Part-time, ongoing senior data person for startups and SMBs. Architecture, governance, and a senior data hand to call when something breaks — without the full-time salary.",
+        "Part-time, ongoing senior data person for startups and SMBs. Semantic and data architecture, governance, and a senior data hand to call when something breaks — without the full-time salary.",
       provider: ref(SCHEMA_IDS.org),
       areaServed: { "@type": "Country", name: "Australia" },
     },
@@ -184,7 +184,7 @@ export function buildConsultingLd(args: {
       "@context": "https://schema.org",
       "@type": "WebPage",
       "@id": args.url,
-      name: "Fractional Data & AI Consulting",
+      name: "Fractional Semantic Data & AI Consulting",
       url: args.url,
       inLanguage: "en-AU",
       isPartOf: ref(SCHEMA_IDS.website),

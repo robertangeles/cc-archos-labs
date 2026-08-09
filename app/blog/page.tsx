@@ -34,7 +34,7 @@ export async function generateMetadata({
   const meta = await buildPageMetadata({
     title: "The Translation Layer",
     description:
-      "Essays on AI program risk, data architecture, and what actually breaks in transformation. By Rob Angeles, Archos Labs.",
+      "Essays on AI program risk, data architecture, and what actually breaks in transformation. Researched by Metis, reviewed by Rob Angeles. Archos Labs.",
     path,
     ogType: "website",
   });
@@ -75,9 +75,10 @@ export default async function BlogIndexPage({
             Where AI programs break.
           </h1>
           <p className="max-w-[640px] text-body-lg leading-[1.6] text-ink-subtle">
-            The Translation Layer is the only AI newsletter written by
-            someone who has broken these programs from the inside and is
-            building the replacements.
+            Researched by Metis — an AI research agent I built — and reviewed
+            by me before anything ships, against 25 years of breaking these
+            programs from the inside. Most AI newsletters are prompted. This
+            one is engineered.
           </p>
         </header>
 

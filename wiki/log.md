@@ -2738,3 +2738,60 @@ still limits what reaches the model, but a wider `perQueryK` would give it
 alternatives. Left for the telemetry to judge rather than tuned blind.
 
 PROD and DEV both at 36 documents / 6,192 chunks. CDMP pool still exactly 2.
+
+## 2026-08-10 — Positioning: Fractional Semantic Data Expert
+
+Consolidated six competing self-descriptions onto one public title and fixed a
+blog masthead claim that had gone false.
+
+Full rationale: [[2026-08-10-fractional-semantic-data-expert-positioning]].
+
+Touched: `app/page.tsx`, `app/about/page.tsx`, `app/about/opengraph-image.tsx`,
+`app/consulting/page.tsx`, `app/blog/page.tsx`, `lib/schema-graph.ts`,
+`lib/schema-org.ts`, `lib/site-config-shared.ts`, `lib/llms-txt.ts`,
+`scripts/seed/blog-author-backfill.ts`, `scripts/update-author-bio.mjs`.
+
+`FOUNDER_JOB_TITLE` was the lever — one constant drives the `Person` node on
+every page plus the /about OG card, so `jobTitle` is now identical across `/`,
+`/about`, `/consulting` and `/blog` (verified against rendered HTML). A hardcoded
+duplicate of it in `app/about/opengraph-image.tsx` was replaced with an import.
+
+Two misses that only rendered-output verification caught, both in `lib/schema-org.ts`
+rather than the page files: `buildHomePageServicesLd()` and the consulting `WebPage`
+node keep their own copies of the Service/page names, so grepping the `page.tsx`
+files found 12 strings and missed 2.
+
+Biography prose was reframed, not relabelled — "led the semantic and data
+architecture" instead of a retroactive title claim. DAMA's "Data Architecture"
+exam topic deliberately untouched.
+
+Blog masthead replacement had to satisfy `lib/blog/byline.ts`: ~120 migrated posts
+are human-written, so "written by Metis" over-claims. Shipped copy mirrors
+`showsDualByline`'s two facts — Researched by Metis, Reviewed by Rob Angeles.
+`/blog` meta description (said "By Rob Angeles") and `llms-txt.ts`
+("Practitioner-written") carried the same stale claim and were updated with it.
+
+Gates: tsc clean, 2010/2010 vitest, 0 lint errors, build green. Titles verified in
+rendered HTML at 54–58 chars.
+
+### Not finished by this PR
+
+`site_setting.description` on PROD still reads "Get a fractional data architect" —
+a DB row, feeding Organization + WebSite JSON-LD, the global OG card and llms.txt.
+The Metis bio edit likewise needs `update-author-bio.mjs --apply`. DEV and PROD held
+three different `description` values and two different `tagline` values during this
+work.
+
+### Incidental finding — 2 of 22 blog posts have no featured image
+
+`where-ai-sits-determines-what-you-measure` and
+`six-week-ai-readiness-sprint-small-business`. One predicate
+(`ogImagePath && !ogImageDeletedAt`) gates the hero, og:image, feed enclosure, list
+thumbnail and read-next card, so all five are absent together. Both post-date the
+illustration step (`2241919`, 2026-07-26), so "predates the feature" is ruled out.
+NULL-vs-soft-deleted needs a PROD read to distinguish.
+
+`six-week-ai-readiness-sprint-small-business` also has a same-day near-duplicate
+(`...-no-it-team`) that DOES have an image — duplicate content competing with
+itself, the pattern [[2026-07-12-seo-crawl-not-indexed-hygiene]] warns about.
+Consolidating is likely the right fix rather than adding an image.

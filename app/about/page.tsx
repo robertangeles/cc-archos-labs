@@ -43,9 +43,9 @@ import { dedupeSameAs } from "../../lib/schema-graph";
 export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
     // Brand-free: the layout template appends " — Archos Labs" (see app/page.tsx).
-    title: "Rob Angeles, Fractional Data Architect",
+    title: "Rob Angeles, Fractional Semantic Data Expert",
     description:
-      "25 years of data architecture and AI delivery. Rob Angeles works with startups and SMBs as their fractional data person or on short-term gigs. No full-time hire needed. Melbourne, Australia.",
+      "25 years of data architecture and AI delivery. Rob Angeles works with startups and SMBs as their fractional semantic data expert or on short-term gigs. No full-time hire needed. Melbourne, Australia.",
     path: "/about",
   });
 }
@@ -67,7 +67,7 @@ const PHOTO_ALT =
   "Rob Angeles, photographed against the Melbourne skyline at dusk.";
 
 const PERSON_BIO_PARAGRAPHS = [
-  "25 years across healthcare, financial services, government, retail, and technology. I've been the data architect on programs with eight-figure budgets and the sole architect at early-stage startups building from scratch. The problems are the same at every scale — data nobody trusts, systems nobody has documented, and decisions being made without a foundation underneath them.",
+  "25 years across healthcare, financial services, government, retail, and technology. I've led the semantic and data architecture on programs with eight-figure budgets and been the sole architect at early-stage startups building from scratch. The problems are the same at every scale — data nobody trusts, systems nobody has documented, and decisions being made without a foundation underneath them.",
   "I work with a small number of teams at a time. Startups and SMBs who need a senior data person without the full-time salary, or organisations with a specific data problem that needs to be scoped, fixed, and handed back.",
   "Same person on the call. Same person doing the work. No handoff. No junior team behind the pitch.",
 ];
@@ -91,7 +91,7 @@ const SELECTED_WORK = [
     eyebrow: "Startup · Sole architect",
     title: "Data architecture from scratch.",
     body:
-      "Joined an early-stage platform as sole data architect. Built the transactional model, analytics layer, and full migration from the legacy system. No team. No handoff. Four years as their data person.",
+      "Joined an early-stage platform as sole architect of the semantic and data layer. Built the transactional model, analytics layer, and full migration from the legacy system. No team. No handoff. Four years as their data person.",
     stat: "4 years  ·  greenfield to production",
   },
   {
