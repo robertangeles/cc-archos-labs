@@ -71,12 +71,17 @@ export const SCHEMA_IDS = {
  * nodes share an `@id`, conflicting jobTitle values become contradictory claims
  * about one entity rather than three separate opinions.
  *
+ * Changed 2026-08-09 to "Fractional Semantic Data Expert" as part of the
+ * positioning consolidation — the site had five different self-descriptions
+ * across titles, Service names and this constant. Google resolves an entity
+ * more confidently against one repeated jobTitle than several competing ones.
+ *
  * Deliberately a constant and not a `site_setting` column: it changes about as
  * often as the company name, and a DB column plus a migration plus an admin
  * input is real permanent complexity to buy nothing. Lift it into settings the
  * day someone needs to change it without a deploy.
  */
-export const FOUNDER_JOB_TITLE = "Principal Consultant";
+export const FOUNDER_JOB_TITLE = "Fractional Semantic Data Expert";
 
 /** A bare reference to a node declared elsewhere in the graph. */
 export function ref(id: string): { "@id": string } {

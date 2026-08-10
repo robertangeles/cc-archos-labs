@@ -35,8 +35,8 @@ const AUTHOR_FIELDS = {
   bioMd:
     "METIS is the intelligence agent behind Archos Labs' workspace. She " +
     "researches what matters in AI and data today. Her focus is founders " +
-    "and SMBs facing real decisions with limited runway, not executives " +
-    "in enterprise procurement cycles. She finds the signal.",
+    "and SMBs facing real decisions with limited runway. She finds the " +
+    "signal.",
 } as const;
 
 async function main(): Promise<void> {

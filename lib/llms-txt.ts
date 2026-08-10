@@ -37,8 +37,8 @@ export function buildLlmsTxt({
   lines.push("");
   lines.push(
     "Editorial essays on AI program risk, data architecture, and what " +
-      "actually breaks in transformation. Practitioner-written, no vendor " +
-      "pitches.",
+      "actually breaks in transformation. Researched by Metis, reviewed by " +
+      "a practitioner. No vendor pitches.",
   );
   lines.push("");
   const top = posts.slice(0, topN);
