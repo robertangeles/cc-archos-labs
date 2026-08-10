@@ -25,6 +25,22 @@ const nextConfig: NextConfig = {
         destination: "/blog/ai-workforce-strategy-without-people-plans",
         permanent: true,
       },
+      {
+        // Duplicate of the post below, and the weaker of the two: 5,871 chars
+        // against 7,358, no featured image, same category, near-identical
+        // excerpt. Both were published within 17 hours on 2026-08-03/04.
+        //
+        // Not a planning mistake — it is the orphan half of the `finish()`
+        // bug fixed in lib/blog-agent/run.ts. The first run committed this
+        // post and died before attaching the illustration; the sweeper
+        // reclaimed the queue item and the retry wrote the -no-it-team slug,
+        // which took the post_id pointer and left this one live and untracked.
+        //
+        // 301 rather than a delete so any link equity lands on the survivor.
+        source: "/blog/six-week-ai-readiness-sprint-small-business",
+        destination: "/blog/six-week-ai-readiness-sprint-small-business-no-it-team",
+        permanent: true,
+      },
     ];
   },
   async headers() {

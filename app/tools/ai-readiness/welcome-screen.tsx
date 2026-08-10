@@ -25,7 +25,7 @@ export function WelcomeScreen({ onBegin }: { onBegin: () => void }) {
           <span className="text-primary">Most are wrong.</span>
         </h1>
         <p className="mt-8 max-w-[600px] text-[18px] leading-[1.6] text-ink-subtle">
-          Twelve questions. About eight minutes. A practitioner-written
+          Twelve questions. About eight minutes. A practitioner-designed
           report scoring your program across data foundation, program
           readiness, and organisational reality. No vendor pitch. No
           maturity wheel. No fake benchmarks.
