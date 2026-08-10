@@ -518,8 +518,14 @@ export async function runOnce(now: Date = new Date()): Promise<RunResult> {
   return park(config, item, parsed, draft, { rounds }, swept);
 }
 
-/** Passed the gate: land it scheduled, awaiting human review. */
-async function finish(
+/**
+ * Passed the gate: land it scheduled, illustrate it, then let it publish.
+ *
+ * Exported for the ordering test only — the review hold set in `createPost`
+ * and cleared after `attachIllustration` is the whole point of this function,
+ * and it is not observable from `runOnce` without mocking the world.
+ */
+export async function finish(
   config: BlogAgentConfig,
   item: ClaimedItem,
   parsed: NonNullable<ReturnType<typeof parseDraft>>,
@@ -550,11 +556,26 @@ async function finish(
       categoryId: item.categoryId,
       status: "scheduled",
       visibility: "listed",
-      // No review hold. The operator took ownership of the output, so a
-      // post that clears the gate publishes at its slot on its own. The
-      // publisher's `NOT (is_agent_generated AND needs_review)` guard stays
-      // in place as a manual brake: flag a post in the admin and it stops.
-      needsReview: false,
+      // Held until the illustration is attached, then cleared below.
+      //
+      // The operator took ownership of the output, so a COMPLETE post still
+      // publishes at its slot without review. But createPost commits, and
+      // attachIllustration runs after it — so a run that died in between used
+      // to leave a post that was already publishable with a blank featured
+      // slot. Worse, the queue item stayed `running`, the sweeper reclaimed it
+      // 15 minutes later, and the retry wrote a SECOND post that took the
+      // `post_id` pointer, orphaning the first.
+      //
+      // That is exactly how both image-less posts on PROD were created
+      // (six-week-ai-readiness-sprint-small-business, 2026-08-02, and
+      // where-ai-sits-determines-what-you-measure, 2026-08-07): 42 of 42 posts
+      // WITH a plan item had an image, 2 of 2 orphans had none.
+      //
+      // Holding here makes the crash safe in the right direction — an
+      // incomplete post stays unpublishable and shows up in the admin as
+      // needing review, instead of shipping broken. The publisher's
+      // `NOT (is_agent_generated AND needs_review)` guard does the work.
+      needsReview: true,
       isAgentGenerated: true,
       // The next slot nothing else has claimed, not merely the next 7am.
       // Always in the future, which PostCreateSchema requires. The post still
@@ -571,6 +592,15 @@ async function finish(
     parsed.slug,
     imagePrompt,
   );
+
+  // The post is complete — release the hold set above so it publishes at its
+  // slot unattended. attachIllustration never throws (it falls through to the
+  // house asset, and swallows even that failure), so reaching this line means
+  // the featured slot is filled one way or another.
+  await getDb()
+    .update(postTable)
+    .set({ needsReview: false })
+    .where(eq(postTable.id, post.id));
 
   await releaseItem(item.id, "drafted", {
     postId: post.id,

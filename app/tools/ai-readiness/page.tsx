@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
     title: "Start the AI Readiness Assessment",
     description:
-      "Twelve questions. About eight minutes. A practitioner-written report on where your data foundation sits and what will catch you at scale.",
+      "Twelve questions. About eight minutes. A practitioner-designed report on where your data foundation sits and what will catch you at scale.",
     path: "/tools/ai-readiness",
   });
 }

@@ -2795,3 +2795,62 @@ NULL-vs-soft-deleted needs a PROD read to distinguish.
 (`...-no-it-team`) that DOES have an image — duplicate content competing with
 itself, the pattern [[2026-07-12-seo-crawl-not-indexed-hygiene]] warns about.
 Consolidating is likely the right fix rather than adding an image.
+
+## 2026-08-10 — Closed the open investigation items
+
+Four items were left open by the positioning work. All four closed; two of them
+turned out to be the same bug.
+
+### The missing featured images and the duplicate post were one root cause
+
+Full write-up: [[2026-08-10-commit-before-side-effect-orphans-rows]].
+
+`finish()` called `createPost({ status: "scheduled", needsReview: false, ... })`
+BEFORE `attachIllustration`, so a run that died in between left a post that was
+already publishable with a blank featured slot — and left the `content_plan_item`
+`running`, so the sweeper reclaimed it and the retry wrote a SECOND post that took
+the `post_id` pointer.
+
+The correlation across every published agent post was exact — 42/42 with a plan
+item had an image, 2/2 orphans had none. `attempts = 3` on the surviving six-week
+item is the fingerprint.
+
+Ruled out first, all wrong: predates the illustration step (it does not — that
+landed 2026-07-26, both posts are August), soft-deleted (every image column NULL),
+`attachIllustration` failed (it cannot fail silently — two try blocks, and it
+swallows the fallback's failure too).
+
+Fix is ordering: hold at `needsReview: true`, release after the illustration
+attaches. The publisher's `NOT (is_agent_generated AND needs_review)` guard already
+existed; nothing new was needed. Guarded by `run.publish-hold.test.ts`, which
+asserts call ORDER and was verified failing (3/3) before the fix.
+
+Live cleanup: 301 for the duplicate matching the existing `next.config.ts`
+precedent, archived out of the feed (`lib/posts.ts:87` filters `status='published'`),
+and `scripts/backfill-orphan-post-image.mjs` for the survivor. The script refuses to
+run when `DATABASE_URL` and `NEXT_PUBLIC_SITE_URL` are in different environments —
+`og_image_path` is stored absolute, so the obvious invocation
+(`DATABASE_URL="<prod>" node --env-file=.env.local ...`) would write localhost image
+URLs into PROD.
+
+### /tools/ai-readiness overclaimed
+
+"A practitioner-written report" → "practitioner-designed". `lib/diagnostic/report.ts:36`
+is explicit: scoring → Claude via OpenRouter → DB write. The prose is generated; the
+scoring model and prompt are Rob's, which is what "designed" now says.
+
+### Metis stays `"@type": "Person"` — flag withdrawn
+
+Raised earlier as a contradiction now that `/blog` calls Metis an AI agent. On
+investigation the alternatives are worse: Article `author` accepts only `Person` or
+`Organization`, so the only other valid option drops the named-author signal and
+breaks the page↔schema correspondence `lib/blog/byline.ts` exists to maintain. The
+node's own `description` already opens with "AI research agent at Archos Labs", so
+the disclosure is inside the structured data, not only on the page. Keeping it,
+documented, rather than restructuring every Article's `author` reference.
+
+Gates: tsc clean, 2013/2013 vitest (3 new), 0 lint errors, build green.
+
+### Still pending on PROD
+
+DB actions applied to DEV only so far: archive the duplicate, run the backfill.
