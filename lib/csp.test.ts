@@ -54,6 +54,20 @@ describe("buildCsp", () => {
     expect(directive(csp, "script-src")).not.toContain("'unsafe-inline'");
   });
 
+  it("does NOT allow 'unsafe-eval' in script-src by default", () => {
+    // Production never gets 'unsafe-eval' — React does not call eval() in
+    // production mode, so there is nothing for it to unblock there.
+    expect(directive(csp, "script-src")).not.toContain("'unsafe-eval'");
+  });
+
+  it("allows 'unsafe-eval' in script-src only when isDev is true", () => {
+    // Turbopack's dev-mode RSC deserializer calls eval() for cross-environment
+    // stack traces. Without this, the app still works (React catches the
+    // blocked call and no-ops) but logs a console warning on every page.
+    const devCsp = buildCsp("TESTNONCE==", true);
+    expect(directive(devCsp, "script-src")).toContain("'unsafe-eval'");
+  });
+
   it("does NOT use 'strict-dynamic'", () => {
     // Deliberate: 'strict-dynamic' makes browsers ignore the host allowlist,
     // and Cloudflare injects a bot-management script into our pages at the edge
