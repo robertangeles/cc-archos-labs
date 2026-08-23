@@ -226,21 +226,137 @@ function SearchButton() {
   );
 }
 
+// Below md (768px) the full link row clips — measured overflow starts at the
+// header's own sm:flex-row breakpoint (640px), where "Sign in" runs off
+// screen with no wrap or scroll. Same open/click-outside/Escape pattern as
+// ToolsMenu and ProfileMenu above.
+function MobileMenu({ lead }: { lead: NavLeadProps | null }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const openSearch = useOpenSearch();
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const itemClass =
+    "block rounded px-3 py-2 text-sm text-ink-subtle transition-colors duration-150 hover:bg-canvas hover:text-ink";
+
+  return (
+    <div ref={ref} className="relative md:hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Menu"
+        className="flex items-center justify-center p-1 text-ink-subtle transition-colors duration-150 hover:text-ink"
+      >
+        <svg aria-hidden width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      {open ? (
+        <div
+          role="menu"
+          className="absolute left-0 z-50 mt-3 w-56 max-w-[calc(100vw-3rem)] rounded-md border border-hairline bg-surface-1 p-2 shadow-2xl"
+        >
+          {TOPLEVEL.map(({ href, label }) => (
+            <Link key={href} href={href} role="menuitem" onClick={() => setOpen(false)} className={itemClass}>
+              {label}
+            </Link>
+          ))}
+          <div className="my-1 border-t border-hairline" />
+          {TOOLS.map((tool) => (
+            <Link
+              key={tool.href}
+              href={tool.href}
+              role="menuitem"
+              onClick={(e) => {
+                setOpen(false);
+                if (tool.href === pathname) {
+                  e.preventDefault();
+                  window.location.href = tool.href;
+                }
+              }}
+              className={itemClass}
+            >
+              {tool.label}
+            </Link>
+          ))}
+          {openSearch ? (
+            <>
+              <div className="my-1 border-t border-hairline" />
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false);
+                  openSearch();
+                }}
+                className={`w-full text-left ${itemClass}`}
+              >
+                Search
+              </button>
+            </>
+          ) : null}
+          <div className="my-1 border-t border-hairline" />
+          {lead ? (
+            <>
+              <Link href="/account" role="menuitem" onClick={() => setOpen(false)} className={itemClass}>
+                {lead.firstName}
+                <span className="block text-[11px] font-normal text-ink-subtle">Your account</span>
+              </Link>
+              <Link href="/account/workspace" role="menuitem" onClick={() => setOpen(false)} className={itemClass}>
+                Metis Workspace
+              </Link>
+              <div className="my-1 border-t border-hairline" />
+              <LeadSignOutButton />
+            </>
+          ) : (
+            <Link href="/login" role="menuitem" onClick={() => setOpen(false)} className={itemClass}>
+              Sign in
+            </Link>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function Nav({ lead }: { lead: NavLeadProps | null }) {
   return (
     <nav className="flex items-center gap-x-5 text-sm text-ink-subtle sm:gap-x-7">
-      {TOPLEVEL.map(({ href, label }) => (
-        <Link
-          key={href}
-          href={href}
-          className="transition-colors duration-150 hover:text-ink"
-        >
-          {label}
-        </Link>
-      ))}
-      <ToolsMenu />
-      <SearchButton />
-      <AuthControl lead={lead} />
+      <div className="hidden items-center gap-x-5 md:flex md:gap-x-7">
+        {TOPLEVEL.map(({ href, label }) => (
+          <Link
+            key={href}
+            href={href}
+            className="transition-colors duration-150 hover:text-ink"
+          >
+            {label}
+          </Link>
+        ))}
+        <ToolsMenu />
+        <SearchButton />
+        <AuthControl lead={lead} />
+      </div>
+      <MobileMenu lead={lead} />
     </nav>
   );
 }
