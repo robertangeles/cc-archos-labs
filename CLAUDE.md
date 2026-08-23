@@ -349,4 +349,8 @@ git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gsta
 cd ~/.claude/skills/gstack && ./setup --team
 ```
 
-Skill routing: `/office-hours` (ideas) → `/plan-ceo-review` (strategy) → `/plan-eng-review` (architecture) → `/investigate` (bugs) → `/qa` (testing) → `/review` (code) → `/design-review` (visual) → `/ship` (deploy) → `/spec` (backlog)
+## Skill routing
+
+When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.
+
+`/office-hours` (ideas) → `/plan-ceo-review` (strategy) → `/plan-eng-review` (architecture) → `/investigate` (bugs) → `/qa` (testing) → `/review` (code) → `/design-review` (visual) → `/ship` (deploy) → `/spec` (backlog)
