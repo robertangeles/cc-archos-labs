@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-08-23T06:07:13.828Z
+generated: 2026-08-23T09:01:40.135Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -82,7 +82,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/tools/cdmp-practice` | [app/tools/cdmp-practice/page.tsx](../app/tools/cdmp-practice/page.tsx) | 2026-07-28 |
 | `/tools/cdmp-practice/history/[sessionId]` | [app/tools/cdmp-practice/history/[sessionId]/page.tsx](../app/tools/cdmp-practice/history/[sessionId]/page.tsx) | 2026-06-03 |
 | `/tools/cdmp-practice/specialist/[area]` | [app/tools/cdmp-practice/specialist/[area]/page.tsx](../app/tools/cdmp-practice/specialist/[area]/page.tsx) | 2026-06-29 |
-| `/tools/watermark-remover` | [app/tools/watermark-remover/page.tsx](../app/tools/watermark-remover/page.tsx) | unknown |
+| `/tools/watermark-remover` | [app/tools/watermark-remover/page.tsx](../app/tools/watermark-remover/page.tsx) | 2026-08-23 |
 | `/workspace/model-studio` | [app/workspace/model-studio/page.tsx](../app/workspace/model-studio/page.tsx) | 2026-07-12 |
 | `/workspace/model-studio/[id]` | [app/workspace/model-studio/[id]/page.tsx](../app/workspace/model-studio/[id]/page.tsx) | 2026-06-17 |
 
@@ -322,7 +322,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/layout/footer.tsx](../components/layout/footer.tsx) | 2026-05-18 |
 | [components/layout/header.tsx](../components/layout/header.tsx) | 2026-06-15 |
 | [components/layout/lead-sign-out-button.tsx](../components/layout/lead-sign-out-button.tsx) | 2026-06-10 |
-| [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-06-29 |
+| [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-08-23 |
 | [components/model-studio/canvas/attribute-panel.tsx](../components/model-studio/canvas/attribute-panel.tsx) | 2026-06-17 |
 | [components/model-studio/canvas/delete-entity-dialog.tsx](../components/model-studio/canvas/delete-entity-dialog.tsx) | 2026-06-17 |
 | [components/model-studio/canvas/entity-dialog.tsx](../components/model-studio/canvas/entity-dialog.tsx) | 2026-06-17 |

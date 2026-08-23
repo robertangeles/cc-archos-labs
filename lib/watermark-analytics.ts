@@ -29,7 +29,3 @@ export function trackWatermarkParseCompleted(props: WatermarkParseProps): void {
 export function trackWatermarkParseFailed(kind: WatermarkInputKind): void {
   track("watermark.parse.failed", { source: kind });
 }
-
-export function trackWatermarkCtaClicked(): void {
-  track("watermark.cta.clicked");
-}

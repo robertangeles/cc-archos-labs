@@ -13,9 +13,13 @@ import path from "node:path";
 // orientation tag and a fake C2PA APP11 segment spliced in. No real
 // camera/location data. Generation is documented in the fixture's own
 // commit message.
+//
+// Fixture: tests/e2e/fixtures/watermark-e2e-text.txt — "Hello<ZWSP>World",
+// one zero-width space (U+200B), for the text-mode file-upload path.
 // ============================================================================
 
 const FIXTURE = path.resolve("tests/e2e/fixtures/watermark-e2e-photo.jpg");
+const TEXT_FIXTURE = path.resolve("tests/e2e/fixtures/watermark-e2e-text.txt");
 
 test("drop/select a photo shows findings and a downloadable result", async ({ page }) => {
   await page.goto("/tools/watermark-remover", { waitUntil: "networkidle" });
@@ -70,17 +74,6 @@ test("the image dropzone is reachable and operable by keyboard alone", async ({ 
   expect(await fileInput.getAttribute("type")).toBe("file");
 });
 
-test("the consulting CTA link resolves to /consulting", async ({ page }) => {
-  await page.goto("/tools/watermark-remover");
-
-  const cta = page.getByRole("link", { name: "Talk to Archos Labs" });
-  await expect(cta).toBeVisible();
-  await expect(cta).toHaveAttribute("href", "/consulting");
-
-  await cta.click();
-  await expect(page).toHaveURL(/\/consulting$/);
-});
-
 test("text mode strips invisible Unicode live as you type, no submit button", async ({ page }) => {
   await page.goto("/tools/watermark-remover", { waitUntil: "networkidle" });
 
@@ -89,4 +82,28 @@ test("text mode strips invisible Unicode live as you type, no submit button", as
 
   await expect(page.getByRole("heading", { name: "Removed 1 signal" })).toBeVisible();
   await expect(page.getByText("Zero-width space", { exact: false })).toBeVisible();
+});
+
+test("uploading a .txt file populates the textarea and shows results", async ({ page }) => {
+  await page.goto("/tools/watermark-remover", { waitUntil: "networkidle" });
+
+  await page.locator("#watermark-text-file-input").setInputFiles(TEXT_FIXTURE);
+
+  // The textarea mirrors the raw uploaded content verbatim (same as typing)
+  // — stripping only ever happens in the derived results panel, never in place.
+  const textarea = page.getByLabel("Paste text to check for hidden AI watermarks");
+  await expect(textarea).toHaveValue(`Hello${String.fromCharCode(0x200b)}World`);
+  await expect(page.getByRole("heading", { name: "Removed 1 signal" })).toBeVisible();
+  await expect(page.getByText("Zero-width space", { exact: false })).toBeVisible();
+});
+
+test("uploading a non-text file to the text-mode input shows a friendly rejection", async ({ page }) => {
+  await page.goto("/tools/watermark-remover", { waitUntil: "networkidle" });
+
+  await page.locator("#watermark-text-file-input").setInputFiles(FIXTURE);
+
+  // Not getByRole("alert") — Next.js's own route-announcer element
+  // (__next-route-announcer__) also carries role="alert" on every page.
+  await expect(page.getByText("doesn't look like a text file", { exact: false })).toBeVisible();
+  await expect(page.getByLabel("Paste text to check for hidden AI watermarks")).toHaveValue("");
 });

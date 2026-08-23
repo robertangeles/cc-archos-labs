@@ -8,6 +8,16 @@ related:
 
 Append-only log of sessions. Newest entry at the top.
 
+## 2026-08-23 — Watermark Remover: Playwright E2E, CSP dev-eval fix, CTA removed
+
+Continuation of the Watermark Remover build (see [[watermark-remover]], `docs/designs/watermark-remover.md`).
+
+- Wrote the T16 Playwright E2E spec (`tests/e2e/watermark-remover.spec.ts`), diagnosed and fixed a hydration-race failure (missing `waitUntil: "networkidle"` on `page.goto`), 5/5 passing.
+- Live `/browse` visual QA on `/tools/watermark-remover`: feature itself clean; found (a) a pre-existing site-wide mobile-nav overflow bug unrelated to this feature, (b) a harmless Next.js dev-mode `eval()`/CSP console warning.
+- Fixed the `eval()` warning: `lib/csp.ts` `buildCsp()` now takes an `isDev` param (default `process.env.NODE_ENV === "development"`) that adds `'unsafe-eval'` to `script-src` only in dev. Committed to its own branch `fix/csp-dev-unsafe-eval` (cut from `main`) since it's unrelated to the watermark feature, then cherry-picked onto `feature/watermark-remover` too so local dev on that branch isn't left broken until the branches merge.
+- User flagged the results-panel container as too narrow and the bottom CTA ("Talk to Archos Labs... AI content governance") as "useless." Widened the container 25% (`max-w-3xl` → `max-w-[960px]`, matching the site's actual arbitrary-pixel-width convention — `max-w-3xl` was never a deliberate design-review choice). Removed the CTA entirely per explicit user decision — see [[2026-08-23-watermark-remover-cta-removed]] for why and the consequence (tool now has no lead-gen conversion path).
+- Full regression protocol green throughout: `tsc`, `vitest` (2049 → 2051 after the CSP tests), `eslint`, `next build`. One vitest run hit exit 137 (kernel OOM from other apps on the dev machine, not a code defect) — resolved by rerunning with the repo's existing `CI=true` serial-execution mode.
+
 ## 2026-07-19 — GBrain decommissioned
 
 **PROD cutover complete.** Migrations `0032` + `0033` applied to PROD via `scripts/brain-prod-cutover.mjs --apply` (pg_dump backup first). The `brain-memory-v1` prompt clause applied. `MEMORY_BACKEND=pgvector` set on the Render web service — deploy live 2026-07-19.

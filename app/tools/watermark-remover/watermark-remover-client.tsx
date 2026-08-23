@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import Link from "next/link";
 import {
   stripImage,
   MAX_IMAGE_SIZE_BYTES,
@@ -11,7 +10,6 @@ import {
 } from "@/lib/image-metadata";
 import { stripText, MAX_TEXT_LENGTH } from "@/lib/text-metadata";
 import {
-  trackWatermarkCtaClicked,
   trackWatermarkParseCompleted,
   trackWatermarkParseFailed,
 } from "@/lib/watermark-analytics";
@@ -55,6 +53,24 @@ export function WatermarkRemoverClient() {
   const [text, setText] = useState("");
   const textResult = text.length > 0 && text.length <= MAX_TEXT_LENGTH ? stripText(text) : null;
   const textTooLarge = text.length > MAX_TEXT_LENGTH;
+  const [textFileError, setTextFileError] = useState<string | null>(null);
+  const [textDragOver, setTextDragOver] = useState(false);
+
+  const handleTextFile = useCallback(async (file: File) => {
+    const isTextFile = file.type.startsWith("text/") || /\.(txt|md|markdown)$/i.test(file.name);
+    if (!isTextFile) {
+      setTextFileError(
+        "That doesn't look like a text file — try a .txt or .md file, or paste the text directly.",
+      );
+      return;
+    }
+    try {
+      setText(await file.text());
+      setTextFileError(null);
+    } catch {
+      setTextFileError("We couldn't read this file — try pasting the text instead.");
+    }
+  }, []);
 
   // Image mode.
   const [imageState, setImageState] = useState<ImageState>({ status: "idle" });
@@ -145,12 +161,13 @@ export function WatermarkRemoverClient() {
     if (next === mode) return;
     setMode(next);
     setText("");
+    setTextFileError(null);
     setImageState({ status: "idle" });
     generationRef.current++; // invalidate any in-flight image parse
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-16">
+    <div className="mx-auto max-w-[960px] px-6 py-16">
       <h1 className="text-display-md text-ink">Watermark Remover</h1>
       <p className="mt-3 max-w-xl text-body-lg text-ink-subtle">
         AI tools increasingly leave invisible signals in what they help you make — hidden
@@ -193,14 +210,52 @@ export function WatermarkRemoverClient() {
             <label htmlFor={textareaId} className="sr-only">
               Paste text to check for hidden AI watermarks
             </label>
-            <textarea
-              id={textareaId}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Paste AI-generated text here…"
-              rows={8}
-              className="w-full rounded-lg border border-hairline bg-surface-1 p-4 text-body text-ink placeholder:text-ink-tertiary focus:border-primary focus:outline-none"
-            />
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setTextDragOver(true);
+              }}
+              onDragLeave={() => setTextDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setTextDragOver(false);
+                const file = e.dataTransfer.files[0];
+                if (file) handleTextFile(file);
+              }}
+            >
+              <textarea
+                id={textareaId}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Paste AI-generated text here, or drop a .txt/.md file…"
+                rows={8}
+                className={`w-full rounded-lg border bg-surface-1 p-4 text-body text-ink placeholder:text-ink-tertiary focus:border-primary focus:outline-none ${
+                  textDragOver ? "border-primary bg-surface-2" : "border-hairline"
+                }`}
+              />
+            </div>
+            <label
+              htmlFor="watermark-text-file-input"
+              className="mt-2 inline-block cursor-pointer text-body-sm text-primary underline underline-offset-2 transition-colors duration-150 hover:text-primary-hover"
+            >
+              Or upload a .txt/.md file
+              <input
+                id="watermark-text-file-input"
+                type="file"
+                accept=".txt,.md,.markdown,text/plain,text/markdown"
+                className="sr-only"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleTextFile(file);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {textFileError ? (
+              <p className="mt-2 text-body-sm text-semantic-error" role="alert">
+                {textFileError}
+              </p>
+            ) : null}
             {textTooLarge ? (
               <p className="mt-2 text-body-sm text-semantic-error">
                 That&rsquo;s more text than we can check at once — try a shorter piece.
@@ -282,18 +337,6 @@ export function WatermarkRemoverClient() {
           </div>
         )}
       </div>
-
-      <p className="mt-10 text-body-sm text-ink-subtle">
-        Handling this for a client deliverable?{" "}
-        <Link
-          href="/consulting"
-          onClick={() => trackWatermarkCtaClicked()}
-          className="text-primary underline underline-offset-2 transition-colors duration-150 hover:text-primary-hover"
-        >
-          Talk to Archos Labs
-        </Link>{" "}
-        about AI content governance.
-      </p>
     </div>
   );
 }

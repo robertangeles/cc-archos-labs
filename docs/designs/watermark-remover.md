@@ -150,7 +150,7 @@ Added by `/plan-eng-review`'s Test Review (2026-08-23) — 4 coverage gaps not c
 - [ ] **T13 (P1)** — Add a synthetic PNG fixture truncated before `IEND` to the T4 fixture corpus, asserting a typed corruption error using CRC32 as ground truth (PNG's structural integrity check, unlike JPEG).
 - [ ] **T14 (P2)** — Clipboard image paste (Cmd+V) explicitly out of scope for v1: route only text paste + file drop/select; if an image is pasted, show "paste text here, or drop an image below" instead of a silent no-op.
 - [ ] **T15 (P1)** — Add a unit test asserting the `lib/analytics.ts` `track()` call sites for this tool only ever receive the allowlisted shape (event name, category, count/boolean) — never filename, finding value, or file content. This verifies the exact property the Security review (Section 3) named as load-bearing for the "never leaves the browser" trust claim.
-- [ ] **T16 (P2)** — `tests/e2e/watermark-remover.spec.ts` (pattern: `tests/e2e/chat-attach-files.spec.ts`, `page.setInputFiles` not simulated OS drag events) covering: drop/select → result flow, keyboard-only activation (Tab → Enter/Space), CTA link resolves to `/consulting`. Mobile tap-to-select stays a manual real-device check (already in the T9 post-deploy checklist), not automatable in CI.
+- [x] **T16 (P2)** — `tests/e2e/watermark-remover.spec.ts` (pattern: `tests/e2e/chat-attach-files.spec.ts`, `page.setInputFiles` not simulated OS drag events) covering: drop/select → result flow, keyboard-only activation (Tab → Enter/Space). CTA link coverage removed 2026-08-23 along with the CTA itself — see Post-Ship Corrections. Mobile tap-to-select stays a manual real-device check (already in the T9 post-deploy checklist), not automatable in CI.
 
 ## Test Coverage Diagram (plan-stage)
 
@@ -172,8 +172,8 @@ CODE PATHS                                          Quality (specified)
 USER FLOWS                                          Coverage
 [→E2E, T16] Drop/select → diff+log → download         tests/e2e/watermark-remover.spec.ts
 [→E2E, T16] Keyboard-only (Tab → Enter/Space)          tests/e2e/watermark-remover.spec.ts
-[→E2E, T16] CTA → /consulting resolves                 tests/e2e/watermark-remover.spec.ts
 [MANUAL, T9] Mobile tap-to-select                      real-device check, not CI-automatable
+[REMOVED 2026-08-23] CTA → /consulting — CTA deleted, see Post-Ship Corrections
 
 COVERAGE: 100% of identified codepaths and user flows now have a specified test or an explicit scope/manual decision — 0 open GAPs.
 ```
@@ -189,6 +189,12 @@ Two rounds of regeneration were needed — the first AI-generated draft defaulte
 2. **C2PA was missing from the first draft's example item list** — a reminder that any UI copy or documentation listing example signals should include all three scoped types (EXIF/XMP/C2PA), not just the two most obvious ones.
 
 **Still open, not decided here:** the mockup's headline copy ("Watermark removal complete") is illustrative only — it uses "watermark" framing, which is exactly the still-undecided marketing-copy question (hygiene framing vs. detector-named framing) from Open Questions. Don't treat this mockup's copy as a resolution of that decision.
+
+## Post-Ship Corrections
+
+**2026-08-23 — CTA removed entirely.** Premise 6 and the Problem Statement's "Conversion mechanism" both named a persistent, non-blocking CTA into `/consulting` as this tool's sole lead-gen mechanism (deliberately in place of a registration gate, to avoid contradicting the "we never see your content" trust pitch). Live user review of the shipped page called that CTA "useless" and, when asked to pin down what specifically was wrong (weak copy / wrong to have at all / wrong placement), explicitly chose **wrong to have it at all** — a privacy-first tool selling something at the bottom undermines the trust-first positioning. The CTA (copy, link, `trackWatermarkCtaClicked` analytics event, and its test) was removed. **This means the tool currently has no conversion path back to the consulting track** — Premise 6 and the Distribution Plan's lead-gen framing are now aspirational, not implemented. Open question for a future session: is a different, non-copy-based conversion mechanism worth exploring, or is this tool now purely a trust-building public utility with no funnel?
+
+**2026-08-23 — Container widened 25%.** `max-w-3xl` (768px, Tailwind's default scale) → `max-w-[960px]`, matching this codebase's actual convention: every other page (`about`, `consulting`, `ai-readiness`, `cdmp-practice`) uses arbitrary pixel max-widths, never the default `3xl`/`4xl`/etc. tokens. The original value wasn't a deliberate design-review decision — this design doc never specified a width.
 
 ## What I noticed about how you think
 

@@ -17,8 +17,7 @@ export type AnalyticsEvent =
   | "scroll.depth"
   | "anchor.nav.clicked"
   | "watermark.parse.completed"
-  | "watermark.parse.failed"
-  | "watermark.cta.clicked";
+  | "watermark.parse.failed";
 
 export type AnalyticsProps = Record<
   string,

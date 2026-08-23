@@ -1,10 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as analytics from "./analytics";
-import {
-  trackWatermarkCtaClicked,
-  trackWatermarkParseCompleted,
-  trackWatermarkParseFailed,
-} from "./watermark-analytics";
+import { trackWatermarkParseCompleted, trackWatermarkParseFailed } from "./watermark-analytics";
 
 // The property-level guarantee ("never filename/value/content") is actually
 // enforced at compile time by WatermarkParseProps having no index signature
@@ -38,13 +34,5 @@ describe("watermark analytics allowlist", () => {
     expect(spy).toHaveBeenCalledWith("watermark.parse.failed", { source: "image" });
     const [, props] = spy.mock.calls[0];
     expect(Object.keys(props ?? {})).toEqual(["source"]);
-  });
-
-  it("sends no props at all on CTA click", () => {
-    const spy = vi.spyOn(analytics, "track");
-    trackWatermarkCtaClicked();
-
-    expect(spy).toHaveBeenCalledWith("watermark.cta.clicked");
-    expect(spy.mock.calls[0]).toHaveLength(1);
   });
 });
