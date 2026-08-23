@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-08-23T09:02:36.921Z
+generated: 2026-08-23T09:25:13.025Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -321,7 +321,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/layout/footer.tsx](../components/layout/footer.tsx) | 2026-05-18 |
 | [components/layout/header.tsx](../components/layout/header.tsx) | 2026-06-15 |
 | [components/layout/lead-sign-out-button.tsx](../components/layout/lead-sign-out-button.tsx) | 2026-06-10 |
-| [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-06-29 |
+| [components/layout/nav.tsx](../components/layout/nav.tsx) | 2026-08-23 |
 | [components/model-studio/canvas/attribute-panel.tsx](../components/model-studio/canvas/attribute-panel.tsx) | 2026-06-17 |
 | [components/model-studio/canvas/delete-entity-dialog.tsx](../components/model-studio/canvas/delete-entity-dialog.tsx) | 2026-06-17 |
 | [components/model-studio/canvas/entity-dialog.tsx](../components/model-studio/canvas/entity-dialog.tsx) | 2026-06-17 |

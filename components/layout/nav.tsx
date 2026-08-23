@@ -233,6 +233,7 @@ function SearchButton() {
 function MobileMenu({ lead }: { lead: NavLeadProps | null }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const firstItemRef = useRef<HTMLAnchorElement>(null);
   const pathname = usePathname();
   const openSearch = useOpenSearch();
 
@@ -252,6 +253,14 @@ function MobileMenu({ lead }: { lead: NavLeadProps | null }) {
       document.removeEventListener("mousedown", onPointerDown);
       document.removeEventListener("keydown", onKey);
     };
+  }, [open]);
+
+  // This is the primary nav below md, not a secondary menu (unlike
+  // ToolsMenu/ProfileMenu) — a keyboard/screen-reader user activating the
+  // button should land on the first item, per the ARIA Menu Button pattern,
+  // not just hear "expanded" and have to Tab in to discover the contents.
+  useEffect(() => {
+    if (open) firstItemRef.current?.focus();
   }, [open]);
 
   const itemClass =
@@ -276,8 +285,15 @@ function MobileMenu({ lead }: { lead: NavLeadProps | null }) {
           role="menu"
           className="absolute left-0 z-50 mt-3 w-56 max-w-[calc(100vw-3rem)] rounded-md border border-hairline bg-surface-1 p-2 shadow-2xl"
         >
-          {TOPLEVEL.map(({ href, label }) => (
-            <Link key={href} href={href} role="menuitem" onClick={() => setOpen(false)} className={itemClass}>
+          {TOPLEVEL.map(({ href, label }, i) => (
+            <Link
+              key={href}
+              href={href}
+              ref={i === 0 ? firstItemRef : undefined}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className={itemClass}
+            >
               {label}
             </Link>
           ))}
