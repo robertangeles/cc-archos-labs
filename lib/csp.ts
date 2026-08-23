@@ -105,7 +105,10 @@ export function buildCsp(
     // shipped to production, where React does not use eval() at all.
     `script-src 'self' 'nonce-${nonce}'${isDev ? " 'unsafe-eval'" : ""} ${SCRIPT_HOSTS.join(" ")}`,
     "style-src 'self' 'unsafe-inline'",
-    `img-src 'self' data: ${IMG_HOSTS.join(" ")}`,
+    // blob: — the Watermark Remover tool (app/tools/watermark-remover)
+    // previews a cleaned image via URL.createObjectURL(), entirely
+    // client-side; no other page on the site creates object URLs.
+    `img-src 'self' data: blob: ${IMG_HOSTS.join(" ")}`,
     "font-src 'self' data:",
     `connect-src 'self' ${CONNECT_HOSTS.join(" ")}`,
     `frame-src ${FRAME_HOSTS.join(" ")}`,

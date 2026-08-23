@@ -82,6 +82,14 @@ describe("buildCsp", () => {
     expect(directive(csp, "style-src")).toContain("'unsafe-inline'");
   });
 
+  it("allows blob: in img-src for the Watermark Remover's client-side preview", () => {
+    // A fourth real defect found only by driving a browser: the tool previews
+    // a cleaned image via URL.createObjectURL(), and img-src had no blob:
+    // entry — the preview silently failed to render, CSP violation logged,
+    // page otherwise looked fine.
+    expect(directive(csp, "img-src")).toContain("blob:");
+  });
+
   // Each of the three hosts below was missing at some point today, and each
   // failure was invisible: the page rendered, and a beacon silently died.
   it.each([

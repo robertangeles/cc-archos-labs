@@ -15,7 +15,9 @@ export type AnalyticsEvent =
   | "cta.assessment.clicked"
   | "cta.bookcall.clicked"
   | "scroll.depth"
-  | "anchor.nav.clicked";
+  | "anchor.nav.clicked"
+  | "watermark.parse.completed"
+  | "watermark.parse.failed";
 
 export type AnalyticsProps = Record<
   string,

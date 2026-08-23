@@ -17,6 +17,7 @@ const TOPLEVEL = [
 const TOOLS = [
   { href: "/tools/ai-readiness", label: "AI Readiness Assessment" },
   { href: "/tools/cdmp-practice", label: "CDMP Practice Exam" },
+  { href: "/tools/watermark-remover", label: "Watermark Remover" },
 ];
 
 export interface NavLeadProps {
