@@ -97,7 +97,10 @@ export function buildCsp(nonce: string): string {
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' ${SCRIPT_HOSTS.join(" ")}`,
     "style-src 'self' 'unsafe-inline'",
-    `img-src 'self' data: ${IMG_HOSTS.join(" ")}`,
+    // blob: — the Watermark Remover tool (app/tools/watermark-remover)
+    // previews a cleaned image via URL.createObjectURL(), entirely
+    // client-side; no other page on the site creates object URLs.
+    `img-src 'self' data: blob: ${IMG_HOSTS.join(" ")}`,
     "font-src 'self' data:",
     `connect-src 'self' ${CONNECT_HOSTS.join(" ")}`,
     `frame-src ${FRAME_HOSTS.join(" ")}`,
