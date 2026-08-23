@@ -92,10 +92,18 @@ export function makeNonce(): string {
  * larger change, and inline CSS is a far weaker vector than inline script.
  * Stated plainly rather than left to look like an oversight.
  */
-export function buildCsp(nonce: string): string {
+export function buildCsp(
+  nonce: string,
+  isDev = process.env.NODE_ENV === "development",
+): string {
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' ${SCRIPT_HOSTS.join(" ")}`,
+    // 'unsafe-eval' is dev-only: Turbopack's dev-mode RSC streaming deserializer
+    // calls eval() to reconstruct cross-environment stack traces for better
+    // debugging. Without it the app still works — React catches the blocked
+    // eval() and no-ops — but the console logs a warning on every page. Never
+    // shipped to production, where React does not use eval() at all.
+    `script-src 'self' 'nonce-${nonce}'${isDev ? " 'unsafe-eval'" : ""} ${SCRIPT_HOSTS.join(" ")}`,
     "style-src 'self' 'unsafe-inline'",
     `img-src 'self' data: ${IMG_HOSTS.join(" ")}`,
     "font-src 'self' data:",
