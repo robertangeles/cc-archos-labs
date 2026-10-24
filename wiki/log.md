@@ -2912,3 +2912,9 @@ Touched: [[2026-10-24-wordpress-named-stories-to-hypotheticals]] (new), `index.m
 Second batch on the same decision: 11 more WordPress posts with claimed client work rewritten as hypotheticals on PROD (19 edits, guarded transaction). A follow-up phrase search found nine more posts with "A Real Example" / "Case Study" sections about unnamed companies; recorded as open on the decision page.
 
 Touched: [[2026-10-24-wordpress-named-stories-to-hypotheticals]], `index.md`, `log.md`.
+
+## 2026-10-24 (UTC) — Blog-wide sweep for fabricated experience
+
+Owner asked to scrub the generic "I've seen this pattern" lines and the "Real Example" / "Case Study" sections about unnamed companies. Five agents read 100 candidate posts; 231 validated edits across 91 posts applied on PROD in one guarded transaction. Posts needing a human decision (invented-looking named figures, one duplicated body) are listed on the decision page.
+
+Touched: [[2026-10-24-blog-experience-sweep]] (new), `index.md`, `log.md`.
