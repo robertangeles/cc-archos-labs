@@ -2883,8 +2883,14 @@ Reviewed the 67 Search Console "Crawled, not indexed" URLs: 14 listing pages, 53
 
 Touched: [[2026-10-24-scrub-duplicate-human-posts]] (new), `index.md`, `lib/blog-removed-redirects.json`, `next.config.ts` (comment).
 
-## 2026-10-25 — Wiki accuracy pass on the blog removal
+## 2026-10-24 (UTC) — Wiki accuracy pass on the blog removal
 
 Corrected pages written during the 2026-10-24 cleanup: "301" is 308 (Next.js `permanent: true`); the three operational follow-ups on [[2026-10-24-remove-blog-agent-pipeline]] are marked done (cron deleted, `BLOG_CRON_SECRET` removed, settings and heartbeat rows gone, checked on PROD); `content_plan_item` is 303 rows, 281 judged, not 281 total; the resolved May sitemap checkpoint in [[open-followups]] now says to keep the `?retry=1` entry rather than remove it.
 
 Touched: [[2026-10-24-remove-blog-agent-pipeline]], [[2026-10-24-remove-ai-slop-posts]], [[open-followups]], `log.md`.
+
+## 2026-10-24 (UTC) — Invented anecdotes edited out of six kept posts
+
+Six kept human posts claimed experience that never happened. Each passage became a plain hypothetical or a general statement, applied on PROD in one guarded transaction (committed only on exactly 6 rows; a second one-row fix for a missed passage in `ac69`). Verified afterwards: no old claim phrases left, 336 posts live. The `next.config.ts` redirect comment now says 308.
+
+Touched: [[2026-10-24-scrub-duplicate-human-posts]], `index.md`, `log.md`, `next.config.ts` (comment only).

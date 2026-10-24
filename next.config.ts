@@ -45,7 +45,7 @@ const nextConfig: NextConfig = {
       },
       // Agent-written posts removed on 2026-10-24 after an editorial review
       // (score under 4, claimed experience, leaked pipeline text, or a
-      // near-duplicate of a better post). Each 301s to its nearest surviving
+      // near-duplicate of a better post). Each 308s to its nearest surviving
       // post, or /blog when nothing was close. Zero of them had a single
       // Search Console impression. Rows are archived, not deleted.
       // Also holds 10 human-written near-duplicate pairs scrubbed later the
