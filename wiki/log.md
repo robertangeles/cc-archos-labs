@@ -2900,3 +2900,9 @@ Touched: [[2026-10-24-scrub-duplicate-human-posts]], `index.md`, `log.md`, `next
 Owner said "merge them" for the four posts left live on 2026-10-24: `2df9` and the three judgment pairs. Four more 308s in `lib/blog-removed-redirects.json` (now 220 entries), one earlier redirect repointed off `2df9`. Rows archived on PROD by the owner after deploy.
 
 Touched: [[2026-10-24-scrub-duplicate-human-posts]], `index.md`, `log.md`, `lib/blog-removed-redirects.json`, `next.config.ts` (comment).
+
+## 2026-10-24 (UTC) — WordPress named-person stories rewritten as hypotheticals
+
+Owner chose "convert the roughly 26 named-person stories to hypotheticals". 24 live WordPress posts (two of the 26 were already retired) had 72 paragraph edits applied on PROD in one guarded transaction. Follow-up search found 11 more posts with "I worked with" client stories, listed on the decision page as still open.
+
+Touched: [[2026-10-24-wordpress-named-stories-to-hypotheticals]] (new), `index.md`, `log.md`.
