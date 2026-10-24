@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import path from "node:path";
+import removedPostRedirects from "./lib/blog-removed-redirects.json";
 
 const nextConfig: NextConfig = {
   turbopack: {
@@ -38,9 +39,16 @@ const nextConfig: NextConfig = {
         //
         // 301 rather than a delete so any link equity lands on the survivor.
         source: "/blog/six-week-ai-readiness-sprint-small-business",
-        destination: "/blog/six-week-ai-readiness-sprint-small-business-no-it-team",
+        destination: "/blog/sme-ai-value-without-data-team-60-day-plan",
+        // (was -no-it-team, since removed in the 2026-10-24 review; kept as one hop)
         permanent: true,
       },
+      // Agent-written posts removed on 2026-10-24 after an editorial review
+      // (score under 4, claimed experience, leaked pipeline text, or a
+      // near-duplicate of a better post). Each 301s to its nearest surviving
+      // post, or /blog when nothing was close. Zero of them had a single
+      // Search Console impression. Rows are archived, not deleted.
+      ...removedPostRedirects,
     ];
   },
   async headers() {
