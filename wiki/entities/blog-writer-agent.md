@@ -2,9 +2,11 @@
 title: Blog Writer Agent — unattended drafting with a slop gate
 category: entity
 created: 2026-07-25
-updated: 2026-07-26
+updated: 2026-10-24
 related: [[state]], [[translation-layer]], [[deployment-architecture]], [[workflow-run-history]], [[2026-07-25-no-fabricated-experience]]
 ---
+
+> **Status 2026-10-24: DISABLED, and the "does not publish" claims below are out of date.** The review hold was removed, so a post that passes the gate publishes unattended at its slot. 206 of the 254 published posts were removed; see [[2026-10-24-remove-ai-slop-posts]] and [[2026-10-24-gate-measured-grounding-not-value]]. Do not re-enable until the gate measures value.
 
 The daily agent that researches, writes, and gates a blog post for `/blog` without a human in the loop — up to the point of publication, which stays a human action by design.
 

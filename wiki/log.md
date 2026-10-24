@@ -2864,3 +2864,9 @@ Gates: tsc clean, 2013/2013 vitest (3 new), 0 lint errors, build green.
 ### Still pending on PROD
 
 DB actions applied to DEV only so far: archive the duplicate, run the backfill.
+
+## 2026-10-24 — Blog agent disabled; 206 of 254 agent posts removed
+
+Investigated the blog automation after the owner flagged AI slop. Search Console showed 1 click / 86 impressions site-wide in 90 days and zero impressions on any agent post. All 254 were read against a rubric; 48 kept, 206 301-redirected and (after deploy) archived. Agent disabled on PROD (`blog_agent_config.enabled=false`). Backup: `~/.gstack/backups/archos_pdb_post_2026-10-24_pre-slop-removal.dump`.
+
+Touched: [[2026-10-24-remove-ai-slop-posts]] (new), [[2026-10-24-gate-measured-grounding-not-value]] (new), [[blog-writer-agent]] (status banner; its "never publishes" claim was stale), `index.md`.
