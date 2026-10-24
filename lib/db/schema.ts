@@ -4037,9 +4037,16 @@ export type DataModelCanvasState = typeof dataModelCanvasState.$inferSelect;
 export type NewDataModelCanvasState = typeof dataModelCanvasState.$inferInsert;
 
 // ============================================================================
-// content_plan_item — Blog writer agent
+// content_plan_item — Blog writer agent (REMOVED 2026-10-24)
 // ============================================================================
-// The work queue the daily blog agent pulls from. OLTP, 2NF: every non-key
+// NO CODE READS OR WRITES THIS TABLE. The agent that used it was removed whole
+// (see wiki/decisions/2026-10-24-remove-blog-agent-pipeline.md); the 281 rows,
+// with their judge verdicts, are kept as the record of what the gate missed.
+// The definition stays only because the table still exists in PROD: dropping it
+// from this file first would make the next `drizzle-kit generate` emit a
+// DROP TABLE. Remove both together, in a migration, when that is decided.
+//
+// The work queue the daily blog agent pulled from. OLTP, 2NF: every non-key
 // column depends only on the id.
 //
 //   plan.ts inserts a batch

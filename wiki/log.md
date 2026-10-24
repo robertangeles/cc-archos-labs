@@ -2870,3 +2870,9 @@ DB actions applied to DEV only so far: archive the duplicate, run the backfill.
 Investigated the blog automation after the owner flagged AI slop. Search Console showed 1 click / 86 impressions site-wide in 90 days and zero impressions on any agent post. All 254 were read against a rubric; 48 kept, 206 301-redirected and (after deploy) archived. Agent disabled on PROD (`blog_agent_config.enabled=false`). Backup: `~/.gstack/backups/archos_pdb_post_2026-10-24_pre-slop-removal.dump`.
 
 Touched: [[2026-10-24-remove-ai-slop-posts]] (new), [[2026-10-24-gate-measured-grounding-not-value]] (new), [[blog-writer-agent]] (status banner; its "never publishes" claim was stale), `index.md`.
+
+## 2026-10-24 — Blog agent pipeline removed
+
+Owner decision after the post cleanup: delete the whole pipeline and rebuild from a new design rather than patch it. ~10.7k lines removed (agent library, cron + admin routes, pipeline admin page, prompt editors, scripts, tests). Table `content_plan_item`, the workflow/skills, `is_agent_generated` and the fallback image are retained on purpose.
+
+Touched: [[2026-10-24-remove-blog-agent-pipeline]] (new), [[blog-writer-agent]] and [[blog-writer-agent-runbook]] (REMOVED banners), `index.md`.
