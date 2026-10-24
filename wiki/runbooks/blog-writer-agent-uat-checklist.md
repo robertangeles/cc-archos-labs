@@ -2,9 +2,11 @@
 title: UAT — blog writer agent
 category: runbook
 created: 2026-07-25
-updated: 2026-07-26
-related: [[blog-writer-agent]], [[blog-writer-agent-runbook]], [[2026-07-25-no-fabricated-experience]], [[deployment-architecture]]
+updated: 2026-10-24
+related: [[blog-writer-agent]], [[blog-writer-agent-runbook]], [[2026-10-24-remove-blog-agent-pipeline]], [[2026-07-25-no-fabricated-experience]], [[deployment-architecture]]
 ---
+
+> **REMOVED 2026-10-24.** The agent and its UAT script (`scripts/uat-blog-agent.mjs`) no longer exist; see [[2026-10-24-remove-blog-agent-pipeline]]. Kept for history — the five judgement questions describe what a future rebuild should satisfy.
 
 You are deciding one thing: **would you put your name on what this thing writes?**
 
