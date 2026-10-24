@@ -2,9 +2,11 @@
 title: Blog writer agent — operational runbook
 category: runbook
 created: 2026-07-25
-updated: 2026-07-26
+updated: 2026-10-24
 related: [[blog-writer-agent]], [[deployment-architecture]]
 ---
+
+> **REMOVED 2026-10-24.** The agent this runbook operated no longer exists; see [[2026-10-24-remove-blog-agent-pipeline]]. Kept for history only.
 
 What to do when the daily blog agent misbehaves. Eight failure modes, each with a signal and a response.
 
