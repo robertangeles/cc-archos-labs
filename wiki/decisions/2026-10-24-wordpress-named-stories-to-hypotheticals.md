@@ -24,9 +24,17 @@ Posts: `transformation-fails-when-you-dont-translate`, `transformation-isnt-a-pr
 
 Two more from the original list of 26 (`your-org-chart-isnt-your-culture-map-hidden-networks-rule`, `you-dont-have-a-data-problem-you-have-a-decision-problem`) were already retired as duplicates.
 
+## Second batch: "I worked with" client stories (11 posts)
+
+After the first batch a search found 11 more WordPress posts claiming client work ("One company I worked with…", "A team I coached…", "We rolled out a bot…"). Rewritten the same way on PROD, 19 edits, one guarded transaction, backup `~/.gstack/backups/archos_pdb_post_2026-10-25_pre-wp-group-b.dump`. Stories kept their past tense and only the lead-in changed ("Consider a company that killed…"); implied participation was removed ("A bot was rolled out", "When the company applied…"). The heading "A Real Example:" in `psychological-safety-in-automation` became "An Example:" because "real" was no longer true.
+
+Posts: `ai-cant-fix-broken-culture`, `applied-ai-engineering-failure-modes`, `build-vs-buy-decision-framework`, `change-adoption-at-work`, `data-pipeline-governance-strategy-tax`, `if-your-data-cant-be-questioned-it-cant-be-trusted`, `psychological-safety-in-automation`, `query-optimisation-the-environmental-cost-nobody-talks-about`, `the-most-strategic-thing-an-executive-can-do-is-slow-down`, `transformation-starts-with-listening`, `vendor-control-framework-roadmap-latency-exportability-tco`.
+
+Verified afterwards: no live post matches the first-person client phrasing, except `ai-decision-making-is-the-new-corporate-alibi`, whose hit is a quoted hypothetical.
+
 ## Still open
 
-- **"I worked with" client stories.** A search after the edit found 11 more WordPress posts with a claimed client engagement ("One company I worked with…"): `ai-cant-fix-broken-culture`, `applied-ai-engineering-failure-modes`, `build-vs-buy-decision-framework`, `change-adoption-at-work`, `data-pipeline-governance-strategy-tax`, `if-your-data-cant-be-questioned-it-cant-be-trusted`, `psychological-safety-in-automation`, `query-optimisation-the-environmental-cost-nobody-talks-about`, `the-most-strategic-thing-an-executive-can-do-is-slow-down`, `transformation-starts-with-listening`, `vendor-control-framework-roadmap-latency-exportability-tco`. These were outside the first list. (`ai-decision-making-is-the-new-corporate-alibi` also matched, but its hit is a quoted hypothetical.)
+- **"A Real Example" sections about unnamed companies.** A phrase search after the second batch found nine more posts whose sections are headed "A Real Example" or "Case Study" and describe a specific company with figures, with no first-person phrasing for the regex to catch: `ai-governance-decision-rights`, `ai-infrastructure-strategy`, `ai-program-kpis`, `ai-roi-budget-that-pays-for-itself`, `conversational-analytics-is-replacing-dashboards` ("One client had five sales dashboards"), `executives-weaponize-uncertainty`, `lineage-that-leaders-trust`, `single-source-of-truth-without-religion`, `the-most-expensive-dashboard-in-the-company-the-one-nobody-trusts`. More cases without such headings are likely. A broader sweep for any specific-company anecdote is the next step if wanted.
 - **Generic "I've seen this pattern" lines** (about 27 posts) were left alone.
 - **Unnamed case claims with figures** ("A retail chain discovered this accidentally… stockouts dropped 40%") make no personal claim but carry invented-looking numbers. Not touched.
 - **The "Metis" byline** on all live posts is a separate decision, tied to the pipeline redesign.
@@ -34,4 +42,4 @@ Two more from the original list of 26 (`your-org-chart-isnt-your-culture-map-hid
 
 ## Undo
 
-Restore the `content_md` of the 24 slugs from the backup above. `post_revision` was not written by this edit.
+Restore the `content_md` of the 24 slugs from the first backup (and the 11 from the second). `post_revision` was not written by this edit.
