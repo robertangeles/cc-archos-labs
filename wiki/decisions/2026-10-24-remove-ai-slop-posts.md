@@ -25,14 +25,14 @@ Human-written posts (298 live) were not reviewed or touched.
 
 ## How
 
-- Each removed URL 301s to its nearest surviving post by embedding distance, or `/blog` when the nearest was ≥ 0.30 away (11 posts). Source of truth: [lib/blog-removed-redirects.json](../../lib/blog-removed-redirects.json), spread into `redirects()` in `next.config.ts`.
+- Each removed URL 308s to its nearest surviving post by embedding distance, or `/blog` when the nearest was ≥ 0.30 away (11 posts). Source of truth: [lib/blog-removed-redirects.json](../../lib/blog-removed-redirects.json), spread into `redirects()` in `next.config.ts`.
 - Rows are **archived** (`archived_at`), never deleted. Redirects deploy first, archive after, so there is no 404 gap.
 - Backup before the change: `pg_dump -t post -t post_revision` to `~/.gstack/backups/archos_pdb_post_2026-10-24_pre-slop-removal.dump`.
 - The agent was disabled by setting `blog_agent_config.enabled = false` on PROD (via a `jsonb_set`, so the value stays an object).
 
 ## Undo
 
-Clear `archived_at` on the post (`restoreFromArchive`), and delete its entry from the JSON file, or the 301 will keep winning.
+Clear `archived_at` on the post (`restoreFromArchive`), and delete its entry from the JSON file, or the 308 will keep winning.
 
 ## Open
 
