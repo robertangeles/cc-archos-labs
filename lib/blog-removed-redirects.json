@@ -187,7 +187,7 @@
   {"source": "/blog/sync-crm-invoicing-no-code-ai-data", "destination": "/blog/ai-tool-integration-audit-founders", "permanent": true},
   {"source": "/blog/test-ai-subscriptions-before-renewal", "destination": "/blog/90-day-ai-pilot-design-small-business", "permanent": true},
   {"source": "/blog/test-ai-tool-real-data-first", "destination": "/blog/your-ai-tool-is-lying-to-you-bad-data-is-why-3f66", "permanent": true},
-  {"source": "/blog/test-one-record-before-ai-deployment", "destination": "/blog/your-ai-agent-is-lying-because-your-data-is-broken-2df9", "permanent": true},
+  {"source": "/blog/test-one-record-before-ai-deployment", "destination": "/blog/your-ai-tool-is-lying-to-you-bad-data-is-why-3f66", "permanent": true},
   {"source": "/blog/time-saved-is-not-money-earned-ai-roi-measurement", "destination": "/blog/measuring-ai-roi-small-business-owners", "permanent": true},
   {"source": "/blog/train-one-ai-task-before-hiring-data-scientist", "destination": "/blog/sme-ai-value-without-data-team-60-day-plan", "permanent": true},
   {"source": "/blog/weekly-ai-fluency-sessions-checklist", "destination": "/blog/ai-training-that-measures-the-wrong-thing-6e16", "permanent": true},
@@ -214,5 +214,9 @@
   {"source": "/blog/your-ai-tool-isn-t-broken-your-data-is-1799", "destination": "/blog/your-ai-tool-is-lying-to-you-bad-data-is-why-3f66", "permanent": true},
   {"source": "/blog/ai-risk-gaps-your-board-register-is-missing", "destination": "/blog/ai-risk-taxonomy-every-board-needs-now-3568", "permanent": true},
   {"source": "/blog/data-fluency-is-the-skill-your-dashboard-won-t-teach-db9f", "destination": "/blog/more-data-made-you-worse-at-this-12f0", "permanent": true},
-  {"source": "/blog/ai-governance-framework-board-directors", "destination": "/blog/ai-governance-framework-for-executives", "permanent": true}
+  {"source": "/blog/ai-governance-framework-board-directors", "destination": "/blog/ai-governance-framework-for-executives", "permanent": true},
+  {"source": "/blog/your-ai-agent-is-lying-because-your-data-is-broken-2df9", "destination": "/blog/your-ai-tool-is-lying-to-you-bad-data-is-why-3f66", "permanent": true},
+  {"source": "/blog/ai-use-case-prioritization", "destination": "/blog/ai-use-case-prioritization-that-actually-scales", "permanent": true},
+  {"source": "/blog/you-dont-have-a-data-problem-you-have-a-decision-problem", "destination": "/blog/dashboards-dont-drive-decisions-people-do", "permanent": true},
+  {"source": "/blog/your-org-chart-isnt-your-culture-map-hidden-networks-rule", "destination": "/blog/strategy-isnt-top-down-its-sideways", "permanent": true}
 ]
