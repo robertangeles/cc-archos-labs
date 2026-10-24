@@ -6,7 +6,7 @@ updated: 2026-10-24
 related: [[2026-10-24-remove-ai-slop-posts]], [[2026-10-24-remove-blog-agent-pipeline]]
 ---
 
-After the agent posts were cut, the Search Console "Crawled, not indexed" list (67 URLs) was checked for what was left. Ten human-written posts were near-duplicates of a better sibling and now 308 to it. They are archived, not deleted.
+After the agent posts were cut, the Search Console "Crawled, not indexed" list (67 URLs) was checked for what was left. Ten human-written posts were near-duplicates of a better sibling and now 308 to it; four more were merged afterwards (see below). They are archived, not deleted.
 
 ## What the 67 turned out to be
 
@@ -37,10 +37,21 @@ Rule: keep the twin Google indexed; otherwise keep the longer, or the older Word
 
 27 earlier redirects pointed at one of these ten; they were repointed to the final target so nothing chains. `lib/blog-removed-redirects.test.ts` enforces that.
 
+## Last four merged (owner decision, 2026-10-25 local)
+
+Originally left live, then merged when the owner said "merge them". Same rule (keep the indexed twin, else the longer, older one). None of the eight was in the 42 indexed URLs.
+
+| Redirected | Kept | Distance / note |
+|---|---|---|
+| `your-ai-agent-is-lying-because-your-data-is-broken-2df9` | `your-ai-tool-is-lying-to-you-bad-data-is-why-3f66` | 0.170, over the 0.16 cut-off; merged on the owner's call. Two live posts link to it (`no-code-content-agent-make-com-small-marketing-teams`, `ai-lead-response-crm-data-missing`); the 308 carries those links. |
+| `ai-use-case-prioritization` | `ai-use-case-prioritization-that-actually-scales` | 0.147; 744 words against 597. |
+| `you-dont-have-a-data-problem-you-have-a-decision-problem` | `dashboards-dont-drive-decisions-people-do` | 0.146; 662 words against 516, and older. Different opening stories: the retired one's retail-chain anecdote is lost. |
+| `your-org-chart-isnt-your-culture-map-hidden-networks-rule` | `strategy-isnt-top-down-its-sideways` | 0.143; 642 words against 614. |
+
+The one earlier redirect that pointed at `2df9` (`test-one-record-before-ai-deployment`) was repointed to `3f66`. Not merged and still live: `you-built-a-dashboard-not-a-decision-system`, a third post in the dashboards cluster.
+
 ## Deliberately not done
 
-- `your-ai-agent-is-lying-because-your-data-is-broken-2df9`: 0.170 from the kept post, over the 0.16 cut-off. Left live.
-- Three more pairs at 0.14–0.15 (`ai-use-case-prioritization`, `dashboards-dont-drive-decisions-people-do` / `you-dont-have-a-data-problem-…`, `strategy-isnt-top-down-its-sideways` / `your-org-chart-isnt-your-culture-map-…`): different angles or stories. Kept both.
 - Invented first-person anecdotes: 8 non-WordPress human posts claimed experience ("once told me", "I have seen"). Two were redirected above; the other six kept posts (`more-data-made-you-worse-at-this-12f0`, `your-ai-tool-is-lying-to-you-bad-data-is-why-3f66`, `why-your-ai-business-case-fails-finance-review`, `why-your-data-model-is-breaking-your-ai-agent-65cc`, `write-this-before-any-ai-project-starts-ac69`, `your-crm-data-is-lying-to-your-ai-b246`) were **edited on PROD on 2026-10-24 UTC (the 25th local)**: each claimed experience became a plain hypothetical ("Picture a founder who…") or a general statement. `ac69` carried a second one ("A founder I know approved a $180,000 AI contract…") that the first search missed. Backup before the edit: `~/.gstack/backups/archos_pdb_post_2026-10-25_pre-anecdote-edit.dump`. The check only finds first-person phrasing; a claimed experience in the third person with no "I" would not be caught. See [[2026-07-25-no-fabricated-experience]]. The 39 WordPress posts with similar phrasing are probably the owner's own voice and were not touched.
 
 ## Undo

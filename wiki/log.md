@@ -2894,3 +2894,9 @@ Touched: [[2026-10-24-remove-blog-agent-pipeline]], [[2026-10-24-remove-ai-slop-
 Six kept human posts claimed experience that never happened. Each passage became a plain hypothetical or a general statement, applied on PROD in one guarded transaction (committed only on exactly 6 rows; a second one-row fix for a missed passage in `ac69`). Verified afterwards: no old claim phrases left, 336 posts live. The `next.config.ts` redirect comment now says 308.
 
 Touched: [[2026-10-24-scrub-duplicate-human-posts]], `index.md`, `log.md`, `next.config.ts` (comment only).
+
+## 2026-10-24 (UTC) — Last four duplicate human posts merged
+
+Owner said "merge them" for the four posts left live on 2026-10-24: `2df9` and the three judgment pairs. Four more 308s in `lib/blog-removed-redirects.json` (now 220 entries), one earlier redirect repointed off `2df9`. Rows archived on PROD by the owner after deploy.
+
+Touched: [[2026-10-24-scrub-duplicate-human-posts]], `index.md`, `log.md`, `lib/blog-removed-redirects.json`, `next.config.ts` (comment).
