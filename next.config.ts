@@ -48,6 +48,8 @@ const nextConfig: NextConfig = {
       // near-duplicate of a better post). Each 301s to its nearest surviving
       // post, or /blog when nothing was close. Zero of them had a single
       // Search Console impression. Rows are archived, not deleted.
+      // Also holds 10 human-written near-duplicate pairs scrubbed later the
+      // same day (see wiki/decisions/2026-10-24-scrub-duplicate-human-posts.md).
       ...removedPostRedirects,
     ];
   },
