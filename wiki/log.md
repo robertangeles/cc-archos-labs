@@ -2876,3 +2876,9 @@ Touched: [[2026-10-24-remove-ai-slop-posts]] (new), [[2026-10-24-gate-measured-g
 Owner decision after the post cleanup: delete the whole pipeline and rebuild from a new design rather than patch it. ~10.7k lines removed (agent library, cron + admin routes, pipeline admin page, prompt editors, scripts, tests). Table `content_plan_item`, the workflow/skills, `is_agent_generated` and the fallback image are retained on purpose.
 
 Touched: [[2026-10-24-remove-blog-agent-pipeline]] (new), [[blog-writer-agent]] and [[blog-writer-agent-runbook]] (REMOVED banners), `index.md`.
+
+## 2026-10-24 — Duplicate human posts scrubbed
+
+Reviewed the 67 Search Console "Crawled, not indexed" URLs: 14 listing pages, 53 human posts, no slop. Ten near-duplicate pairs (workflow run twice per topic) now 308 to the indexed or longer twin; 27 older redirects repointed so nothing chains. Rows archived, not deleted.
+
+Touched: [[2026-10-24-scrub-duplicate-human-posts]] (new), `index.md`, `lib/blog-removed-redirects.json`, `next.config.ts` (comment).
