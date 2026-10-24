@@ -2906,3 +2906,9 @@ Touched: [[2026-10-24-scrub-duplicate-human-posts]], `index.md`, `log.md`, `lib/
 Owner chose "convert the roughly 26 named-person stories to hypotheticals". 24 live WordPress posts (two of the 26 were already retired) had 72 paragraph edits applied on PROD in one guarded transaction. Follow-up search found 11 more posts with "I worked with" client stories, listed on the decision page as still open.
 
 Touched: [[2026-10-24-wordpress-named-stories-to-hypotheticals]] (new), `index.md`, `log.md`.
+
+## 2026-10-24 (UTC) — WordPress "I worked with" client stories rewritten
+
+Second batch on the same decision: 11 more WordPress posts with claimed client work rewritten as hypotheticals on PROD (19 edits, guarded transaction). A follow-up phrase search found nine more posts with "A Real Example" / "Case Study" sections about unnamed companies; recorded as open on the decision page.
+
+Touched: [[2026-10-24-wordpress-named-stories-to-hypotheticals]], `index.md`, `log.md`.
