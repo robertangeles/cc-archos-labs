@@ -20,16 +20,18 @@ The unattended blog writer was switched off, 206 of its 254 posts were removed (
 
 | Kept | Why |
 |---|---|
-| `content_plan_item` table + its definition in `schema.ts` | 281 rows with judge verdicts are the best record of what the gate missed. The definition stays because deleting it from `schema.ts` alone makes the next `drizzle-kit generate` emit a `DROP TABLE`. Drop both together in a migration (it needs the `-- safety:` header). |
+| `content_plan_item` table + its definition in `schema.ts` | 303 rows, 281 of them with judge verdicts (253 drafted, 28 failed; the other 22 are 20 pending and 2 skipped), are the best record of what the gate missed. The definition stays because deleting it from `schema.ts` alone makes the next `drizzle-kit generate` emit a `DROP TABLE`. Drop both together in a migration (it needs the `-- safety:` header). |
 | The "Archos Labs Blog" workflow and its `archos-*` skills | Workflow-builder content that existed before the agent and is used by the Regenerate feature. A new pipeline may reuse it. |
 | `post.is_agent_generated` and the publisher guard `NOT (is_agent_generated AND needs_review)` | Marks which posts were machine-written; the guard still protects any flagged post. |
 | `public/images/blog-fallback.webp` | Posts that took the house illustration still point at it. |
 
 ## Operational follow-ups (not in the diff)
 
-1. Delete the Render cron service `blog-writer-agent`. Without the route it would fail every run (`curl -f` on a 404) and send failure alerts. The Render MCP exposes no delete and there is no API key in the environment, so this is a dashboard action.
-2. Remove the `BLOG_CRON_SECRET` env var from the web service (nothing reads it any more).
-3. Tidy the DB: `site_setting` rows `blog_agent_config` (and `blog_judge_prompt` / `blog_plan_prompt` if present), and the `cron_heartbeat` row `blog-writer`.
+All three done on 2026-10-24:
+
+1. ✅ Render cron service `blog-writer-agent` deleted (by the owner, in the dashboard: the Render MCP exposes no delete). Without the route it would have failed every run (`curl -f` on a 404) and sent failure alerts.
+2. ✅ `BLOG_CRON_SECRET` removed from the web service (also by the owner; the MCP cannot delete env vars). The redeploy went live.
+3. ✅ DB tidied on PROD: the `site_setting` row `blog_agent_config` and the `cron_heartbeat` row `blog-writer` are gone.
 
 ## Rebuilding
 

@@ -2867,7 +2867,7 @@ DB actions applied to DEV only so far: archive the duplicate, run the backfill.
 
 ## 2026-10-24 — Blog agent disabled; 206 of 254 agent posts removed
 
-Investigated the blog automation after the owner flagged AI slop. Search Console showed 1 click / 86 impressions site-wide in 90 days and zero impressions on any agent post. All 254 were read against a rubric; 48 kept, 206 301-redirected and (after deploy) archived. Agent disabled on PROD (`blog_agent_config.enabled=false`). Backup: `~/.gstack/backups/archos_pdb_post_2026-10-24_pre-slop-removal.dump`.
+Investigated the blog automation after the owner flagged AI slop. Search Console showed 1 click / 86 impressions site-wide in 90 days and zero impressions on any agent post. All 254 were read against a rubric; 48 kept, 206 308-redirected (Next.js serves `permanent: true` as 308) and (after deploy) archived. Agent disabled on PROD (`blog_agent_config.enabled=false`). Backup: `~/.gstack/backups/archos_pdb_post_2026-10-24_pre-slop-removal.dump`.
 
 Touched: [[2026-10-24-remove-ai-slop-posts]] (new), [[2026-10-24-gate-measured-grounding-not-value]] (new), [[blog-writer-agent]] (status banner; its "never publishes" claim was stale), `index.md`.
 
@@ -2882,3 +2882,9 @@ Touched: [[2026-10-24-remove-blog-agent-pipeline]] (new), [[blog-writer-agent]] 
 Reviewed the 67 Search Console "Crawled, not indexed" URLs: 14 listing pages, 53 human posts, no slop. Ten near-duplicate pairs (workflow run twice per topic) now 308 to the indexed or longer twin; 27 older redirects repointed so nothing chains. Rows archived, not deleted.
 
 Touched: [[2026-10-24-scrub-duplicate-human-posts]] (new), `index.md`, `lib/blog-removed-redirects.json`, `next.config.ts` (comment).
+
+## 2026-10-25 — Wiki accuracy pass on the blog removal
+
+Corrected pages written during the 2026-10-24 cleanup: "301" is 308 (Next.js `permanent: true`); the three operational follow-ups on [[2026-10-24-remove-blog-agent-pipeline]] are marked done (cron deleted, `BLOG_CRON_SECRET` removed, settings and heartbeat rows gone, checked on PROD); `content_plan_item` is 303 rows, 281 judged, not 281 total; the resolved May sitemap checkpoint in [[open-followups]] now says to keep the `?retry=1` entry rather than remove it.
+
+Touched: [[2026-10-24-remove-blog-agent-pipeline]], [[2026-10-24-remove-ai-slop-posts]], [[open-followups]], `log.md`.
