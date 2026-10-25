@@ -168,6 +168,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 
 - [Don't tell the user to use a field that nobody built](lessons-learned/2026-10-25-dont-point-the-user-at-a-field-that-doesnt-exist.md) — A plan task is not shipped state. Verify the screen or field exists before sending the user to it.
 - [A saved key showed blank: page and route kept separate caches](lessons-learned/2026-10-26-process-caches-live-on-globalthis.md) — Shared server state lives on `globalThis`, not a module-level variable. Compare API output with the rendered page before blaming the data.
+- [pglite passed a query postgres-js rejects](lessons-learned/2026-10-26-pglite-accepts-what-postgres-js-rejects.md) — Raw `sql` parameters need one real run on the real driver; pass dates as ISO text with a cast.
 
 ## state
 - [Project state — auto-generated](state.md) — **source of truth for ship state.** Read this before claiming any route, API endpoint, or component does not exist. Regenerated on every commit touching `app/` or `components/` via `scripts/wiki-state.mjs`.

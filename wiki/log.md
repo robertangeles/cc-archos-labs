@@ -2948,3 +2948,9 @@ Touched: [[news-radar]] (new), [[news-radar-runbook]] (new), `backlog/backlog.md
 Built the page Rob labels on: `/admin/blog/radar` with blind labelling (Show scores off by default), Keep/Skip with switch, clear, Undo and "Use mine", the two-level status area, five views, a 400-row backlog, and mobile layouts. Backend: `lib/news-radar/{labels,queries,gate-report}.ts`, `GET /api/admin/radar`, `PATCH /api/admin/radar/[id]` (with a same-origin guard), `scripts/radar-gate-report.mjs`. The design amendments the review left open (DES-D6 `clear`, DES-D7 "Use mine", the newest-first queue) are confirmed in [[2026-10-26-news-radar-design-amendments-confirmed]]; the build changed one thing, the stale check now compares against the newest label row (`latestLabelId`) so a clear row cannot cause a false conflict. A live run against DEV found two real problems the unit tests could not: `<li role=group>` broke list semantics (axe), and the label button ignored a second press while a save was in flight by design (the test now waits). DEV holds a warm-up rubric v1 and 33 scored items; test labels were removed. PROD is untouched.
 
 Touched: [[news-radar]], [[news-radar-runbook]], [[2026-10-26-news-radar-design-amendments-confirmed]] (new), `backlog/backlog.md` (item 53 shipped), `index.md`, `log.md`, `state.md`.
+
+## 2026-10-26 (UTC) — News radar activation recipe and a lesson
+
+Read the live Render setup (workspace "Archos Labs", the existing cron jobs, deploy of PR #254 live) and wrote the concrete cron recipe into the runbook (copy `process-scheduled-posts`, `curl -fsS`, `0 */2 * * *`) and the deployment page (planned `news-radar` row, not created). Lesson written for the postgres-js Date-binding bug that only a real DEV run found. No code changed.
+
+Touched: [[news-radar-runbook]], [[deployment-architecture]], [[2026-10-26-pglite-accepts-what-postgres-js-rejects]] (new), `index.md`, `log.md`.
