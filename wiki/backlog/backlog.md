@@ -2,7 +2,7 @@
 title: Archos Labs HQ — Build Backlog
 category: synthesis
 created: 2026-05-07
-updated: 2026-07-12
+updated: 2026-10-26
 related: [[index]], [[log]], [[state]], [[shipped]], [[model-studio-canvas]], [[2026-05-08-phase2-ceo-review]], [[2026-05-20-translation-layer-public-render]], [[2026-05-20-phase-c-cutover]]
 ---
 
@@ -246,6 +246,12 @@ These came up in the Slice A planning but were deliberately excluded from the ca
 50. **Social analytics / engagement tracking** — Track post performance after publishing (impressions, likes, reposts). Requires: platform read API access (Twitter Analytics API, LinkedIn Statistics API), `publish_analytics` table, dashboard UI. Depends on: social accounts v1 (shipped) + Plausible (item 41). Effort: L (human ~1 week / CC ~4 hours). Verify: dashboard shows engagement metrics for a published post within 24 hours.
 
 51. **Per-platform feature flags (cache fix)** — ✅ **SHIPPED 2026-06-12.** Root cause was not stale cache but the PATCH schema's Zod union missing `z.boolean()` — toggle values silently 400'd, so the DB was never written. Cache invalidation was already wired via `updateIntegrationSecret` → `clearIntegrationConfigCache()`. Fix: added `z.boolean()` to PatchSchema value union. Commit `351e958`.
+
+---
+
+## Phase 5 — News radar (added 2026-10-26)
+
+52. **▢ Create a dedicated PROD Jev (TypeSafe) key.** For now PROD reuses the DEV key's value: the key is not environment-scoped (the DEV key was verified against the same `api.typesafe.ai` PROD would call), and nothing in PROD reads it until radar Release 1 ships. Until then there is no PROD action. When R1 ships: paste the key at PROD `/admin/integrations/typesafe` (it is encrypted at rest with the PROD master key, audit-logged) and press Test TypeSafe. Later: issue a separate key in the TypeSafe console for PROD, replace the value the same way, and rotate the DEV key if it was ever shared. **Verify:** PROD Test TypeSafe returns "Connected to TypeSafe", and DEV and PROD hold different key values.
 
 ---
 

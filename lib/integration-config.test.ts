@@ -86,6 +86,7 @@ describe("integration-config-shared", () => {
         "linkedinClientSecret",
         "cloudinaryApiSecret",
         "r2ChatSecretAccessKey",
+        "typesafeApiKey",
       ]);
     });
 
@@ -131,6 +132,7 @@ describe("integration-config-shared", () => {
         r2ChatAccessKeyId: null,
         r2ChatSecretAccessKey: null,
         r2ChatBucketName: null,
+        typesafeApiKey: null,
       };
       expect(IntegrationConfigSchema.safeParse(valid).success).toBe(true);
     });
@@ -189,6 +191,7 @@ describe("integration-config-shared", () => {
         r2ChatAccessKeyId: null,
         r2ChatSecretAccessKey: null,
         r2ChatBucketName: null,
+        typesafeApiKey: null,
       };
       const parsed = IntegrationConfigSchema.safeParse(valid);
       expect(parsed.success).toBe(true);
@@ -224,6 +227,7 @@ describe("integration-config-shared", () => {
         r2ChatAccessKeyId: null,
         r2ChatSecretAccessKey: null,
         r2ChatBucketName: null,
+        typesafeApiKey: null,
       };
       const parsed = IntegrationConfigSchema.safeParse(valid);
       expect(parsed.success).toBe(true);
@@ -276,6 +280,26 @@ describe("decryptAndValidate", () => {
       "Archos Labs <hello@archoslabs.xyz>",
     );
     expect(config.llmModelId).toBeNull();
+  });
+
+  it("decrypts the TypeSafe (Jev) API key when present", () => {
+    const config = _decryptAndValidate(
+      buildStored({ typesafeApiKey: encrypt("ts_live_key_123", TEST_KEY) }),
+    );
+    expect(config.typesafeApiKey).toBe("ts_live_key_123");
+  });
+
+  it("returns a null TypeSafe key for a blob written before the field existed", () => {
+    expect(_decryptAndValidate(buildStored()).typesafeApiKey).toBeNull();
+  });
+
+  it("throws IntegrationConfigDecryptError when the TypeSafe key is tampered with", () => {
+    const stored = buildStored({
+      typesafeApiKey: encrypt("ts_live_key_123", TEST_KEY).slice(0, -4) + "AAAA",
+    });
+    expect(() => _decryptAndValidate(stored)).toThrow(
+      IntegrationConfigDecryptError,
+    );
   });
 
   it("throws IntegrationConfigDecryptError when ciphertext is tampered with", () => {
@@ -380,6 +404,18 @@ describe("env-fallback grace window", () => {
     expect(config.llmApiKey).toBe("sk-or-real");
     expect(config.contactRecipientEmail).toBe("rob@example.com");
     expect(config.resendFromEmail).toBe("hello@example.com");
+  });
+
+  it("readFromEnv reads TYPESAFE_API_KEY and leaves it null when unset", () => {
+    process.env.ADMIN_PASSWORD = "real-admin-password";
+    process.env.RESEND_API_KEY = "re_real";
+    process.env.OPENROUTER_API_KEY = "sk-or-real";
+    delete process.env.TYPESAFE_API_KEY;
+    expect(_readFromEnv().typesafeApiKey).toBeNull();
+
+    process.env.TYPESAFE_API_KEY = "ts_from_env";
+    expect(_readFromEnv().typesafeApiKey).toBe("ts_from_env");
+    delete process.env.TYPESAFE_API_KEY;
   });
 
   it("readFromEnv uses CONFIG_DEFAULTS when an optional config var is missing", () => {

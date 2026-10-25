@@ -46,7 +46,13 @@ import { CryptoError } from "./errors/booking";
 // require a pub/sub or version-poll mechanism — flagged for future
 // in wiki/concepts/integration-config.md.
 
-let cachedConfigPromise: Promise<IntegrationConfig> | null = null;
+// Held on globalThis, not in a module-level `let`: Next can load this module
+// once per route graph, so a page and the PATCH route would otherwise keep
+// separate caches and the page would show the pre-save config after a save.
+const globalCache = globalThis as typeof globalThis & {
+  __integrationConfigCache?: { promise: Promise<IntegrationConfig> | null };
+};
+const cache = (globalCache.__integrationConfigCache ??= { promise: null });
 
 /**
  * Returns the live integration config. Reads from DB on first call,
@@ -57,15 +63,15 @@ let cachedConfigPromise: Promise<IntegrationConfig> | null = null;
  * IntegrationConfigDecryptError, IntegrationConfigValidationError.
  */
 export async function getIntegrationConfig(): Promise<IntegrationConfig> {
-  if (cachedConfigPromise) return cachedConfigPromise;
+  if (cache.promise) return cache.promise;
 
-  cachedConfigPromise = loadAndDecrypt().catch((err) => {
+  cache.promise = loadAndDecrypt().catch((err) => {
     // Clear so the next call retries. Production callers should exit
     // anyway; this is for tests that mock failure → success transitions.
-    cachedConfigPromise = null;
+    cache.promise = null;
     throw err;
   });
-  return cachedConfigPromise;
+  return cache.promise;
 }
 
 /**
@@ -74,7 +80,7 @@ export async function getIntegrationConfig(): Promise<IntegrationConfig> {
  * tests between assertions.
  */
 export function clearIntegrationConfigCache(): void {
-  cachedConfigPromise = null;
+  cache.promise = null;
 }
 
 async function loadAndDecrypt(): Promise<IntegrationConfig> {
@@ -266,6 +272,7 @@ function readFromEnv(): IntegrationConfig {
     r2ChatAccessKeyId: process.env.R2_CHAT_ACCESS_KEY_ID || null,
     r2ChatSecretAccessKey: process.env.R2_CHAT_SECRET_ACCESS_KEY || null,
     r2ChatBucketName: process.env.R2_CHAT_BUCKET || null,
+    typesafeApiKey: process.env.TYPESAFE_API_KEY || null,
   };
 
   const parsed = IntegrationConfigSchema.safeParse(config);
@@ -429,6 +436,7 @@ export async function migrateEnvToDB(): Promise<{
     r2ChatAccessKeyId: process.env.R2_CHAT_ACCESS_KEY_ID ?? null,
     r2ChatSecretAccessKey: process.env.R2_CHAT_SECRET_ACCESS_KEY ?? null,
     r2ChatBucketName: process.env.R2_CHAT_BUCKET ?? null,
+    typesafeApiKey: process.env.TYPESAFE_API_KEY ?? null,
   };
 
   const written: Array<keyof IntegrationConfig> = [];
@@ -630,6 +638,7 @@ export async function getIntegrationConfigRedacted(): Promise<{
   r2ChatAccessKeyId: string | null;
   r2ChatSecretAccessKey: string;
   r2ChatBucketName: string | null;
+  typesafeApiKey: string;
 }> {
   const config = await getIntegrationConfig();
   return {
@@ -660,6 +669,7 @@ export async function getIntegrationConfigRedacted(): Promise<{
     r2ChatAccessKeyId: config.r2ChatAccessKeyId,
     r2ChatSecretAccessKey: redactSecret(config.r2ChatSecretAccessKey ?? ""),
     r2ChatBucketName: config.r2ChatBucketName,
+    typesafeApiKey: redactSecret(config.typesafeApiKey ?? ""),
   };
 }
 

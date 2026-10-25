@@ -44,6 +44,8 @@ export interface RedactedConfig {
   r2ChatAccessKeyId: string | null;
   r2ChatSecretAccessKey: string;
   r2ChatBucketName: string | null;
+  // TypeSafe (Jev) API key for the news radar; always redacted.
+  typesafeApiKey: string;
 }
 
 export interface AuditRow {
@@ -66,6 +68,7 @@ const ENCRYPTED_FIELDS: ReadonlyArray<FieldKey> = [
   "linkedinClientSecret",
   "cloudinaryApiSecret",
   "r2ChatSecretAccessKey",
+  "typesafeApiKey",
 ];
 
 // Fields that accept null (empty string in the form clears them).
@@ -88,6 +91,7 @@ const NULLABLE_FIELDS: ReadonlyArray<FieldKey> = [
   "r2ChatAccessKeyId",
   "r2ChatSecretAccessKey",
   "r2ChatBucketName",
+  "typesafeApiKey",
 ];
 
 function isEncrypted(field: FieldKey): boolean {
@@ -130,7 +134,8 @@ export type IntegrationSlug =
   | "google-calendar"
   | "anti-spam"
   | "media-storage"
-  | "chat-documents";
+  | "chat-documents"
+  | "typesafe";
 
 // Google-specific extras passed in only when view === 'google-calendar'.
 // Coming from the page server component which reads the consultant row.
@@ -179,6 +184,9 @@ export function IntegrationsPanel({
     kind: "idle",
   });
   const [testR2Chat, setTestR2Chat] = useState<TestStatus>({ kind: "idle" });
+  const [testTypesafe, setTestTypesafe] = useState<TestStatus>({
+    kind: "idle",
+  });
 
   // Rotate-master-key modal state.
   const [showRotate, setShowRotate] = useState(false);
@@ -303,13 +311,17 @@ export function IntegrationsPanel({
     });
   }
 
-  async function handleTest(provider: "resend" | "openrouter" | "r2-chat") {
+  async function handleTest(
+    provider: "resend" | "openrouter" | "r2-chat" | "typesafe",
+  ) {
     const setter =
       provider === "resend"
         ? setTestResend
         : provider === "openrouter"
           ? setTestOpenrouter
-          : setTestR2Chat;
+          : provider === "typesafe"
+            ? setTestTypesafe
+            : setTestR2Chat;
     setter({ kind: "testing" });
     try {
       const resp = await fetch(
@@ -716,6 +728,43 @@ export function IntegrationsPanel({
         </Section>
       )}
 
+      {view === "typesafe" && (
+        <Section title="Jev (TypeSafe)">
+          <p className="text-[12px] text-ink-subtle">
+            Jev is the TypeSafe model that ranks incoming news for the blog
+            radar. Create a key in the{" "}
+            <a
+              href="https://typesafe.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-ink"
+            >
+              TypeSafe console
+            </a>{" "}
+            and paste it here. It is encrypted at rest and never reaches the
+            browser.
+          </p>
+          <ConfigField
+            field="typesafeApiKey"
+            label="API key"
+            hint="Encrypted at rest. Leave blank to keep the current value."
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus["typesafeApiKey"]}
+            onEdit={(v) => setEditing((e) => ({ ...e, typesafeApiKey: v }))}
+            onSave={() => handleSave("typesafeApiKey")}
+            onReveal={() => handleReveal("typesafeApiKey")}
+            onHide={() => handleHide("typesafeApiKey")}
+          />
+          <TestRow
+            provider="typesafe"
+            status={testTypesafe}
+            onClick={() => handleTest("typesafe")}
+          />
+        </Section>
+      )}
+
       <Section title="Social Accounts">
         <p className="text-xs text-ink-subtle">
           OAuth credentials for social publishing. Users connect their own
@@ -1089,7 +1138,7 @@ function TestRow({
   status,
   onClick,
 }: {
-  provider: "resend" | "openrouter" | "r2-chat";
+  provider: "resend" | "openrouter" | "r2-chat" | "typesafe";
   status: TestStatus;
   onClick: () => void;
 }) {
@@ -1098,7 +1147,9 @@ function TestRow({
       ? "Resend"
       : provider === "openrouter"
         ? "OpenRouter"
-        : "R2 storage";
+        : provider === "typesafe"
+          ? "TypeSafe"
+          : "R2 storage";
   return (
     <div className="border-t border-hairline pt-4">
       <div className="flex items-center justify-between gap-3">
@@ -1166,6 +1217,7 @@ function RevealAuthModal({
     r2ChatAccessKeyId: "",
     r2ChatSecretAccessKey: "R2 Chat Secret Access Key",
     r2ChatBucketName: "",
+    typesafeApiKey: "TypeSafe (Jev) API key",
   };
 
   return (

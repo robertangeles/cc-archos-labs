@@ -109,6 +109,10 @@ export const IntegrationConfigSchema = z.object({
   r2ChatAccessKeyId: z.string().min(1).nullable(),
   r2ChatSecretAccessKey: z.string().min(1).nullable(),
   r2ChatBucketName: z.string().min(1).nullable(),
+
+  // TypeSafe (Jev) API key, used by the news radar curator. Nullable so the
+  // radar fails closed with a plain message until the admin adds the key.
+  typesafeApiKey: z.string().min(1).nullable(),
 });
 
 export type IntegrationConfig = z.infer<typeof IntegrationConfigSchema>;
@@ -126,6 +130,7 @@ export const ENCRYPTED_FIELDS = [
   "linkedinClientSecret",
   "cloudinaryApiSecret",
   "r2ChatSecretAccessKey",
+  "typesafeApiKey",
 ] as const satisfies ReadonlyArray<keyof IntegrationConfig>;
 
 export type EncryptedField = (typeof ENCRYPTED_FIELDS)[number];
@@ -171,9 +176,10 @@ export const CONFIG_DEFAULTS = {
   r2ChatAccessKeyId: null,
   r2ChatSecretAccessKey: null,
   r2ChatBucketName: null,
+  typesafeApiKey: null,
 } as const satisfies Pick<
   IntegrationConfig,
-  "contactRecipientEmail" | "resendFromEmail" | "llmModelId" | "llmEnabledModels" | "llmCustomModels" | "twitterClientId" | "twitterClientSecret" | "twitterEnabled" | "linkedinClientId" | "linkedinClientSecret" | "linkedinEnabled" | "blueskyEnabled" | "cloudinaryCloudName" | "cloudinaryApiKey" | "cloudinaryApiSecret" | "cloudinaryUploadFolder" | "r2ChatAccountId" | "r2ChatAccessKeyId" | "r2ChatSecretAccessKey" | "r2ChatBucketName"
+  "contactRecipientEmail" | "resendFromEmail" | "llmModelId" | "llmEnabledModels" | "llmCustomModels" | "twitterClientId" | "twitterClientSecret" | "twitterEnabled" | "linkedinClientId" | "linkedinClientSecret" | "linkedinEnabled" | "blueskyEnabled" | "cloudinaryCloudName" | "cloudinaryApiKey" | "cloudinaryApiSecret" | "cloudinaryUploadFolder" | "r2ChatAccountId" | "r2ChatAccessKeyId" | "r2ChatSecretAccessKey" | "r2ChatBucketName" | "typesafeApiKey"
 >;
 
 // Storage shape inside site_setting.value for key='integration_secrets'.
@@ -229,6 +235,10 @@ export const StoredIntegrationConfigSchema = z.object({
   r2ChatAccessKeyId: z.string().min(1).nullish(),
   r2ChatSecretAccessKey: z.string().min(1).nullish(),
   r2ChatBucketName: z.string().min(1).nullish(),
+
+  // TypeSafe (Jev). `.nullish()` so a blob written before this field existed
+  // still parses (missing → undefined → null).
+  typesafeApiKey: z.string().min(1).nullish(),
 });
 
 export type StoredIntegrationConfig = z.infer<

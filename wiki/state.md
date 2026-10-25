@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-10-24T02:47:18.459Z
+generated: 2026-10-25T21:36:20.172Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -54,8 +54,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/admin/(authed)/pages/[id]` | [app/admin/(authed)/pages/[id]/page.tsx](../app/admin/(authed)/pages/[id]/page.tsx) | 2026-05-18 |
 | `/admin/(authed)/pages/[id]/revisions` | [app/admin/(authed)/pages/[id]/revisions/page.tsx](../app/admin/(authed)/pages/[id]/revisions/page.tsx) | 2026-05-18 |
 | `/admin/(authed)/pages/new` | [app/admin/(authed)/pages/new/page.tsx](../app/admin/(authed)/pages/new/page.tsx) | 2026-05-18 |
-| `/admin/(authed)/prompts` | [app/admin/(authed)/prompts/page.tsx](../app/admin/(authed)/prompts/page.tsx) | 2026-07-26 |
-| `/admin/(authed)/prompts/[slug]` | [app/admin/(authed)/prompts/[slug]/page.tsx](../app/admin/(authed)/prompts/[slug]/page.tsx) | 2026-07-26 |
+| `/admin/(authed)/prompts` | [app/admin/(authed)/prompts/page.tsx](../app/admin/(authed)/prompts/page.tsx) | 2026-10-24 |
+| `/admin/(authed)/prompts/[slug]` | [app/admin/(authed)/prompts/[slug]/page.tsx](../app/admin/(authed)/prompts/[slug]/page.tsx) | 2026-10-24 |
 | `/admin/(authed)/site` | [app/admin/(authed)/site/page.tsx](../app/admin/(authed)/site/page.tsx) | 2026-05-18 |
 | `/admin/(authed)/users` | [app/admin/(authed)/users/page.tsx](../app/admin/(authed)/users/page.tsx) | 2026-05-26 |
 | `/admin/(authed)/users/[id]` | [app/admin/(authed)/users/[id]/page.tsx](../app/admin/(authed)/users/[id]/page.tsx) | 2026-05-26 |
@@ -85,7 +85,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/workspace/model-studio` | [app/workspace/model-studio/page.tsx](../app/workspace/model-studio/page.tsx) | 2026-07-12 |
 | `/workspace/model-studio/[id]` | [app/workspace/model-studio/[id]/page.tsx](../app/workspace/model-studio/[id]/page.tsx) | 2026-06-17 |
 
-## API endpoints (176)
+## API endpoints (177)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -103,6 +103,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/integrations/test/openrouter` | [app/api/admin/integrations/test/openrouter/route.ts](../app/api/admin/integrations/test/openrouter/route.ts) | 2026-05-15 |
 | `/api/admin/integrations/test/r2-chat` | [app/api/admin/integrations/test/r2-chat/route.ts](../app/api/admin/integrations/test/r2-chat/route.ts) | 2026-07-07 |
 | `/api/admin/integrations/test/resend` | [app/api/admin/integrations/test/resend/route.ts](../app/api/admin/integrations/test/resend/route.ts) | 2026-05-15 |
+| `/api/admin/integrations/test/typesafe` | [app/api/admin/integrations/test/typesafe/route.ts](../app/api/admin/integrations/test/typesafe/route.ts) | unknown |
 | `/api/admin/knowledge` | [app/api/admin/knowledge/route.ts](../app/api/admin/knowledge/route.ts) | 2026-06-03 |
 | `/api/admin/knowledge/upload` | [app/api/admin/knowledge/upload/route.ts](../app/api/admin/knowledge/upload/route.ts) | 2026-06-23 |
 | `/api/admin/login` | [app/api/admin/login/route.ts](../app/api/admin/login/route.ts) | 2026-05-15 |

@@ -2918,3 +2918,21 @@ Touched: [[2026-10-24-wordpress-named-stories-to-hypotheticals]], `index.md`, `l
 Owner asked to scrub the generic "I've seen this pattern" lines and the "Real Example" / "Case Study" sections about unnamed companies. Five agents read 100 candidate posts; 231 validated edits across 91 posts applied on PROD in one guarded transaction. Posts needing a human decision (invented-looking named figures, one duplicated body) are listed on the decision page.
 
 Touched: [[2026-10-24-blog-experience-sweep]] (new), `index.md`, `log.md`.
+
+## 2026-10-25 (UTC) — Jev (TypeSafe) API key added to Integrations
+
+The news-radar plan told the owner to add the TypeSafe key at /admin/integrations, but no field existed. Built it: encrypted `typesafeApiKey` in the integration config (schema, loader, redacted view, PATCH, reveal), a card and detail page at `/admin/integrations/typesafe`, and a read-only `POST /api/admin/integrations/test/typesafe` that checks the key with `GET /v1/models`. Unit, route and Playwright tests added. No migration and no DEV or PROD row changed; the key is still unset until the owner pastes it.
+
+Touched: [[2026-10-25-dont-point-the-user-at-a-field-that-doesnt-exist]] (new), `state.md`, `index.md`, `log.md`.
+
+## 2026-10-26 (UTC) — PROD Jev key logged as a TODO
+
+Owner asked to reuse the DEV Jev (TypeSafe) key for now and track a real PROD key as a TODO. Added backlog item 52: PROD reuses the DEV key value until radar Release 1 ships, then gets its own key. No key value written anywhere; no DEV or PROD row changed.
+
+Touched: `backlog/backlog.md`, `log.md`.
+
+## 2026-10-26 (UTC) — Saved Jev key showed blank: shared config cache
+
+Rob saved the Jev key and the page still showed it blank (other keys showed masked). Root cause: the integration config cache was a module-level variable, so the admin page and the PATCH route kept separate copies in one process and the save cleared only the route's. Moved it to `globalThis` in `lib/integration-config.ts`, added `lib/integration-config-cache.test.ts` (fails on the old code), and confirmed the live 3007 page now shows the key masked and the card Configured without a restart.
+
+Touched: [[2026-10-26-process-caches-live-on-globalthis]] (new), [[integration-config]], `index.md`, `log.md`.

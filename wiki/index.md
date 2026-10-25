@@ -163,5 +163,8 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 - [Validate localStorage state on mount](lessons-learned/2026-06-03-stale-localstorage-state.md) — Never show a form from stale localStorage. Validate persisted state on mount.
 - [Deploy verification and cron config documentation](lessons-learned/2026-06-14-deploy-verification-and-cron-config.md) — Verify Render deploy after every PR merge. Document exact cron job config (region, instance, language, build command). Never guess at infrastructure — copy working patterns.
 
+- [Don't tell the user to use a field that nobody built](lessons-learned/2026-10-25-dont-point-the-user-at-a-field-that-doesnt-exist.md) — A plan task is not shipped state. Verify the screen or field exists before sending the user to it.
+- [A saved key showed blank: page and route kept separate caches](lessons-learned/2026-10-26-process-caches-live-on-globalthis.md) — Shared server state lives on `globalThis`, not a module-level variable. Compare API output with the rendered page before blaming the data.
+
 ## state
 - [Project state — auto-generated](state.md) — **source of truth for ship state.** Read this before claiming any route, API endpoint, or component does not exist. Regenerated on every commit touching `app/` or `components/` via `scripts/wiki-state.mjs`.
