@@ -8,7 +8,7 @@ related: [[deployment-architecture]], [[integration-config]], [[reset-admin-pass
 
 The news radar reads the HuggingNews feed every two hours, has TypeSafe Jev score each item against a frozen rubric, and keeps the scores for a Keep/Skip shortlist (Radar page, PR2). Release 1 drafts, researches, illustrates and publishes **nothing**. Plan: `~/.gstack/projects/robertangeles-cc-archos-labs/ceo-plans/2026-10-25-blog-pipeline-rebuild-plan.md` (outside the repo).
 
-## What exists after PR1 (dormant)
+## What exists (PR1 engine and PR2 page; both dormant until activated)
 
 | Piece | Where |
 |---|---|
@@ -20,14 +20,16 @@ The news radar reads the HuggingNews feed every two hours, has TypeSafe Jev scor
 | Cron route | `POST /api/cron/news-radar` (Bearer `CRON_SECRET`) |
 | Health | `GET /api/health/cron?id=news-radar` |
 | Rubric CLI | `scripts/radar-rubric-set.mjs` |
+| Radar page | `/admin/blog/radar` (admin, Blog, Radar tab) |
+| Gate report | `scripts/radar-gate-report.mjs --version <n>` |
 | Jev key | Admin, Integrations, Jev (TypeSafe) |
 | Flag | `site_setting` key `news_radar_enabled`, `{"enabled": true}`; **absent means off** |
 
-PR1 merging does not start anything: the flag is off and there is no Render cron job. Merging ships code to PROD, never schema.
+Merging does not start anything: the flag is off and there is no Render cron job. Merging ships code to PROD, never schema.
 
 ## Activation checklist (PROD)
 
-Do these in order. Nothing here is done by merging.
+Do these in order. Nothing here is done by merging. Until step 1 the Radar tab on PROD shows "Couldn't load the radar." (the tables do not exist yet); that is expected.
 
 1. **Database request.** Rob asks for the PROD migration explicitly (CLAUDE.md). Then: `pg_dump` backup, check `__drizzle_applied` on PROD, and `DATABASE_URL="<PROD>" node scripts/db-apply.mjs` (idempotent; applies `0042` only if it is the only untracked one; read the output). The migration is purely additive.
 2. **Jev key on PROD.** Integrations, Jev (TypeSafe): paste the key, press Test TypeSafe. Backlog item 52 covers using the DEV key value until a PROD key is issued.
@@ -70,6 +72,19 @@ Rubric v1 wording and the cut-offs (T audience fit, C confidence, M novelty dist
 ```
 
 `model` must be an exact version (`jev-1.13.0`, `jev-1.14.0`), never an alias. `minNoveltyDistance` is the smallest cosine distance from the nearest published post that still counts as novel (0 identical, 2 opposite).
+
+## Reading the gate (after the evaluation week)
+
+```bash
+node --env-file=.env.local --no-warnings --conditions=react-server --import tsx \
+  scripts/radar-gate-report.mjs --version <n>
+```
+
+It refuses to run without `--version`, so it never blends two cohorts. It reports the eligible and labelled items, the keep rate, the valid days (a Melbourne day counts only when every one of its twelve 2-hour slots ran; today and a partial first day are excluded until complete, so the window extends), items Kept but not eligible (reported apart, never in the rate), and the Kept titles for the human check ("at least 5 Kept topics Rob would personally write"). The measured gate: at least 7 valid days, at least 50 labelled eligible items, a Keep rate of at least 50%. Run it against PROD with `DATABASE_URL="<PROD>"` set in the shell for that one command (never exported).
+
+## Using the Radar page
+
+Open Blog, then Radar. To label is the default and is blind: scores stay hidden unless "Show scores" is on. Press Keep (I would personally write about this) or Skip; press the selected one again to clear; Undo is offered for 6 seconds. "N new . Refresh" appears when the radar scores new items; the list never reorders by itself. The status line says whether the radar is healthy, stale (no good check for 3 hours), failing (with the cause), off, or missing its Jev key.
 
 ## Reading the health check
 
