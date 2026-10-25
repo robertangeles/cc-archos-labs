@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-10-25T22:04:30.450Z
+generated: 2026-10-25T22:27:05.045Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -9,7 +9,7 @@ Auto-generated snapshot of what is currently shipped. **Source of truth for ship
 
 Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `app/` or `components/` to fire the pre-commit hook.
 
-## Routes (71)
+## Routes (72)
 
 | Route | File | Last shipped |
 |-------|------|--------------|
@@ -44,6 +44,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/admin/(authed)/blog/posts/[id]` | [app/admin/(authed)/blog/posts/[id]/page.tsx](../app/admin/(authed)/blog/posts/[id]/page.tsx) | 2026-05-21 |
 | `/admin/(authed)/blog/posts/[id]/revisions` | [app/admin/(authed)/blog/posts/[id]/revisions/page.tsx](../app/admin/(authed)/blog/posts/[id]/revisions/page.tsx) | 2026-05-21 |
 | `/admin/(authed)/blog/posts/new` | [app/admin/(authed)/blog/posts/new/page.tsx](../app/admin/(authed)/blog/posts/new/page.tsx) | 2026-05-21 |
+| `/admin/(authed)/blog/radar` | [app/admin/(authed)/blog/radar/page.tsx](../app/admin/(authed)/blog/radar/page.tsx) | unknown |
 | `/admin/(authed)/bookings` | [app/admin/(authed)/bookings/page.tsx](../app/admin/(authed)/bookings/page.tsx) | 2026-06-12 |
 | `/admin/(authed)/cdmp` | [app/admin/(authed)/cdmp/page.tsx](../app/admin/(authed)/cdmp/page.tsx) | 2026-06-03 |
 | `/admin/(authed)/diagnostic` | [app/admin/(authed)/diagnostic/page.tsx](../app/admin/(authed)/diagnostic/page.tsx) | 2026-05-15 |
@@ -85,7 +86,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/workspace/model-studio` | [app/workspace/model-studio/page.tsx](../app/workspace/model-studio/page.tsx) | 2026-07-12 |
 | `/workspace/model-studio/[id]` | [app/workspace/model-studio/[id]/page.tsx](../app/workspace/model-studio/[id]/page.tsx) | 2026-06-17 |
 
-## API endpoints (178)
+## API endpoints (180)
 
 | Endpoint | File | Last shipped |
 |----------|------|--------------|
@@ -122,6 +123,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/posts/[id]/revisions` | [app/api/admin/posts/[id]/revisions/route.ts](../app/api/admin/posts/[id]/revisions/route.ts) | 2026-05-20 |
 | `/api/admin/posts/[id]/revisions/[revId]/restore` | [app/api/admin/posts/[id]/revisions/[revId]/restore/route.ts](../app/api/admin/posts/[id]/revisions/[revId]/restore/route.ts) | 2026-05-20 |
 | `/api/admin/posts/[id]/suggest-links` | [app/api/admin/posts/[id]/suggest-links/route.ts](../app/api/admin/posts/[id]/suggest-links/route.ts) | 2026-05-20 |
+| `/api/admin/radar` | [app/api/admin/radar/route.ts](../app/api/admin/radar/route.ts) | unknown |
+| `/api/admin/radar/[id]` | [app/api/admin/radar/[id]/route.ts](../app/api/admin/radar/[id]/route.ts) | unknown |
 | `/api/admin/settings/blog-enabled` | [app/api/admin/settings/blog-enabled/route.ts](../app/api/admin/settings/blog-enabled/route.ts) | 2026-05-20 |
 | `/api/admin/settings/blog-library` | [app/api/admin/settings/blog-library/route.ts](../app/api/admin/settings/blog-library/route.ts) | 2026-06-12 |
 | `/api/admin/settings/booking-prompts` | [app/api/admin/settings/booking-prompts/route.ts](../app/api/admin/settings/booking-prompts/route.ts) | 2026-05-17 |
@@ -184,7 +187,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/clients/[id]/contracts/[contractId]/attachments` | [app/api/clients/[id]/contracts/[contractId]/attachments/route.ts](../app/api/clients/[id]/contracts/[contractId]/attachments/route.ts) | 2026-06-15 |
 | `/api/clients/[id]/contracts/[contractId]/attachments/[attachmentId]` | [app/api/clients/[id]/contracts/[contractId]/attachments/[attachmentId]/route.ts](../app/api/clients/[id]/contracts/[contractId]/attachments/[attachmentId]/route.ts) | 2026-06-15 |
 | `/api/contact` | [app/api/contact/route.ts](../app/api/contact/route.ts) | 2026-05-15 |
-| `/api/cron/news-radar` | [app/api/cron/news-radar/route.ts](../app/api/cron/news-radar/route.ts) | unknown |
+| `/api/cron/news-radar` | [app/api/cron/news-radar/route.ts](../app/api/cron/news-radar/route.ts) | 2026-10-26 |
 | `/api/cron/process-scheduled` | [app/api/cron/process-scheduled/route.ts](../app/api/cron/process-scheduled/route.ts) | 2026-06-12 |
 | `/api/cron/process-scheduled-posts` | [app/api/cron/process-scheduled-posts/route.ts](../app/api/cron/process-scheduled-posts/route.ts) | 2026-05-20 |
 | `/api/cron/process-scheduled-social` | [app/api/cron/process-scheduled-social/route.ts](../app/api/cron/process-scheduled-social/route.ts) | 2026-06-14 |
@@ -196,7 +199,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/diagnostic/share` | [app/api/diagnostic/share/route.ts](../app/api/diagnostic/share/route.ts) | 2026-06-03 |
 | `/api/diagnostic/share/[id]/revoke` | [app/api/diagnostic/share/[id]/revoke/route.ts](../app/api/diagnostic/share/[id]/revoke/route.ts) | 2026-06-03 |
 | `/api/events` | [app/api/events/route.ts](../app/api/events/route.ts) | 2026-05-18 |
-| `/api/health/cron` | [app/api/health/cron/route.ts](../app/api/health/cron/route.ts) | 2026-05-17 |
+| `/api/health/cron` | [app/api/health/cron/route.ts](../app/api/health/cron/route.ts) | 2026-10-26 |
 | `/api/model-studio` | [app/api/model-studio/route.ts](../app/api/model-studio/route.ts) | 2026-06-17 |
 | `/api/model-studio/[id]` | [app/api/model-studio/[id]/route.ts](../app/api/model-studio/[id]/route.ts) | 2026-06-17 |
 | `/api/model-studio/[id]/attributes` | [app/api/model-studio/[id]/attributes/route.ts](../app/api/model-studio/[id]/attributes/route.ts) | 2026-06-17 |
@@ -268,13 +271,19 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate` | [app/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate/route.ts](../app/api/workflows/[id]/runs/[runId]/steps/[stepId]/regenerate/route.ts) | 2026-07-06 |
 | `/api/workflows/[id]/steps/[stepId]/prompt` | [app/api/workflows/[id]/steps/[stepId]/prompt/route.ts](../app/api/workflows/[id]/steps/[stepId]/prompt/route.ts) | 2026-07-06 |
 
-## Components (129)
+## Components (135)
 
 | File | Last shipped |
 |------|--------------|
 | [components/admin/integrations/consultant-profile-form.tsx](../components/admin/integrations/consultant-profile-form.tsx) | 2026-06-12 |
 | [components/admin/integrations/integrations-grid.tsx](../components/admin/integrations/integrations-grid.tsx) | 2026-10-26 |
 | [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-10-26 |
+| [components/admin/radar/radar-copy.test.ts](../components/admin/radar/radar-copy.test.ts) | unknown |
+| [components/admin/radar/radar-copy.ts](../components/admin/radar/radar-copy.ts) | unknown |
+| [components/admin/radar/radar-list.test.tsx](../components/admin/radar/radar-list.test.tsx) | unknown |
+| [components/admin/radar/radar-list.tsx](../components/admin/radar/radar-list.tsx) | unknown |
+| [components/admin/radar/radar-state.test.ts](../components/admin/radar/radar-state.test.ts) | unknown |
+| [components/admin/radar/radar-state.ts](../components/admin/radar/radar-state.ts) | unknown |
 | [components/analytics/analytics-client.tsx](../components/analytics/analytics-client.tsx) | 2026-05-18 |
 | [components/analytics/consent-banner.tsx](../components/analytics/consent-banner.tsx) | 2026-07-25 |
 | [components/analytics/consent.test.ts](../components/analytics/consent.test.ts) | 2026-07-25 |

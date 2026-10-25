@@ -3,12 +3,12 @@ title: News radar
 category: entity
 created: 2026-10-26
 updated: 2026-10-26
-related: [[news-radar-runbook]], [[2026-10-24-remove-blog-agent-pipeline]], [[integration-config]], [[deployment-architecture]]
+related: [[news-radar-runbook]], [[2026-10-26-news-radar-design-amendments-confirmed]], [[2026-10-24-remove-blog-agent-pipeline]], [[integration-config]], [[deployment-architecture]]
 ---
 
 A feed reader plus a scorer, replacing the deleted AI blog writer's front end. It reads huggingnews.com every two hours, has TypeSafe Jev score each item against a frozen rubric, and keeps the scores so Rob can mark items Keep or Skip. Release 1 is a **shadow week**: it drafts, researches, illustrates and publishes nothing. The gate to Release 2 (drafting) is at least 7 valid days, at least 50 labelled eligible items, a Keep rate of at least 50%, and at least 5 Kept topics Rob would personally write. Thresholds are fixed before data. Plan: `~/.gstack/projects/robertangeles-cc-archos-labs/ceo-plans/2026-10-25-blog-pipeline-rebuild-plan.md` (outside the repo). Operating it: [[news-radar-runbook]].
 
-## Shape (Release 1, PR1: engine, dormant)
+## Shape (Release 1: PR1 the engine, PR2 the page)
 
 ```
 Render cron 0 */2 * * *  ->  POST /api/cron/news-radar  (Bearer CRON_SECRET)
@@ -48,8 +48,20 @@ Read side (never written by the cron):
 
 One real tick: 33 live feed items, all scored by `jev-1.14.0` with real embeddings, in 34 s for 25 items (about 1.4 s each); a crashed first run left 25 claimed items that the next tick recovered. A real run found a bug the pglite tests could not (postgres-js cannot bind a JS Date in raw SQL); fixed with an ISO string and a comment.
 
+## The Radar page (PR2)
+
+`/admin/blog/radar` (a tab beside Settings and Posts). Design: plan DES-D3 to DES-D14; confirmed by [[2026-10-26-news-radar-design-amendments-confirmed]].
+
+- **Blind labelling.** To label is the default view, newest first, with no scores shown. "Show scores" is off by default, page-wide, per browser, and starts off again for each cohort.
+- **Label control.** Keep and Skip carry equal weight. Press the other to switch, press the selected one to clear. The row updates instantly and reverts visibly if the save fails ("Couldn't save. Retry"); a 6 second Undo; after a conflict "Use mine". First labels can only be set in To label; the other views are read-only.
+- **Status area.** Level one is progress ("Today 3 of 8 labelled", the cohort's progress toward the gate); level two a quiet health line (Healthy, Stale after 3 hours, Failing with a plain cause, Radar is off, no Jev key). "N new . Refresh" appears when new items arrive; the list never reorders on its own.
+- **Files.** `app/admin/(authed)/blog/radar/` (server page, loading), `components/admin/radar/` (`radar-list.tsx` client module, `radar-copy.ts` every word, `radar-state.ts` pure label transitions), `lib/news-radar/queries.ts` (one read path for the page, the poll and the gate report), `lib/news-radar/labels.ts` (label rules), `lib/news-radar/gate-report.ts` and `scripts/radar-gate-report.mjs`, `GET /api/admin/radar`, `PATCH /api/admin/radar/[id]`.
+- **Label rules** (`labels.ts`): the candidate row is locked first so two tabs serialise; a repeated request id returns the stored result; a stale `ifLatestLabelId` (the id of the newest label row, a `clear` row included) is a 409 with the current label; the same decision as now writes nothing; only scored items can be labelled.
+- **Tested.** pglite for the rules and queries, server-render tests for every state and its exact copy, a token contrast test, and Playwright at 375, 768 and 1280 wide (keyboard only, reduced motion, an axe check with no WCAG A or AA violation, a 400-row backlog, conflict and save-failure states).
+
+Until the PROD migration is applied the tab shows "Couldn't load the radar." with a Retry, never an error page.
+
 ## Not built yet
 
-- **PR2**: admin label routes, the Radar page (`/admin/blog/radar`), gate report script, Playwright spec. Needs the design amendments DES-D6 (`clear` label, allowed by the schema already) and DES-D7 ("Use mine") confirmed by the eng review first.
-- **Follow-ups**: rubric editor in the admin (the CLI is the interim path), moving the three live cron writers to the shared heartbeat helper, reading the embedding key from the Integrations store (today `lib/embeddings.ts` reads `OPENROUTER_API_KEY` from the environment).
-- **Open for Rob**: rubric v1 wording and the cut-offs T, C, M, N (values, before the evaluation cohort); explicit PROD database go-ahead; the PROD Jev key ([[backlog]] item 52).
+- **Follow-ups**: an admin toggle for the `news_radar_enabled` flag (today it is a `site_setting` row, so "Radar is off" tells Rob to set it); a rubric editor in the admin (the CLI is the interim path); moving the three live cron writers to the shared heartbeat helper; reading the embedding key from the Integrations store (today `lib/embeddings.ts` reads `OPENROUTER_API_KEY` from the environment); the admin contrast debt (DES-D16, existing pages use `text-primary` links at 4.05:1); run /design-review on the live page once it has real data.
+- **Open for Rob**: rubric v1 wording and the cut-offs T, C, M, N (values, before the evaluation cohort); explicit PROD database go-ahead; the PROD Jev key ([[backlog]] item 52). Activation order is in [[news-radar-runbook]].

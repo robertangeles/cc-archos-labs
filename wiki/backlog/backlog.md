@@ -253,9 +253,9 @@ These came up in the Slice A planning but were deliberately excluded from the ca
 
 52. **▢ Create a dedicated PROD Jev (TypeSafe) key.** For now PROD reuses the DEV key's value: the key is not environment-scoped (the DEV key was verified against the same `api.typesafe.ai` PROD would call), and nothing in PROD reads it until radar Release 1 ships. Until then there is no PROD action. When R1 ships: paste the key at PROD `/admin/integrations/typesafe` (it is encrypted at rest with the PROD master key, audit-logged) and press Test TypeSafe. Later: issue a separate key in the TypeSafe console for PROD, replace the value the same way, and rotate the DEV key if it was ever shared. **Verify:** PROD Test TypeSafe returns "Connected to TypeSafe", and DEV and PROD hold different key values.
 
-53. **▢ News radar Release 1, PR2: the page.** Admin label routes (PATCH with request id, stale check, `clear`, 409), the Radar page at `/admin/blog/radar` (active cohort, status bar, all states, mobile), gate report script, Playwright spec, wiki. Waits on the eng review confirming DES-D6 (`clear`) and DES-D7 ("Use mine"). PR1 (engine) is built; see [[news-radar]].
+53. **✅ SHIPPED 2026-10-26: News radar Release 1, PR2: the page.** Label routes, the Radar page at `/admin/blog/radar`, gate report script, Playwright spec. See [[news-radar]] and [[2026-10-26-news-radar-design-amendments-confirmed]].
 
-54. **▢ News radar follow-ups.** Rubric editor in the admin (CLI is the interim path); move the three live cron writers to `lib/cron-heartbeat.ts`; read the embedding key from the Integrations store (`lib/embeddings.ts` reads the `OPENROUTER_API_KEY` env var today).
+54. **▢ News radar follow-ups.** Admin toggle for the `news_radar_enabled` flag (SQL row today); rubric editor in the admin (CLI is the interim path); `/design-review` of the live page with real data; admin contrast debt (DES-D16); move the three live cron writers to `lib/cron-heartbeat.ts`; read the embedding key from the Integrations store (`lib/embeddings.ts` reads the `OPENROUTER_API_KEY` env var today).
 
 55. **▢ News radar activation (Rob's calls).** Explicit PROD database go-ahead, rubric v1 wording and cut-offs T, C, M, N, the PROD Jev key (item 52), UptimeRobot check on `/api/health/cron?id=news-radar`, Render cron job copied from an existing one. Order in [[news-radar-runbook]].
 

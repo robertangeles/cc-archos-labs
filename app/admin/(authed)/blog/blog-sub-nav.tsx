@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// Horizontal sub-nav for /admin/blog. Two tabs today; new tabs slot in
+// Horizontal sub-nav for /admin/blog. New tabs slot in
 // by adding to `tabs` and dropping a page.tsx at the corresponding
 // route. Style mirrors admin-tab-nav (sidebar) but laid out
 // horizontally because we're already inside the sidebar's "Blog" slot.
@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation";
 const tabs: Array<{ href: string; label: string; exact?: boolean }> = [
   { href: "/admin/blog", label: "Settings", exact: true },
   { href: "/admin/blog/posts", label: "Posts" },
+  { href: "/admin/blog/radar", label: "Radar" },
 ];
 
 export function BlogSubNav() {
