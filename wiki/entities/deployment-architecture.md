@@ -2,7 +2,7 @@
 title: Deployment architecture
 category: entity
 created: 2026-05-20
-updated: 2026-07-27
+updated: 2026-10-26
 related: [[2026-05-08-render-postgres-over-neon]], [[integration-config]], [[index]], [[state]], [[chat-attach-files]], [[2026-07-19-gbrain-decommission]], [[2026-07-27-dev-db-is-per-machine]]
 ---
 
@@ -169,13 +169,14 @@ The integration-secrets pattern ([[integration-config]]) stores all of the above
 
 ### Render Cron jobs
 
-Three cron jobs are configured in the Render dashboard (not in repo — there is no `render.yaml`). All POST to authenticated endpoints with `Authorization: Bearer ${CRON_SECRET}` (single secret shared across cron + runtime).
+Three cron jobs are configured in the Render dashboard (plus the two daily purge jobs, and the planned `news-radar` one below) (not in repo — there is no `render.yaml`). All POST to authenticated endpoints with `Authorization: Bearer ${CRON_SECRET}` (single secret shared across cron + runtime).
 
 | Cron | Schedule | Endpoint | Purpose | Heartbeat row id |
 |---|---|---|---|---|
 | `process-scheduled` | every minute | `POST /api/cron/process-scheduled` | Drains the `scheduled_job` queue (booking reminders, pre-call briefs, post-call follow-ups, no-show recovery) | `singleton` |
 | `process-scheduled-posts` | every minute | `POST /api/cron/process-scheduled-posts` | Flips `post.status='scheduled' AND scheduled_publish_at <= now()` rows to `published`. Writes a `post_revision` row tagged `savedBy='scheduler-cron'` per publish. | `posts-publisher` |
 | `process-scheduled-social` | every minute | `POST /api/cron/process-scheduled-social` | Dequeues `scheduled_social_post` rows where `status='pending' AND scheduled_for <= now()`, publishes to connected social platforms (Twitter, LinkedIn, Bluesky). Max 3 retry attempts per post. | `social-publisher` |
+| `news-radar` (**not created yet**; created at activation, see [[news-radar-runbook]]) | `0 */2 * * *` (UTC, every 2 hours) | `POST /api/cron/news-radar` | Reads the HuggingNews feed, has TypeSafe Jev score each item, logs the tick. Dormant until the `news_radar_enabled` flag is on. Release 1 only: it drafts and publishes nothing. | `news-radar` |
 
 If `CRON_SECRET` is missing / shorter than 16 chars, all three routes return 503 (cron not configured) BEFORE checking the bearer. Same behaviour locally + in prod — local dev rarely needs the cron running.
 
