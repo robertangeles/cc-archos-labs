@@ -80,6 +80,13 @@ export function IntegrationsGrid({
         "Private R2 bucket for chat file attachments. Confidential docs served only via authz'd proxy.",
       status: redactedSecretToStatus(config.r2ChatSecretAccessKey),
     },
+    {
+      slug: "typesafe",
+      title: "Jev (TypeSafe)",
+      description:
+        "API key for Jev, which ranks incoming news for the blog radar.",
+      status: redactedSecretToStatus(config.typesafeApiKey),
+    },
   ];
 
   return (

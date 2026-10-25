@@ -2,7 +2,7 @@
 title: Integration config — DB-backed secrets with env-rooted master key
 category: concept
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-10-26
 related: [[transactional-email-rendering]], [[lead-session-and-owner-only-reports]]
 ---
 
@@ -59,7 +59,7 @@ Server-side callers consume `getIntegrationConfig()` from `lib/integration-confi
 5. Validates the JSONB shape against `StoredIntegrationConfigSchema` (Zod).
 6. Decrypts every `ENCRYPTED_FIELDS` entry with the master key.
 7. Validates the decrypted result against `IntegrationConfigSchema` (Zod, with min-length / email-format / etc. rules).
-8. Caches the result module-level. Subsequent calls return the cached value.
+8. Caches the result on `globalThis` (not a module-level variable, so the admin page and the PATCH route share one cache; see [[2026-10-26-process-caches-live-on-globalthis]]). Subsequent calls return the cached value.
 
 **Fail-closed rule**: a decrypt failure NEVER silently substitutes a default or falls back to env. It throws `IntegrationConfigDecryptError`, which the caller (typically a route handler entry point) logs and re-raises. The app should exit if this happens during boot — the alternative is silently degraded auth, which is worse.
 
