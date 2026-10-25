@@ -1,17 +1,28 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { desc, eq, max } from "drizzle-orm";
 import { getDb } from "../../../../lib/db";
-import { cronHeartbeat } from "../../../../lib/db/schema";
+import {
+  cronHeartbeat,
+  newsCandidate,
+  newsRadarTick,
+} from "../../../../lib/db/schema";
+import { readHeartbeat } from "../../../../lib/cron-heartbeat";
 
-// GET /api/health/cron
+// GET /api/health/cron[?id=<cron id>]
 //
-// Public health-check for the scheduled-job cron worker. Returns the
-// last_run_at + counts from cron_heartbeat. UptimeRobot (or any other
-// monitor) hits this every 5 min and alerts when last_run_at goes
-// stale (>10 min). No auth — it's a read-only status endpoint and
-// leaks nothing sensitive (just timestamps + counts).
+// Public health-check for the scheduled-job cron workers. UptimeRobot (or any
+// other monitor) hits this every 5 min and alerts on a non-2xx. No auth: it's
+// a read-only status endpoint and leaks nothing sensitive (timestamps, counts
+// and an error class name).
 //
-// Response shape:
+// Ids are an allowlist, never interpolated into a query:
+//   (none) or singleton  the booking cron's heartbeat, shape below, UNCHANGED
+//   news-radar           heartbeat age, a feed frozen behind green ticks, and
+//                        the last tick's outcome (see newsRadarHealth)
+// Any other id is a 400. posts-publisher and social-publisher heartbeats are
+// written but not monitored here yet.
+//
+// Default (singleton) response shape:
 //   { ok: true,
 //     lastRunAt: ISO string | null,
 //     lastRunJobsProcessed: number,
@@ -26,8 +37,26 @@ export const runtime = "nodejs";
 
 const STALE_AFTER_MINUTES = 10;
 
-export async function GET() {
+const ALLOWED_IDS = ["singleton", "news-radar"];
+
+// A tick runs every 2 hours; one missed tick is tolerated, two are not.
+const NEWS_RADAR_STALE_AFTER_MINUTES = 300;
+// HuggingNews publishes about 21 items a day. Twelve hours of silence behind
+// green ticks means the feed (or our read of it) is broken.
+const NEWS_RADAR_FEED_FROZEN_AFTER_HOURS = 12;
+
+export async function GET(request: Request) {
+  const id = new URL(request.url).searchParams.get("id") ?? "singleton";
+  if (!ALLOWED_IDS.includes(id)) {
+    return NextResponse.json(
+      { ok: false, error: "Unknown cron id." },
+      { status: 400 },
+    );
+  }
+
   try {
+    if (id === "news-radar") return await newsRadarHealth();
+
     const db = getDb();
     const rows = await db
       .select({
@@ -82,4 +111,86 @@ export async function GET() {
       { status: 500 },
     );
   }
+}
+
+async function newsRadarHealth() {
+  const db = getDb();
+  const heartbeat = await readHeartbeat("news-radar", db);
+
+  if (!heartbeat) {
+    return NextResponse.json(
+      {
+        ok: true,
+        id: "news-radar",
+        lastRunAt: null,
+        lastTick: null,
+        newestSourceAt: null,
+        lastNewItemAt: null,
+        stale: true,
+        feedFrozen: false,
+        staleAfterMinutes: NEWS_RADAR_STALE_AFTER_MINUTES,
+        feedFrozenAfterHours: NEWS_RADAR_FEED_FROZEN_AFTER_HOURS,
+      },
+      { status: 503 },
+    );
+  }
+
+  const [tickRows, sourceRows] = await Promise.all([
+    db
+      .select({
+        slotAt: newsRadarTick.slotAt,
+        outcome: newsRadarTick.outcome,
+        fetched: newsRadarTick.fetched,
+        newCount: newsRadarTick.newCount,
+        scored: newsRadarTick.scored,
+        unscored: newsRadarTick.unscored,
+        failedCount: newsRadarTick.failedCount,
+        errorClass: newsRadarTick.errorClass,
+        rubricVersion: newsRadarTick.rubricVersion,
+      })
+      .from(newsRadarTick)
+      .orderBy(desc(newsRadarTick.slotAt))
+      .limit(1),
+    db
+      .select({
+        newestSourceAt: max(newsCandidate.publishedAt),
+        lastNewItemAt: max(newsCandidate.firstSeenAt),
+      })
+      .from(newsCandidate),
+  ]);
+
+  const lastTick = tickRows[0] ?? null;
+  const newestSourceAt = sourceRows[0]?.newestSourceAt ?? null;
+  const lastNewItemAt = sourceRows[0]?.lastNewItemAt ?? null;
+  const now = Date.now();
+
+  const stale =
+    now - heartbeat.lastRunAt.getTime() >
+    NEWS_RADAR_STALE_AFTER_MINUTES * 60_000;
+  // A deliberately disabled radar is alive with nothing to read; do not alert.
+  const feedFrozen =
+    lastTick?.outcome !== "disabled" &&
+    (!newestSourceAt ||
+      now - newestSourceAt.getTime() >
+        NEWS_RADAR_FEED_FROZEN_AFTER_HOURS * 3_600_000);
+  const healthy = !stale && !feedFrozen && lastTick?.outcome !== "failed";
+
+  return NextResponse.json(
+    {
+      ok: true,
+      id: "news-radar",
+      lastRunAt: heartbeat.lastRunAt.toISOString(),
+      lastTick: lastTick && {
+        ...lastTick,
+        slotAt: lastTick.slotAt.toISOString(),
+      },
+      newestSourceAt: newestSourceAt?.toISOString() ?? null,
+      lastNewItemAt: lastNewItemAt?.toISOString() ?? null,
+      stale,
+      feedFrozen,
+      staleAfterMinutes: NEWS_RADAR_STALE_AFTER_MINUTES,
+      feedFrozenAfterHours: NEWS_RADAR_FEED_FROZEN_AFTER_HOURS,
+    },
+    { status: healthy ? 200 : 503 },
+  );
 }

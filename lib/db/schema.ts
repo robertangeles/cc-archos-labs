@@ -13,6 +13,10 @@ import {
   unique,
   uniqueIndex,
   varchar,
+  bigint,
+  doublePrecision,
+  check,
+  foreignKey,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
@@ -4130,3 +4134,234 @@ export const contentPlanItem = pgTable(
 
 export type ContentPlanItem = typeof contentPlanItem.$inferSelect;
 export type NewContentPlanItem = typeof contentPlanItem.$inferInsert;
+
+// ============================================================================
+// News radar (Release 1): feed items, Jev scores, Rob's labels, rubric
+// versions, tick log. Migration 0042. Plan: ceo-plans/2026-10-25-blog-pipeline-
+// rebuild-plan.md (ENG-D3, D9 to D12).
+//
+// The shortlist is NEVER stored: it is derived at read time from an item's own
+// scores and its cohort's frozen cut-offs (lib/news-radar/decide.ts). A cohort
+// is the rubric version of an item's EARLIEST score row, ties to the lowest
+// version (cohortOf); an item's rows for one version share one created_at.
+//
+// Deliberate deviations from the naming rules, both for the gate report's sake:
+//   - rubric_version is an FK to news_radar_rubric(version), a UNIQUE identity
+//     column, not to its uuid id: an integer version reads in reports and CLIs.
+//   - append-only tables still carry updated_at (repo rule), never written
+//     after insert.
+// FKs to candidates are RESTRICT, not CASCADE: labels are the evaluation ground
+// truth and scores are the gate report's evidence, so a stray candidate DELETE
+// must fail loudly instead of wiping them. Release 1 has no retention path.
+// ============================================================================
+
+// One row per feed item. Work state lives here (machine side); Rob's decision
+// lives in news_candidate_label, which the cron never writes.
+export const newsCandidate = pgTable(
+  "news_candidate",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // The item's own page on the feed host. The dedupe key.
+    sourceUrl: text("source_url").notNull().unique(),
+    title: text("title").notNull(),
+    summary: text("summary").notNull().default(""),
+    category: text("category"),
+    publishedAt: timestamp("published_at", { withTimezone: true }).notNull(),
+    firstSeenAt: timestamp("first_seen_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    // new | scoring | scored | unscored | failed. unscored = a try failed and
+    // will be retried; failed = retry limit reached (terminal).
+    status: text("status").notNull().default("new"),
+    // Random uuid minted per tick run (NOT the slot or tick row id): a retried
+    // or overlapping run of the same slot must never share a token with the
+    // run it replaces, or the stale-commit guard stops working.
+    claimedBy: uuid("claimed_by"),
+    claimedUntil: timestamp("claimed_until", { withTimezone: true }),
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    check(
+      "news_candidate_status_check",
+      sql`${table.status} IN ('new', 'scoring', 'scored', 'unscored', 'failed')`,
+    ),
+    // A claim exists exactly while the row is 'scoring': a lost claim cannot hide.
+    check(
+      "news_candidate_claim_check",
+      sql`(${table.status} = 'scoring') = (${table.claimedBy} IS NOT NULL AND ${table.claimedUntil} IS NOT NULL)`,
+    ),
+    // Work selection each tick: "oldest items still needing a score, including
+    // expired claims". Partial: scored and failed rows are the vast majority.
+    index("news_candidate_work_idx")
+      .on(table.firstSeenAt)
+      .where(sql`${table.status} IN ('new', 'unscored', 'scoring')`),
+    // The Radar page list and the gate report: "items newest first".
+    index("news_candidate_published_at_idx").on(
+      table.publishedAt.desc(),
+      table.id,
+    ),
+  ],
+);
+
+// Append-only rubric versions; the latest row is the active one. config holds
+// the model pin, the Jev question definitions and the cut-offs T, C, M, N
+// (lib/news-radar/rubric.ts). JSONB exception per CLAUDE.md: a frozen,
+// versioned audit payload validated by Zod, never queried by field.
+export const newsRadarRubric = pgTable("news_radar_rubric", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  version: integer("version").notNull().unique().generatedAlwaysAsIdentity(),
+  config: jsonb("config").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// One row per (item, rubric version, question, model). All of an item's rows
+// for one version are written in one statement, conditional on the claim.
+export const newsCandidateScore = pgTable(
+  "news_candidate_score",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    candidateId: uuid("candidate_id")
+      .notNull()
+      .references(() => newsCandidate.id, { onDelete: "restrict" }),
+    rubricVersion: integer("rubric_version").notNull(),
+    // audience_fit, novelty, ...
+    questionKey: text("question_key").notNull(),
+    // The scorer that produced it: jev-1.14.0, or the embedding model for novelty.
+    model: text("model").notNull(),
+    // audience_fit: position on the criteria scale. novelty: cosine distance
+    // from the nearest published post (higher = more novel).
+    score: doublePrecision("score").notNull(),
+    confidence: doublePrecision("confidence"),
+    // Audit only: the per-level probabilities Jev returned. JSONB exception
+    // per CLAUDE.md (audit payload, not a relational column).
+    probabilities: jsonb("probabilities"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      name: "news_candidate_score_rubric_fk",
+      columns: [table.rubricVersion],
+      foreignColumns: [newsRadarRubric.version],
+    }).onDelete("restrict"),
+    // Duplicate-score guard, "scores of one item" (also the candidate_id FK
+    // index: candidate_id leads), and the cohort lookup (min version per item).
+    unique("news_candidate_score_unique").on(
+      table.candidateId,
+      table.rubricVersion,
+      table.questionKey,
+      table.model,
+    ),
+    // The rubric_version FK index and the page/gate query "scores of this
+    // cohort for this question".
+    index("news_candidate_score_version_question_idx").on(
+      table.rubricVersion,
+      table.questionKey,
+    ),
+  ],
+);
+
+// Append-only Keep/Skip history written only by the admin API. The latest label
+// of an item is the row with the highest sequence; counted once, latest wins.
+export const newsCandidateLabel = pgTable(
+  "news_candidate_label",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Strictly increasing order of labels (created_at can tie, and the admin is
+    // one account, so there is no user to order by).
+    sequence: bigint("sequence", { mode: "number" })
+      .notNull()
+      .unique()
+      .generatedAlwaysAsIdentity(),
+    candidateId: uuid("candidate_id")
+      .notNull()
+      .references(() => newsCandidate.id, { onDelete: "restrict" }),
+    // keep | skip | clear. Keep means exactly "I would personally write about
+    // this". clear un-labels the item (design DES-D6); the gate counts it as unlabelled.
+    decision: text("decision").notNull(),
+    // Client-generated idempotency key: a repeated request returns the stored
+    // result instead of writing a second row.
+    requestId: uuid("request_id").unique(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    check(
+      "news_candidate_label_decision_check",
+      sql`${table.decision} IN ('keep', 'skip', 'clear')`,
+    ),
+    // The candidate_id FK index and "latest label per item" (page and gate).
+    index("news_candidate_label_candidate_sequence_idx").on(
+      table.candidateId,
+      table.sequence.desc(),
+    ),
+  ],
+);
+
+// One row per FINISHED tick. A crashed tick writes none, which is exactly how a
+// missed slot shows up: a slot counts as run only with an ok or partial row.
+export const newsRadarTick = pgTable(
+  "news_radar_tick",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // The scheduled 2-hour slot in UTC. Unique: one row per slot; a retry of the
+    // same slot may only replace a failed or disabled row (lib/news-radar/radar.ts).
+    slotAt: timestamp("slot_at", { withTimezone: true }).notNull().unique(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }).notNull(),
+    // ok | partial | failed | disabled
+    outcome: text("outcome").notNull(),
+    fetched: integer("fetched").notNull().default(0),
+    newCount: integer("new_count").notNull().default(0),
+    scored: integer("scored").notNull().default(0),
+    unscored: integer("unscored").notNull().default(0),
+    failedCount: integer("failed_count").notNull().default(0),
+    errorClass: text("error_class"),
+    rubricVersion: integer("rubric_version").references(
+      () => newsRadarRubric.version,
+      { onDelete: "restrict" },
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    check(
+      "news_radar_tick_outcome_check",
+      sql`${table.outcome} IN ('ok', 'partial', 'failed', 'disabled')`,
+    ),
+    // The rubric_version FK index: "ticks that ran under this version".
+    index("news_radar_tick_rubric_version_idx").on(table.rubricVersion),
+  ],
+);
+
+export type NewsCandidate = typeof newsCandidate.$inferSelect;
+export type NewNewsCandidate = typeof newsCandidate.$inferInsert;
+export type NewsRadarRubric = typeof newsRadarRubric.$inferSelect;
+export type NewsCandidateScore = typeof newsCandidateScore.$inferSelect;
+export type NewNewsCandidateScore = typeof newsCandidateScore.$inferInsert;
+export type NewsCandidateLabel = typeof newsCandidateLabel.$inferSelect;
+export type NewsRadarTick = typeof newsRadarTick.$inferSelect;

@@ -2936,3 +2936,9 @@ Touched: `backlog/backlog.md`, `log.md`.
 Rob saved the Jev key and the page still showed it blank (other keys showed masked). Root cause: the integration config cache was a module-level variable, so the admin page and the PATCH route kept separate copies in one process and the save cleared only the route's. Moved it to `globalThis` in `lib/integration-config.ts`, added `lib/integration-config-cache.test.ts` (fails on the old code), and confirmed the live 3007 page now shows the key masked and the card Configured without a restart.
 
 Touched: [[2026-10-26-process-caches-live-on-globalthis]] (new), [[integration-config]], `index.md`, `log.md`.
+
+## 2026-10-26 (UTC) — News radar Release 1, PR1: the engine (dormant)
+
+Rob said "ship and continue the rest" after the Jev key PR, read as the go-ahead for the radar's database work on DEV only; PROD is untouched and still needs his explicit go. Built the engine: migration 0042 (five tables, applied to DEV only), `lib/news-radar/{feed,curator,rubric,decide,radar}.ts`, `lib/cron-heartbeat.ts`, `POST /api/cron/news-radar`, `/api/health/cron?id=news-radar` (default id unchanged, regression-tested), `scripts/radar-rubric-set.mjs`, a pglite helper that replays the real migration. The score write is one statement gated on the claim owner; a real run on DEV (live feed, real Jev, real embeddings) scored 33 items and exposed a postgres-js Date-binding bug the pglite tests could not, now fixed. Advisor reviewed the schema (RESTRICT instead of CASCADE, random per-run claim token, CHECK constraints, FK index on the tick table). `clear` is an allowed label value now (DES-D6) so PR2 needs no second migration.
+
+Touched: [[news-radar]] (new), [[news-radar-runbook]] (new), `backlog/backlog.md` (items 53 to 55), `index.md`, `log.md`, `state.md`.
