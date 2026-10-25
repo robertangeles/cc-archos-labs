@@ -429,6 +429,87 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+// CPU, not memory: the 1 MB body cap bounds the input, not the work a regex does
+// on it. Every unclosed opener below makes a naive lazy match rescan to the end
+// of the text, so n openers cost n x size. The sizes are small enough to finish
+// on the old code (seconds) and large enough that the linear scan is clearly
+// faster (milliseconds). Each is also the shape of a 1 MB attack.
+describe("parseAtom: input built to make a parser quadratic", () => {
+  const FEED_HEAD = '<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom">';
+  const wrap = (inner: string) => FEED_HEAD + inner + "</feed>";
+  const BUDGET_MS = 250;
+
+  function timed(xml: string) {
+    const t0 = performance.now();
+    let error: unknown = null;
+    let result: ReturnType<typeof parseAtom> | null = null;
+    try {
+      result = parseAtom(xml);
+    } catch (e) {
+      error = e;
+    }
+    return { ms: performance.now() - t0, error, result };
+  }
+
+  it("many <entry> openers and no closing tag", () => {
+    const { ms, error } = timed(wrap("<entry>".repeat(40_000)));
+    expect(error).toBeInstanceOf(FeedParseError);
+    expect(ms).toBeLessThan(BUDGET_MS);
+  });
+
+  it("many unterminated comments", () => {
+    const { ms, error } = timed(wrap("<!--".repeat(60_000)));
+    expect(error).toBeInstanceOf(FeedParseError);
+    expect(ms).toBeLessThan(BUDGET_MS);
+  });
+
+  it("many unterminated CDATA sections", () => {
+    const { ms, error } = timed(wrap("<![CDATA[".repeat(30_000)));
+    expect(error).toBeInstanceOf(FeedParseError);
+    expect(ms).toBeLessThan(BUDGET_MS);
+  });
+
+  it("many unclosed <title> openers inside one entry", () => {
+    const { ms, result } = timed(wrap("<entry>" + "<title>".repeat(50_000) + "</entry>"));
+    expect(result).toEqual({ entries: [], skipped: 1 });
+    expect(ms).toBeLessThan(BUDGET_MS);
+  });
+
+  it("many unclosed <link openers inside one entry", () => {
+    const { ms, result } = timed(wrap("<entry><title>T</title>" + "<link ".repeat(50_000) + "</entry>"));
+    expect(result).toEqual({ entries: [], skipped: 1 });
+    expect(ms).toBeLessThan(BUDGET_MS);
+  });
+
+  it("the same shapes at the full 1 MB body cap stay fast", () => {
+    const MB = 1024 * 1024;
+    for (const [inner, throws] of [
+      ["<entry>".repeat(Math.floor(MB / 7)), true],
+      ["<!--".repeat(Math.floor(MB / 4)), true],
+      ["<entry><title>T</title>" + "<link ".repeat(Math.floor(MB / 6)) + "</entry>", false],
+    ] as const) {
+      const { ms, error } = timed(wrap(inner));
+      expect(error instanceof FeedParseError).toBe(throws);
+      expect(ms).toBeLessThan(1000);
+    }
+  });
+
+  it("keeps at most 200 entries and counts the rest as skipped", () => {
+    const many = Array.from({ length: 250 }, (_, i) =>
+      entry({ link: `https://huggingnews.com/ai/item-${i}` }),
+    ).join("");
+    const { entries, skipped } = parseAtom(wrap(many));
+    expect(entries).toHaveLength(200);
+    expect(skipped).toBe(50);
+  });
+
+  it("many closing </feed> tags followed by whitespace", () => {
+    const { ms, error } = timed(wrap("</feed> ".repeat(30_000)) + "x");
+    expect(error).toBeInstanceOf(FeedParseError);
+    expect(ms).toBeLessThan(BUDGET_MS);
+  });
+});
+
 describe("fetchFeed: happy path", () => {
   it("fetches FEED_URL with manual redirects, a signal and a descriptive User-Agent, then parses", async () => {
     const fetchImpl = fetchReturning(() => xmlResponse(GOOD_XML));

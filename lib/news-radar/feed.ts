@@ -32,6 +32,9 @@ const TITLE_MAX = 500;
 const SUMMARY_MAX = 4000;
 const CATEGORY_MAX = 100;
 const URL_MAX = 2048;
+// The real feed carries about 40. A cap keeps one bad feed from becoming one
+// giant INSERT; the rest are counted as skipped.
+const MAX_ENTRIES = 200;
 
 export interface FeedEntry {
   sourceUrl: string;
@@ -102,10 +105,40 @@ function clean(raw: string, max: number, multiline = false): string {
   return s.trim().slice(0, max).replace(/[\uD800-\uDBFF]$/, "").trim();
 }
 
-// The first <tag>...</tag> in `block`, undecoded. Never matches <tag/>.
+// Everything below scans with indexOf, never a lazy regex over the whole text: a
+// lazy match rescans to the end for every unclosed opener, so n openers in a 1 MB
+// body cost n x 1 MB. Each scan here moves forward, so the total work is linear.
+
+// Index of the next `<tag` that really is that tag (followed by whitespace, `/` or
+// `>`, so `<titlex>` does not count), or -1.
+function findOpen(s: string, tag: string, from: number): number {
+  const open = `<${tag}`;
+  for (let i = s.indexOf(open, from); i !== -1; i = s.indexOf(open, i + 1)) {
+    if (/[\s/>]/.test(s.charAt(i + open.length))) return i;
+  }
+  return -1;
+}
+
+// The text of the first <tag>...</tag> in `block`, undecoded. A self-closing tag
+// or one that never closes has no text. If the first one never closes, no later
+// one can either (its closer would be the same), so one scan is enough.
 function textOf(block: string, tag: string): string | null {
-  const m = new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)</${tag}>`).exec(block);
-  return m ? m[1] : null;
+  const i = findOpen(block, tag, 0);
+  if (i === -1) return null;
+  const gt = block.indexOf(">", i);
+  if (gt === -1 || block.charAt(gt - 1) === "/") return null;
+  const close = block.indexOf(`</${tag}>`, gt + 1);
+  return close === -1 ? null : block.slice(gt + 1, close);
+}
+
+// Every `<tag ...>` start tag in `block`, in order.
+function* startTags(block: string, tag: string): Generator<string> {
+  for (let i = findOpen(block, tag, 0); i !== -1; ) {
+    const gt = block.indexOf(">", i);
+    if (gt === -1) return;
+    yield block.slice(i, gt + 1);
+    i = findOpen(block, tag, gt + 1);
+  }
 }
 
 function attr(tag: string, name: string): string | null {
@@ -152,7 +185,7 @@ function parseEntry(block: string): FeedEntry | null {
   // The alternate link (a link with no rel means alternate in Atom). Only if
   // that is not a usable https URL, the entry <id>, and only on the feed host.
   let href: string | null = null;
-  for (const tag of block.match(/<link(?=[\s/>])[^>]*>/g) ?? []) {
+  for (const tag of startTags(block, "link")) {
     const rel = attr(tag, "rel");
     if (rel === null || rel === "alternate") {
       href = attr(tag, "href");
@@ -166,7 +199,7 @@ function parseEntry(block: string): FeedEntry | null {
     parseDate(textOf(block, "published")) ?? parseDate(textOf(block, "updated"));
   if (!title || !sourceUrl || !publishedAt) return null;
 
-  const categoryTag = /<category(?=[\s/>])[^>]*>/.exec(block)?.[0];
+  const categoryTag = startTags(block, "category").next().value;
   const category = categoryTag
     ? clean(attr(categoryTag, "term") ?? "", CATEGORY_MAX) || null
     : null;
@@ -178,30 +211,66 @@ function parseEntry(block: string): FeedEntry | null {
   return { sourceUrl, title, summary, category, publishedAt };
 }
 
+// One pass over comments and CDATA so neither can hide or fake an element:
+// comments vanish, CDATA becomes the same text with <, > and & escaped, which
+// the entity decoder turns back into literal characters (never decoded twice).
+// An unterminated one is malformed. The next opener of each kind is remembered
+// and only searched for again once the scan has moved past it, so this is linear.
+function flatten(xml: string): string {
+  let out = "";
+  let pos = 0;
+  let nextComment = xml.indexOf("<!--");
+  let nextCdata = xml.indexOf("<![CDATA[");
+  while (nextComment !== -1 || nextCdata !== -1) {
+    const isComment = nextCdata === -1 || (nextComment !== -1 && nextComment < nextCdata);
+    const start = isComment ? nextComment : nextCdata;
+    const openLen = isComment ? 4 : 9;
+    const end = xml.indexOf(isComment ? "-->" : "]]>", start + openLen);
+    if (end === -1) {
+      throw new FeedParseError("feed has an unterminated comment or CDATA section");
+    }
+    out += xml.slice(pos, start);
+    if (!isComment) {
+      out += xml
+        .slice(start + openLen, end)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+    pos = end + 3;
+    if (nextComment !== -1 && nextComment < pos) nextComment = xml.indexOf("<!--", pos);
+    if (nextCdata !== -1 && nextCdata < pos) nextCdata = xml.indexOf("<![CDATA[", pos);
+  }
+  return out + xml.slice(pos);
+}
+
 export function parseAtom(xml: string): ParsedFeed {
   // Before anything else, and on the raw text: a DTD is never legitimate here.
   if (/<!(?:DOCTYPE|ENTITY)/i.test(xml)) {
     throw new FeedParseError("feed contains a DOCTYPE or ENTITY declaration");
   }
 
-  // One pass over comments and CDATA so neither can hide or fake an element:
-  // comments vanish, CDATA becomes the same text with <, > and & escaped, which
-  // the entity decoder turns back into literal characters (never decoded twice).
-  const doc = xml.replace(
-    /<!--[\s\S]*?-->|<!\[CDATA\[([\s\S]*?)\]\]>/g,
-    (_m, cdata: string | undefined) =>
-      (cdata ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"),
-  );
-  if (!/^\uFEFF?\s*(?:<\?xml[^>]*\?>\s*)?<feed[\s>]/.test(doc) || !/<\/feed>\s*$/.test(doc)) {
+  const doc = flatten(xml);
+  if (!/^\uFEFF?\s*(?:<\?xml[^>]*\?>\s*)?<feed[\s>]/.test(doc) || !doc.trimEnd().endsWith("</feed>")) {
     throw new FeedParseError("not a complete Atom feed");
   }
 
   const entries: FeedEntry[] = [];
   let skipped = 0;
-  for (const m of doc.matchAll(/<entry\s*\/>|<entry(?:\s[^>]*)?>([\s\S]*?)<\/entry>/g)) {
-    const entry = parseEntry(m[1] ?? "");
+  for (let i = findOpen(doc, "entry", 0); i !== -1; ) {
+    const gt = doc.indexOf(">", i);
+    if (gt === -1) throw new FeedParseError("not a complete Atom feed");
+    let next = gt + 1;
+    let entry: FeedEntry | null = null;
+    if (doc.charAt(gt - 1) !== "/") {
+      const close = doc.indexOf("</entry>", gt + 1);
+      if (close === -1) throw new FeedParseError("feed has an entry that never closes");
+      if (entries.length < MAX_ENTRIES) entry = parseEntry(doc.slice(gt + 1, close));
+      next = close + "</entry>".length;
+    }
     if (entry) entries.push(entry);
     else skipped++;
+    i = findOpen(doc, "entry", next);
   }
   return { entries, skipped };
 }
