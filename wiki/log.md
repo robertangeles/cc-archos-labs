@@ -2954,3 +2954,9 @@ Touched: [[news-radar]], [[news-radar-runbook]], [[2026-10-26-news-radar-design-
 Read the live Render setup (workspace "Archos Labs", the existing cron jobs, deploy of PR #254 live) and wrote the concrete cron recipe into the runbook (copy `process-scheduled-posts`, `curl -fsS`, `0 */2 * * *`) and the deployment page (planned `news-radar` row, not created). Lesson written for the postgres-js Date-binding bug that only a real DEV run found. No code changed.
 
 Touched: [[news-radar-runbook]], [[deployment-architecture]], [[2026-10-26-pglite-accepts-what-postgres-js-rejects]] (new), `index.md`, `log.md`.
+
+## 2026-10-26 (UTC) — /blog crashed on DEV: one stale row
+
+`/blog` threw a `next/image` hostname error on the local server. Root cause: one DEV row stored `http://localhost:3007/images/blog-fallback.webp`, written by the removed blog agent's fallback attacher. DEV is a snapshot from 2026-08-10 that never got the 2026-10-24 purge, and the post is on the removed-post redirect list. Archived that one DEV row the way the purge did; no code change. PROD checked from outside (all 34 index pages use R2 URLs only); the PROD database was not read.
+
+Touched: [[2026-10-26-stored-image-url-must-not-use-the-site-origin]] (new), `index.md`, `log.md`.
