@@ -28,4 +28,4 @@ DEV row archived the way the purge archived it (`archived_at` and `updated_at` s
 
 ## Rule
 
-A stored image URL is an R2 URL or a root-relative path (`/images/...`), never one built from the site origin. A hostname error from `next/image` on a list page is a data problem first: run `SELECT slug, og_image_path FROM post WHERE status = 'published' AND archived_at IS NULL AND og_image_path !~ '^https://pub-cb13acd53ca84910bf06d95811396aed.r2.dev/blog/'`. Because the throw is dev-only, check PROD by scanning the public index pages for `_next/image?url=` values that are not R2.
+A stored image URL is an R2 URL or a root-relative path (`/images/...`), never one built from the site origin. A hostname error from `next/image` on a list page is a data problem first: run `SELECT slug, og_image_path FROM post WHERE status = 'published' AND archived_at IS NULL AND og_image_path !~ '^https://pub-cb13acd53ca84910bf06d95811396aed.r2.dev/blog/' AND og_image_path NOT LIKE '/%'`. Because the throw is dev-only, check PROD by scanning the public index pages for `_next/image?url=` values that are not R2.
