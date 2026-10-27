@@ -2,7 +2,7 @@
 title: Wiki Index
 category: synthesis
 created: 2026-05-07
-updated: 2026-07-19
+updated: 2026-10-27
 related: [[state]], [[scheduled-social-posts]], [[backlog]], [[shipped]], [[book-a-call-architecture]], [[booking-prompts-in-db]], [[claude-eval-suites]], [[lead-session-and-owner-only-reports]], [[magic-link-sign-in]], [[transactional-email-rendering]], [[integration-config]], [[design-system]], [[2026-05-20-wiki-karpathy-ops]], [[2026-05-20-posts-admin-phase-d-backend]], [[2026-05-20-posts-admin-phase-d-ui]], [[2026-05-21-sitemap-aieo-fixes]], [[2026-05-21-indexnow]], [[2026-06-05-seo-crawl-budget-pagination-fix]]
 ---
 
