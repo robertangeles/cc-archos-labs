@@ -2,7 +2,7 @@
 title: Wiki Index
 category: synthesis
 created: 2026-05-07
-updated: 2026-07-19
+updated: 2026-10-27
 related: [[state]], [[scheduled-social-posts]], [[backlog]], [[shipped]], [[book-a-call-architecture]], [[booking-prompts-in-db]], [[claude-eval-suites]], [[lead-session-and-owner-only-reports]], [[magic-link-sign-in]], [[transactional-email-rendering]], [[integration-config]], [[design-system]], [[2026-05-20-wiki-karpathy-ops]], [[2026-05-20-posts-admin-phase-d-backend]], [[2026-05-20-posts-admin-phase-d-ui]], [[2026-05-21-sitemap-aieo-fixes]], [[2026-05-21-indexnow]], [[2026-06-05-seo-crawl-budget-pagination-fix]]
 ---
 
@@ -95,6 +95,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 - [WordPress posts: named-person stories rewritten as hypotheticals](decisions/2026-10-24-wordpress-named-stories-to-hypotheticals.md) — 24 migrated posts told stories nobody could vouch for under an AI byline; each is now an explicit "Picture a…" hypothetical. A second batch converted 11 "I worked with" client stories; the "Real Example" sections about unnamed companies are still open.
 - [Blog-wide sweep for fabricated experience](decisions/2026-10-24-blog-experience-sweep.md) — 231 edits across 91 live posts turned remaining first-person claims and unnamed "Real Example" cases into hypotheticals. Lists the posts that need a human decision (invented-looking named figures, a duplicated body).
 - [Watermark Remover — CTA removed entirely](decisions/2026-08-23-watermark-remover-cta-removed.md) — the tool's only designed lead-gen mechanism (a `/consulting` CTA, per Premise 6) was called "useless" on live review and explicitly ruled "wrong to have it at all" — a privacy tool selling something undermines its own trust pitch. Removed (copy, link, analytics event, test). Consequence: the tool now has zero conversion path back to consulting — open question for later.
+- [News radar rubric approved: the Behind the AI Headline method](decisions/2026-10-27-news-radar-rubric-v2-approved.md) — Rob approved the wording and cut-offs (relevance 2, confidence 0.5, novelty 0.3, three a day) on 2026-10-27. Picks stories whose headline rests on a checkable claim; about 4 eligible a day, so the gate takes about 12 days. DEV version 2, PROD none yet.
 
 ## synthesis
 - [Open follow-ups (dated checkpoints)](synthesis/open-followups.md) — forward-looking "check by date X" reminders. Read at session start alongside this index. Resolve + prune entries as they're checked.
@@ -170,6 +171,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 - [A saved key showed blank: page and route kept separate caches](lessons-learned/2026-10-26-process-caches-live-on-globalthis.md) — Shared server state lives on `globalThis`, not a module-level variable. Compare API output with the rendered page before blaming the data.
 - [pglite passed a query postgres-js rejects](lessons-learned/2026-10-26-pglite-accepts-what-postgres-js-rejects.md) — Raw `sql` parameters need one real run on the real driver; pass dates as ISO text with a cast.
 - [A stored absolute image URL crashed /blog on DEV](lessons-learned/2026-10-26-stored-image-url-must-not-use-the-site-origin.md) — Image URLs are R2 or root-relative, never built from the site origin. `next/image` throws on a bad host in dev only, so scan PROD's public pages.
+- [I drafted the news rubric for the wrong reader](lessons-learned/2026-10-27-write-the-rubric-from-the-owners-own-method.md) — State the premise of an editorial prompt in one line and get it confirmed before a tested draft or paid scoring run; an unapproved plan line is a hypothesis.
 
 ## state
 - [Project state — auto-generated](state.md) — **source of truth for ship state.** Read this before claiming any route, API endpoint, or component does not exist. Regenerated on every commit touching `app/` or `components/` via `scripts/wiki-state.mjs`.

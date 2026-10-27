@@ -2,7 +2,7 @@
 title: Archos Labs HQ — Build Backlog
 category: synthesis
 created: 2026-05-07
-updated: 2026-10-26
+updated: 2026-10-27
 related: [[index]], [[log]], [[state]], [[shipped]], [[model-studio-canvas]], [[2026-05-08-phase2-ceo-review]], [[2026-05-20-translation-layer-public-render]], [[2026-05-20-phase-c-cutover]]
 ---
 
@@ -257,7 +257,7 @@ These came up in the Slice A planning but were deliberately excluded from the ca
 
 54. **▢ News radar follow-ups.** Admin toggle for the `news_radar_enabled` flag (SQL row today); rubric editor in the admin (CLI is the interim path); `/design-review` of the live page with real data; admin contrast debt (DES-D16); move the three live cron writers to `lib/cron-heartbeat.ts`; read the embedding key from the Integrations store (`lib/embeddings.ts` reads the `OPENROUTER_API_KEY` env var today).
 
-55. **▢ News radar activation (Rob's calls).** Explicit PROD database go-ahead, rubric v1 wording and cut-offs T, C, M, N, the PROD Jev key (item 52), UptimeRobot check on `/api/health/cron?id=news-radar`, Render cron job copied from an existing one. Order in [[news-radar-runbook]].
+55. **▢ News radar activation (Rob's calls).** Explicit PROD database go-ahead, the PROD Jev key (item 52). The rubric wording and cut-offs are approved ([[2026-10-27-news-radar-rubric-v2-approved]], on DEV as version 2; PROD still needs its own version after the page is live), UptimeRobot check on `/api/health/cron?id=news-radar`, Render cron job copied from an existing one. Order in [[news-radar-runbook]].
 
 ---
 

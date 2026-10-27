@@ -2,7 +2,7 @@
 title: News radar
 category: entity
 created: 2026-10-26
-updated: 2026-10-26
+updated: 2026-10-27
 related: [[news-radar-runbook]], [[2026-10-26-news-radar-design-amendments-confirmed]], [[2026-10-24-remove-blog-agent-pipeline]], [[integration-config]], [[deployment-architecture]]
 ---
 
@@ -64,4 +64,5 @@ Until the PROD migration is applied the tab shows "Couldn't load the radar." wit
 ## Not built yet
 
 - **Follow-ups**: an admin toggle for the `news_radar_enabled` flag (today it is a `site_setting` row, so "Radar is off" tells Rob to set it); a rubric editor in the admin (the CLI is the interim path); moving the three live cron writers to the shared heartbeat helper; reading the embedding key from the Integrations store (today `lib/embeddings.ts` reads `OPENROUTER_API_KEY` from the environment); the admin contrast debt (DES-D16, existing pages use `text-primary` links at 4.05:1); run /design-review on the live page once it has real data.
-- **Open for Rob**: rubric v1 wording and the cut-offs T, C, M, N (values, before the evaluation cohort); explicit PROD database go-ahead; the PROD Jev key ([[backlog]] item 52). Activation order is in [[news-radar-runbook]].
+- **Rubric**: approved 2026-10-27, picks stories for the Behind the AI Headline method ([[2026-10-27-news-radar-rubric-v2-approved]]); DEV version 2, PROD none yet.
+- **Open for Rob**: explicit PROD database go-ahead; the PROD Jev key ([[backlog]] item 52). Activation order is in [[news-radar-runbook]].

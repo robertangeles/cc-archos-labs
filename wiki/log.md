@@ -2,7 +2,7 @@
 title: Session Log
 category: synthesis
 created: 2026-05-07
-updated: 2026-07-19
+updated: 2026-10-27
 related:
 ---
 
@@ -2960,3 +2960,9 @@ Touched: [[news-radar-runbook]], [[deployment-architecture]], [[2026-10-26-pglit
 `/blog` threw a `next/image` hostname error on the local server. Root cause: one DEV row stored `http://localhost:3007/images/blog-fallback.webp`, written by the removed blog agent's fallback attacher. DEV is a snapshot from 2026-08-10 that never got the 2026-10-24 purge, and the post is on the removed-post redirect list. Archived that one DEV row the way the purge did; no code change. PROD checked from outside (all 34 index pages use R2 URLs only); the PROD database was not read.
 
 Touched: [[2026-10-26-stored-image-url-must-not-use-the-site-origin]] (new), `index.md`, `log.md`.
+
+## 2026-10-27 (UTC) — News radar rubric corrected and approved
+
+Rob rejected my draft rubric question (written for a regulated-industry data/AI leader): the radar should pick stories for his Behind the AI Headline method, going to the primary source and showing what the headline left out. Redrafted, scored the 33 DEV items with the real Jev model (nothing written), and Rob approved the wording and cut-offs (relevance 2, confidence 0.5, novelty 0.3, three a day). Loaded as version 2 on DEV only; PROD is untouched. At about 4 eligible items a day the gate's 50 labelled items takes about 12 days, not 7. The runbook example now carries the approved file. Channel method saved to memory (it was written nowhere).
+
+Touched: [[2026-10-27-news-radar-rubric-v2-approved]] (new), [[2026-10-27-write-the-rubric-from-the-owners-own-method]] (new), [[news-radar-runbook]], [[news-radar]], `backlog/backlog.md` (item 55), `index.md`, `log.md`.
