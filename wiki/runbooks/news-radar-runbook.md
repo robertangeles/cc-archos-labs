@@ -2,7 +2,7 @@
 title: News radar — operational runbook
 category: runbook
 created: 2026-10-26
-updated: 2026-10-26
+updated: 2026-10-27
 related: [[deployment-architecture]], [[integration-config]], [[reset-admin-password]]
 ---
 
@@ -49,27 +49,29 @@ Do these in order. Nothing here is done by merging. Until step 1 the Radar tab o
 The gate (decision D11) needs a **frozen** rubric and cut-offs for the whole window, approved by Rob before day one. Until the Radar page exists:
 
 - **Warm-up version** (throwaway): collect for a few days to prove the feed, the key, claims and monitoring. Excluded from the gate.
-- **Evaluation version**: create it **after** PR2 is live, monitoring is verified and the claim smoke is done. The 7-day window starts with it. Any later change (wording, model, cut-offs) is a new version, a new cohort, and restarts the window.
+- **Evaluation version**: create it **after** PR2 is live, monitoring is verified and the claim smoke is done. The window starts with it: 7 valid days is the minimum, and at about 4 eligible items a day 50 labelled items takes about 12. Any later change (wording, model, cut-offs) is a new version, a new cohort, and restarts the window.
 
-Rubric v1 wording and the cut-offs (T audience fit, C confidence, M novelty distance, N daily cap) are **Rob's to set**; the example below is only the file shape.
+The wording and cut-offs (T audience fit, C confidence, M novelty distance, N daily cap) were **approved by Rob on 2026-10-27**: pick stories for his Behind the AI Headline method. Evidence and caveats are in [[2026-10-27-news-radar-rubric-v2-approved]]. This is the file to pass to `scripts/radar-rubric-set.mjs` (on DEV it is version 2; version 1 is the earlier wrong-audience warm-up):
 
 ```json
 {
   "model": "jev-1.14.0",
   "questions": {
     "audience_fit": {
-      "instructions": "How useful is this news to a senior data and AI leader running a program in a regulated industry (financial services, healthcare, government)?",
+      "instructions": "Would this make a strong 'Behind the AI Headline' breakdown? That means a major AI story (a big lab or company, data centers, AI money, AI jobs, AI safety or AI regulation) whose headline rests on a specific claim, such as a statistic, study, court filing, earnings figure or government data, that can be checked at its primary source, where checking could show what the headline left out: who pays, what it assumes, or where experts disagree.",
       "criteria": [
-        "Irrelevant to that reader",
-        "Of passing interest",
-        "Useful context for that reader",
-        "Directly affects how that reader should run a program"
+        "Not an AI story, or nothing to check (weather, sport, general markets, celebrity)",
+        "AI story with no checkable claim: a product launch, benchmark ranking, personnel move, opinion or rumour",
+        "AI story built on a checkable claim (a number, report, filing or announcement), but small stakes or little distance between the headline and its source",
+        "Major AI story (money, jobs, safety, regulation or a big company) whose headline statistic or claim has a primary source (study, filing, earnings report or government data) that could show what the headline left out"
       ]
     }
   },
-  "cutoffs": { "audienceFit": 2, "confidence": 0.6, "minNoveltyDistance": 0.3, "dailyCap": 3 }
+  "cutoffs": { "audienceFit": 2, "confidence": 0.5, "minNoveltyDistance": 0.3, "dailyCap": 3 }
 }
 ```
+
+The key stays `audience_fit` because `lib/news-radar/rubric.ts` requires it; it now means fit for the channel's method.
 
 `model` must be an exact version (`jev-1.13.0`, `jev-1.14.0`), never an alias. `minNoveltyDistance` is the smallest cosine distance from the nearest published post that still counts as novel (0 identical, 2 opposite).
 
