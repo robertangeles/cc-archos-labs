@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 // ============================================================================
-// Skills, Workflows and Social posts were removed from the Metis workspace.
+// Skills, Workflows, Social posts and Model Studio were removed from the Metis workspace.
 // Registers a fresh user through the real API (same approach as the other specs),
 // then proves: the nav no longer offers them, their pages and APIs are gone, and
 // the one thing that used to live under /api/skills and still matters — the list
@@ -18,6 +18,7 @@ const REMOVED_PAGES = [
   "/account/workflows/new",
   "/account/scheduled-posts",
   "/account/social-accounts",
+  "/workspace/model-studio",
 ];
 
 const REMOVED_GETS = [
@@ -29,6 +30,8 @@ const REMOVED_GETS = [
   "/api/social/linkedin/status",
   "/api/social/bluesky/status",
   "/api/chat/slash-command",
+  "/api/model-studio",
+  "/api/model-studio/flag",
 ];
 
 test("removed features are gone from the workspace, and the model list still works", async ({ page, request }) => {
@@ -48,7 +51,7 @@ test("removed features are gone from the workspace, and the model list still wor
   // Nav: neither the chat sidebar nor the workspace nav links to the removed pages.
   for (const path of ["/account/workspace", "/account/brain"]) {
     await page.goto(path, { waitUntil: "networkidle" });
-    for (const gone of ["/account/skills", "/account/workflows", "/account/scheduled-posts"]) {
+    for (const gone of ["/account/skills", "/account/workflows", "/account/scheduled-posts", "/workspace/model-studio"]) {
       await expect(page.locator(`a[href="${gone}"]`), `${path} still links to ${gone}`).toHaveCount(0);
     }
     await expect(page.locator('a[href="/account/clients"]').first()).toBeVisible();

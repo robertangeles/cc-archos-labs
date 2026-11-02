@@ -2,9 +2,11 @@
 title: Model Studio Canvas
 category: entity
 created: 2026-06-17
-updated: 2026-06-17
-related: [[deployment-architecture]], [[2026-06-16-migration-generated-not-applied]]
+updated: 2026-11-02
+related: [[2026-11-02-remove-model-studio]], [[deployment-architecture]], [[2026-06-16-migration-generated-not-applied]]
 ---
+
+> **REMOVED 2026-11-02.** Model Studio (the list view, the canvas, `/api/model-studio`, the hooks and the five `data_model*` tables) was deleted. Kept as history. See [[2026-11-02-remove-model-studio]]. Everything below describes code that no longer exists.
 
 The visual data-modelling surface of Model Studio: a React Flow canvas where entities are nodes, relationships are edges, and attributes live inside each entity box — migrated from the Spresso repo in gnhf steps 12–29.
 

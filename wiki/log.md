@@ -3039,3 +3039,9 @@ Touched: [[news-draft-pipeline]], [[news-draft-runbook]], `backlog/backlog.md` (
 Rob asked for a proper cleanup of the three features. Before deleting, the news draft pipeline turned out to read all four of its prompts from the `skill` table, with the Skills page as the only editor; Rob chose to remove the feature and keep the table. Removed the pages, APIs, builder, chat `/run`, the chat Publish button, the social cron route, the social OAuth fields in the integrations config and panel, and 14 tables (migration 0044, applied to DEV only). Relocated the shared pieces: `fence.ts`, the model list, `/api/models`, `useEnabledModels`. The seed script now inserts straight into `skill`. New e2e spec proves the removal; brain and attach-file e2e specs still pass. PROD steps (deploy, `pg_dump`, migration, delete the `social-publisher` Render cron) are listed in the decision page and not yet done.
 
 Touched: [[2026-11-02-remove-skills-workflows-social]], [[2026-11-02-check-what-a-live-pipeline-reads-before-deleting-a-feature]], [[news-draft-pipeline]], [[scheduled-social-posts]], [[workflow-run-history]], [[workflow-step-regeneration]], [[deployment-architecture]], `backlog/backlog.md`, `backlog/shipped.md`, `index.md`, `state.md`, `log.md`.
+
+## 2026-11-02 (UTC) — Model Studio removed from the Metis workspace
+
+Rob asked for `/workspace/model-studio` to go too. Readers listed first (none outside the feature; DEV held zero rows and no flag row), then removed the pages, `/api/model-studio`, six hooks, the components, `lib/model-studio`, their tests, `@xyflow/react`, the nav entry and five tables (migration 0045, with the `model_studio` flag row; applied to DEV only). The org test helper stopped applying migrations 0027/0028. The removal e2e spec now covers Model Studio. PROD migration is waiting on Rob's go.
+
+Touched: [[2026-11-02-remove-model-studio]], [[model-studio-canvas]], `backlog/backlog.md`, `index.md`, `state.md`, `log.md`.
