@@ -196,10 +196,10 @@ All five cron jobs use the same Render configuration apart from schedule and end
 | Schedule | per the table above (UTC) |
 | Build Command | `true` |
 | Command | `curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://archoslabs.xyz/api/cron/<endpoint-name>` |
-
-`-f` makes curl exit non-zero on an HTTP 4xx/5xx, so Render marks the run failed. Without it a run whose route answers 404 still counts as a success, which is how the removed social cron went on reporting success while it hit a missing route. Four of the five crons use `-fsS`; `process-scheduled-posts` predates it and is watched through its heartbeat row instead.
 | Auto-Deploy | On Commit |
 | Env vars | `CRON_SECRET` — same value as the web service |
+
+`-f` makes curl exit non-zero on an HTTP 4xx/5xx, so Render marks the run failed. Without it a run whose route answers 404 still counts as a success, which is how the removed social cron went on reporting success while it hit a missing route. Four of the five crons use `-fsS`; `process-scheduled-posts` predates it and is watched through its heartbeat row instead.
 
 **Do NOT use Docker images for cron jobs.** The Git Provider approach runs in a proper shell where `$CRON_SECRET` is expanded correctly. Docker exec form does not expand environment variables.
 
