@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { makeDraftTestDb, type DraftTestDb } from "../../../tests/helpers/draft-test-db";
 import {
   DEFAULT_DRAFT_CONFIG,
@@ -51,10 +51,13 @@ describe("parseDraftConfig", () => {
 
 describe("the flag and the stored config (against a real Postgres engine)", () => {
   let h: DraftTestDb;
-  beforeEach(async () => {
+  beforeAll(async () => {
     h = await makeDraftTestDb();
   });
-  afterEach(async () => {
+  beforeEach(async () => {
+    await h.reset();
+  });
+  afterAll(async () => {
     await h.close();
   });
 

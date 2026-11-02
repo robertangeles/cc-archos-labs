@@ -175,6 +175,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 - [pglite passed a query postgres-js rejects](lessons-learned/2026-10-26-pglite-accepts-what-postgres-js-rejects.md) — Raw `sql` parameters need one real run on the real driver; pass dates as ISO text with a cast.
 - [A stored absolute image URL crashed /blog on DEV](lessons-learned/2026-10-26-stored-image-url-must-not-use-the-site-origin.md) — Image URLs are R2 or root-relative, never built from the site origin. `next/image` throws on a bad host in dev only, so scan PROD's public pages.
 - [I drafted the news rubric for the wrong reader](lessons-learned/2026-10-27-write-the-rubric-from-the-owners-own-method.md) — State the premise of an editorial prompt in one line and get it confirmed before a tested draft or paid scoring run; an unapproved plan line is a hypothesis.
+- [The PR's CI run hit the 10 minute cap because 85 tests each booted their own database](lessons-learned/2026-11-02-ci-ten-minute-cap-and-per-test-database-boots.md) — boot the test database once per file and reset between tests; a cancelled job is not automatically a flake, read the step timings; the main branch already uses 344 to 476 s of the 600 s cap
 - [A real run on five stories found defects that about nine hundred tests did not](lessons-learned/2026-11-02-real-run-found-what-nine-hundred-tests-did-not.md) — run a model pipeline on real inputs and read every stored step; build fixtures from real rows; tell the writer why a gate rejected its output
 
 ## state

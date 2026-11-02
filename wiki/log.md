@@ -2973,3 +2973,9 @@ Rob asked to finish the pipeline while he labels on PROD, fully tested end to en
 
 Touched: [[news-draft-pipeline]] (new), [[news-draft-runbook]] (new), [[2026-11-02-news-draft-pipeline-design]] (new), [[2026-11-02-real-run-found-what-nine-hundred-tests-did-not]] (new), [[news-radar]], [[news-radar-runbook]], `backlog/backlog.md` (item 56), `index.md`, `log.md`.
 
+
+## 2026-11-02 (UTC) — PR #259: CI hit the 10 minute cap; reviewer found one unfenced prompt
+
+CI on the draft pipeline PR cancelled the job at 10 m 16 s, during the build, after lint, typecheck and tests had passed. The Test step took 506 s against 240 s to 319 s on recent green runs. Cause: four draft test files booted a fresh pglite database per test (85 boots); they now boot once per file and reset between tests (54.6 s to 1.9 s locally, full serial suite about 247 s to 195 s). The pr-reviewer approved and found one real gap: `discoverSources` put the feed's headline and summary into the search prompt without the fence the other stages use. Fixed with a test that failed first. Also corrected the reviewer's note that this was a flake; step timings said otherwise.
+
+Touched: [[2026-11-02-ci-ten-minute-cap-and-per-test-database-boots]] (new), [[news-draft-pipeline]], `index.md`, `log.md`.

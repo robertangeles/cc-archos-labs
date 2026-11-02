@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDraftTestDb, type DraftTestDb } from "../../../tests/helpers/draft-test-db";
 import { DEFAULT_DRAFT_CONFIG } from "./config";
 import type { ClaimedJob } from "./jobs";
@@ -13,13 +13,18 @@ import { startDraftIfDue, type StartDeps } from "./start";
 let h: DraftTestDb;
 const NOW = new Date("2026-11-02T01:00:00Z");
 
-beforeEach(async () => {
+beforeAll(async () => {
   h = await makeDraftTestDb();
+});
+beforeEach(async () => {
+  await h.reset();
   vi.spyOn(console, "log").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
-afterEach(async () => {
+afterEach(() => {
   vi.restoreAllMocks();
+});
+afterAll(async () => {
   await h.close();
 });
 
@@ -184,9 +189,14 @@ describe("startDraftIfDue", () => {
       await h.client.exec(`ALTER TABLE news_draft_job RENAME TO news_draft_job_gone`);
       return { outcome: "succeeded", postId: "p" };
     });
-    const r = await startDraftIfDue(deps);
-    expect(r.started).toBe(true);
-    if (r.started) await expect(r.done).resolves.toBeUndefined();
+    try {
+      const r = await startDraftIfDue(deps);
+      expect(r.started).toBe(true);
+      if (r.started) await expect(r.done).resolves.toBeUndefined();
+    } finally {
+      // the database is shared by the whole file: put the table back for the next test
+      await h.client.exec(`ALTER TABLE IF EXISTS news_draft_job_gone RENAME TO news_draft_job`);
+    }
   });
 
   it("reads the config for the cap and the lease", async () => {

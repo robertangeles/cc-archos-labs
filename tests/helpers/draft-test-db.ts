@@ -40,6 +40,12 @@ export interface DraftTestDb {
   addPost: () => Promise<string>;
   /** Upsert a site_setting row. */
   setSetting: (key: string, value: unknown) => Promise<void>;
+  /**
+   * Back to a freshly migrated, empty database. Booting pglite and replaying the
+   * migrations costs about 0.7 s, so a file boots once (beforeAll) and resets
+   * between tests; CI runs the files serially on 2 cores and has a 10 minute cap.
+   */
+  reset: () => Promise<void>;
   close: () => Promise<void>;
 }
 
@@ -82,6 +88,13 @@ export async function makeDraftTestDb(): Promise<DraftTestDb> {
       );
     },
     addPost: async () => (await client.query<{ id: string }>(`INSERT INTO "post" DEFAULT VALUES RETURNING id`)).rows[0].id,
+    reset: async () => {
+      n = 0;
+      // RESTART IDENTITY so a test sees label sequence 1, 2 and rubric version 1 again.
+      await client.exec(`
+        TRUNCATE news_draft_step, news_draft_job, news_candidate_score, news_candidate_label, news_candidate,
+                 news_radar_tick, news_radar_rubric, site_setting, post RESTART IDENTITY CASCADE`);
+    },
     close: async () => {
       await client.close();
     },

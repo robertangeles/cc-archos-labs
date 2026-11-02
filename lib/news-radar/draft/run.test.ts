@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDraftTestDb, type DraftTestDb } from "../../../tests/helpers/draft-test-db";
 import { SourceFetchError } from "../source";
 import type { AssembleDeps } from "./assemble";
@@ -128,13 +128,18 @@ const jobRow = async (id: string) => (await h.client.query<Record<string, unknow
 const stepKeys = async (id: string) =>
   (await h.client.query<{ step_key: string; attempt: number; status: string }>(`SELECT step_key, attempt, status FROM news_draft_step WHERE job_id = $1 ORDER BY created_at, step_key`, [id])).rows;
 
-beforeEach(async () => {
+beforeAll(async () => {
   h = await makeDraftTestDb();
+});
+beforeEach(async () => {
+  await h.reset();
   vi.spyOn(console, "log").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
-afterEach(async () => {
+afterEach(() => {
   vi.restoreAllMocks();
+});
+afterAll(async () => {
   await h.close();
 });
 

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { makeDraftTestDb, type DraftTestDb } from "../../../tests/helpers/draft-test-db";
 import {
   claimNext,
@@ -24,10 +24,13 @@ const NOW = new Date("2026-11-02T01:00:00Z"); // 12:00 in Melbourne
 const MIN = 60_000;
 const LEASE = 20 * MIN;
 
-beforeEach(async () => {
+beforeAll(async () => {
   h = await makeDraftTestDb();
 });
-afterEach(async () => {
+beforeEach(async () => {
+  await h.reset();
+});
+afterAll(async () => {
   await h.close();
 });
 
