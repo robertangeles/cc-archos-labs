@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { createSkillSchema } from "../../skills/validation";
 import { parseJudge } from "./tighten";
 import { buildPrompt } from "./skills";
 import { SEO_TITLE_MAX } from "./essay";
@@ -63,8 +62,6 @@ Word count (MANDATORY): {{word_count}}
 const PG = {
   template: PG_TEMPLATE,
   system: "You are a PhD-level writer. Every claim traces to `{{raw_research}}`.",
-  inputs: [{ key: "thesis", type: "text" as const, label: "Thesis", required: true }],
-  outputs: [{ key: "article_draft", type: "markdown" as const, label: "Result" }],
 };
 
 describe("the seeded skills", () => {
@@ -72,26 +69,6 @@ describe("the seeded skills", () => {
     for (const v of [...placeholders(s.template), ...placeholders(s.system)]) {
       expect(SUPPLIED[slug], `${slug} uses {{${v}}}`).toContain(v);
     }
-  });
-
-  it.each(NEWS_SKILLS.map((s) => [s.slug, s] as const))("%s is a valid skill as the app defines one", (_slug, s) => {
-    const parsed = createSkillSchema.safeParse({
-      name: s.name,
-      description: s.description,
-      category: s.category,
-      promptTemplate: s.template,
-      systemPrompt: s.system ?? undefined,
-      defaultModel: s.defaultModel,
-      maxTokens: s.maxTokens,
-      inputs: s.inputs,
-      outputs: s.outputs,
-    });
-    expect(parsed.error?.issues ?? []).toEqual([]);
-  });
-
-  it.each(NEWS_SKILLS.map((s) => [s.slug, s] as const))("%s declares an input for every variable it uses", (_slug, s) => {
-    const declared = s.inputs.map((i) => i.key);
-    for (const v of placeholders(s.template)) expect(declared).toContain(v);
   });
 
   it("each template builds with exactly what its stage supplies, and nothing is left unfilled", () => {
@@ -179,11 +156,9 @@ describe("deriveFactcheckSkill", () => {
     expect(removed.every((l) => /irrational bias|awkward sentence|Intentional Imperfection|Label inferences|SEO title/.test(l))).toBe(true);
   });
 
-  it("keeps the source's system prompt, inputs and outputs", () => {
+  it("keeps the source's system prompt", () => {
     const d = derived();
     expect(d.system).toBe(PG.system);
-    expect(d.inputs).toEqual(PG.inputs);
-    expect(d.outputs).toEqual(PG.outputs);
     expect(d.slug).toBe(FACTCHECK_SLUG);
   });
 

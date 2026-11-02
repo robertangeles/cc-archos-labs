@@ -2,9 +2,11 @@
 title: Workflow step regeneration (resume-from-step-N)
 category: concept
 created: 2026-07-06
-updated: 2026-07-06
-related: [[workflow-run-history]]
+updated: 2026-11-02
+related: [[2026-11-02-remove-skills-workflows-social]], [[workflow-run-history]]
 ---
+
+> **REMOVED 2026-11-02.** The Workflows feature (builder, executor, runs, tables) was deleted. Kept as history. See [[2026-11-02-remove-skills-workflows-social]]. Everything below describes code that no longer exists.
 
 Re-run a single step of a saved workflow run in place — optionally with feedback, on a different model, and cascading downstream — without re-billing or re-rolling the steps that were already good. Shipped across three PRs (#179 → #181), live in PROD 2026-07-06. No DB migration (reuses the `step_results` JSONB).
 

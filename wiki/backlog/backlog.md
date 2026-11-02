@@ -239,6 +239,8 @@ These came up in the Slice A planning but were deliberately excluded from the ca
 
 ## Phase 4 — Social Accounts follow-ups (added 2026-06-12)
 
+> **Removed 2026-11-02.** Social accounts, publishing and the content calendar were deleted ([[2026-11-02-remove-skills-workflows-social]]); the items below are dead and kept as history.
+
 **Status:** Social Accounts v1 (connect + publish) shipped in PR #151. Twitter/X, LinkedIn, and Bluesky OAuth/auth flows live. Publish dispatcher with rate limiting + dedup live. Social Accounts tab, publish modal with per-platform editing + char counters, admin integrations panel all shipped. Items below are deferred from the CEO review cherry-pick ceremony and eng review.
 
 49. **Content calendar with scheduled publishing** — ✅ **SHIPPED 2026-06-14.** `scheduled_social_post` table, cron publisher with FOR UPDATE SKIP LOCKED (serialized per user+platform to prevent token refresh race), CRUD endpoints (list/create/cancel/reschedule/retry), publish modal extended with schedule toggle + datetime picker + per-platform time suggestions, scheduled posts list page with status badges and inline actions, disconnect warning + auto-cancel, publish confirmation email via Resend, upcoming posts widget, "Scheduled" tab in workspace nav. Operator step: configure Render Cron Job for `/api/cron/process-scheduled-social` every 60s.
@@ -283,10 +285,10 @@ Full admin panel at `/admin/(authed)/*`: users management (roles, active toggle)
 Conversational AI interface: `conversation`, `message`, `conversationShare` tables. CRUD + search at `/api/chat/*`. Image support. Slash commands. Share via token at `/share/chat/[token]`. History at `/account/history`.
 
 ### Skill execution platform — ✅ SHIPPED 2026-06-07–08
-User-defined skills with versioning: `skill`, `skillVersion`, `skillInput`, `skillOutput`, `skillExecution` tables. CRUD + execute at `/api/skills/*`. UI at `/account/skills/*` (list, create, edit).
+~~User-defined skills with versioning: `skill`, `skillVersion`, `skillInput`, `skillOutput`, `skillExecution` tables. CRUD + execute at `/api/skills/*`. UI at `/account/skills/*` (list, create, edit).~~ **Removed 2026-11-02** ([[2026-11-02-remove-skills-workflows-social]]); the `skill` table stays for the news draft pipeline.
 
 ### Workflow builder — ✅ SHIPPED 2026-06-07–08
-Multi-step workflow automation: `workflow`, `workflowStep`, `workflowField`, `workflowExecutionRun`, `workflowExecutionLog`, `workflowExecToken`, `workflowPendingApproval` tables. CRUD + execute + streaming at `/api/workflows/*`. UI at `/account/workflows/*` (list, create, edit). Duplicate support.
+~~Multi-step workflow automation: `workflow`, `workflowStep`, `workflowField`, `workflowExecutionRun`, `workflowExecutionLog`, `workflowExecToken`, `workflowPendingApproval` tables. CRUD + execute + streaming at `/api/workflows/*`. UI at `/account/workflows/*` (list, create, edit). Duplicate support.~~ **Removed 2026-11-02** ([[2026-11-02-remove-skills-workflows-social]]).
 
 ### Rules engine — ✅ SHIPPED
 User-defined automation rules: `userRule` table. CRUD + toggle at `/api/rules/*`.
@@ -295,7 +297,7 @@ User-defined automation rules: `userRule` table. CRUD + toggle at `/api/rules/*`
 Per-user brain provisioning: `userBrain` table. Status + provision + memories at `/api/brain/*`. UI at `/account/brain`.
 
 ### Account workspace — ✅ SHIPPED 2026-06-11
-Unified workspace at `/account/workspace`. Sub-pages: brain, history, personalisation, scheduled posts, social accounts, skills, workflows.
+Unified workspace at `/account/workspace`. Sub-pages: brain, history, personalisation (scheduled posts, social accounts, skills and workflows removed 2026-11-02, [[2026-11-02-remove-skills-workflows-social]]).
 
 ### CDMP Practice Exam — ✅ SHIPPED 2026-06-03
 Free practice exams for CDMP certification at `/tools/cdmp-practice`. `cdmpExamSession`, `cdmpExamAnswer`, `cdmpQuestionFlag` tables. History view at `/tools/cdmp-practice/history/[sessionId]`. API at `/api/cdmp/*` (start, answer, complete, flag, history, results). Admin config at `/admin/(authed)/cdmp`.

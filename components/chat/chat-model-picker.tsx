@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, Check } from "lucide-react";
-import { useEnabledModels } from "@/components/skills/use-enabled-models";
+import { useEnabledModels } from "@/components/chat/use-enabled-models";
 
 interface ChatModelPickerProps {
   value: string;

@@ -82,8 +82,6 @@ describe("integration-config-shared", () => {
         "llmApiKey",
         "googleOauthClientSecret",
         "turnstileSecretKey",
-        "twitterClientSecret",
-        "linkedinClientSecret",
         "cloudinaryApiSecret",
         "r2ChatSecretAccessKey",
         "typesafeApiKey",
@@ -117,13 +115,6 @@ describe("integration-config-shared", () => {
         googleOauthClientSecret: null,
         turnstileSiteKey: null,
         turnstileSecretKey: null,
-        twitterClientId: null,
-        twitterClientSecret: null,
-        twitterEnabled: false,
-        linkedinClientId: null,
-        linkedinClientSecret: null,
-        linkedinEnabled: false,
-        blueskyEnabled: false,
         cloudinaryCloudName: null,
         cloudinaryApiKey: null,
         cloudinaryApiSecret: null,
@@ -176,13 +167,6 @@ describe("integration-config-shared", () => {
         googleOauthClientSecret: null,
         turnstileSiteKey: null,
         turnstileSecretKey: null,
-        twitterClientId: null,
-        twitterClientSecret: null,
-        twitterEnabled: false,
-        linkedinClientId: null,
-        linkedinClientSecret: null,
-        linkedinEnabled: false,
-        blueskyEnabled: false,
         cloudinaryCloudName: null,
         cloudinaryApiKey: null,
         cloudinaryApiSecret: null,
@@ -212,13 +196,6 @@ describe("integration-config-shared", () => {
         googleOauthClientSecret: null,
         turnstileSiteKey: null,
         turnstileSecretKey: null,
-        twitterClientId: null,
-        twitterClientSecret: null,
-        twitterEnabled: false,
-        linkedinClientId: null,
-        linkedinClientSecret: null,
-        linkedinEnabled: false,
-        blueskyEnabled: false,
         cloudinaryCloudName: null,
         cloudinaryApiKey: null,
         cloudinaryApiSecret: null,
@@ -260,6 +237,28 @@ describe("integration-config-shared", () => {
       expect(StoredIntegrationConfigSchema.safeParse(stored).success).toBe(
         false,
       );
+    });
+
+    it("still loads a blob written while the social publishing keys existed, and drops them", () => {
+      // PROD's row was written before the social keys were removed. It must keep
+      // parsing, and a rewrite of the parsed blob (master-key rotation) must not
+      // carry the stale credentials forward.
+      const stored = {
+        ...buildStored(),
+        twitterClientId: "tw-id",
+        twitterClientSecret: "tw-ciphertext",
+        twitterEnabled: true,
+        linkedinClientId: "li-id",
+        linkedinClientSecret: "li-ciphertext",
+        linkedinEnabled: true,
+        blueskyEnabled: true,
+      };
+      const parsed = StoredIntegrationConfigSchema.safeParse(stored);
+      expect(parsed.success).toBe(true);
+      if (parsed.success) {
+        const keys = Object.keys(parsed.data);
+        expect(keys.filter((k) => /twitter|linkedin|bluesky/i.test(k))).toEqual([]);
+      }
     });
   });
 });

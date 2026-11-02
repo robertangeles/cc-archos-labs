@@ -7,16 +7,12 @@ import { ChatMessage } from "@/components/chat/chat-message";
 import { ChatInput, type AttachedFile } from "@/components/chat/chat-input";
 import { ChatEmptyState } from "@/components/chat/chat-empty-state";
 import { ChatSidebar } from "@/components/chat/chat-sidebar";
-import { ChatSkillForm } from "@/components/chat/chat-skill-form";
 import { ChatModelPicker } from "@/components/chat/chat-model-picker";
-import { useEnabledModels } from "@/components/skills/use-enabled-models";
+import { useEnabledModels } from "@/components/chat/use-enabled-models";
 import { CHAT_MODE_CONFIG, type ChatMode } from "@/lib/chat/modes";
 import { ImageGenConfig } from "@/components/chat/image-gen-config";
 import { BrainStatus } from "@/components/workspace/BrainStatus";
 import { BrainOnboardingBanner } from "@/components/workspace/BrainOnboardingBanner";
-import { PublishModal } from "@/components/social/publish-modal";
-import type { SocialPlatform } from "@/lib/social/types";
-import { SOCIAL_PLATFORMS } from "@/lib/social/types";
 import type { AspectRatio, ImageSize } from "@/lib/image-gen/service";
 
 const THINKING_VERBS = [
@@ -63,12 +59,6 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
   const [searchResults, setSearchResults] = useState<
     Array<{ id: string; title: string; snippet?: string }>
   >([]);
-  const [pendingSkill, setPendingSkill] = useState<{
-    skillId: string;
-    skillName: string;
-    inputs: Array<{ key: string; label: string; type: string; isRequired: boolean; defaultValue: string | null }>;
-  } | null>(null);
-  const [isExecutingSkill, setIsExecutingSkill] = useState(false);
   const [modelOverride, setModelOverride] = useState<string | null>(null);
   const [chatMode, setChatMode] = useState<ChatMode>(null);
   const modeConfig = chatMode ? CHAT_MODE_CONFIG[chatMode] : null;
@@ -79,26 +69,11 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
   const [imgAspectRatio, setImgAspectRatio] = useState<AspectRatio>("2:3");
   const [imgSize, setImgSize] = useState<ImageSize>("2K");
   const [brainProvisioned, setBrainProvisioned] = useState(false);
-  const [publishContent, setPublishContent] = useState<string | null>(null);
-  const [connectedPlatforms, setConnectedPlatforms] = useState<SocialPlatform[]>([]);
   const [attachments, setAttachments] = useState<AttachedFile[]>([]);
   // When attaching creates the conversation, its first attachments-load is a
   // pointless empty fetch that races the in-flight upload. Skip exactly that one
   // load (consume-once); genuine conversation switches still reload from server.
   const skipAttachLoadRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    Promise.all(
-      SOCIAL_PLATFORMS.map((p) =>
-        fetch(`/api/social/${p}/status`)
-          .then((r) => (r.ok ? r.json() : null))
-          .then((d) => (d?.connected ? p : null))
-          .catch(() => null),
-      ),
-    ).then((results) => {
-      setConnectedPlatforms(results.filter((p): p is SocialPlatform => p !== null));
-    });
-  }, []);
 
   useEffect(() => {
     fetch("/api/brain/status")
@@ -267,57 +242,8 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
       return;
     }
 
-    if (text.startsWith("/run")) {
-      setInput("");
-      try {
-        const res = await fetch("/api/chat/slash-command", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: "Skill not found" }));
-          sendMessage(err.error ?? "Skill not found. Type /run to see available skills.");
-          return;
-        }
-        const cmd = await res.json();
-        if (cmd.inputs.length === 0) {
-          handleExecuteSkill(cmd.skillId, {});
-        } else {
-          setPendingSkill(cmd);
-        }
-      } catch {
-        sendMessage("Failed to parse command.");
-      }
-      return;
-    }
-
     setInput("");
     sendMessage(text, selectedModel, modeConfig?.webSearchTool || undefined);
-  }
-
-  async function handleExecuteSkill(skillId: string, inputValues: Record<string, string>) {
-    setIsExecutingSkill(true);
-    setPendingSkill(null);
-    try {
-      const res = await fetch(`/api/skills/${skillId}/execute`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ inputs: inputValues }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Skill execution failed" }));
-        sendMessage(`Skill execution failed: ${err.error ?? "Unknown error"}`);
-        return;
-      }
-      const data = await res.json();
-      const resultText = data.result ?? data.output ?? JSON.stringify(data);
-      sendMessage(`/run result:\n\n${resultText}`);
-    } catch {
-      sendMessage("Skill execution failed. Try again.");
-    } finally {
-      setIsExecutingSkill(false);
-    }
   }
 
   function handleSuggestion(text: string) {
@@ -440,7 +366,6 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
                   model={msg.model}
                   isInterrupted={msg.isInterrupted}
                   sources={msg.sources}
-                  onPublish={connectedPlatforms.length > 0 ? setPublishContent : undefined}
                 />
               ))}
               {toolProgress && !streamingContent && (
@@ -474,22 +399,6 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
             </div>
           )}
         </div>
-
-        {/* Pending skill form */}
-        {pendingSkill && (
-          <div className="border-t border-neutral-800/40 px-4">
-            <div className="mx-auto max-w-3xl">
-              <ChatSkillForm
-                skillName={pendingSkill.skillName}
-                skillId={pendingSkill.skillId}
-                inputs={pendingSkill.inputs}
-                onExecute={handleExecuteSkill}
-                onCancel={() => setPendingSkill(null)}
-                isExecuting={isExecutingSkill}
-              />
-            </div>
-          </div>
-        )}
 
         {/* Input area */}
         <div className="shrink-0 px-4 pb-4 pt-2">
@@ -529,7 +438,7 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
               value={input}
               onChange={setInput}
               onSend={handleSend}
-              disabled={isSending || isExecutingSkill}
+              disabled={isSending}
               placeholder={
                 chatMode === "generate-image"
                   ? "Describe an image... e.g. a watercolor painting of Sydney Harbour at sunset"
@@ -567,16 +476,6 @@ export function ChatWorkspace({ displayName }: ChatWorkspaceProps) {
           </div>
         </div>
       </div>
-
-      {publishContent && connectedPlatforms.length > 0 && (
-        <PublishModal
-          defaultContent={publishContent}
-          connectedPlatforms={connectedPlatforms}
-          onClose={() => setPublishContent(null)}
-          onPublished={() => setPublishContent(null)}
-          onScheduled={() => setPublishContent(null)}
-        />
-      )}
     </div>
   );
 }

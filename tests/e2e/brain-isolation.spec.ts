@@ -37,7 +37,7 @@ async function register(request: APIRequestContext, tag: string): Promise<void> 
 }
 
 async function pickModel(request: APIRequestContext): Promise<string> {
-  const r = await request.get("/api/skills/models");
+  const r = await request.get("/api/models");
   expect(r.ok(), `models: ${r.status()}`).toBeTruthy();
   const { models, defaultModel } = await r.json();
   const id = defaultModel ?? models?.[0]?.id;

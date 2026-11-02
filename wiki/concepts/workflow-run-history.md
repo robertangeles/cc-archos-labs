@@ -2,9 +2,11 @@
 title: Workflow run history (capped retention + replay)
 category: concept
 created: 2026-06-30
-updated: 2026-07-06
-related: [[org-consulting-workspace]], [[workflow-step-regeneration]]
+updated: 2026-11-02
+related: [[2026-11-02-remove-skills-workflows-social]], [[org-consulting-workspace]], [[workflow-step-regeneration]]
 ---
+
+> **REMOVED 2026-11-02.** The Workflows feature (builder, executor, runs, tables) was deleted. Kept as history. See [[2026-11-02-remove-skills-workflows-social]]. Everything below describes code that no longer exists.
 
 Every workflow execution is snapshotted to `workflow_execution_run`, the most recent 22 runs per workflow are kept, and past runs are browsable, replayable, and **per-step regenerable** from the Run tab. Replay is no longer read-only — see [[workflow-step-regeneration]] for how one step of a saved run is re-run in place.
 
