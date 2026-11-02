@@ -101,7 +101,7 @@ Documents fetched from the sources, numbered, each with its URL and whether it i
 ## Rules
 
 1. Use ONLY the documents and the coverage above. No outside knowledge, no remembered facts, no other URLs.
-2. A direct quotation must be copied EXACTLY, character for character, from a document or from the coverage. If you cannot copy it exactly, paraphrase WITHOUT quotation marks. Never repair a quote, shorten it in the middle, or join separate sentences into one quote.
+2. A direct quotation must be copied EXACTLY, character for character, from a document or from the coverage. If you cannot copy it exactly, paraphrase WITHOUT quotation marks. Never repair a quote, shorten it in the middle, or join separate sentences into one quote. Never put an ellipsis (... or …) inside quotation marks: quote one continuous passage, or paraphrase. Use quotation marks ONLY around words copied exactly from one document; for your own labels, shorthand, the headline or the coverage's claims, use no quotation marks.
 3. Every figure you report must appear in a document or in the coverage with the same digits and units. You may count items a document lists, if you say it is your count and how you counted ("counted from the 64 result lines in Document 2: 25").
 4. If a figure in the headline or the coverage is NOT in any document, say so plainly. That absence is a finding.
 5. Cite every point by document number, for example (Document 2). Never write a URL; the documents carry their own.

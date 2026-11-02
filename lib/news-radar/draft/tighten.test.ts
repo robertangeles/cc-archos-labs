@@ -197,6 +197,15 @@ describe("tightenEssay", () => {
     expect(calls[0].user).toContain("the model deliberately targeted Beijing servers");
   });
 
+  it("tells the rewriter what to do with an [Inference] tag, since the skill itself asks for the tag", async () => {
+    const tagged = essay("The count is 25 of 64 [Inference].");
+    const { llm, calls } = seq({ rewrite_1: [chat(GOOD)], judge_1: [chat(CLEAN)] });
+    const r = await run(llm, tagged);
+    expect(r.ok).toBe(true);
+    expect(calls[0].user).toContain("delete the tag and say in the sentence, in words, that it is your inference"); // the standing instruction
+    expect(calls[0].user).toContain("inference: a [Inference] tag is left in the text: delete the tag"); // the failed check, with the fix
+  });
+
   it("stops with failed_gates when the checks still fail after the allowed rewrites", async () => {
     const { llm, calls } = seq({ rewrite_1: [chat(FABRICATED)], rewrite_2: [chat(FABRICATED)] });
     const r = await run(llm, FABRICATED);

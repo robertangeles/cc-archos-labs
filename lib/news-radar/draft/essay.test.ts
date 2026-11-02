@@ -84,6 +84,13 @@ describe("gates: quotes", () => {
     expect(f.find((x) => x.gate === "quote")!.detail).toContain("the model deliberately targeted Beijing servers");
   });
 
+  it("says why when a quote joins two passages with an ellipsis, so the rewrite can fix it", () => {
+    const f = gates({ extraBody: 'Cohere says the run "had no route... out of the sandbox" in its post.' });
+    expect(f.find((x) => x.gate === "quote")!.detail).toContain("an ellipsis joins separate passages");
+    const plain = gates({ extraBody: 'Cohere also admitted "the model deliberately targeted Beijing servers" in a footnote.' });
+    expect(plain.find((x) => x.gate === "quote")!.detail).not.toContain("ellipsis");
+  });
+
   it("catches a real quote with one word changed", () => {
     expect(names(gates({ extraBody: 'The rate is "less than one call in 10,000" overall.' }))).toContain("quote");
   });
@@ -145,7 +152,9 @@ describe("gates: verdict", () => {
 
 describe("gates: things the writer must not add", () => {
   it("rejects a leftover [Inference] tag", () => {
-    expect(names(gates({ extraBody: "The count is 25 of 64 [Inference]." }))).toContain("inference");
+    const f = gates({ extraBody: "The count is 25 of 64 [Inference]." });
+    expect(names(f)).toContain("inference");
+    expect(f.find((x) => x.gate === "inference")!.detail).toContain("in words"); // says what to do instead, not only what is wrong
   });
 
   it.each([
@@ -240,6 +249,12 @@ describe("helpers", () => {
       "had no route out",
       "deny by default",
     ]);
+  });
+
+  it("a short quote does not shift the pairing, so the text between two quotes is never read as one", () => {
+    // Seen in a real research brief: "Picks" is 5 characters, and its closing mark used to open the next pair.
+    const brief = '**"Picks" implies selection or intent.** Document 4 also says: "The 40.8% homing signal is not a defect." And "2025" or "all" appear.';
+    expect(extractQuotes(brief)).toEqual(["The 40.8% homing signal is not a defect"]);
   });
 
   it("findUnverifiedQuotes returns only the missing ones", () => {

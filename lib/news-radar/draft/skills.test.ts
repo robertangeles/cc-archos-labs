@@ -65,6 +65,15 @@ describe("buildPrompt", () => {
     expect(buildPrompt(skill({ template: "A {{ topic }} B" }), { plain: { topic: "x" } }).user).toBe("A x B");
   });
 
+  it("never expands a placeholder that arrives inside an input, so a hostile page cannot pull in another input", () => {
+    const { user } = buildPrompt(skill({ template: "Topic: {{topic}}\nResearch: {{raw_research}}" }), {
+      plain: { topic: "{{raw_research}}" },
+      untrusted: { raw_research: "page says {{topic}} and {{unknown_variable}}" },
+    });
+    expect(user).toContain("Topic: {{raw_research}}"); // the plain input is copied as it is, not expanded again
+    expect(user).toContain("page says {{topic}} and {{unknown_variable}}"); // nor is the fenced page text
+  });
+
   it("strips control characters from every input", () => {
     const { user } = buildPrompt(skill({ template: "{{topic}}|{{raw_research}}" }), {
       plain: { topic: "a\u0000b\u0007c" },

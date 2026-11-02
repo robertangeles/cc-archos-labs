@@ -124,6 +124,28 @@ test.describe("news radar page", () => {
     await expect(alert).toHaveCount(0);
   });
 
+  test("the draft line follows a draft from drafting to ready without a reload, and the row stays put", async ({ page }) => {
+    await open(page);
+    const NONE = { postId: null, postStatus: null, publishAt: null, reason: null };
+    const kept = (n: number, draft: RadarRow["draft"]) => row(n, { label: { id: `l${n}`, decision: "keep" }, latestLabelId: `l${n}`, draft });
+    await mockViews(page, mock([kept(1, { ...NONE, status: "running" }), kept(2, null)], { view: "kept" }));
+    await page.clock.install();
+    await page.getByRole("button", { name: /^Kept/ }).click();
+    await expect(page.getByText("Drafting now")).toBeVisible();
+    const titles = () => page.locator("#radar [id^='row-']").allTextContents();
+    const before = await titles();
+
+    // The server now says it is done; the page asks again on its own while a draft is running.
+    await mockViews(page, mock([
+      kept(2, null),
+      kept(1, { status: "succeeded", postId: "p1", postStatus: "scheduled", publishAt: "2026-10-27T13:00:00Z", reason: null }),
+    ], { view: "kept" }));
+    await page.clock.fastForward(16_000);
+    await expect(page.getByText(/^Draft ready\. Review it before /)).toBeVisible();
+    await expect(page.getByRole("link", { name: "Review draft" })).toHaveAttribute("href", "/admin/blog/posts/p1");
+    expect(await titles()).toEqual(before); // their order was not taken
+  });
+
   test("a save that fails reverts the row, says so, and Retry saves", async ({ page }) => {
     await open(page);
     await mockViews(page, mock([row(1)]));

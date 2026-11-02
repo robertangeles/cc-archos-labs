@@ -109,10 +109,15 @@ export function parseEssay(raw: string): ParsedEssay | null {
   return { title: title[1].trim(), meta: meta[1].trim(), body, verdict: { word, count: verdictLines.length }, seo };
 }
 
-/** Direct quotations of 6 or more characters, straight or curly, outside code spans. */
+/**
+ * Direct quotations of 6 or more characters, straight or curly, outside code spans.
+ * Every pair of quotation marks is consumed, short or not: a short one ("all", "2025")
+ * skipped over would leave its closing mark to open the next pair and turn the text
+ * between two real quotes into a quote.
+ */
 export function extractQuotes(body: string): string[] {
   const out = new Set<string>();
-  for (const m of stripCode(body).matchAll(/["“]([^"”\n]{6,}?)["”]/g)) {
+  for (const m of stripCode(body).matchAll(/["“]([^"”\n]*?)["”]/g)) {
     const q = trimPunct(m[1]);
     if (q.length >= 6) out.add(q);
   }
@@ -128,6 +133,16 @@ export function findUnverifiedQuotes(body: string, texts: string[], normalized: 
     const nq = normalizeForMatch(q);
     return !normalized.some((t) => t.includes(nq));
   });
+}
+
+/**
+ * What is wrong with a quote no source holds, in words the writer can act on. An
+ * ellipsis is the usual cause: two passages joined inside one pair of quotation marks.
+ */
+export function quoteFault(quote: string): string {
+  return /\.{3}|\u2026/.test(quote)
+    ? "an ellipsis joins separate passages into one quote; quote one continuous passage exactly, or paraphrase without quotation marks"
+    : "it is not word for word in any document; copy it exactly, or paraphrase without quotation marks";
 }
 
 /** Numbers (with their % if any) that the evidence does not hold. Single digits are ignored. */
@@ -169,7 +184,7 @@ export function runGates(essay: ParsedEssay, evidence: Evidence, opts: { targetW
   else if (!essay.verdict.word) f.push({ gate: "verdict", detail: `the verdict must be one of: ${VERDICT_WORDS.join(", ")}` });
 
   // --- things only the pipeline may add, and the skill's own hard rules
-  if (/\[Inference\]/i.test(body)) f.push({ gate: "inference", detail: "a [Inference] tag is left in the text" });
+  if (/\[Inference\]/i.test(body)) f.push({ gate: "inference", detail: 'a [Inference] tag is left in the text: delete the tag and say in that sentence, in words, that it is your inference ("I infer", "my reading")' });
   if (/\]\(|https?:\/\//i.test(body)) f.push({ gate: "links", detail: "the essay contains a link or URL; the pipeline adds the links" });
   if (/^#{1,6}\s+(sources|references|citations)\b/im.test(body)) f.push({ gate: "links", detail: "the essay has its own Sources section; the pipeline adds it" });
   if ((noCode.match(/—/g) ?? []).length > 1) f.push({ gate: "style", detail: "more than one em dash" });
@@ -185,7 +200,7 @@ export function runGates(essay: ParsedEssay, evidence: Evidence, opts: { targetW
   const shown = `${essay.title}\n${essay.meta}\n${body}`;
   const texts = [...evidence.sources, evidence.coverage];
   for (const q of findUnverifiedQuotes(shown, texts, evidence.prepared?.normalized)) {
-    f.push({ gate: "quote", detail: `not in any source: "${snippet(q)}"` });
+    f.push({ gate: "quote", detail: `not in any source: "${snippet(q)}" (${quoteFault(q)})` });
   }
   const hay = evidence.prepared?.haystack ?? [...texts, evidence.brief].join("\n");
   for (const n of findUngroundedNumbers(shown, hay)) {

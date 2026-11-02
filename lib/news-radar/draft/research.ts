@@ -9,15 +9,15 @@
 //   assess     stop unless at least one fetched page is a PRIMARY document. A news site
 //              never counts as primary, whatever the model labelled it.
 //   brief      a writer model turns the fetched text into a research brief. Every direct
-//              quote in it must exist in the fetched text or the headline coverage; one
-//              corrected attempt, then stop.
+//              quote in it must exist in the fetched text or the headline coverage; up to
+//              two corrected attempts that say what was wrong, then stop.
 //
 // "Stop" is a result, not an exception: the job goes to needs_attention with the reason.
 // "I could not reach the source" must never become "the source does not say it".
 
 import type { fetchSource as FetchSource } from "../source";
 import type { DraftConfig } from "./config";
-import { findUnverifiedQuotes, normalizeTexts } from "./essay";
+import { findUnverifiedQuotes, normalizeTexts, quoteFault } from "./essay";
 import { LlmError, type Llm } from "./llm";
 import { buildPrompt, type SkillPrompt } from "./skills";
 import { stepFromChat, stop, type Stop, type StepLog } from "./types";
@@ -341,11 +341,14 @@ export async function runResearch(deps: ResearchDeps, cfg: DraftConfig, item: St
   const evidence = [...pages.map((p) => p.text), coverage];
   const normalized = normalizeTexts(evidence);
 
-  const attempt = async (label: "brief" | "brief_retry", problems: string[]): Promise<{ text: string } | Stop> => {
+  // The first brief, then up to two corrections that name what was wrong. Measured on real runs:
+  // one correction fixes most briefs, a second the stray label or shorthand in quotation marks.
+  const RETRIES = ["brief_retry", "brief_retry_2"] as const;
+  const attempt = async (label: "brief" | (typeof RETRIES)[number], problems: string[]): Promise<{ text: string } | Stop> => {
     const prompt = buildPrompt(skill, {
       ...inputs,
       ...(problems.length
-        ? { appendix: { heading: "PROBLEMS WITH YOUR PREVIOUS BRIEF. Rewrite the whole brief and fix every one. Quote only exact words from the documents, or paraphrase without quotation marks:", text: problems.map((q) => `- "${q}" is not in any document`).join("\n") } }
+        ? { appendix: { heading: "PROBLEMS WITH YOUR PREVIOUS BRIEF. Rewrite the whole brief and fix every one. Use quotation marks only around words copied exactly from one document. For your own labels, shorthand, the headline or the coverage's claims, use no quotation marks:", text: problems.map((q) => `- "${q}": ${quoteFault(q)}`).join("\n") } }
         : {}),
     });
     try {
@@ -361,11 +364,12 @@ export async function runResearch(deps: ResearchDeps, cfg: DraftConfig, item: St
   let draft = await attempt("brief", []);
   if ("ok" in draft) return stopWith(draft);
   let bad = findUnverifiedQuotes(draft.text, evidence, normalized);
-  if (bad.length > 0) {
-    draft = await attempt("brief_retry", bad.slice(0, 8));
+  for (const label of RETRIES) {
+    if (bad.length === 0) break;
+    draft = await attempt(label, bad.slice(0, 8));
     if ("ok" in draft) return stopWith(draft);
     bad = findUnverifiedQuotes(draft.text, evidence, normalized);
-    if (bad.length > 0) return stopWith(stop("unverified_quotes", `quotes not in any source: ${bad.slice(0, 3).map((q) => `"${q.slice(0, 80)}"`).join("; ")}`));
   }
+  if (bad.length > 0) return stopWith(stop("unverified_quotes", `quotes not in any source: ${bad.slice(0, 3).map((q) => `"${q.slice(0, 80)}"`).join("; ")}`));
   return { ok: true, pages, failures, candidates, brief: draft.text, normalized, steps };
 }

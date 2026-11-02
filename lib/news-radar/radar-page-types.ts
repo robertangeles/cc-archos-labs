@@ -17,6 +17,19 @@ export interface RadarLabel {
 
 export type CandidateStatus = "new" | "scoring" | "scored" | "unscored" | "failed";
 
+/** Where a Kept story's blog draft stands (news_draft_job joined to its post). */
+export interface RadarDraft {
+  status: "queued" | "running" | "succeeded" | "needs_attention" | "failed" | "cancelled";
+  /** The draft post; null until one exists, or after it was deleted. */
+  postId: string | null;
+  /** post.status of that post: draft | scheduled | published | archived. */
+  postStatus: string | null;
+  /** ISO instant a scheduled or published post goes (went) live. */
+  publishAt: string | null;
+  /** Why a person must look (needs_attention) or the job gave up (failed). */
+  reason: string | null;
+}
+
 export interface RadarRow {
   id: string;
   title: string;
@@ -46,6 +59,8 @@ export interface RadarRow {
    * last saw a clear row is not falsely told it conflicts.
    */
   latestLabelId: string | null;
+  /** Absent or null: no draft job for this story. */
+  draft?: RadarDraft | null;
 }
 
 /**

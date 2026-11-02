@@ -370,12 +370,30 @@ describe("runResearch", () => {
     if (r.ok) expect(r.steps.map((s) => s.stepKey)).toEqual(["discover", "sources", "brief", "brief_retry"]);
   });
 
-  it("stops, naming the quote, when the second attempt is still wrong", async () => {
+  it("tells the writer an ellipsis is the problem when a quote joins two passages", async () => {
+    const spliced = 'Cohere says the run "had no route... out of the sandbox" in its post.';
+    const { llm, calls } = scripted({ discover: chat(discoverJson), brief: chat(spliced), brief_retry: chat(GOOD_BRIEF) });
+    expect((await runResearch({ llm, fetchSource: fetcher(pages).fn, skill }, cfg, ITEM)).ok).toBe(true);
+    expect(calls.find((c) => c.label === "brief_retry")!.user).toContain("an ellipsis joins separate passages");
+  });
+
+  it("makes a second corrected attempt when the first correction still quotes something the sources never said", async () => {
     const bad = 'Cohere admitted "the model deliberately targeted Beijing servers" in a footnote.';
-    const { llm } = scripted({ discover: chat(discoverJson), brief: chat(bad), brief_retry: chat(bad) });
+    const label = 'The run is a "writes a URL / bare metadata IP" case, as the brief puts it.';
+    const { llm, calls } = scripted({ discover: chat(discoverJson), brief: chat(bad), brief_retry: chat(label), brief_retry_2: chat(GOOD_BRIEF) });
+    const r = await runResearch({ llm, fetchSource: fetcher(pages).fn, skill }, cfg, ITEM);
+    expect(r.ok).toBe(true);
+    expect(calls.find((c) => c.label === "brief_retry_2")!.user).toContain("writes a URL / bare metadata IP"); // told what the first correction still got wrong
+    if (r.ok) expect(r.steps.map((s) => s.stepKey)).toEqual(["discover", "sources", "brief", "brief_retry", "brief_retry_2"]);
+  });
+
+  it("stops, naming the quote, when the corrected attempts are still wrong", async () => {
+    const bad = 'Cohere admitted "the model deliberately targeted Beijing servers" in a footnote.';
+    const { llm, calls } = scripted({ discover: chat(discoverJson), brief: chat(bad), brief_retry: chat(bad), brief_retry_2: chat(bad) });
     const r = await runResearch({ llm, fetchSource: fetcher(pages).fn, skill }, cfg, ITEM);
     expect(r).toMatchObject({ ok: false, reason: "unverified_quotes" });
     if (!r.ok) expect(r.detail).toContain("deliberately targeted Beijing");
+    expect(calls.filter((c) => c.label.startsWith("brief")).map((c) => c.label)).toEqual(["brief", "brief_retry", "brief_retry_2"]); // two corrections, never a third
   });
 
   it("accepts a quote that only the headline coverage contains", async () => {

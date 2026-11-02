@@ -53,6 +53,20 @@ describe("runWriting", () => {
     expect(calls.every((c) => c.maxTokens === undefined)).toBe(true); // undefined -> the llm default of 16000
   });
 
+  it("accepts the steelman skill's closing note, which names the draft a later step produces", async () => {
+    const withNote = async (slug: string): Promise<SkillPrompt> => ({
+      slug,
+      system: "S",
+      template: `${TEMPLATE}\nNext step: article-writer reads {{thesis}} and {{steelman_checkpoint}} to produce {{article_draft}}.`,
+      temperature: null,
+      maxTokens: 2000,
+    });
+    const { llm, calls } = script({ thesis: chat("T"), steelman: chat("S"), essay: chat("E") });
+    const r = await runWriting({ llm, skill: withNote }, DEFAULT_DRAFT_CONFIG, BASE);
+    expect(r.ok).toBe(true);
+    expect(calls[1].user).toContain("to produce {{article_draft}}."); // left as written, not filled with a draft
+  });
+
   it("records a step per stage", async () => {
     const { llm } = script({ thesis: chat("T"), steelman: chat("S"), essay: chat("E") });
     const r = await runWriting({ llm, skill }, DEFAULT_DRAFT_CONFIG, BASE);

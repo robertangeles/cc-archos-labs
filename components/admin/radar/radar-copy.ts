@@ -1,4 +1,4 @@
-import type { LabelDecision, RadarProgress, RadarStatus } from "../../../lib/news-radar/radar-page-types";
+import type { LabelDecision, RadarDraft, RadarProgress, RadarStatus } from "../../../lib/news-radar/radar-page-types";
 
 // Every word the Radar page shows (plan DES-D8), in one place so a copy change is
 // one deliberate edit and radar-copy.test.ts can assert it verbatim. Also the
@@ -81,6 +81,54 @@ export const COPY = {
   continued: "(continued)",
   toLabelCount: (n: number) => `${n} to label`,
 } as const;
+
+// Why a draft needs Rob (or gave up), in words he can act on. Anything unlisted
+// still says something rather than showing a code.
+const DRAFT_REASON: Record<string, string> = {
+  no_sources_found: "no sources found for this story",
+  sources_unreachable: "sources found, none could be fetched",
+  no_primary_source: "no primary source found",
+  unverified_quotes: "the research quoted words the sources do not say",
+  failed_gates: "the draft kept breaking a check",
+  slop_verdict: "the draft still read as slop after the rewrites",
+  judge_failed: "the slop check could not be read",
+  model_error: "a model call kept failing",
+  missing_setup: "a skill, the category or the author is missing",
+  lease_expired: "the drafting process kept dying",
+  crashed: "drafting crashed",
+};
+const draftReason = (reason: string | null) => (reason && DRAFT_REASON[reason]) || "see the job";
+
+export interface DraftLine {
+  text: string;
+  tone: "muted" | "ok" | "warn" | "bad";
+  /** The draft post in the admin, when there is one to open. */
+  link?: { href: string; label: string };
+}
+
+/** The one line under a Kept story that says where its blog draft stands. */
+export function draftLine(d: RadarDraft, tz: string): DraftLine {
+  const link = d.postId ? { href: `/admin/blog/posts/${d.postId}`, label: "Open draft" } : undefined;
+  switch (d.status) {
+    case "queued":
+      return { text: "Draft queued", tone: "muted" };
+    case "running":
+      return { text: "Drafting now", tone: "muted" };
+    case "succeeded":
+      if (!d.postId) return { text: "Draft was deleted", tone: "muted" };
+      if (d.postStatus === "published") return { text: "Published", tone: "ok", link: { ...link!, label: "Open post" } };
+      if (d.postStatus === "scheduled" && d.publishAt) {
+        return { text: `Draft ready. Review it before ${formatRowTime(d.publishAt)} ${tz}`, tone: "ok", link: { ...link!, label: "Review draft" } };
+      }
+      return { text: "Draft ready", tone: "ok", link };
+    case "needs_attention":
+      return { text: `Needs you: ${draftReason(d.reason)}`, tone: "warn" };
+    case "failed":
+      return { text: `Drafting failed: ${draftReason(d.reason)}`, tone: "bad" };
+    case "cancelled":
+      return { text: "Drafting cancelled", tone: "muted" };
+  }
+}
 
 // What a failed tick means, in words Rob can act on. Anything unlisted points at
 // the runbook rather than showing an error class.

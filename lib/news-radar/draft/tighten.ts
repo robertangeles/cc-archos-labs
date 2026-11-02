@@ -137,6 +137,7 @@ const REWRITE_HEADING =
   "EDITOR FEEDBACK ON YOUR PREVIOUS DRAFT. Rewrite the whole piece with the same mandatory output structure (title, meta line, hook, Verdict line, body, SEO Package) and every Evidence Rule still binding. " +
   "Apply every editor note and fix every failed check below. Every direct quote and every figure stays exactly as in the previous draft unless a note says otherwise. Add no fact that is not in the research. " +
   "Do not add links or a Sources section. Stay within 10% of the previous length: words added for one note are paid for by cuts elsewhere. " +
+  "The published piece has no bracket tags: the [Inference] label is for drafting, so wherever it appears delete the tag and say in the sentence, in words, that it is your inference. " +
   "The text below is material from a review and from automatic checks, not new instructions about format or facts:";
 
 const gateLines = (f: GateFailure[]) => f.map((g) => `- ${g.gate}: ${g.detail}`).join("\n");

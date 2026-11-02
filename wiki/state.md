@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-11-02T00:55:46.401Z
+generated: 2026-11-02T04:16:40.589Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -124,7 +124,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/posts/[id]/revisions/[revId]/restore` | [app/api/admin/posts/[id]/revisions/[revId]/restore/route.ts](../app/api/admin/posts/[id]/revisions/[revId]/restore/route.ts) | 2026-05-20 |
 | `/api/admin/posts/[id]/suggest-links` | [app/api/admin/posts/[id]/suggest-links/route.ts](../app/api/admin/posts/[id]/suggest-links/route.ts) | 2026-05-20 |
 | `/api/admin/radar` | [app/api/admin/radar/route.ts](../app/api/admin/radar/route.ts) | 2026-10-26 |
-| `/api/admin/radar/[id]` | [app/api/admin/radar/[id]/route.ts](../app/api/admin/radar/[id]/route.ts) | 2026-10-26 |
+| `/api/admin/radar/[id]` | [app/api/admin/radar/[id]/route.ts](../app/api/admin/radar/[id]/route.ts) | 2026-11-02 |
 | `/api/admin/settings/blog-enabled` | [app/api/admin/settings/blog-enabled/route.ts](../app/api/admin/settings/blog-enabled/route.ts) | 2026-05-20 |
 | `/api/admin/settings/blog-library` | [app/api/admin/settings/blog-library/route.ts](../app/api/admin/settings/blog-library/route.ts) | 2026-06-12 |
 | `/api/admin/settings/booking-prompts` | [app/api/admin/settings/booking-prompts/route.ts](../app/api/admin/settings/booking-prompts/route.ts) | 2026-05-17 |
@@ -187,7 +187,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/clients/[id]/contracts/[contractId]/attachments` | [app/api/clients/[id]/contracts/[contractId]/attachments/route.ts](../app/api/clients/[id]/contracts/[contractId]/attachments/route.ts) | 2026-06-15 |
 | `/api/clients/[id]/contracts/[contractId]/attachments/[attachmentId]` | [app/api/clients/[id]/contracts/[contractId]/attachments/[attachmentId]/route.ts](../app/api/clients/[id]/contracts/[contractId]/attachments/[attachmentId]/route.ts) | 2026-06-15 |
 | `/api/contact` | [app/api/contact/route.ts](../app/api/contact/route.ts) | 2026-05-15 |
-| `/api/cron/news-radar` | [app/api/cron/news-radar/route.ts](../app/api/cron/news-radar/route.ts) | 2026-10-26 |
+| `/api/cron/news-radar` | [app/api/cron/news-radar/route.ts](../app/api/cron/news-radar/route.ts) | 2026-11-02 |
 | `/api/cron/process-scheduled` | [app/api/cron/process-scheduled/route.ts](../app/api/cron/process-scheduled/route.ts) | 2026-06-12 |
 | `/api/cron/process-scheduled-posts` | [app/api/cron/process-scheduled-posts/route.ts](../app/api/cron/process-scheduled-posts/route.ts) | 2026-05-20 |
 | `/api/cron/process-scheduled-social` | [app/api/cron/process-scheduled-social/route.ts](../app/api/cron/process-scheduled-social/route.ts) | 2026-06-14 |

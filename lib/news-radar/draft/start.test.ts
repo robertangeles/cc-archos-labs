@@ -101,6 +101,21 @@ describe("startDraftIfDue", () => {
     expect(ran).toEqual(["A", "B"]); // the drain picked B up
   });
 
+  it("switching the pipeline off mid-run stops it after the current story", async () => {
+    await on();
+    await kept("A");
+    await kept("B");
+    const { deps, ran } = build(async () => {
+      await h.setSetting("news_draft_enabled", { enabled: false }); // Rob flips the switch while A is being drafted
+      return { outcome: "succeeded", postId: "p" };
+    });
+    const r = await startDraftIfDue(deps);
+    if (r.started) await r.done;
+    expect(ran).toEqual(["A"]); // B stays queued until it is switched on again
+    const b = (await h.client.query<{ status: string }>(`SELECT j.status FROM news_draft_job j JOIN news_candidate c ON c.id = j.candidate_id WHERE c.title = 'B'`)).rows[0];
+    expect(b.status).toBe("queued");
+  });
+
   it("a story un-Kept before its turn is skipped, not drafted", async () => {
     await on();
     const a = await kept("A");

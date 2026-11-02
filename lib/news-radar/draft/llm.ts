@@ -69,8 +69,12 @@ export interface OpenRouterOptions {
   tries?: number;
 }
 
-const DEFAULT_TIMEOUT_MS = 180_000;
-const DEFAULT_MAX_TOKENS = 16_000; // reasoning models spend part of this before they write
+// A reasoning model spends part of its budget thinking before it writes, and how much varies:
+// one real essay used 10,600 tokens, the next ran out of 16,000. The budget is only paid for
+// when used. The timeout fits the budget (about 140 tokens a second); three tries of it stay
+// inside the 20 minute job lease.
+const DEFAULT_TIMEOUT_MS = 300_000;
+const DEFAULT_MAX_TOKENS = 32_000;
 const BACKOFF_MS = [2_000, 6_000];
 const RETRYABLE = new Set([408, 425, 429, 500, 502, 503, 504]);
 

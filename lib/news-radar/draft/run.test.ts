@@ -151,6 +151,16 @@ describe("runJob: the whole way through", () => {
     expect(row.post_id).not.toBeNull();
   });
 
+  it("never writes article or source text to the logs, whether a job succeeds or crashes", async () => {
+    const logged = () => [...vi.mocked(console.log).mock.calls, ...vi.mocked(console.error).mock.calls].map((c) => c.map(String).join(" ")).join("\n");
+    await runJob(harness().deps, cfg, await startJob());
+    // a crash whose error message carries source text, as a provider's can
+    await runJob(harness({ replies: { thesis: new Error('upstream said: "had no route out" and Filler sentence') } }).deps, cfg, await startJob());
+    const out = logged();
+    expect(out).toContain("news_draft_stage"); // it did log
+    for (const text of ["had no route out", "Filler sentence", "figure is not in Cohere", "THESIS", "STEELMAN"]) expect(out).not.toContain(text);
+  });
+
   it("records every stage as a step under this attempt, with its cost", async () => {
     const job = await startJob();
     await runJob(harness().deps, cfg, job);

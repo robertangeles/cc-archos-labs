@@ -24,7 +24,14 @@ export interface WriterContext {
 /** Every variable any of the writing skills uses. A skill takes what its template names. */
 export function writerInputs(c: WriterContext): PromptInputs {
   return {
-    plain: { target_audience: c.targetAudience, industry: "AI news", word_count: String(c.wordCount) },
+    plain: {
+      target_audience: c.targetAudience,
+      industry: "AI news",
+      word_count: String(c.wordCount),
+      // The steelman skill's closing note names the draft a later step produces. It is not an
+      // input; filled with its own placeholder, the note reads as Rob wrote it.
+      article_draft: "{{article_draft}}",
+    },
     untrusted: { topic: c.topic, raw_research: c.research, thesis: c.thesis, steelman_checkpoint: c.steelman },
   };
 }

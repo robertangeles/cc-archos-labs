@@ -10,13 +10,14 @@ import {
   type LabelOk,
   type RadarCohort,
   type RadarDay,
+  type RadarDraft,
   type RadarPageData,
   type RadarRow,
   type RadarSummary,
   type RadarView,
 } from "../../../lib/news-radar/radar-page-types";
-import { COPY, formatClock, formatDayHeader, formatRowTime, statusLines, tzAbbrev } from "./radar-copy";
-import { applyLabelLocally, findRow, nextDecision, pendingLabel } from "./radar-state";
+import { COPY, draftLine, formatClock, formatDayHeader, formatRowTime, statusLines, tzAbbrev } from "./radar-copy";
+import { applyLabelLocally, findRow, isDrafting, mergeDrafts, nextDecision, pendingLabel } from "./radar-state";
 
 // The Radar page's one client module (plan ENG-D2, DES-D3 to DES-D14). The server
 // page hands over the first load; filter changes, labelling and the "new items"
@@ -33,6 +34,8 @@ const VIEW_LABEL: Record<RadarView, string> = {
   all: "All",
 };
 const POLL_MS = 60_000;
+// While a draft is queued or running the draft lines refresh this often; a draft takes minutes.
+const DRAFT_POLL_MS = 15_000;
 const UNDO_MS = 6_000;
 
 interface PendingSave {
@@ -52,6 +55,13 @@ interface Toast {
   key: number;
   text: string;
   undo: () => void;
+}
+
+function pageQuery(params: { view: RadarView; cohort?: number; page?: number }): URLSearchParams {
+  const qs = new URLSearchParams({ view: params.view });
+  if (params.cohort) qs.set("cohort", String(params.cohort));
+  if (params.page && params.page > 1) qs.set("page", String(params.page));
+  return qs;
 }
 
 function cohortLabel(c: RadarCohort, newer: RadarCohort | undefined): string {
@@ -144,9 +154,7 @@ export function RadarList({ initial }: { initial: RadarPageData | null }) {
   const load = useCallback(async (params: { view: RadarView; cohort?: number; page?: number }) => {
     setLoading(true);
     setLoadError(false);
-    const qs = new URLSearchParams({ view: params.view });
-    if (params.cohort) qs.set("cohort", String(params.cohort));
-    if (params.page && params.page > 1) qs.set("page", String(params.page));
+    const qs = pageQuery(params);
     try {
       const res = await fetch(`/api/admin/radar?${qs}`, { cache: "no-store" });
       if (!res.ok) throw new Error("load");
@@ -183,6 +191,30 @@ export function RadarList({ initial }: { initial: RadarPageData | null }) {
     }, POLL_MS);
     return () => window.clearInterval(id);
   }, [data?.generatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // --- draft lines: only the draft state is taken from a fresh page --------------
+
+  const refreshDrafts = useCallback(async () => {
+    const d = dataRef.current;
+    if (!d) return;
+    try {
+      const res = await fetch(`/api/admin/radar?${pageQuery({ view: d.view, cohort: d.cohort?.version, page: d.page?.number })}`, { cache: "no-store" });
+      if (!res.ok) return;
+      const fresh = (await res.json()) as RadarPageData;
+      setData((cur) => (cur ? mergeDrafts(cur, fresh) : cur));
+    } catch {
+      // A missed refresh is silent; the next one retries.
+    }
+  }, []);
+
+  const drafting = data ? isDrafting(data) : false;
+  useEffect(() => {
+    if (!drafting) return;
+    const id = window.setInterval(() => {
+      if (!document.hidden) void refreshDrafts();
+    }, DRAFT_POLL_MS);
+    return () => window.clearInterval(id);
+  }, [drafting, refreshDrafts]);
 
   // --- labelling -----------------------------------------------------------
 
@@ -589,6 +621,7 @@ function RowItem({
             </p>
             {row.summary && <p className="mt-1 line-clamp-2 text-[13px] leading-5 text-ink-subtle">{row.summary}</p>}
             {showScores && <Scores row={row} showUnavailable={view === "all"} />}
+            {row.draft && <DraftLine draft={row.draft} tz={tzAbbrev(new Date(generatedAt))} />}
           </div>
 
           <div className="max-lg:self-end max-sm:w-full">
@@ -636,6 +669,24 @@ function RowItem({
         )}
       </div>
     </li>
+  );
+}
+
+function DraftLine({ draft, tz }: { draft: RadarDraft; tz: string }) {
+  const line = draftLine(draft, tz);
+  const tone = line.tone === "bad" ? "text-semantic-error" : line.tone === "warn" ? "text-ink" : "text-ink-subtle";
+  return (
+    <p className={`mt-2 text-[12px] leading-4 ${tone}`}>
+      {line.text}
+      {line.link && (
+        <>
+          {" "}
+          <Link href={line.link.href} className="whitespace-nowrap text-primary-hover underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            {line.link.label}
+          </Link>
+        </>
+      )}
+    </p>
   );
 }
 

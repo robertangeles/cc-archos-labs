@@ -13,7 +13,7 @@ export interface StageDeps {
  * reject some sampling settings, and the pipeline's prompts were proved without one.
  * A skill's own max_tokens is not used either: the skill rows carry limits (2000 to
  * 4000) from older models, and a reasoning model spends part of its budget thinking,
- * so a limit that small returns a short draft instead of an essay. The default is 16000.
+ * so a limit that small returns a short draft instead of an essay. The default is 32000.
  */
 export async function runSkill(
   deps: StageDeps,

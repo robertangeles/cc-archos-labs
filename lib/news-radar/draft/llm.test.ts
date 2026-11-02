@@ -52,6 +52,12 @@ describe("makeOpenRouterLlm: a good answer", () => {
     });
   });
 
+  it("gives a reasoning model room to think and write when the caller sets no budget", async () => {
+    const { llm, fetchImpl } = build([ok()]);
+    await llm(req);
+    expect(body(fetchImpl).max_tokens).toBe(32_000); // a real essay ran out of 16,000
+  });
+
   it("omits the system message when there is none", async () => {
     const { llm, fetchImpl } = build([ok()]);
     await llm(req);

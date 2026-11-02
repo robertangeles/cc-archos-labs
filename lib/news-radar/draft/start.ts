@@ -4,7 +4,7 @@
 //   switch off        nothing happens, nothing is queued
 //   claim             one job at a time, within the Melbourne-day cap
 //   drain             after a run, the same trigger takes the next queued story,
-//                     until the queue is empty or the cap is spent
+//                     until the queue is empty, the cap is spent or the switch is turned off
 //
 // The claim happens before this returns, so the caller can answer fast; the run itself
 // is the returned `done` promise, which the caller hands to the framework's background
@@ -41,7 +41,8 @@ export async function startDraftIfDue(deps: StartDeps): Promise<StartResult> {
 
   const done = (async () => {
     const runDeps = deps.runDeps(cfg);
-    for (let job: typeof first | null = first; job; job = await claim()) {
+    // The switch is read again before each story: turning drafting off stops it after the current one.
+    for (let job: typeof first | null = first; job; job = (await isDraftEnabled(db)) ? await claim() : null) {
       try {
         const outcome = await deps.run(runDeps, cfg, job);
         console.log(JSON.stringify({ event: "news_draft_job", jobId: job.id, outcome: outcome.outcome }));

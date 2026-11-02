@@ -1,6 +1,6 @@
-import { asc, desc, sql, type SQL } from "drizzle-orm";
+import { asc, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import type { DB } from "../db";
-import { newsRadarRubric, newsRadarTick } from "../db/schema";
+import { newsDraftJob, newsRadarRubric, newsRadarTick, post } from "../db/schema";
 import { getIntegrationConfig } from "../integration-config";
 import {
   GATE_MIN_DAYS,
@@ -23,6 +23,7 @@ import {
   type RadarCohort,
   type RadarCounts,
   type RadarDay,
+  type RadarDraft,
   type RadarHealthState,
   type RadarPageData,
   type RadarProgress,
@@ -281,6 +282,45 @@ function toRow(item: Item, cutoffs: Cutoffs | null, decision: "keep" | "skip" | 
   };
 }
 
+/**
+ * Puts each shown row's draft job (and its post) on the row. Fail-soft: a database that
+ * has not had migration 0043 yet has no news_draft_job table, and the Radar must still
+ * load. Only the error's name is logged.
+ */
+async function attachDrafts(db: DB, shown: RadarRow[]): Promise<void> {
+  if (shown.length === 0) return;
+  try {
+    const found = await db
+      .select({
+        candidateId: newsDraftJob.candidateId,
+        status: newsDraftJob.status,
+        reason: newsDraftJob.attentionReason,
+        postId: newsDraftJob.postId,
+        postStatus: post.status,
+        publishedAt: post.publishedAt,
+        scheduledAt: post.scheduledPublishAt,
+      })
+      .from(newsDraftJob)
+      .leftJoin(post, eq(post.id, newsDraftJob.postId))
+      .where(inArray(newsDraftJob.candidateId, shown.map((r) => r.id)));
+    const byCandidate = new Map(found.map((f) => [f.candidateId, f]));
+    for (const row of shown) {
+      const f = byCandidate.get(row.id);
+      if (!f) continue;
+      row.draft = {
+        status: f.status as RadarDraft["status"],
+        postId: f.postId,
+        postStatus: f.postStatus,
+        // A scheduled post has only its scheduled time; a published one has when it went live.
+        publishAt: (f.publishedAt ?? f.scheduledAt)?.toISOString() ?? null,
+        reason: f.reason,
+      };
+    }
+  } catch (err) {
+    console.error("[radar] draft status unavailable:", err instanceof Error ? err.name : "unknown");
+  }
+}
+
 /** Groups rows into Melbourne days, newest day first; row order inside a day is kept. */
 function groupByDay(rows: RadarRow[]): RadarDay[] {
   const days = new Map<string, RadarRow[]>();
@@ -397,6 +437,8 @@ export async function loadRadarPage(
     }
     pageInfo = { number, pages };
   }
+
+  await attachDrafts(db, days.flatMap((d) => [...d.rows, ...d.more]));
 
   // Gate progress over the cohort's own items. The window runs from the cohort's
   // start day to today; today and a partial first day count as missed (decide).
