@@ -8,6 +8,7 @@
 // (see skills.ts), and the contract test in seed-skills.test.ts keeps these in step.
 
 import type { SkillInputDef, SkillOutputDef } from "../../skills/types";
+import { SEO_TITLE_MAX } from "./essay";
 
 export interface SkillSeed {
   slug: string;
@@ -238,13 +239,15 @@ export class SeedDerivationError extends Error {
 }
 
 /**
- * The news essay skill is Rob's Paul Graham essay skill with three changes: the
+ * The news essay skill is Rob's Paul Graham essay skill with four changes: the
  * "Intentional Imperfection" block is removed (it asks for an invented bias and a war
  * story, which his own Evidence Rule 3 forbids), a Verdict line is added, and inferences
  * are labelled in words ("I infer") instead of with an [Inference] tag, because a published
  * post carries no bracket tags and the checks reject them (every first draft used to fail
- * that check and cost a rewrite). The rest, the voice, the evidence rules and the SEO
- * package, stays exactly as he wrote it.
+ * that check and cost a rewrite), and the SEO title limit is the real one (his skill says
+ * 60; the site appends its own name, so the check allows 46, and a writer aiming for 60
+ * failed the check on its first draft). The rest, the voice, the evidence rules and the
+ * rest of the SEO package, stays exactly as he wrote it.
  * Throws if the source no longer has the anchors, so a rewritten skill is noticed
  * instead of silently producing a half-changed copy.
  */
@@ -262,6 +265,11 @@ export function deriveFactcheckSkill(pg: { template: string; system: string | nu
     "the inference-labelling rule",
     "- Label inferences explicitly. If a conclusion is not directly stated in the source, mark it [Inference].",
     '- Label inferences explicitly, in words: write "I infer" or "my reading is" in the sentence itself. Never use a bracket tag such as [Inference]; the published piece carries no bracket tags.',
+  );
+  edit(
+    "the SEO title length",
+    "**SEO title:** [≤60 characters, proper case]",
+    `**SEO title:** [≤${SEO_TITLE_MAX} characters, proper case; the site adds its own name after it]`,
   );
   return {
     slug: FACTCHECK_SLUG,
