@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-11-02T07:42:56.572Z
+generated: 2026-11-02T07:52:23.333Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -87,7 +87,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/google-oauth/cb` | [app/api/admin/google-oauth/cb/route.ts](../app/api/admin/google-oauth/cb/route.ts) | 2026-05-31 |
 | `/api/admin/google-oauth/disconnect` | [app/api/admin/google-oauth/disconnect/route.ts](../app/api/admin/google-oauth/disconnect/route.ts) | 2026-05-22 |
 | `/api/admin/google-oauth/start` | [app/api/admin/google-oauth/start/route.ts](../app/api/admin/google-oauth/start/route.ts) | 2026-05-15 |
-| `/api/admin/integrations` | [app/api/admin/integrations/route.ts](../app/api/admin/integrations/route.ts) | 2026-10-26 |
+| `/api/admin/integrations` | [app/api/admin/integrations/route.ts](../app/api/admin/integrations/route.ts) | 2026-11-02 |
 | `/api/admin/integrations/models` | [app/api/admin/integrations/models/route.ts](../app/api/admin/integrations/models/route.ts) | 2026-06-07 |
 | `/api/admin/integrations/reveal` | [app/api/admin/integrations/reveal/route.ts](../app/api/admin/integrations/reveal/route.ts) | 2026-05-15 |
 | `/api/admin/integrations/reveal-auth` | [app/api/admin/integrations/reveal-auth/route.ts](../app/api/admin/integrations/reveal-auth/route.ts) | 2026-05-15 |
@@ -200,7 +200,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/model-studio/[id]/relationships` | [app/api/model-studio/[id]/relationships/route.ts](../app/api/model-studio/[id]/relationships/route.ts) | 2026-06-17 |
 | `/api/model-studio/[id]/relationships/[relationshipId]` | [app/api/model-studio/[id]/relationships/[relationshipId]/route.ts](../app/api/model-studio/[id]/relationships/[relationshipId]/route.ts) | 2026-06-17 |
 | `/api/model-studio/flag` | [app/api/model-studio/flag/route.ts](../app/api/model-studio/flag/route.ts) | 2026-06-17 |
-| `/api/models` | [app/api/models/route.ts](../app/api/models/route.ts) | unknown |
+| `/api/models` | [app/api/models/route.ts](../app/api/models/route.ts) | 2026-11-02 |
 | `/api/organisations` | [app/api/organisations/route.ts](../app/api/organisations/route.ts) | 2026-06-15 |
 | `/api/organisations/[id]` | [app/api/organisations/[id]/route.ts](../app/api/organisations/[id]/route.ts) | 2026-06-15 |
 | `/api/organisations/[id]/join` | [app/api/organisations/[id]/join/route.ts](../app/api/organisations/[id]/join/route.ts) | 2026-06-15 |
@@ -238,7 +238,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 |------|--------------|
 | [components/admin/integrations/consultant-profile-form.tsx](../components/admin/integrations/consultant-profile-form.tsx) | 2026-06-12 |
 | [components/admin/integrations/integrations-grid.tsx](../components/admin/integrations/integrations-grid.tsx) | 2026-10-26 |
-| [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-10-26 |
+| [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-11-02 |
 | [components/admin/radar/radar-copy.test.ts](../components/admin/radar/radar-copy.test.ts) | 2026-11-02 |
 | [components/admin/radar/radar-copy.ts](../components/admin/radar/radar-copy.ts) | 2026-11-02 |
 | [components/admin/radar/radar-list.test.tsx](../components/admin/radar/radar-list.test.tsx) | 2026-11-02 |
@@ -268,18 +268,18 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/booking/calendar-picker.tsx](../components/booking/calendar-picker.tsx) | 2026-05-17 |
 | [components/chat/chat-empty-state.tsx](../components/chat/chat-empty-state.tsx) | 2026-06-08 |
 | [components/chat/chat-input.tsx](../components/chat/chat-input.tsx) | 2026-07-07 |
-| [components/chat/chat-message.tsx](../components/chat/chat-message.tsx) | 2026-07-31 |
-| [components/chat/chat-model-picker.tsx](../components/chat/chat-model-picker.tsx) | 2026-06-09 |
-| [components/chat/chat-sidebar.tsx](../components/chat/chat-sidebar.tsx) | 2026-06-15 |
+| [components/chat/chat-message.tsx](../components/chat/chat-message.tsx) | 2026-11-02 |
+| [components/chat/chat-model-picker.tsx](../components/chat/chat-model-picker.tsx) | 2026-11-02 |
+| [components/chat/chat-sidebar.tsx](../components/chat/chat-sidebar.tsx) | 2026-11-02 |
 | [components/chat/image-gen-config.tsx](../components/chat/image-gen-config.tsx) | 2026-06-09 |
 | [components/chat/source-citations.tsx](../components/chat/source-citations.tsx) | 2026-07-31 |
-| [components/chat/use-enabled-models.ts](../components/chat/use-enabled-models.ts) | unknown |
+| [components/chat/use-enabled-models.ts](../components/chat/use-enabled-models.ts) | 2026-11-02 |
 | [components/clients/client-detail.tsx](../components/clients/client-detail.tsx) | 2026-06-15 |
 | [components/clients/client-form.tsx](../components/clients/client-form.tsx) | 2026-06-15 |
 | [components/clients/clients-view.tsx](../components/clients/clients-view.tsx) | 2026-06-15 |
 | [components/contact/contact-form.tsx](../components/contact/contact-form.tsx) | 2026-05-15 |
 | [components/diagnostic/recommended-readings.tsx](../components/diagnostic/recommended-readings.tsx) | 2026-05-24 |
-| [components/icons/social.tsx](../components/icons/social.tsx) | 2026-06-12 |
+| [components/icons/social.tsx](../components/icons/social.tsx) | 2026-11-02 |
 | [components/json-ld.tsx](../components/json-ld.tsx) | 2026-06-29 |
 | [components/kanban/board.tsx](../components/kanban/board.tsx) | 2026-06-15 |
 | [components/kanban/card-modal.tsx](../components/kanban/card-modal.tsx) | 2026-06-15 |

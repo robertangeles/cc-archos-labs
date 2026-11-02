@@ -3309,14 +3309,9 @@ export type NewDataModelCanvasState = typeof dataModelCanvasState.$inferInsert;
 //     │      └──▶ failed   (terminal at attempts >= 3)
 //     └──────────┘
 //
-// There is deliberately NO `published` status and NO FK to
-// workflow_execution_run:
+// There is deliberately NO `published` status:
 //   - Live state is derived by joining `post`; the scheduled publisher owns
 //     post.status, so one writer per column.
-//   - workflow_execution_run is pruned to 22 rows per workflow by pruneRuns
-//     (lib/workflows/runs.ts), and that DELETE runs inside a swallowed
-//     catch{} in executor.ts. An FK here would make pruning throw, get
-//     swallowed, and silently stop forever while step_results grew unbounded.
 export const contentPlanItem = pgTable(
   "content_plan_item",
   {

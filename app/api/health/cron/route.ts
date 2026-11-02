@@ -19,7 +19,7 @@ import { readHeartbeat } from "../../../../lib/cron-heartbeat";
 //   (none) or singleton  the booking cron's heartbeat, shape below, UNCHANGED
 //   news-radar           heartbeat age, a feed frozen behind green ticks, and
 //                        the last tick's outcome (see newsRadarHealth)
-// Any other id is a 400. posts-publisher and social-publisher heartbeats are
+// Any other id is a 400. The posts-publisher heartbeat is
 // written but not monitored here yet.
 //
 // Default (singleton) response shape:
