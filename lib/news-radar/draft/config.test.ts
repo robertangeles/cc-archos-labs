@@ -15,7 +15,7 @@ describe("parseDraftConfig", () => {
 
   it("defaults are the agreed ones", () => {
     expect(DEFAULT_DRAFT_CONFIG.dailyCap).toBe(3);
-    expect(DEFAULT_DRAFT_CONFIG.maxRewrites).toBe(2);
+    expect(DEFAULT_DRAFT_CONFIG.maxRewrites).toBe(3);
     expect(DEFAULT_DRAFT_CONFIG.contactEmail).toBe("rob.angeles@archoslabs.xyz");
     expect(DEFAULT_DRAFT_CONFIG.categorySlug).toBe("ai-news");
     expect(DEFAULT_DRAFT_CONFIG.models.judge).toBe("deepseek/deepseek-v4-flash-0731");
@@ -27,7 +27,7 @@ describe("parseDraftConfig", () => {
     expect(c.dailyCap).toBe(5);
     expect(c.models.writer).toBe("anthropic/claude-opus-5.5");
     expect(c.models.judge).toBe(DEFAULT_DRAFT_CONFIG.models.judge);
-    expect(c.maxRewrites).toBe(2);
+    expect(c.maxRewrites).toBe(3);
   });
 
   it.each([

@@ -238,10 +238,13 @@ export class SeedDerivationError extends Error {
 }
 
 /**
- * The news essay skill is Rob's Paul Graham essay skill with two changes: the
+ * The news essay skill is Rob's Paul Graham essay skill with three changes: the
  * "Intentional Imperfection" block is removed (it asks for an invented bias and a war
- * story, which his own Evidence Rule 3 forbids), and a Verdict line is added. The rest,
- * the voice, the evidence rules and the SEO package, stays exactly as he wrote it.
+ * story, which his own Evidence Rule 3 forbids), a Verdict line is added, and inferences
+ * are labelled in words ("I infer") instead of with an [Inference] tag, because a published
+ * post carries no bracket tags and the checks reject them (every first draft used to fail
+ * that check and cost a rewrite). The rest, the voice, the evidence rules and the SEO
+ * package, stays exactly as he wrote it.
  * Throws if the source no longer has the anchors, so a rewritten skill is noticed
  * instead of silently producing a half-changed copy.
  */
@@ -255,6 +258,11 @@ export function deriveFactcheckSkill(pg: { template: string; system: string | nu
   edit("the Intentional Imperfection block", /## Intentional Imperfection[\s\S]*?(?=## Sentence and paragraph structure)/, "");
   edit("the Output Structure heading", "## Output Structure (MANDATORY — follow exactly)", `${VERDICT_SECTION}## Output Structure (MANDATORY — follow exactly)`);
   edit("the hook line in the Output Structure", "[Hook paragraph — no header]\n", "[Hook paragraph — no header]\n\nVerdict: [true | half true | unproven | overblown | false]. [One sentence naming the evidence that decides it.]\n");
+  edit(
+    "the inference-labelling rule",
+    "- Label inferences explicitly. If a conclusion is not directly stated in the source, mark it [Inference].",
+    '- Label inferences explicitly, in words: write "I infer" or "my reading is" in the sentence itself. Never use a bracket tag such as [Inference]; the published piece carries no bracket tags.',
+  );
   return {
     slug: FACTCHECK_SLUG,
     name: "Archos AI News Factcheck",

@@ -53,6 +53,7 @@ Word count (MANDATORY): {{word_count}}
 ## Evidence Rules (HARD)
 
 1. Every figure must appear verbatim in the research.
+- Label inferences explicitly. If a conclusion is not directly stated in the source, mark it [Inference].
 3. Never claim personal experience.`;
 const PG = {
   template: PG_TEMPLATE,
@@ -152,12 +153,19 @@ describe("deriveFactcheckSkill", () => {
     expect(t).not.toContain("ends its argument in a verdict");
   });
 
-  it("changes only those three things", () => {
+  it("asks for inferences in words, not a bracket tag the checks would reject", () => {
+    const t = derived().template;
+    expect(t).not.toContain("mark it [Inference]");
+    expect(t).toContain('write "I infer" or "my reading is"');
+    expect(t).toContain("Never use a bracket tag");
+  });
+
+  it("changes only those four things", () => {
     const lines = (s: string) => new Set(s.split("\n"));
     const before = lines(PG_TEMPLATE);
     const after = lines(derived().template);
     const removed = [...before].filter((l) => !after.has(l)).filter((l) => l.trim());
-    expect(removed.every((l) => /irrational bias|awkward sentence|Intentional Imperfection/.test(l))).toBe(true);
+    expect(removed.every((l) => /irrational bias|awkward sentence|Intentional Imperfection|Label inferences/.test(l))).toBe(true);
   });
 
   it("keeps the source's system prompt, inputs and outputs", () => {
@@ -176,6 +184,7 @@ describe("deriveFactcheckSkill", () => {
     ["the Imperfection block", PG_TEMPLATE.replace(/## Intentional Imperfection[\s\S]*?(?=## Sentence)/, "")],
     ["the Output Structure heading", PG_TEMPLATE.replace("## Output Structure (MANDATORY — follow exactly)", "## Output")],
     ["the hook line", PG_TEMPLATE.replace("[Hook paragraph — no header]\n", "")],
+    ["the inference rule", PG_TEMPLATE.replace("mark it [Inference]", "mark it as an inference")],
   ])("refuses to derive when %s is gone, instead of making a half-changed copy", (_l, template) => {
     expect(() => deriveFactcheckSkill({ ...PG, template })).toThrow(SeedDerivationError);
   });

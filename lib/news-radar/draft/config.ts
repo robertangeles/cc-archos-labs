@@ -45,7 +45,7 @@ export interface DraftConfig {
 
 export const DEFAULT_DRAFT_CONFIG: DraftConfig = {
   dailyCap: 3,
-  maxRewrites: 2,
+  maxRewrites: 3,
   targetWords: 900,
   maxSources: 5,
   maxAttempts: 2,

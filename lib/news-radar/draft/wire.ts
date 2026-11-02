@@ -4,7 +4,6 @@ import type { DB } from "../../db";
 import { author, category, post } from "../../db/schema";
 import { generateImage } from "../../image-gen/service";
 import { getIntegrationConfig } from "../../integration-config";
-import { findSimilarPosts } from "../../posts/find-similar";
 import { createPost } from "../../posts-admin";
 import { attachImageToPost } from "../../posts-admin/attach-image";
 import { nextPublishSlot } from "../../posts-admin/publish-slots";
@@ -21,9 +20,6 @@ import { loadSkill } from "./skills";
 // else in lib/news-radar/draft takes these as arguments, which is what makes it
 // testable. There is deliberately nothing clever here.
 
-/** How far a post may be from a related one and still be linked; a cosine distance. */
-const RELATED_MAX_DISTANCE = 0.6;
-
 export function makeRunDeps(db: DB, cfg: DraftConfig): RunDeps {
   const assemble: AssembleDeps = {
     refs: async () => {
@@ -32,10 +28,6 @@ export function makeRunDeps(db: DB, cfg: DraftConfig): RunDeps {
       return cat && auth ? { categoryId: cat.id, authorId: auth.id } : null;
     },
     nextSlot: (now) => nextPublishSlot(db, now),
-    related: async (essay) => {
-      const rows = await findSimilarPosts({ queryText: { title: essay.title, excerpt: essay.meta }, limit: 3, maxDistance: RELATED_MAX_DISTANCE, visibility: "public" });
-      return rows.map((r) => ({ title: r.title, slug: r.slug }));
-    },
     slugTaken: async (slug) => (await db.select({ id: post.id }).from(post).where(eq(post.slug, slug)).limit(1)).length > 0,
     createDraftPost: async (input) => {
       const saved = await createPost(input, "agent:news-draft");

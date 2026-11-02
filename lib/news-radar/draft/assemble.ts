@@ -1,9 +1,9 @@
 // Turning the checked essay into a scheduled draft post.
 //
-// Three things are added by CODE, never written by the model: the Sources section
-// (only pages that were really fetched), the Related reading section (only posts that
-// exist on the site, from the embeddings) and the schedule (the next free publish slot).
+// Two things are added by CODE, never written by the model: the Sources section
+// (only pages that were really fetched) and the schedule (the next free publish slot).
 // The model never writes a link, which is why the gates forbid one in the essay.
+// Related posts are not listed here: the blog page's own Read next block does that.
 //
 // The post is created SCHEDULED with needs_review and is_agent_generated set. The
 // scheduled publisher already refuses to publish an agent post that needs review, so
@@ -21,17 +21,11 @@ export interface PostRefs {
   authorId: string;
 }
 
-export interface RelatedPost {
-  title: string;
-  slug: string;
-}
-
 export interface AssembleDeps {
   /** Category by slug and author by name; null if either is missing. */
   refs: () => Promise<PostRefs | null>;
   /** The next free publish slot at or after `now`. */
   nextSlot: (now: Date) => Promise<Date>;
-  related: (essay: ParsedEssay) => Promise<RelatedPost[]>;
   slugTaken: (slug: string) => Promise<boolean>;
   createDraftPost: (input: PostCreateInput) => Promise<{ postId: string; slug: string }>;
   attachImage: (postId: string, slug: string, buffer: Buffer, alt: string) => Promise<void>;
@@ -42,7 +36,6 @@ export type AssembleResult =
   | Stop;
 
 const MAX_TITLE = 140;
-const MAX_RELATED = 3;
 
 /** Text that goes inside a markdown link label: no brackets, no line breaks, no length. */
 const label = (s: string) => s.replace(/[[\]]/g, "").replace(/\s+/g, " ").trim().slice(0, MAX_TITLE);
@@ -64,14 +57,6 @@ export function sourcesSection(pages: FetchedPage[], item: StoryItem): string {
   return `## Sources\n\n${lines.join("\n")}`;
 }
 
-export function relatedSection(related: RelatedPost[]): string {
-  if (related.length === 0) return "";
-  return `## Related reading\n\n${related
-    .slice(0, MAX_RELATED)
-    .map((r) => `- [${label(r.title)}](/blog/${r.slug})`)
-    .join("\n")}`;
-}
-
 export async function assembleDraft(
   deps: AssembleDeps,
   cfg: DraftConfig,
@@ -83,13 +68,6 @@ export async function assembleDraft(
   const refs = await deps.refs();
   if (!refs) return stop("missing_setup", `category "${cfg.categorySlug}" or author "${cfg.authorName}" is not set up`);
 
-  let related: RelatedPost[] = [];
-  try {
-    related = await deps.related(parsed);
-  } catch {
-    notes.push("related reading was skipped");
-  }
-
   const slot = await deps.nextSlot(now);
   if (slot.getTime() <= now.getTime()) return stop("crashed", "the publish slot is not in the future");
 
@@ -97,7 +75,7 @@ export async function assembleDraft(
   let slug = base;
   for (let n = 2; n < 30 && (await deps.slugTaken(slug)); n++) slug = `${base}-${n}`;
 
-  const body = [parsed.body, relatedSection(related), sourcesSection(pages, item)].filter(Boolean).join("\n\n");
+  const body = [parsed.body, sourcesSection(pages, item)].filter(Boolean).join("\n\n");
   const created = await deps.createDraftPost({
     slug,
     title: parsed.title,
