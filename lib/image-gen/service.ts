@@ -2,7 +2,8 @@ import "server-only";
 import { getIntegrationConfig } from "../integration-config";
 import { OPENROUTER_URL, buildAuthHeaders } from "../llm/config";
 
-const IMAGE_MODEL = "google/gemini-3.1-flash-image-preview";
+// The chat workspace's model. The news pipeline passes its own (Seedream).
+const DEFAULT_IMAGE_MODEL = "google/gemini-3.1-flash-image-preview";
 const MAX_PROMPT_LENGTH = 16_000;
 const FETCH_TIMEOUT_MS = 25_000;
 
@@ -15,7 +16,15 @@ export type ImageSize = "0.5K" | "1K" | "2K" | "4K";
 export interface GenerateImageOptions {
   aspectRatio?: AspectRatio;
   imageSize?: ImageSize;
+  /** Defaults to the chat workspace's model. */
+  model?: string;
+  /** Defaults to 25 s, which suits Gemini. Seedream takes 60 to 110 s. */
+  timeoutMs?: number;
 }
+
+// Models that return text beside the image take ["image", "text"]. Image-only
+// models (Seedream, Flux, Recraft) reject that and need ["image"].
+const returnsText = (model: string) => /^(google|openai)\//.test(model);
 
 export interface GenerateImageResult {
   imageUrl: string;
@@ -125,8 +134,9 @@ export async function generateImage(
     );
   }
 
+  const model = options?.model ?? DEFAULT_IMAGE_MODEL;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), options?.timeoutMs ?? FETCH_TIMEOUT_MS);
 
   let response: Response;
   try {
@@ -134,9 +144,9 @@ export async function generateImage(
       method: "POST",
       headers: buildAuthHeaders(apiKey),
       body: JSON.stringify({
-        model: IMAGE_MODEL,
+        model,
         messages: [{ role: "user", content: trimmed }],
-        modalities: ["image", "text"],
+        modalities: returnsText(model) ? ["image", "text"] : ["image"],
         image_config: {
           aspect_ratio: options?.aspectRatio ?? "2:3",
           image_size: options?.imageSize ?? "2K",
@@ -193,5 +203,5 @@ export async function generateImage(
     );
   }
 
-  return { imageUrl, text, model: IMAGE_MODEL };
+  return { imageUrl, text, model };
 }

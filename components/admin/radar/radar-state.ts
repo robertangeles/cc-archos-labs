@@ -1,6 +1,7 @@
 import type {
   LabelDecision,
   RadarCounts,
+  RadarDraft,
   RadarLabel,
   RadarPageData,
   RadarRow,
@@ -67,4 +68,21 @@ export function applyLabelLocally(
       cohortLabelled: data.progress.cohortLabelled + delta,
     },
   };
+}
+
+const allRows = (data: RadarPageData): RadarRow[] => data.days.flatMap((d) => [...d.rows, ...d.more]);
+
+/** Is any shown story's draft still queued or running? Then the page keeps asking. */
+export function isDrafting(data: RadarPageData): boolean {
+  return allRows(data).some((r) => r.draft?.status === "queued" || r.draft?.status === "running");
+}
+
+/**
+ * Take only the draft state from a fresh page. Rows, their order and the labels stay as
+ * the person left them: a refresh of the draft line must never move a row or undo a press.
+ */
+export function mergeDrafts(data: RadarPageData, fresh: RadarPageData): RadarPageData {
+  const drafts = new Map<string, RadarDraft | null>(allRows(fresh).map((r) => [r.id, r.draft ?? null]));
+  const patch = (r: RadarRow): RadarRow => (drafts.has(r.id) ? { ...r, draft: drafts.get(r.id) } : r);
+  return { ...data, days: data.days.map((d) => ({ ...d, rows: d.rows.map(patch), more: d.more.map(patch) })) };
 }

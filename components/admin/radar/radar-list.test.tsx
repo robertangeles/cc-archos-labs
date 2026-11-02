@@ -199,3 +199,33 @@ describe("RadarList: days, caps and pages", () => {
     expect(out).toContain("Cohort v1 · 22-27 Oct");
   });
 });
+
+describe("RadarList: the draft line", () => {
+  const kept = (draft: RadarRow["draft"]) =>
+    html(data({ view: "kept" }, [row({ label: { id: "l1", decision: "keep" }, latestLabelId: "l1", draft })]));
+  const NONE = { postId: null, postStatus: null, publishAt: null, reason: null };
+
+  it("shows nothing for a story with no draft job", () => {
+    expect(kept(undefined)).not.toMatch(/Draft |Drafting/);
+    expect(kept(null)).not.toMatch(/Draft |Drafting/);
+  });
+
+  it("says a draft is queued or running, with no link", () => {
+    expect(kept({ ...NONE, status: "queued" })).toContain("Draft queued");
+    const running = kept({ ...NONE, status: "running" });
+    expect(running).toContain("Drafting now");
+    expect(running).not.toContain("/admin/blog/posts/");
+  });
+
+  it("links a ready draft to its post and says when it is due", () => {
+    const out = kept({ status: "succeeded", postId: "p1", postStatus: "scheduled", publishAt: "2026-10-27T13:00:00Z", reason: null });
+    expect(out).toContain("Draft ready. Review it before Wed 00:00 AEDT");
+    expect(out).toContain('href="/admin/blog/posts/p1"');
+    expect(out).toContain("Review draft");
+  });
+
+  it("says what needs Rob, in words", () => {
+    expect(kept({ ...NONE, status: "needs_attention", reason: "no_primary_source" })).toContain("Needs you: no primary source found");
+    expect(kept({ ...NONE, status: "failed", reason: "crashed" })).toContain("Drafting failed: drafting crashed");
+  });
+});

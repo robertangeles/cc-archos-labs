@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { applyLabelLocally, findRow, nextDecision, pendingLabel } from "./radar-state";
-import type { RadarPageData, RadarRow } from "../../../lib/news-radar/radar-page-types";
+import { applyLabelLocally, findRow, isDrafting, mergeDrafts, nextDecision, pendingLabel } from "./radar-state";
+import type { RadarDraft, RadarPageData, RadarRow } from "../../../lib/news-radar/radar-page-types";
 
 // The pure part of the label control (DES-D6): which decision a press means, and
 // how the page's counts and rows move when a label changes. The component only
@@ -87,5 +87,47 @@ describe("applyLabelLocally", () => {
   it("is a no-op for an unknown id", () => {
     const start = data([row()]);
     expect(applyLabelLocally(start, "nope", { id: "x", decision: "keep" }, "x", "2026-10-26")).toEqual(start);
+  });
+});
+
+const draft = (status: RadarDraft["status"], over: Partial<RadarDraft> = {}): RadarDraft => ({
+  status, postId: null, postStatus: null, publishAt: null, reason: null, ...over,
+});
+
+describe("isDrafting", () => {
+  it("is true while any shown story is queued or running, including behind 'Show more'", () => {
+    expect(isDrafting(data([row({ draft: draft("queued") })]))).toBe(true);
+    expect(isDrafting(data([row()], [row({ id: "r2", draft: draft("running") })]))).toBe(true);
+  });
+  it("is false once every draft has finished, or when there are none", () => {
+    expect(isDrafting(data([row()]))).toBe(false);
+    expect(isDrafting(data([row({ draft: draft("succeeded", { postId: "p" }) }), row({ id: "r2", draft: draft("needs_attention", { reason: "failed_gates" }) })]))).toBe(false);
+  });
+});
+
+describe("mergeDrafts", () => {
+  it("takes the draft state and nothing else: labels, order and counts stay as the person left them", () => {
+    const mine = data([row({ id: "a", label: { id: "pending", decision: "keep" } }), row({ id: "b" })]);
+    const theirs = data([row({ id: "b", label: { id: "x", decision: "skip" }, draft: draft("running") }), row({ id: "a", draft: draft("queued") })]);
+    theirs.counts = { toLabel: 0, shortlisted: 0, kept: 9, skipped: 9, all: 9 };
+    const next = mergeDrafts(mine, theirs);
+    expect(next.days[0].rows.map((r) => r.id)).toEqual(["a", "b"]); // not theirs' order
+    expect(next.days[0].rows[0]).toMatchObject({ label: { id: "pending", decision: "keep" }, draft: { status: "queued" } });
+    expect(next.days[0].rows[1]).toMatchObject({ label: null, draft: { status: "running" } }); // their skip is not taken
+    expect(next.counts).toEqual(mine.counts);
+  });
+
+  it("clears a draft the server no longer reports, and leaves a row it does not know alone", () => {
+    const mine = data([row({ id: "a", draft: draft("queued") }), row({ id: "gone", draft: draft("running") })]);
+    const theirs = data([row({ id: "a" })]);
+    const next = mergeDrafts(mine, theirs);
+    expect(next.days[0].rows[0].draft).toBeNull();
+    expect(next.days[0].rows[1].draft).toMatchObject({ status: "running" }); // not on their page: untouched
+  });
+
+  it("reaches rows behind 'Show more'", () => {
+    const mine = data([row({ id: "a" })], [row({ id: "m" })]);
+    const theirs = data([row({ id: "a" })], [row({ id: "m", draft: draft("queued") })]);
+    expect(mergeDrafts(mine, theirs).days[0].more[0].draft).toMatchObject({ status: "queued" });
   });
 });

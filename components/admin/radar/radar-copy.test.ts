@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   COPY,
+  draftLine,
   formatClock,
   formatDayHeader,
   formatRowTime,
   statusLines,
   truncateTitle,
 } from "./radar-copy";
-import type { RadarProgress, RadarStatus } from "../../../lib/news-radar/radar-page-types";
+import type { RadarDraft, RadarProgress, RadarStatus } from "../../../lib/news-radar/radar-page-types";
 
 // The exact words of the Radar page (plan DES-D8) and the Melbourne time
 // formatting. Strings are asserted verbatim: a copy change should be a
@@ -119,5 +120,51 @@ describe("status lines", () => {
 
   it("has no cohort text before any rubric exists", () => {
     expect(statusLines(progress(), status(), null, tz).cohort).toBe("");
+  });
+});
+
+describe("draftLine", () => {
+  const d = (status: RadarDraft["status"], over: Partial<RadarDraft> = {}): RadarDraft => ({
+    status, postId: null, postStatus: null, publishAt: null, reason: null, ...over,
+  });
+
+  it("says queued and running plainly, with nothing to open yet", () => {
+    expect(draftLine(d("queued"), "AEDT")).toEqual({ text: "Draft queued", tone: "muted" });
+    expect(draftLine(d("running"), "AEDT")).toEqual({ text: "Drafting now", tone: "muted" });
+  });
+
+  it("tells Rob to review a scheduled draft before it is due, in Melbourne time, and links the post", () => {
+    // 2026-10-27 13:00Z is Wed 00:00 in Melbourne (AEDT, UTC+11)
+    const line = draftLine(d("succeeded", { postId: "p1", postStatus: "scheduled", publishAt: "2026-10-27T13:00:00Z" }), "AEDT");
+    expect(line).toEqual({
+      text: "Draft ready. Review it before Wed 00:00 AEDT",
+      tone: "ok",
+      link: { href: "/admin/blog/posts/p1", label: "Review draft" },
+    });
+  });
+
+  it("says Published for a live post, and Draft ready for any other state of the post", () => {
+    expect(draftLine(d("succeeded", { postId: "p1", postStatus: "published", publishAt: "2026-10-27T13:00:00Z" }), "AEDT")).toMatchObject({ text: "Published", link: { label: "Open post" } });
+    expect(draftLine(d("succeeded", { postId: "p1", postStatus: "draft" }), "AEDT")).toMatchObject({ text: "Draft ready", link: { href: "/admin/blog/posts/p1" } });
+  });
+
+  it("says so when the post was deleted, with no dead link", () => {
+    expect(draftLine(d("succeeded"), "AEDT")).toEqual({ text: "Draft was deleted", tone: "muted" });
+  });
+
+  it("explains what needs Rob in words, never a code", () => {
+    expect(draftLine(d("needs_attention", { reason: "no_primary_source" }), "AEDT")).toEqual({ text: "Needs you: no primary source found", tone: "warn" });
+    expect(draftLine(d("needs_attention", { reason: "unverified_quotes" }), "AEDT").text).toBe("Needs you: the research quoted words the sources do not say");
+    expect(draftLine(d("failed", { reason: "crashed" }), "AEDT")).toEqual({ text: "Drafting failed: drafting crashed", tone: "bad" });
+  });
+
+  it("does not show an unknown or missing reason code", () => {
+    expect(draftLine(d("needs_attention", { reason: "something_new" }), "AEDT").text).toBe("Needs you: see the job");
+    expect(draftLine(d("failed"), "AEDT").text).toBe("Drafting failed: see the job");
+  });
+
+  it("every reason the pipeline can produce has words", () => {
+    const reasons = ["no_sources_found", "sources_unreachable", "no_primary_source", "unverified_quotes", "failed_gates", "slop_verdict", "judge_failed", "model_error", "missing_setup", "lease_expired", "crashed"];
+    for (const reason of reasons) expect(draftLine(d("needs_attention", { reason }), "AEDT").text).not.toContain("see the job");
   });
 });

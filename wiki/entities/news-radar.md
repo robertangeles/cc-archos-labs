@@ -2,8 +2,8 @@
 title: News radar
 category: entity
 created: 2026-10-26
-updated: 2026-10-27
-related: [[news-radar-runbook]], [[2026-10-26-news-radar-design-amendments-confirmed]], [[2026-10-24-remove-blog-agent-pipeline]], [[integration-config]], [[deployment-architecture]]
+updated: 2026-11-02
+related: [[news-radar-runbook]], [[news-draft-pipeline]], [[2026-10-26-news-radar-design-amendments-confirmed]], [[2026-10-24-remove-blog-agent-pipeline]], [[integration-config]], [[deployment-architecture]]
 ---
 
 A feed reader plus a scorer, replacing the deleted AI blog writer's front end. It reads huggingnews.com every two hours, has TypeSafe Jev score each item against a frozen rubric, and keeps the scores so Rob can mark items Keep or Skip. Release 1 is a **shadow week**: it drafts, researches, illustrates and publishes nothing. The gate to Release 2 (drafting) is at least 7 valid days, at least 50 labelled eligible items, a Keep rate of at least 50%, and at least 5 Kept topics Rob would personally write. Thresholds are fixed before data. Plan: `~/.gstack/projects/robertangeles-cc-archos-labs/ceo-plans/2026-10-25-blog-pipeline-rebuild-plan.md` (outside the repo). Operating it: [[news-radar-runbook]].
@@ -60,6 +60,10 @@ One real tick: 33 live feed items, all scored by `jev-1.14.0` with real embeddin
 - **Tested.** pglite for the rules and queries, server-render tests for every state and its exact copy, a token contrast test, and Playwright at 375, 768 and 1280 wide (keyboard only, reduced motion, an axe check with no WCAG A or AA violation, a 400-row backlog, conflict and save-failure states).
 
 Until the PROD migration is applied the tab shows "Couldn't load the radar." with a Retry, never an error page.
+
+## Release 2: drafting
+
+Pressing Keep now starts a background job that turns the story into a scheduled, human-review-required blog draft. See [[news-draft-pipeline]] and [[news-draft-runbook]]. The Radar page shows one line per Kept story with the draft's state and a link to the post. Built and tested on DEV; dormant on PROD until migration 0043, the skill seed and the `news_draft_enabled` switch.
 
 ## Not built yet
 

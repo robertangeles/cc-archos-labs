@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeRadarTestDb, type RadarTestDb } from "../../tests/helpers/radar-test-db";
 import { loadCohortSnapshot, loadRadarPage, loadRadarSummary } from "./queries";
@@ -29,7 +31,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await t.client.exec(`
     TRUNCATE news_candidate_score, news_candidate_label, news_candidate,
-             news_radar_tick, news_radar_rubric, site_setting RESTART IDENTITY`);
+             news_radar_tick, news_radar_rubric, site_setting RESTART IDENTITY CASCADE`);
 });
 
 // Mon 26 Oct 2026 17:30 AEDT (UTC+11, daylight saving began 4 Oct).
@@ -804,11 +806,120 @@ describe("a 400-item backlog", () => {
         const p = await page(view);
         const ms = performance.now() - started;
         expect(ms).toBeLessThan(2000);
-        expect(spy.mock.calls.length).toBeLessThanOrEqual(4); // rubrics, cohort starts, ticks, items: no per-row query
+        expect(spy.mock.calls.length).toBeLessThanOrEqual(5); // rubrics, cohort starts, ticks, items, drafts (one query for all shown rows): no per-row query
         expect(p.counts.all).toBe(400);
       }
     } finally {
       spy.mockRestore();
     }
+  });
+});
+
+// The draft line on each row. These two blocks go last: the first runs while the draft
+// tables do not exist (a database that has not had migration 0043), the second adds them.
+describe("drafts before migration 0043", () => {
+  it("still loads the page, and the rows carry no draft", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    await rubric();
+    await seed({ n: 1, fit: 2 });
+    await label(1, "keep");
+    const kept = await page("kept");
+    expect(flat(kept.days)).toEqual([1]);
+    expect(kept.days[0].rows[0].draft).toBeUndefined();
+    // the error's name only, never its message
+    expect(spy).toHaveBeenCalledWith("[radar] draft status unavailable:", expect.any(String));
+    spy.mockRestore();
+  });
+});
+
+describe("drafts", () => {
+  beforeAll(async () => {
+    await t.client.exec(
+      `CREATE TABLE post (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), status text NOT NULL DEFAULT 'draft', published_at timestamptz, scheduled_publish_at timestamptz)`,
+    );
+    const sql = readFileSync(join(process.cwd(), "drizzle", "0043_news_draft.sql"), "utf8");
+    for (const stmt of sql.split(/-->\s*statement-breakpoint/i).map((x) => x.trim()).filter(Boolean)) await t.client.exec(stmt);
+  });
+  afterAll(async () => {
+    await t.client.exec(`DROP TABLE news_draft_step, news_draft_job, post`);
+  });
+  beforeEach(async () => {
+    await t.client.exec(`DELETE FROM post`);
+  });
+
+  const job = (n: number, status: string, extra: { reason?: string; post?: string } = {}) =>
+    q(
+      `INSERT INTO news_draft_job (candidate_id, status, attention_reason, post_id, claimed_by, claimed_until, finished_at)
+       VALUES ($1, $2, $3, $4,
+         CASE WHEN $2 = 'running' THEN gen_random_uuid() END, CASE WHEN $2 = 'running' THEN now() END,
+         CASE WHEN $2 IN ('succeeded','needs_attention','failed','cancelled') THEN now() END)`,
+      [uid(n), status, extra.reason ?? null, extra.post ?? null],
+    );
+  // A scheduled post carries only scheduled_publish_at; a published one carries published_at.
+  const addPost = async (status: string, at: string | null) =>
+    (await q<{ id: string }>(
+      `INSERT INTO post (status, published_at, scheduled_publish_at) VALUES ($1, $2, $3) RETURNING id`,
+      [status, status === "published" ? at : null, status === "scheduled" ? at : null],
+    ))[0].id;
+  const draftOf = async (n: number, view: RadarView = "kept") =>
+    (await page(view)).days.flatMap((d) => d.rows).find((r) => numOf(r.id) === n)?.draft;
+
+  it("puts the job and its scheduled post on the kept row", async () => {
+    await rubric();
+    await seed({ n: 1, fit: 2 });
+    await label(1, "keep");
+    const postId = await addPost("scheduled", "2026-10-28T13:00:00Z");
+    await job(1, "succeeded", { post: postId });
+    expect(await draftOf(1)).toEqual({
+      status: "succeeded",
+      postId,
+      postStatus: "scheduled",
+      publishAt: "2026-10-28T13:00:00.000Z",
+      reason: null,
+    });
+  });
+
+  it("gives a published post the time it went live", async () => {
+    await rubric();
+    await seed({ n: 1, fit: 2 });
+    await label(1, "keep");
+    const postId = await addPost("published", "2026-10-28T13:00:00Z");
+    await job(1, "succeeded", { post: postId });
+    expect(await draftOf(1)).toMatchObject({ postStatus: "published", publishAt: "2026-10-28T13:00:00.000Z" });
+  });
+
+  it("carries a queued, a running and a needs-attention job, each with its own state", async () => {
+    await rubric();
+    await seed({ n: 1, fit: 2 }, { n: 2, fit: 2 }, { n: 3, fit: 2 }, { n: 4, fit: 2 });
+    await labelMany([[1, "keep"], [2, "keep"], [3, "keep"], [4, "keep"]]);
+    await job(1, "queued");
+    await job(2, "running");
+    await job(3, "needs_attention", { reason: "no_primary_source" });
+    const byN = Object.fromEntries((await page("kept")).days.flatMap((d) => d.rows).map((r) => [numOf(r.id), r.draft]));
+    expect(byN[1]).toMatchObject({ status: "queued", postId: null, reason: null });
+    expect(byN[2]).toMatchObject({ status: "running" });
+    expect(byN[3]).toMatchObject({ status: "needs_attention", postId: null, reason: "no_primary_source" });
+    expect(byN[4]).toBeUndefined(); // Kept, no job yet
+  });
+
+  it("a deleted post leaves the job with no post to open", async () => {
+    await rubric();
+    await seed({ n: 1, fit: 2 });
+    await label(1, "keep");
+    const postId = await addPost("draft", null);
+    await job(1, "succeeded", { post: postId });
+    await q(`DELETE FROM post WHERE id = $1`, [postId]);
+    expect(await draftOf(1)).toMatchObject({ status: "succeeded", postId: null, postStatus: null, publishAt: null });
+  });
+
+  it("shows the draft in every view that lists the row, 'Show more' rows included", async () => {
+    await rubric(); // dailyCap 2: the third item of the day sits behind "Show more"
+    await seed({ n: 1, fit: 3 }, { n: 2, fit: 3 }, { n: 3, fit: 2 });
+    await label(3, "keep");
+    await job(3, "queued");
+    const short = (await page("shortlisted")).days[0];
+    expect(short.more.map((r) => numOf(r.id))).toEqual([3]);
+    expect(short.more[0].draft).toMatchObject({ status: "queued" });
+    expect(await draftOf(3, "all")).toMatchObject({ status: "queued" });
   });
 });

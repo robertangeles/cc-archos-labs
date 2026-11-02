@@ -2,8 +2,8 @@
 title: News radar — operational runbook
 category: runbook
 created: 2026-10-26
-updated: 2026-10-27
-related: [[deployment-architecture]], [[integration-config]], [[reset-admin-password]]
+updated: 2026-11-02
+related: [[news-draft-runbook]], [[deployment-architecture]], [[integration-config]], [[reset-admin-password]]
 ---
 
 The news radar reads the HuggingNews feed every two hours, has TypeSafe Jev score each item against a frozen rubric, and keeps the scores for a Keep/Skip shortlist (Radar page, PR2). Release 1 drafts, researches, illustrates and publishes **nothing**. Plan: `~/.gstack/projects/robertangeles-cc-archos-labs/ceo-plans/2026-10-25-blog-pipeline-rebuild-plan.md` (outside the repo).
@@ -26,6 +26,8 @@ The news radar reads the HuggingNews feed every two hours, has TypeSafe Jev scor
 | Flag | `site_setting` key `news_radar_enabled`, `{"enabled": true}`; **absent means off** |
 
 Merging does not start anything: the flag is off and there is no Render cron job. Merging ships code to PROD, never schema.
+
+Drafting a Kept story (Release 2) has its own runbook: [[news-draft-runbook]].
 
 ## Activation checklist (PROD)
 
