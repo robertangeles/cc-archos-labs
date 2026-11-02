@@ -169,20 +169,23 @@ The integration-secrets pattern ([[integration-config]]) stores all of the above
 
 ### Render Cron jobs
 
-Three cron jobs are configured in the Render dashboard (plus the two daily purge jobs, and the planned `news-radar` one below) (not in repo — there is no `render.yaml`). All POST to authenticated endpoints with `Authorization: Bearer ${CRON_SECRET}` (single secret shared across cron + runtime).
+Five cron jobs are configured in the Render dashboard (not in repo — there is no `render.yaml`). All POST to authenticated endpoints with `Authorization: Bearer ${CRON_SECRET}` (single secret shared across cron + runtime). The first column is the service name shown in the Render dashboard, which is not always the route name. Schedules are UTC. List them with `render services -o json --confirm` (the CLI and MCP can list services but not delete them).
 
-| Cron | Schedule | Endpoint | Purpose | Heartbeat row id |
+| Render service | Schedule | Endpoint | Purpose | Heartbeat row id |
 |---|---|---|---|---|
-| `process-scheduled` | every minute | `POST /api/cron/process-scheduled` | Drains the `scheduled_job` queue (booking reminders, pre-call briefs, post-call follow-ups, no-show recovery) | `singleton` |
+| `archos-booking-cron` | every minute | `POST /api/cron/process-scheduled` | Drains the `scheduled_job` queue (booking reminders, pre-call briefs, post-call follow-ups, no-show recovery) | `singleton` |
 | `process-scheduled-posts` | every minute | `POST /api/cron/process-scheduled-posts` | Flips `post.status='scheduled' AND scheduled_publish_at <= now()` rows to `published`. Writes a `post_revision` row tagged `savedBy='scheduler-cron'` per publish. | `posts-publisher` |
-| ~~`process-scheduled-social`~~ | every minute | ~~`POST /api/cron/process-scheduled-social`~~ | **Route removed 2026-11-02** with the social posts feature ([[2026-11-02-remove-skills-workflows-social]]). The Render cron job of the same name (`crn-d8n925urnols73df41v0`) was deleted in the dashboard on 2026-11-03 (the CLI and MCP cannot delete services). Do not confuse it with `process-scheduled-posts`, the blog scheduler, which stays. | `social-publisher` (orphan row on PROD, last written 2026-07-10, nothing reads it) |
-| `news-radar` (**not created yet**; created at activation, see [[news-radar-runbook]]) | `0 */2 * * *` (UTC, every 2 hours) | `POST /api/cron/news-radar` | Reads the HuggingNews feed, has TypeSafe Jev score each item, logs the tick. Dormant until the `news_radar_enabled` flag is on. Release 1 only: it drafts and publishes nothing. | `news-radar` |
+| `archos-lab-purge-session-metadata` | daily 03:00 | `POST /api/cron/purge-session-metadata` | Enforces the 30-day retention window on `assessment_session.ip_address` and `.user_agent` (per /privacy). Idempotent. | none |
+| `cc-archos-labs` | daily 03:05 | `POST /api/cron/purge-inactive-leads` | Deletes lead accounts with no activity in 24 months, plus their linked sessions, reports and tokens (per /privacy). Idempotent. | none |
+| `news-radar` | `0 */2 * * *` (every 2 hours) | `POST /api/cron/news-radar` | Reads the HuggingNews feed, has TypeSafe Jev score each item, logs the tick. Live on PROD since 2026-11-02 (`news_radar_enabled` is on). The tick also calls `kickDrafting()` as the draft pipeline's sweep: it restarts a job whose process died and picks up a Keep that arrived while the draft switch was off. See [[news-radar-runbook]] and [[news-draft-pipeline]]. | `news-radar` |
 
-If `CRON_SECRET` is missing / shorter than 16 chars, all three routes return 503 (cron not configured) BEFORE checking the bearer. Same behaviour locally + in prod — local dev rarely needs the cron running.
+**Removed:** `process-scheduled-social`. Its route went on 2026-11-02 with the social posts feature ([[2026-11-02-remove-skills-workflows-social]]) and the Render cron (`crn-d8n925urnols73df41v0`) was deleted in the dashboard on 2026-11-03. Do not confuse it with `process-scheduled-posts`, the blog scheduler, which stays. Its heartbeat row `social-publisher` is still on PROD, orphaned, last written 2026-07-10; nothing reads it.
+
+If `CRON_SECRET` is missing / shorter than 16 chars, every cron route above returns 503 (cron not configured) BEFORE checking the bearer. Same behaviour locally + in prod — local dev rarely needs the cron running.
 
 ### Render cron job configuration (exact settings)
 
-All three cron jobs use identical Render configuration. **Copy this exactly when adding a new cron:**
+All five cron jobs use the same Render configuration apart from schedule and endpoint. **Copy this exactly when adding a new cron:**
 
 | Setting | Value |
 |---|---|
@@ -190,11 +193,13 @@ All three cron jobs use identical Render configuration. **Copy this exactly when
 | Language | Node |
 | Region | Singapore (Southeast Asia) — same as database |
 | Instance Type | Starter (0.5 CPU, 512 MB) |
-| Schedule | `* * * * *` (every minute) |
+| Schedule | per the table above (UTC) |
 | Build Command | `true` |
-| Command | `curl -X POST -H "Authorization: Bearer $CRON_SECRET" https://archoslabs.xyz/api/cron/<endpoint-name>` |
+| Command | `curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://archoslabs.xyz/api/cron/<endpoint-name>` |
 | Auto-Deploy | On Commit |
 | Env vars | `CRON_SECRET` — same value as the web service |
+
+`-f` makes curl exit non-zero on an HTTP 4xx/5xx, so Render marks the run failed. Without it a run whose route answers 404 still counts as a success, which is how the removed social cron went on reporting success while it hit a missing route. Four of the five crons use `-fsS`; `process-scheduled-posts` predates it and is watched through its heartbeat row instead.
 
 **Do NOT use Docker images for cron jobs.** The Git Provider approach runs in a proper shell where `$CRON_SECRET` is expanded correctly. Docker exec form does not expand environment variables.
 
