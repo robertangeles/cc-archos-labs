@@ -313,7 +313,9 @@ LLM-friendly site description at `/llms.txt` and `/llms-full.txt`.
 
 ---
 
-## Model Studio migration (from Spresso) — IN PROGRESS
+## Model Studio migration (from Spresso) — REMOVED 2026-11-02
+
+> **Removed 2026-11-02** ([[2026-11-02-remove-model-studio]]). The list view, the canvas and the five tables were deleted; nothing below is planned. Kept as history.
 
 Migrating Spresso's data-modelling tool into Archos Labs in phases. The end goal is a full data-modelling platform — an "Erwin killer": metadata management, data dictionary, business glossary, DDL forward/reverse engineering, lineage, model versioning/diff. We are nowhere near that yet. Full detail + roadmap in [[model-studio-canvas]].
 
