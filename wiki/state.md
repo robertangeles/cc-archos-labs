@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-10-25T22:27:05.045Z
+generated: 2026-11-02T00:55:46.401Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -44,7 +44,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/admin/(authed)/blog/posts/[id]` | [app/admin/(authed)/blog/posts/[id]/page.tsx](../app/admin/(authed)/blog/posts/[id]/page.tsx) | 2026-05-21 |
 | `/admin/(authed)/blog/posts/[id]/revisions` | [app/admin/(authed)/blog/posts/[id]/revisions/page.tsx](../app/admin/(authed)/blog/posts/[id]/revisions/page.tsx) | 2026-05-21 |
 | `/admin/(authed)/blog/posts/new` | [app/admin/(authed)/blog/posts/new/page.tsx](../app/admin/(authed)/blog/posts/new/page.tsx) | 2026-05-21 |
-| `/admin/(authed)/blog/radar` | [app/admin/(authed)/blog/radar/page.tsx](../app/admin/(authed)/blog/radar/page.tsx) | unknown |
+| `/admin/(authed)/blog/radar` | [app/admin/(authed)/blog/radar/page.tsx](../app/admin/(authed)/blog/radar/page.tsx) | 2026-10-26 |
 | `/admin/(authed)/bookings` | [app/admin/(authed)/bookings/page.tsx](../app/admin/(authed)/bookings/page.tsx) | 2026-06-12 |
 | `/admin/(authed)/cdmp` | [app/admin/(authed)/cdmp/page.tsx](../app/admin/(authed)/cdmp/page.tsx) | 2026-06-03 |
 | `/admin/(authed)/diagnostic` | [app/admin/(authed)/diagnostic/page.tsx](../app/admin/(authed)/diagnostic/page.tsx) | 2026-05-15 |
@@ -123,8 +123,8 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/posts/[id]/revisions` | [app/api/admin/posts/[id]/revisions/route.ts](../app/api/admin/posts/[id]/revisions/route.ts) | 2026-05-20 |
 | `/api/admin/posts/[id]/revisions/[revId]/restore` | [app/api/admin/posts/[id]/revisions/[revId]/restore/route.ts](../app/api/admin/posts/[id]/revisions/[revId]/restore/route.ts) | 2026-05-20 |
 | `/api/admin/posts/[id]/suggest-links` | [app/api/admin/posts/[id]/suggest-links/route.ts](../app/api/admin/posts/[id]/suggest-links/route.ts) | 2026-05-20 |
-| `/api/admin/radar` | [app/api/admin/radar/route.ts](../app/api/admin/radar/route.ts) | unknown |
-| `/api/admin/radar/[id]` | [app/api/admin/radar/[id]/route.ts](../app/api/admin/radar/[id]/route.ts) | unknown |
+| `/api/admin/radar` | [app/api/admin/radar/route.ts](../app/api/admin/radar/route.ts) | 2026-10-26 |
+| `/api/admin/radar/[id]` | [app/api/admin/radar/[id]/route.ts](../app/api/admin/radar/[id]/route.ts) | 2026-10-26 |
 | `/api/admin/settings/blog-enabled` | [app/api/admin/settings/blog-enabled/route.ts](../app/api/admin/settings/blog-enabled/route.ts) | 2026-05-20 |
 | `/api/admin/settings/blog-library` | [app/api/admin/settings/blog-library/route.ts](../app/api/admin/settings/blog-library/route.ts) | 2026-06-12 |
 | `/api/admin/settings/booking-prompts` | [app/api/admin/settings/booking-prompts/route.ts](../app/api/admin/settings/booking-prompts/route.ts) | 2026-05-17 |
@@ -278,12 +278,12 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/admin/integrations/consultant-profile-form.tsx](../components/admin/integrations/consultant-profile-form.tsx) | 2026-06-12 |
 | [components/admin/integrations/integrations-grid.tsx](../components/admin/integrations/integrations-grid.tsx) | 2026-10-26 |
 | [components/admin/integrations/integrations-panel.tsx](../components/admin/integrations/integrations-panel.tsx) | 2026-10-26 |
-| [components/admin/radar/radar-copy.test.ts](../components/admin/radar/radar-copy.test.ts) | unknown |
-| [components/admin/radar/radar-copy.ts](../components/admin/radar/radar-copy.ts) | unknown |
-| [components/admin/radar/radar-list.test.tsx](../components/admin/radar/radar-list.test.tsx) | unknown |
-| [components/admin/radar/radar-list.tsx](../components/admin/radar/radar-list.tsx) | unknown |
-| [components/admin/radar/radar-state.test.ts](../components/admin/radar/radar-state.test.ts) | unknown |
-| [components/admin/radar/radar-state.ts](../components/admin/radar/radar-state.ts) | unknown |
+| [components/admin/radar/radar-copy.test.ts](../components/admin/radar/radar-copy.test.ts) | 2026-10-26 |
+| [components/admin/radar/radar-copy.ts](../components/admin/radar/radar-copy.ts) | 2026-10-26 |
+| [components/admin/radar/radar-list.test.tsx](../components/admin/radar/radar-list.test.tsx) | 2026-10-26 |
+| [components/admin/radar/radar-list.tsx](../components/admin/radar/radar-list.tsx) | 2026-10-26 |
+| [components/admin/radar/radar-state.test.ts](../components/admin/radar/radar-state.test.ts) | 2026-10-26 |
+| [components/admin/radar/radar-state.ts](../components/admin/radar/radar-state.ts) | 2026-10-26 |
 | [components/analytics/analytics-client.tsx](../components/analytics/analytics-client.tsx) | 2026-05-18 |
 | [components/analytics/consent-banner.tsx](../components/analytics/consent-banner.tsx) | 2026-07-25 |
 | [components/analytics/consent.test.ts](../components/analytics/consent.test.ts) | 2026-07-25 |

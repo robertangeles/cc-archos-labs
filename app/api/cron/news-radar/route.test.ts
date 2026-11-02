@@ -12,6 +12,8 @@ vi.mock("../../../../lib/news-radar/radar", () => ({
 vi.mock("../../../../lib/cron-heartbeat", () => ({
   touchHeartbeat: (...a: unknown[]) => touchHeartbeat(...a),
 }));
+const kickDrafting = vi.fn();
+vi.mock("../../../../lib/news-radar/draft/kick", () => ({ kickDrafting: () => kickDrafting() }));
 
 const { POST } = await import("./route");
 
@@ -28,6 +30,7 @@ const call = (headers: Record<string, string> = { authorization: `Bearer ${SECRE
 beforeEach(() => {
   runTick.mockReset().mockResolvedValue(result());
   touchHeartbeat.mockReset().mockResolvedValue(undefined);
+  kickDrafting.mockReset();
   vi.stubEnv("CRON_SECRET", SECRET);
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -93,5 +96,29 @@ describe("POST /api/cron/news-radar", () => {
     expect(text).toContain("Tick crashed.");
     expect(text).not.toContain("secret title");
     expect(touchHeartbeat).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/cron/news-radar: the drafting sweep", () => {
+  it("sweeps for drafting work after a tick", async () => {
+    expect((await call()).status).toBe(200);
+    expect(kickDrafting).toHaveBeenCalledTimes(1);
+  });
+
+  it("sweeps even when the radar itself is switched off (a Keep may be waiting)", async () => {
+    runTick.mockResolvedValue(result({ outcome: "disabled" }));
+    await call();
+    expect(kickDrafting).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not sweep for an unauthorised call", async () => {
+    expect((await call({})).status).toBe(401);
+    expect(kickDrafting).not.toHaveBeenCalled();
+  });
+
+  it("does not sweep when the tick crashed", async () => {
+    runTick.mockRejectedValue(new Error("boom"));
+    expect((await call()).status).toBe(503);
+    expect(kickDrafting).not.toHaveBeenCalled();
   });
 });

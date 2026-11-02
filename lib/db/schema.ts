@@ -4365,3 +4365,116 @@ export type NewsCandidateScore = typeof newsCandidateScore.$inferSelect;
 export type NewNewsCandidateScore = typeof newsCandidateScore.$inferInsert;
 export type NewsCandidateLabel = typeof newsCandidateLabel.$inferSelect;
 export type NewsRadarTick = typeof newsRadarTick.$inferSelect;
+
+// ============================================================================
+// News draft pipeline (Release 2) — migration 0043
+// ============================================================================
+// One job follows one Kept story from "queued" to a scheduled draft post, or to
+// "needs_attention" with the reason a person must look. One step row per
+// finished stage keeps what it produced and what it cost. A job that loses its
+// process restarts from its first stage; steps are an audit trail, not a
+// checkpoint. candidate_id / job_id follow the news_* family's naming (see the
+// header of drizzle/0043_news_draft.sql).
+// ============================================================================
+
+export const newsDraftJob = pgTable(
+  "news_draft_job",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // One job per story: a story is drafted once.
+    candidateId: uuid("candidate_id")
+      .notNull()
+      .unique()
+      .references(() => newsCandidate.id, { onDelete: "restrict" }),
+    // queued | running | succeeded | needs_attention | failed | cancelled
+    status: text("status").notNull().default("queued"),
+    // Random uuid minted per run; the lease exists exactly while running.
+    claimedBy: uuid("claimed_by"),
+    claimedUntil: timestamp("claimed_until", { withTimezone: true }),
+    attempts: integer("attempts").notNull().default(0),
+    // First claim; drives the per-Melbourne-day cap.
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    postId: uuid("post_id").references(() => post.id, { onDelete: "set null" }),
+    // Machine-readable reason and a short human detail (never article text).
+    attentionReason: text("attention_reason"),
+    attentionDetail: text("attention_detail"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    check(
+      "news_draft_job_status_check",
+      sql`${table.status} IN ('queued', 'running', 'succeeded', 'needs_attention', 'failed', 'cancelled')`,
+    ),
+    check(
+      "news_draft_job_lease_check",
+      sql`(${table.status} = 'running') = (${table.claimedBy} IS NOT NULL AND ${table.claimedUntil} IS NOT NULL)`,
+    ),
+    check(
+      "news_draft_job_reason_check",
+      sql`(${table.status} IN ('needs_attention', 'failed')) = (${table.attentionReason} IS NOT NULL)`,
+    ),
+    check(
+      "news_draft_job_finished_check",
+      sql`(${table.status} IN ('succeeded', 'needs_attention', 'failed', 'cancelled')) = (${table.finishedAt} IS NOT NULL)`,
+    ),
+    check(
+      "news_draft_job_post_check",
+      sql`${table.postId} IS NULL OR ${table.status} = 'succeeded'`,
+    ),
+    // Work selection: "oldest queued job" and "running jobs whose lease expired".
+    index("news_draft_job_work_idx")
+      .on(table.createdAt)
+      .where(sql`${table.status} IN ('queued', 'running')`),
+    // The daily cap: "how many jobs started on this Melbourne day".
+    index("news_draft_job_started_at_idx")
+      .on(table.startedAt)
+      .where(sql`${table.startedAt} IS NOT NULL`),
+    // FK index: "which job made this post" and the SET NULL scan on post delete.
+    index("news_draft_job_post_id_idx")
+      .on(table.postId)
+      .where(sql`${table.postId} IS NOT NULL`),
+  ],
+);
+
+export const newsDraftStep = pgTable(
+  "news_draft_step",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => newsDraftJob.id, { onDelete: "restrict" }),
+    // research | thesis | steelman | essay | judge_1 | rewrite_1 | ... | photo | image
+    stepKey: text("step_key").notNull(),
+    // Which try of the job wrote it (a restarted job writes attempt 2).
+    attempt: integer("attempt").notNull().default(1),
+    // ok | failed
+    status: text("status").notNull().default("ok"),
+    output: text("output").notNull().default(""),
+    model: text("model"),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    costUsd: numeric("cost_usd", { precision: 10, scale: 6 }),
+    durationMs: integer("duration_ms").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // Its leading column also serves the job_id FK: "every step of this job".
+    unique("news_draft_step_unique").on(table.jobId, table.stepKey, table.attempt),
+    check("news_draft_step_status_check", sql`${table.status} IN ('ok', 'failed')`),
+    check("news_draft_step_attempt_check", sql`${table.attempt} >= 1`),
+  ],
+);
+
+export type NewsDraftJob = typeof newsDraftJob.$inferSelect;
+export type NewsDraftStep = typeof newsDraftStep.$inferSelect;

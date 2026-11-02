@@ -9,6 +9,7 @@
 import { z } from "zod";
 import { assertSameOriginRequest, CsrfOriginError } from "../../../../../lib/auth/csrf";
 import { getDb } from "../../../../../lib/db";
+import { kickDrafting } from "../../../../../lib/news-radar/draft/kick";
 import { applyLabel } from "../../../../../lib/news-radar/labels";
 import type {
   LabelConflict,
@@ -60,6 +61,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     const result = await applyLabel(getDb(), id, parsed.data);
     switch (result.kind) {
       case "ok":
+        // A Keep starts the drafting pipeline. It runs after this response is sent, never
+        // fails the label, and does nothing while the pipeline's switch is off.
+        if (result.label?.decision === "keep") kickDrafting();
         return Response.json({
           ok: true,
           label: result.label,

@@ -11,6 +11,8 @@ vi.mock("../../../../../lib/news-radar/labels", () => ({
   applyLabel: (...a: unknown[]) => applyLabel(...a),
 }));
 vi.mock("../../../../../lib/db", () => ({ getDb: () => DB }));
+const kickDrafting = vi.fn();
+vi.mock("../../../../../lib/news-radar/draft/kick", () => ({ kickDrafting: () => kickDrafting() }));
 
 const { PATCH } = await import("./route");
 
@@ -31,6 +33,7 @@ function patch(body: unknown, id: string = ITEM, raw?: string) {
 
 beforeEach(() => {
   applyLabel.mockReset();
+  kickDrafting.mockReset();
   vi.stubEnv("NEXT_PUBLIC_SITE_URL", "http://localhost");
 });
 
@@ -162,5 +165,40 @@ describe("PATCH /api/admin/radar/[id] validation", () => {
 
     expect(res.status).toBe(200);
     expect(applyLabel).toHaveBeenCalledWith(DB, ITEM, { decision: "clear", requestId: REQUEST });
+  });
+});
+
+describe("PATCH /api/admin/radar/[id] starts drafting on a Keep", () => {
+  const send = (decision: string) => patch({ decision, requestId: REQUEST });
+
+  it("starts drafting when the saved label is keep", async () => {
+    applyLabel.mockResolvedValue({ kind: "ok", label: LABEL, latestLabelId: LABEL.id, changed: true });
+    expect((await send("keep")).status).toBe(200);
+    expect(kickDrafting).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["a skip", { kind: "ok", label: { id: LABEL.id, decision: "skip" }, latestLabelId: LABEL.id, changed: true }],
+    ["a clear", { kind: "ok", label: null, latestLabelId: LABEL.id, changed: true }],
+  ])("does not start drafting for %s", async (_l, result) => {
+    applyLabel.mockResolvedValue(result);
+    await send("skip");
+    expect(kickDrafting).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["a conflict", { kind: "conflict", current: null, latestLabelId: null }, 409],
+    ["an item that is not found", { kind: "not-found" }, 404],
+    ["an item that is not scored", { kind: "not-scored" }, 422],
+  ])("does not start drafting for %s", async (_l, result, status) => {
+    applyLabel.mockResolvedValue(result);
+    expect((await send("keep")).status).toBe(status);
+    expect(kickDrafting).not.toHaveBeenCalled();
+  });
+
+  it("does not start drafting when the request is refused", async () => {
+    const res = await PATCH(new Request(`http://localhost/api/admin/radar/${ITEM}`, { method: "PATCH", headers: { origin: "https://evil.example" }, body: JSON.stringify({ decision: "keep", requestId: REQUEST }) }), { params: Promise.resolve({ id: ITEM }) });
+    expect(res.status).toBe(403);
+    expect(kickDrafting).not.toHaveBeenCalled();
   });
 });

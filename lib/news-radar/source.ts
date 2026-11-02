@@ -270,7 +270,8 @@ export function extractMainText(html: string): string {
   return tidy(decodeEntities(out.slice(0, MAX_TEXT_CHARS)));
 }
 
-const matchForm = (s: string) =>
+/** The form two texts are compared in: typography, case and spacing smoothed away. */
+export const normalizeForMatch = (s: string) =>
   s
     .normalize("NFKC")
     .toLowerCase()
@@ -287,8 +288,8 @@ const matchForm = (s: string) =>
  * under 20 characters proves nothing, so it never verifies.
  */
 export function quoteIsInText(text: string, quote: string): boolean {
-  const q = matchForm(quote);
-  return q.length >= 20 && matchForm(text).includes(q);
+  const q = normalizeForMatch(quote);
+  return q.length >= 20 && normalizeForMatch(text).includes(q);
 }
 
 // --- fetching --------------------------------------------------------------

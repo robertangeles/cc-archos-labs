@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "../../../../lib/auth";
 import { touchHeartbeat } from "../../../../lib/cron-heartbeat";
+import { kickDrafting } from "../../../../lib/news-radar/draft/kick";
 import { runTick } from "../../../../lib/news-radar/radar";
 
 // POST /api/cron/news-radar
@@ -64,6 +65,11 @@ export async function POST(request: NextRequest) {
     failed: result.failedCount + result.unscored,
     durationMs: Date.now() - runStart,
   });
+
+  // The tick doubles as the sweep for the drafting pipeline: it restarts a job whose
+  // process died and picks up a Keep that arrived while the switch was off. A no-op
+  // when there is nothing to do; returns at once, the work runs after the response.
+  kickDrafting();
 
   return NextResponse.json(
     {
