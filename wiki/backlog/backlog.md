@@ -259,7 +259,7 @@ These came up in the Slice A planning but were deliberately excluded from the ca
 
 55. **▢ News radar activation (Rob's calls).** Explicit PROD database go-ahead, the PROD Jev key (item 52). The rubric wording and cut-offs are approved ([[2026-10-27-news-radar-rubric-v2-approved]], on DEV as version 2; PROD still needs its own version after the page is live), UptimeRobot check on `/api/health/cron?id=news-radar`, Render cron job copied from an existing one. Order in [[news-radar-runbook]].
 
-56. **▢ News radar Release 2: the draft pipeline (built 2026-11-02, not yet on PROD).** Keep starts a background job that leaves a scheduled needs-review draft. Built and tested on DEV with real models ([[news-draft-pipeline]], [[2026-11-02-news-draft-pipeline-design]]). To activate on PROD, in this order: Rob confirms "a Keep drafts automatically, three per Melbourne day"; backup; apply migration 0043; seed the skills; switch on; supervised first run. Steps in [[news-draft-runbook]]. Open: late-review behaviour (move a draft reviewed after its slot to the next free slot).
+56. **✅ News radar Release 2: the draft pipeline (built and activated on PROD 2026-11-02; first PROD jobs pending).** Keep starts a background job that leaves a scheduled needs-review draft. Built and tested on DEV with real models ([[news-draft-pipeline]], [[2026-11-02-news-draft-pipeline-design]]). Activated on PROD 2026-11-02 (Rob confirmed Keep starts the whole draft, three per Melbourne day; backup, migration 0043, skill seed, switch on). Next: watch the first PROD jobs ([[news-draft-runbook]]). Open: late-review behaviour (move a draft reviewed after its slot to the next free slot).
 
 ---
 

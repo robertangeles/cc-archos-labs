@@ -84,4 +84,4 @@ The logged cost covers the text models; the Sonar search and the image (about $0
 
 - Late-review behaviour: a draft reviewed after its slot has no rule (the publish cron would publish it on its next minute); moving it to the next free slot is open.
 - The steelman skill mentions `{{raw_research}}` 13 times and every mention is filled with the whole research brief, so the thesis and steelman calls send 44k to 63k input tokens (about $0.15 each). His own skill runner (`lib/skills/execute.ts`) substitutes every mention the same way, so this is how the skills were proved; changing it needs a quality comparison first.
-- PROD activation: migration 0043, the skill seed and the switch ([[news-draft-runbook]]).
+- Nothing else is pending for PROD: it was activated 2026-11-02 ([[news-draft-runbook]]). The first real PROD jobs are the thing to watch.

@@ -13,11 +13,11 @@ How to turn the Keep-to-draft pipeline on, watch it, and turn it off. What it is
 | | Code | `news_draft_*` tables | Skills | Switch |
 |---|---|---|---|---|
 | DEV | here | applied | seeded | on while testing |
-| PROD | ships dormant on merge | **not applied** | **not seeded** | absent (off) |
+| PROD | live (PR #260, `7eb170d`) | applied 2026-11-02 | seeded 2026-11-02 | **on** since 2026-11-02 07:01 UTC |
 
-Merging ships code to PROD and never schema. Until migration 0043 is applied the Radar page works and simply shows no draft line (the query fails soft and logs `[radar] draft status unavailable: <error name>`).
+Merging ships code to PROD and never schema. Before migration 0043 is applied the Radar page works and simply shows no draft line (the query fails soft and logs `[radar] draft status unavailable: <error name>`). **Activated on PROD 2026-11-02** after a `pg_dump` backup (`~/archos_prod_backup_20261102.dump`): 0043 applied (the only untracked migration), the four skills created (the derived essay skill carries the "I infer" and 46 character SEO title wording; Rob's Paul Graham essay skill is untouched), then the switch set. Drafting starts at the next radar tick (every 2 hours) or on any Keep, and then queues every story whose latest label is Keep, three per Melbourne day.
 
-## Activation checklist (PROD) — needs Rob's explicit go
+## Activation checklist (PROD) — done 2026-11-02; kept for the record and for rebuilding an environment
 
 1. **Settings confirmed by Rob 2026-11-02** ([[2026-11-02-news-draft-pipeline-design]]): a Keep starts the whole draft, three per Melbourne day. The PROD go itself is still his.
 2. **Back up PROD.** `pg_dump` to `~/archos_prod_backup_<date>.dump` using `DATABASE_URL_RENDER_PROD` (commented in `.env.local`).
