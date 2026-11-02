@@ -684,6 +684,16 @@ function DraftLine({ draft, tz }: { draft: RadarDraft; tz: string }) {
           <Link href={line.link.href} className="whitespace-nowrap text-primary-hover underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
             {line.link.label}
           </Link>
+          {line.preview && (
+            <a
+              href={line.preview}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-3 whitespace-nowrap text-primary-hover underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              Preview
+            </a>
+          )}
         </>
       )}
     </p>

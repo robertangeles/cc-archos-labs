@@ -62,6 +62,14 @@ export default async function AdminBlogPostsEdit({ params }: PageProps) {
       </div>
 
       <PostForm initial={post} authors={authors} categories={categories} />
+
+      {/* Same link as the top: the form is long, and this saves the scroll back up. */}
+      <Link
+        href="/admin/blog/posts"
+        className="mt-8 inline-block text-sm text-ink-subtle hover:text-ink"
+      >
+        ← All posts
+      </Link>
     </section>
   );
 }

@@ -528,8 +528,13 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
   // — so its button (gated on initial?.needsReview) never even renders for the
   // agent pipeline this credit is about. This action stamps a distinct column,
   // reviewed_by_human_at, which is the only thing that can truthfully support a
-  // "Reviewed by <founder>" byline. Do not merge the two.
-  async function onMarkHumanReviewed() {
+  // "Reviewed by <founder>" byline. Do not merge the two COLUMNS.
+  //
+  // An agent draft that still needs review gets one Approve button instead of
+  // both actions (release = true): a single PUT that clears needs_review, so the
+  // publisher will take it, and stamps the credit, because whoever approves has
+  // read exactly the text being saved.
+  async function onMarkHumanReviewed(release = false) {
     if (!isEdit) return;
     setHumanReviewStatus({ kind: "working" });
     const tags = tagsText
@@ -548,7 +553,7 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
       tags,
       status,
       visibility,
-      needsReview,
+      needsReview: release ? false : needsReview,
       // The whole point of the action. Stamped server-side time would be
       // better, but the PUT contract takes the value; the admin clock is
       // close enough for a human-attention timestamp.
@@ -574,9 +579,12 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
         });
         return;
       }
+      if (release) setNeedsReview(false);
       setHumanReviewStatus({
         kind: "ok",
-        message: "Marked human-reviewed — byline updated.",
+        message: release
+          ? "Approved. It publishes at its scheduled time."
+          : "Marked human-reviewed — byline updated.",
       });
       router.refresh();
       setTimeout(() => setHumanReviewStatus({ kind: "idle" }), 4000);
@@ -1096,7 +1104,7 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
           >
             Suggest internal links
           </button>
-          {isEdit && initial?.needsReview ? (
+          {isEdit && initial?.needsReview && !initial?.isAgentGenerated ? (
             <button
               type="button"
               onClick={onMarkReviewed}
@@ -1111,10 +1119,21 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
           {/* Only agent posts. A human-written post does not need a
               "Researched by Metis" credit, and offering the button there would
               invite a byline that misstates who wrote the piece. */}
-          {isEdit && initial?.isAgentGenerated ? (
+          {isEdit && initial?.isAgentGenerated && initial.needsReview ? (
             <button
               type="button"
-              onClick={onMarkHumanReviewed}
+              onClick={() => onMarkHumanReviewed(true)}
+              disabled={humanReviewStatus.kind === "working"}
+              title="Releases the draft to publish at its scheduled time and adds 'Reviewed by <founder>' to the byline. Saves any edits on this page."
+              className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-500/20 disabled:opacity-50 dark:text-emerald-300"
+            >
+              {humanReviewStatus.kind === "working" ? "Approving…" : "Approve"}
+            </button>
+          ) : null}
+          {isEdit && initial?.isAgentGenerated && !initial.needsReview ? (
+            <button
+              type="button"
+              onClick={() => onMarkHumanReviewed()}
               disabled={humanReviewStatus.kind === "working"}
               title={
                 initial?.reviewedByHumanAt

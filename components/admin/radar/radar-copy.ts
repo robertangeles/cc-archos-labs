@@ -104,11 +104,14 @@ export interface DraftLine {
   tone: "muted" | "ok" | "warn" | "bad";
   /** The draft post in the admin, when there is one to open. */
   link?: { href: string; label: string };
+  /** The reader view of a draft that is not live yet, for a one-click look. */
+  preview?: string;
 }
 
 /** The one line under a Kept story that says where its blog draft stands. */
 export function draftLine(d: RadarDraft, tz: string): DraftLine {
   const link = d.postId ? { href: `/admin/blog/posts/${d.postId}`, label: "Open draft" } : undefined;
+  const preview = d.postId ? `/admin/blog/posts/${d.postId}/preview` : undefined;
   switch (d.status) {
     case "queued":
       return { text: "Draft queued", tone: "muted" };
@@ -118,9 +121,9 @@ export function draftLine(d: RadarDraft, tz: string): DraftLine {
       if (!d.postId) return { text: "Draft was deleted", tone: "muted" };
       if (d.postStatus === "published") return { text: "Published", tone: "ok", link: { ...link!, label: "Open post" } };
       if (d.postStatus === "scheduled" && d.publishAt) {
-        return { text: `Draft ready. Review it before ${formatRowTime(d.publishAt)} ${tz}`, tone: "ok", link: { ...link!, label: "Review draft" } };
+        return { text: `Draft ready. Review it before ${formatRowTime(d.publishAt)} ${tz}`, tone: "ok", link: { ...link!, label: "Review draft" }, preview };
       }
-      return { text: "Draft ready", tone: "ok", link };
+      return { text: "Draft ready", tone: "ok", link, preview };
     case "needs_attention":
       return { text: `Needs you: ${draftReason(d.reason)}`, tone: "warn" };
     case "failed":
