@@ -3,7 +3,7 @@ title: News draft pipeline
 category: entity
 created: 2026-11-02
 updated: 2026-11-02
-related: [[news-radar]], [[news-draft-runbook]], [[2026-11-02-news-draft-pipeline-design]], [[2026-11-02-real-run-found-what-nine-hundred-tests-did-not]], [[news-radar-runbook]]
+related: [[2026-11-02-remove-skills-workflows-social]], [[news-radar]], [[news-draft-runbook]], [[2026-11-02-news-draft-pipeline-design]], [[2026-11-02-real-run-found-what-nine-hundred-tests-did-not]], [[news-radar-runbook]]
 ---
 
 Release 2 of the news radar. When Rob presses **Keep** on a story, the pipeline turns it into a scheduled, human-review-required blog draft in his Behind the AI Headline method: go to the primary source, say what the headline left out, give a verdict. It never publishes anything by itself.
@@ -37,7 +37,7 @@ Keep pressed (PATCH /api/admin/radar/[id])  or  the radar's 2-hourly tick
 - **Nothing publishes itself.** The post is `scheduled` with `needs_review`; the publish cron withholds agent posts until Rob clicks **Approve** in the editor (green button under Curation tools). One click clears `needs_review`, which the publisher checks, and adds "Reviewed by <founder>" to the public byline and the Article schema; it also saves any edits on the page. The older buttons stay for other posts: **Mark reviewed** (clears the flag only, for human-written posts) and **Mark human-reviewed** (credit only, for an agent post that is already released). Verified in a browser on DEV 2026-11-02.
 - **One job per story, one runner at a time.** `news_draft_job.candidate_id` is unique; the lease is a random token per run, so a replaced run cannot commit as its replacement. A job whose process died restarts from its first stage (steps are an audit trail, not a checkpoint).
 - **Capped.** Three drafts per Melbourne day by default (`news_draft_config.dailyCap`), counted from each job's first start.
-- **Untrusted text is fenced.** Everything from the web or from a model that read it goes into prompts inside random-marker fences (`lib/workflows/fence.ts`).
+- **Untrusted text is fenced.** Everything from the web or from a model that read it goes into prompts inside random-marker fences (`lib/news-radar/draft/fence.ts`).
 - **Logs carry counts and timings, never article or source text,** and error names, never messages.
 
 ## Threat model (OWASP pass, 2026-11-02)
@@ -45,7 +45,7 @@ Keep pressed (PATCH /api/admin/radar/[id])  or  the radar's 2-hourly tick
 | Surface | Risk | Guard | Test |
 |---|---|---|---|
 | The pages the pipeline fetches | SSRF into the server's network, huge or slow bodies, redirects to private hosts | `lib/news-radar/source.ts`: https only, public addresses only (checked at connect time, so DNS rebinding fails), redirects re-checked, size and time caps, a contact-bearing User-Agent | `source.test.ts` |
-| Fetched text and model output in prompts | prompt injection from a hostile page | every web or model-derived value is fenced with a random per-call marker and the system prompt says fenced text is data; a placeholder inside an input is never expanded (single pass) | `skills.test.ts` (fencing, single-pass fill), `lib/workflows/executor.test.ts` |
+| Fetched text and model output in prompts | prompt injection from a hostile page | every web or model-derived value is fenced with a random per-call marker and the system prompt says fenced text is data; a placeholder inside an input is never expanded (single pass) | `skills.test.ts` (fencing, single-pass fill), `fence.test.ts` |
 | The essay body | a model inserting links, scripts, a Sources section, an invented quote or number | deterministic gates reject links, bracket tags and any quote or figure no source holds; Sources is built by code from fetched URLs; the post is `needs_review` | `essay.test.ts`, `assemble.test.ts` |
 | Who can start it | an unauthenticated caller spending money | only the admin label route and the `CRON_SECRET` cron route call `kickDrafting`; both are existing, gated routes; the switch is off unless set | label and cron route tests (401, 403 without Origin, 400 bad id) |
 | Cost | a loop or a flood of Keeps | one job per story (unique index), one runner at a time (lease), a per-Melbourne-day cap, three rewrites and two brief corrections at most, a kill switch the drain re-reads before every story | `jobs.test.ts`, `start.test.ts` |
@@ -63,7 +63,7 @@ Keep pressed (PATCH /api/admin/radar/[id])  or  the radar's 2-hourly tick
 
 ## Files
 
-`lib/news-radar/draft/` (`start`, `run`, `jobs`, `research`, `write`, `tighten`, `photo`, `assemble`, `essay`, `llm`, `skills`, `stage`, `wire`, `kick`, `background`, `seed-skills`, `config`), `lib/news-radar/source.ts`, `lib/posts-admin/publish-slots.ts`, `lib/workflows/fence.ts`, `drizzle/0043_news_draft.sql` (`news_draft_job`, `news_draft_step`), `scripts/seed-news-draft-skills.mts`, the draft line on the Radar page (`components/admin/radar/`, `lib/news-radar/queries.ts`).
+`lib/news-radar/draft/` (`start`, `run`, `jobs`, `research`, `write`, `tighten`, `photo`, `assemble`, `essay`, `llm`, `skills`, `stage`, `wire`, `kick`, `background`, `seed-skills`, `config`), `lib/news-radar/source.ts`, `lib/posts-admin/publish-slots.ts`, `lib/news-radar/draft/fence.ts`, `drizzle/0043_news_draft.sql` (`news_draft_job`, `news_draft_step`), `scripts/seed-news-draft-skills.mts`, the draft line on the Radar page (`components/admin/radar/`, `lib/news-radar/queries.ts`).
 
 ## Verified (DEV, 2026-11-02, real models and network)
 
@@ -83,5 +83,9 @@ The logged cost covers the text models; the Sonar search and the image (about $0
 ## Not built yet
 
 - Late-review behaviour: a draft reviewed after its slot has no rule (the publish cron would publish it on its next minute); moving it to the next free slot is open.
-- The steelman skill mentions `{{raw_research}}` 13 times and every mention is filled with the whole research brief, so the thesis and steelman calls send 44k to 63k input tokens (about $0.15 each). His own skill runner (`lib/skills/execute.ts`) substitutes every mention the same way, so this is how the skills were proved; changing it needs a quality comparison first.
+- The steelman skill mentions `{{raw_research}}` 13 times and every mention is filled with the whole research brief, so the thesis and steelman calls send 44k to 63k input tokens (about $0.15 each). His own skill runner (removed 2026-11-02, see [[2026-11-02-remove-skills-workflows-social]]) substituted every mention the same way, so this is how the skills were proved; changing it needs a quality comparison first.
 - Nothing else is pending for PROD: it was activated 2026-11-02 ([[news-draft-runbook]]). The first real PROD jobs are the thing to watch.
+
+## Where the prompts live now (2026-11-02)
+
+The prompts are rows in the `skill` table, loaded by slug in `skills.ts`. The Skills pages that used to edit them were removed (see [[2026-11-02-remove-skills-workflows-social]]), so a prompt change is now a row edit in the database; the four rows are `archos-news-research-brief`, `archos-slop-judge`, `archos-editorial-photo` and `archos-ai-news-factcheck`. `scripts/seed-news-draft-skills.mts` still creates missing rows and never overwrites one. The input, output, version and execution tables of the old builder are dropped (migration 0044); `skill` itself stays.

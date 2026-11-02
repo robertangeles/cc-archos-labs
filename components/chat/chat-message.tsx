@@ -3,7 +3,7 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Copy, Check, Download, X, Share2 } from "lucide-react";
+import { Copy, Check, Download, X } from "lucide-react";
 import { SourceCitations } from "./source-citations";
 import type { SourceRef } from "@/lib/chat/stream-events";
 
@@ -16,7 +16,6 @@ interface ChatMessageProps {
   isInterrupted?: boolean;
   /** Works this answer was grounded in. Renders the citation strip. */
   sources?: SourceRef[];
-  onPublish?: (content: string) => void;
 }
 
 export function ChatMessage({
@@ -27,7 +26,6 @@ export function ChatMessage({
   model: _model,
   isStreaming,
   isInterrupted,
-  onPublish,
 }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
   const [lightbox, setLightbox] = useState(false);
@@ -143,15 +141,6 @@ export function ChatMessage({
                 )}
                 {copied ? "Copied" : "Copy"}
               </button>
-              {onPublish && !isImage && (
-                <button
-                  onClick={() => onPublish(content)}
-                  className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-neutral-600 hover:bg-neutral-800 hover:text-neutral-400"
-                >
-                  <Share2 className="h-3 w-3" />
-                  Publish
-                </button>
-              )}
             </div>
           )}
         </div>

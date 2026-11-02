@@ -2,9 +2,11 @@
 title: Scheduled Social Posts — CRUD lifecycle
 category: entity
 created: 2026-06-17
-updated: 2026-06-17
-related: [[state]], [[deployment-architecture]]
+updated: 2026-11-02
+related: [[2026-11-02-remove-skills-workflows-social]], [[state]], [[deployment-architecture]]
 ---
+
+> **REMOVED 2026-11-02.** The scheduled social posts feature (page, `/api/social/*`, the publish cron, the social tables) was deleted. Kept as history. See [[2026-11-02-remove-skills-workflows-social]]. Everything below describes code that no longer exists.
 
 The full create/read/update/delete lifecycle for a user's scheduled social posts at `/account/scheduled-posts`, backed by the `scheduled_social_post` table and the `/api/social/scheduled` routes.
 

@@ -76,17 +76,6 @@ export const IntegrationConfigSchema = z.object({
   turnstileSiteKey: z.string().min(1).nullable(),
   turnstileSecretKey: z.string().min(1).nullable(),
 
-  // Social platform OAuth credentials. Client IDs are identifier-grade
-  // (plaintext). Client Secrets live in ENCRYPTED_FIELDS. Enabled toggles
-  // let the admin disable a platform without removing credentials.
-  twitterClientId: z.string().min(1).nullable(),
-  twitterClientSecret: z.string().min(1).nullable(),
-  twitterEnabled: z.boolean().default(false),
-  linkedinClientId: z.string().min(1).nullable(),
-  linkedinClientSecret: z.string().min(1).nullable(),
-  linkedinEnabled: z.boolean().default(false),
-  blueskyEnabled: z.boolean().default(false),
-
   // Cloudinary media storage for card attachments + cover images. Cloud
   // name and API key are identifier-grade (appear in signed-upload URLs),
   // so they're plaintext. API secret signs every upload — it lives in
@@ -126,8 +115,6 @@ export const ENCRYPTED_FIELDS = [
   "llmApiKey",
   "googleOauthClientSecret",
   "turnstileSecretKey",
-  "twitterClientSecret",
-  "linkedinClientSecret",
   "cloudinaryApiSecret",
   "r2ChatSecretAccessKey",
   "typesafeApiKey",
@@ -161,13 +148,6 @@ export const CONFIG_DEFAULTS = {
   llmModelId: null,
   llmEnabledModels: [] as string[],
   llmCustomModels: [] as Array<{ id: string; name: string; provider: string; description: string }>,
-  twitterClientId: null,
-  twitterClientSecret: null,
-  twitterEnabled: false,
-  linkedinClientId: null,
-  linkedinClientSecret: null,
-  linkedinEnabled: false,
-  blueskyEnabled: false,
   cloudinaryCloudName: null,
   cloudinaryApiKey: null,
   cloudinaryApiSecret: null,
@@ -179,7 +159,7 @@ export const CONFIG_DEFAULTS = {
   typesafeApiKey: null,
 } as const satisfies Pick<
   IntegrationConfig,
-  "contactRecipientEmail" | "resendFromEmail" | "llmModelId" | "llmEnabledModels" | "llmCustomModels" | "twitterClientId" | "twitterClientSecret" | "twitterEnabled" | "linkedinClientId" | "linkedinClientSecret" | "linkedinEnabled" | "blueskyEnabled" | "cloudinaryCloudName" | "cloudinaryApiKey" | "cloudinaryApiSecret" | "cloudinaryUploadFolder" | "r2ChatAccountId" | "r2ChatAccessKeyId" | "r2ChatSecretAccessKey" | "r2ChatBucketName" | "typesafeApiKey"
+  "contactRecipientEmail" | "resendFromEmail" | "llmModelId" | "llmEnabledModels" | "llmCustomModels" | "cloudinaryCloudName" | "cloudinaryApiKey" | "cloudinaryApiSecret" | "cloudinaryUploadFolder" | "r2ChatAccountId" | "r2ChatAccessKeyId" | "r2ChatSecretAccessKey" | "r2ChatBucketName" | "typesafeApiKey"
 >;
 
 // Storage shape inside site_setting.value for key='integration_secrets'.
@@ -212,14 +192,6 @@ export const StoredIntegrationConfigSchema = z.object({
   googleOauthClientSecret: z.string().min(1).nullish(),
   turnstileSiteKey: z.string().min(1).nullish(),
   turnstileSecretKey: z.string().min(1).nullish(),
-
-  twitterClientId: z.string().min(1).nullish(),
-  twitterClientSecret: z.string().min(1).nullish(),
-  twitterEnabled: z.boolean().nullish(),
-  linkedinClientId: z.string().min(1).nullish(),
-  linkedinClientSecret: z.string().min(1).nullish(),
-  linkedinEnabled: z.boolean().nullish(),
-  blueskyEnabled: z.boolean().nullish(),
 
   // Cloudinary media storage. `.nullish()` so a blob written before these
   // fields existed still parses (missing-key → undefined → normalised to

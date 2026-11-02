@@ -172,21 +172,6 @@ function decryptAndValidate(rawValue: unknown): IntegrationConfig {
   if (decrypted.llmCustomModels === undefined || decrypted.llmCustomModels === null) {
     decrypted.llmCustomModels = [];
   }
-  if (decrypted.twitterClientId === undefined) {
-    decrypted.twitterClientId = null;
-  }
-  if (decrypted.linkedinClientId === undefined) {
-    decrypted.linkedinClientId = null;
-  }
-  if (decrypted.twitterEnabled === undefined || decrypted.twitterEnabled === null) {
-    decrypted.twitterEnabled = false;
-  }
-  if (decrypted.linkedinEnabled === undefined || decrypted.linkedinEnabled === null) {
-    decrypted.linkedinEnabled = false;
-  }
-  if (decrypted.blueskyEnabled === undefined || decrypted.blueskyEnabled === null) {
-    decrypted.blueskyEnabled = false;
-  }
   // Cloudinary plaintext fields (the secret is normalised in the encrypted
   // loop above). undefined → null so IntegrationConfigSchema (.nullable)
   // accepts a blob written before these fields existed.
@@ -255,13 +240,6 @@ function readFromEnv(): IntegrationConfig {
     turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY || null,
     llmEnabledModels: [],
     llmCustomModels: [],
-    twitterClientId: process.env.TWITTER_CLIENT_ID || null,
-    twitterClientSecret: process.env.TWITTER_CLIENT_SECRET || null,
-    twitterEnabled: process.env.TWITTER_ENABLED === "true",
-    linkedinClientId: process.env.LINKEDIN_CLIENT_ID || null,
-    linkedinClientSecret: process.env.LINKEDIN_CLIENT_SECRET || null,
-    linkedinEnabled: process.env.LINKEDIN_ENABLED === "true",
-    blueskyEnabled: process.env.BLUESKY_ENABLED === "true",
     cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME || null,
     cloudinaryApiKey: process.env.CLOUDINARY_API_KEY || null,
     cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || null,
@@ -421,13 +399,6 @@ export async function migrateEnvToDB(): Promise<{
     turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY ?? null,
     llmEnabledModels: null,
     llmCustomModels: null,
-    twitterClientId: process.env.TWITTER_CLIENT_ID ?? null,
-    twitterClientSecret: process.env.TWITTER_CLIENT_SECRET ?? null,
-    twitterEnabled: false,
-    linkedinClientId: process.env.LINKEDIN_CLIENT_ID ?? null,
-    linkedinClientSecret: process.env.LINKEDIN_CLIENT_SECRET ?? null,
-    linkedinEnabled: false,
-    blueskyEnabled: false,
     cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME ?? null,
     cloudinaryApiKey: process.env.CLOUDINARY_API_KEY ?? null,
     cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET ?? null,
@@ -623,13 +594,6 @@ export async function getIntegrationConfigRedacted(): Promise<{
   googleOauthClientSecret: string;
   turnstileSiteKey: string | null;
   turnstileSecretKey: string;
-  twitterClientId: string | null;
-  twitterClientSecret: string;
-  twitterEnabled: boolean;
-  linkedinClientId: string | null;
-  linkedinClientSecret: string;
-  linkedinEnabled: boolean;
-  blueskyEnabled: boolean;
   cloudinaryCloudName: string | null;
   cloudinaryApiKey: string | null;
   cloudinaryApiSecret: string;
@@ -654,13 +618,6 @@ export async function getIntegrationConfigRedacted(): Promise<{
     googleOauthClientSecret: redactSecret(config.googleOauthClientSecret ?? ""),
     turnstileSiteKey: config.turnstileSiteKey,
     turnstileSecretKey: redactSecret(config.turnstileSecretKey ?? ""),
-    twitterClientId: config.twitterClientId,
-    twitterClientSecret: redactSecret(config.twitterClientSecret ?? ""),
-    twitterEnabled: config.twitterEnabled,
-    linkedinClientId: config.linkedinClientId,
-    linkedinClientSecret: redactSecret(config.linkedinClientSecret ?? ""),
-    linkedinEnabled: config.linkedinEnabled,
-    blueskyEnabled: config.blueskyEnabled,
     cloudinaryCloudName: config.cloudinaryCloudName,
     cloudinaryApiKey: config.cloudinaryApiKey,
     cloudinaryApiSecret: redactSecret(config.cloudinaryApiSecret ?? ""),

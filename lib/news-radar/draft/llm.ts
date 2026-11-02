@@ -1,8 +1,6 @@
-// One OpenRouter chat call, with what the drafting pipeline needs and the shared
-// skill runner (lib/skills/execute.ts) does not give it:
+// One OpenRouter chat call, with what the drafting pipeline needs:
 //
-//   - a timeout that fits a real essay (that runner aborts at 30 s; the essay and
-//     the photo take 60 to 110 s)
+//   - a timeout that fits a real essay (the essay and the photo take 60 to 110 s)
 //   - a retry for the failures a retry can fix (429, 5xx, a timeout, a dropped
 //     connection) and none for the ones it cannot (400, 401, 402, 404, 422)
 //   - an answer that was CUT OFF by its token budget is an error. A model that spends

@@ -9,7 +9,7 @@
 import { eq } from "drizzle-orm";
 import type { DB } from "../../db";
 import { skill } from "../../db/schema";
-import { fenceValue, newFenceMarker, untrustedFenceInstruction } from "../../workflows/fence";
+import { fenceValue, newFenceMarker, untrustedFenceInstruction } from "./fence";
 
 export interface SkillPrompt {
   slug: string;

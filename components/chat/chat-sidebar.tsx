@@ -5,10 +5,7 @@ import {
   Plus,
   Search,
   MessageSquare,
-  Sparkles,
-  GitBranch,
   Clock,
-  CalendarClock,
   Brain,
   Users,
   FolderKanban,
@@ -150,9 +147,6 @@ export function ChatSidebar({
       {/* Direct navigation links */}
       <div className="shrink-0 border-t border-neutral-800/40 px-2 py-3">
         <NavLink href="/account/brain" icon={Brain} label="Brain" />
-        <NavLink href="/account/skills" icon={Sparkles} label="Skills" />
-        <NavLink href="/account/workflows" icon={GitBranch} label="Workflows" />
-        <NavLink href="/account/scheduled-posts" icon={CalendarClock} label="Social Posts" />
         <NavLink href="/account/clients" icon={Users} label="Clients" />
         <NavLink href="/account/projects" icon={FolderKanban} label="Projects" />
         <NavLink href="/account/history" icon={Clock} label="History" />

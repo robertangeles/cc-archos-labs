@@ -73,10 +73,10 @@ Full admin at `/admin/(authed)/*`: users, site settings, integrations (AES-GCM e
 Conversational AI: `conversation`, `message`, `conversationShare` tables. CRUD + search at `/api/chat/*`. Image support, slash commands, share via token. History at `/account/history`.
 
 ## Skill execution platform (shipped 2026-06-07–08)
-User-defined skills with versioning: `skill`, `skillVersion`, `skillInput`, `skillOutput`, `skillExecution` tables. CRUD + execute at `/api/skills/*`. UI at `/account/skills/*`.
+~~User-defined skills with versioning: `skill`, `skillVersion`, `skillInput`, `skillOutput`, `skillExecution` tables. CRUD + execute at `/api/skills/*`. UI at `/account/skills/*`.~~ **Removed 2026-11-02** ([[2026-11-02-remove-skills-workflows-social]]); the `skill` table stays for the news draft pipeline.
 
 ## Workflow builder (shipped 2026-06-07–08)
-Multi-step workflow automation: `workflow` + 6 supporting tables. CRUD + execute + streaming at `/api/workflows/*`. UI at `/account/workflows/*`. Duplicate support.
+~~Multi-step workflow automation: `workflow` + 6 supporting tables. CRUD + execute + streaming at `/api/workflows/*`. UI at `/account/workflows/*`. Duplicate support.~~ **Removed 2026-11-02** ([[2026-11-02-remove-skills-workflows-social]]).
 
 ## Rules engine (shipped, date varies)
 User-defined automation rules: `userRule` table. CRUD + toggle at `/api/rules/*`.
@@ -85,7 +85,7 @@ User-defined automation rules: `userRule` table. CRUD + toggle at `/api/rules/*`
 Per-user brain provisioning: `userBrain` table. Status + provision + memories at `/api/brain/*`. UI at `/account/brain`.
 
 ## Account workspace (shipped 2026-06-11)
-Unified workspace at `/account/workspace`. Sub-pages: brain, history, personalisation, scheduled posts, social accounts, skills, workflows.
+Unified workspace at `/account/workspace`. Sub-pages: brain, history, personalisation (scheduled posts, social accounts, skills and workflows removed 2026-11-02, [[2026-11-02-remove-skills-workflows-social]]).
 
 ## CDMP Practice Exam (shipped 2026-06-03)
 Free CDMP practice exams at `/tools/cdmp-practice`. `cdmpExamSession`, `cdmpExamAnswer`, `cdmpQuestionFlag` tables. History, results, flagging. API at `/api/cdmp/*`. Admin config at `/admin/(authed)/cdmp`.

@@ -7,7 +7,6 @@
 // that uses a variable the stage does not supply fails the job with a message naming it
 // (see skills.ts), and the contract test in seed-skills.test.ts keeps these in step.
 
-import type { SkillInputDef, SkillOutputDef } from "../../skills/types";
 import { SEO_TITLE_MAX } from "./essay";
 
 export interface SkillSeed {
@@ -19,8 +18,6 @@ export interface SkillSeed {
   template: string;
   defaultModel: string;
   maxTokens: number;
-  inputs: SkillInputDef[];
-  outputs: SkillOutputDef[];
 }
 
 /** The variables each stage supplies. Keep in step with research.ts, tighten.ts, photo.ts and write.ts. */
@@ -30,9 +27,6 @@ export const SUPPLIED: Record<string, string[]> = {
   "archos-editorial-photo": ["subject_family", "banned", "article"],
   "archos-ai-news-factcheck": ["topic", "thesis", "raw_research", "steelman_checkpoint", "target_audience", "industry", "word_count"],
 };
-
-const text = (key: string, label: string, required = true): SkillInputDef => ({ key, type: "text", label, required });
-const multi = (key: string, label: string, required = true): SkillInputDef => ({ key, type: "multiline", label, required });
 
 // Rob's definition of AI slop, verbatim. It is the only standard the judge applies.
 export const SLOP_DEFINITION = `To define AI Slop cleanly: it is generative content that prioritizes persuasive structure over informational density, produced at scale with minimal marginal cost, and characterized by a detectable "uncanny valley" of rhetoric where the prose sounds authoritative but contains just enough generality to avoid being provably wrong.
@@ -136,16 +130,6 @@ Documents fetched from the sources, numbered, each with its URL and whether it i
 - Every count says how it was counted.`,
     defaultModel: "anthropic/claude-sonnet-5.5",
     maxTokens: 12000,
-    inputs: [
-      text("topic", "The topic"),
-      text("target_audience", "Who the piece is for", false),
-      text("industry", "Industry", false),
-      text("published", "Date the headline was published", false),
-      text("headline", "The headline"),
-      multi("coverage", "What the headline coverage says"),
-      multi("documents", "The fetched documents, numbered"),
-    ],
-    outputs: [{ key: "raw_research", type: "markdown", label: "Raw Research Report" }],
   },
   {
     slug: "archos-slop-judge",
@@ -182,8 +166,6 @@ Rules for What to tighten:
 - Do not comment on who or what wrote the article.`,
     defaultModel: "deepseek/deepseek-v4-flash-0731",
     maxTokens: 6000,
-    inputs: [multi("article", "The article to review")],
-    outputs: [{ key: "review", type: "markdown", label: "Review" }],
   },
   {
     slug: "archos-editorial-photo",
@@ -211,8 +193,6 @@ Article:
 {{article}}`,
     defaultModel: "anthropic/claude-haiku-4.5",
     maxTokens: 4000,
-    inputs: [text("subject_family", "The assigned subject"), text("banned", "Words never to use", false), multi("article", "The article")],
-    outputs: [{ key: "photo_brief", type: "text", label: "Photograph brief and alt text" }],
   },
 ];
 
@@ -251,7 +231,7 @@ export class SeedDerivationError extends Error {
  * Throws if the source no longer has the anchors, so a rewritten skill is noticed
  * instead of silently producing a half-changed copy.
  */
-export function deriveFactcheckSkill(pg: { template: string; system: string | null; inputs: SkillInputDef[]; outputs: SkillOutputDef[] }): SkillSeed {
+export function deriveFactcheckSkill(pg: { template: string; system: string | null }): SkillSeed {
   let tpl = pg.template;
   const edit = (what: string, from: RegExp | string, to: string) => {
     const next = tpl.replace(from, to);
@@ -281,7 +261,5 @@ export function deriveFactcheckSkill(pg: { template: string; system: string | nu
     template: tpl,
     defaultModel: "anthropic/claude-sonnet-5.5",
     maxTokens: 16000,
-    inputs: pg.inputs,
-    outputs: pg.outputs,
   };
 }

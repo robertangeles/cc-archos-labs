@@ -3,12 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Sparkles,
-  GitBranch,
   Clock,
   MessageSquare,
   Brain,
-  CalendarClock,
   Users,
   FolderKanban,
   Boxes,
@@ -24,9 +21,6 @@ interface NavItem {
 const items: NavItem[] = [
   { href: "/account/workspace", label: "Chat", icon: MessageSquare },
   { href: "/account/brain", label: "Brain", icon: Brain },
-  { href: "/account/skills", label: "Skills", icon: Sparkles },
-  { href: "/account/workflows", label: "Workflows", icon: GitBranch },
-  { href: "/account/scheduled-posts", label: "Social Posts", icon: CalendarClock },
   { href: "/account/clients", label: "Clients", icon: Users },
   { href: "/account/projects", label: "Projects", icon: FolderKanban },
   { href: "/workspace/model-studio", label: "Model Studio", icon: Boxes },

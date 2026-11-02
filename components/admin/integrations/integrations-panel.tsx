@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { OPENROUTER_MODELS } from "@/lib/skills/types";
+import { OPENROUTER_MODELS } from "@/lib/llm-models";
 
 // Shape that mirrors getIntegrationConfigRedacted() — secrets are
 // pre-redacted server-side. Client never holds plaintext secrets
@@ -23,14 +23,6 @@ export interface RedactedConfig {
   turnstileSiteKey: string | null;
   // Secret key is the server-side verification credential — always redacted.
   turnstileSecretKey: string;
-  // Social platform OAuth credentials.
-  twitterClientId: string | null;
-  twitterClientSecret: string;
-  twitterEnabled: boolean;
-  linkedinClientId: string | null;
-  linkedinClientSecret: string;
-  linkedinEnabled: boolean;
-  blueskyEnabled: boolean;
   // Cloudinary media storage. Cloud name + API key are identifier-grade
   // (plaintext); the API secret is always redacted. Upload folder is an
   // optional plaintext path prefix.
@@ -64,8 +56,6 @@ const ENCRYPTED_FIELDS: ReadonlyArray<FieldKey> = [
   "llmApiKey",
   "googleOauthClientSecret",
   "turnstileSecretKey",
-  "twitterClientSecret",
-  "linkedinClientSecret",
   "cloudinaryApiSecret",
   "r2ChatSecretAccessKey",
   "typesafeApiKey",
@@ -79,10 +69,6 @@ const NULLABLE_FIELDS: ReadonlyArray<FieldKey> = [
   "googleOauthClientSecret",
   "turnstileSiteKey",
   "turnstileSecretKey",
-  "twitterClientId",
-  "twitterClientSecret",
-  "linkedinClientId",
-  "linkedinClientSecret",
   "cloudinaryCloudName",
   "cloudinaryApiKey",
   "cloudinaryApiSecret",
@@ -765,107 +751,6 @@ export function IntegrationsPanel({
         </Section>
       )}
 
-      <Section title="Social Accounts">
-        <p className="text-xs text-ink-subtle">
-          OAuth credentials for social publishing. Users connect their own
-          accounts; these keys authenticate Archos Labs as the OAuth app.
-        </p>
-
-        <SocialPlatformGroup
-          name="Twitter / X"
-          enabled={config.twitterEnabled}
-          onToggle={async (val) => {
-            setConfig((c) => ({ ...c, twitterEnabled: val }));
-            await fetch("/api/admin/integrations", {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ field: "twitterEnabled", value: val }),
-            });
-          }}
-        >
-          <ConfigField
-            field="twitterClientId"
-            label="Client ID"
-            hint="developer.x.com → App → Keys & Tokens"
-            config={config}
-            editing={editing}
-            revealed={revealed}
-            saveStatus={saveStatus["twitterClientId"]}
-            onEdit={(v) => setEditing((e) => ({ ...e, twitterClientId: v }))}
-            onSave={() => handleSave("twitterClientId")}
-          />
-          <ConfigField
-            field="twitterClientSecret"
-            label="Client Secret"
-            hint="Encrypted at rest"
-            config={config}
-            editing={editing}
-            revealed={revealed}
-            saveStatus={saveStatus["twitterClientSecret"]}
-            onEdit={(v) =>
-              setEditing((e) => ({ ...e, twitterClientSecret: v }))
-            }
-            onSave={() => handleSave("twitterClientSecret")}
-            onReveal={() => handleReveal("twitterClientSecret")}
-            onHide={() => handleHide("twitterClientSecret")}
-          />
-        </SocialPlatformGroup>
-
-        <SocialPlatformGroup
-          name="LinkedIn"
-          enabled={config.linkedinEnabled}
-          onToggle={async (val) => {
-            setConfig((c) => ({ ...c, linkedinEnabled: val }));
-            await fetch("/api/admin/integrations", {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ field: "linkedinEnabled", value: val }),
-            });
-          }}
-        >
-          <ConfigField
-            field="linkedinClientId"
-            label="Client ID"
-            hint="linkedin.com/developers → App → Auth tab"
-            config={config}
-            editing={editing}
-            revealed={revealed}
-            saveStatus={saveStatus["linkedinClientId"]}
-            onEdit={(v) => setEditing((e) => ({ ...e, linkedinClientId: v }))}
-            onSave={() => handleSave("linkedinClientId")}
-          />
-          <ConfigField
-            field="linkedinClientSecret"
-            label="Client Secret"
-            hint="Encrypted at rest"
-            config={config}
-            editing={editing}
-            revealed={revealed}
-            saveStatus={saveStatus["linkedinClientSecret"]}
-            onEdit={(v) =>
-              setEditing((e) => ({ ...e, linkedinClientSecret: v }))
-            }
-            onSave={() => handleSave("linkedinClientSecret")}
-            onReveal={() => handleReveal("linkedinClientSecret")}
-            onHide={() => handleHide("linkedinClientSecret")}
-          />
-        </SocialPlatformGroup>
-
-        <SocialPlatformGroup
-          name="Bluesky"
-          hint="App passwords — no admin keys needed"
-          enabled={config.blueskyEnabled}
-          onToggle={async (val) => {
-            setConfig((c) => ({ ...c, blueskyEnabled: val }));
-            await fetch("/api/admin/integrations", {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ field: "blueskyEnabled", value: val }),
-            });
-          }}
-        />
-      </Section>
-
       {revealError && (
         <div className="rounded-md border border-hairline bg-surface-1/40 p-3 text-sm text-ink-subtle">
           {revealError}
@@ -942,47 +827,6 @@ function ToggleField({
       </button>
       {label}
     </label>
-  );
-}
-
-function SocialPlatformGroup({
-  name,
-  hint,
-  enabled,
-  onToggle,
-  children,
-}: {
-  name: string;
-  hint?: string;
-  enabled: boolean;
-  onToggle: (value: boolean) => void;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-md border border-hairline bg-surface-1/20 p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-ink">{name}</p>
-          {hint && <p className="text-xs text-ink-subtle">{hint}</p>}
-        </div>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={enabled}
-          onClick={() => onToggle(!enabled)}
-          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
-            enabled ? "bg-primary" : "bg-surface-2"
-          }`}
-        >
-          <span
-            className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${
-              enabled ? "translate-x-4" : "translate-x-0"
-            }`}
-          />
-        </button>
-      </div>
-      {children}
-    </div>
   );
 }
 
@@ -1202,13 +1046,6 @@ function RevealAuthModal({
     googleOauthClientSecret: "Google OAuth Client Secret",
     turnstileSiteKey: "",
     turnstileSecretKey: "Turnstile Secret Key",
-    twitterClientId: "",
-    twitterClientSecret: "Twitter Client Secret",
-    twitterEnabled: "",
-    linkedinClientId: "",
-    linkedinClientSecret: "LinkedIn Client Secret",
-    linkedinEnabled: "",
-    blueskyEnabled: "",
     cloudinaryCloudName: "",
     cloudinaryApiKey: "",
     cloudinaryApiSecret: "Cloudinary API Secret",

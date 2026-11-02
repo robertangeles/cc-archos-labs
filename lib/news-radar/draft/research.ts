@@ -19,7 +19,7 @@ import type { fetchSource as FetchSource } from "../source";
 import type { DraftConfig } from "./config";
 import { findUnverifiedQuotes, normalizeTexts, quoteFault } from "./essay";
 import { LlmError, type Llm } from "./llm";
-import { fenceValue, newFenceMarker, untrustedFenceInstruction } from "../../workflows/fence";
+import { fenceValue, newFenceMarker, untrustedFenceInstruction } from "./fence";
 import { buildPrompt, clean, type SkillPrompt } from "./skills";
 import { stepFromChat, stop, type Stop, type StepLog } from "./types";
 

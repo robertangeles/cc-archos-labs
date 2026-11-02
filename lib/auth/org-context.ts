@@ -39,9 +39,6 @@ export interface OrgContext {
 // the Layer-3 org-scoping of existing services (gated by ORG_SCOPING_ENABLED).
 export const SHARED_TIER_TABLES = [
   "skill",
-  "workflow",
-  "social_account",
-  "scheduled_social_post",
   "knowledge_document",
 ] as const;
 export const PRIVATE_TIER_TABLES = [
