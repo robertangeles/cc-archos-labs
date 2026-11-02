@@ -3051,3 +3051,9 @@ Touched: [[2026-11-02-remove-model-studio]], [[model-studio-canvas]], `backlog/b
 Rob gave the go. `pg_dump` of PROD first (`~/archos_prod_backup_20261102_pre0044.dump`, 44.6 MB, readable by `pg_restore --list`), `__drizzle_applied` checked (PROD at 0043, only 0044 and 0045 pending), then `db-apply.mjs` applied both in one pass. The 19 tables from the Skills/Workflows/Social and Model Studio removals are gone from PROD; `skill` kept with its four news-pipeline prompts, draft and radar tables untouched, `/` and `/blog` 200, removed routes 404. Rows lost are counted in [[2026-11-02-remove-skills-workflows-social]]. Correction: the Render cron to delete is `process-scheduled-social` (`crn-d8n925urnols73df41v0`), not `social-publisher` (that is its heartbeat row id); `process-scheduled-posts` is the live blog scheduler and stays. The cron deletion is still open: the Render CLI and MCP cannot delete services.
 
 Touched: [[2026-11-02-remove-skills-workflows-social]], [[2026-11-02-remove-model-studio]], [[deployment-architecture]], `log.md`.
+
+## 2026-11-03 (UTC) — Render cron `process-scheduled-social` deleted
+
+Rob deleted it in the Render dashboard. Verified with `render services`: it is gone, five crons remain, and `process-scheduled-posts` (the blog scheduler) still answers 401 on PROD. That closes the PROD side of [[2026-11-02-remove-skills-workflows-social]]; the only leftover is the optional strip of seven stale social keys from PROD's `integration_secrets` blob.
+
+Touched: [[2026-11-02-remove-skills-workflows-social]], [[deployment-architecture]], `log.md`.

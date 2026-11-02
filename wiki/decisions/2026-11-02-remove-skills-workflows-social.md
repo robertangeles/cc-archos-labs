@@ -2,7 +2,7 @@
 title: Skills, Workflows and Social posts removed from the Metis workspace
 category: decision
 created: 2026-11-02
-updated: 2026-11-02
+updated: 2026-11-03
 related: [[news-draft-pipeline]], [[scheduled-social-posts]], [[workflow-run-history]], [[workflow-step-regeneration]], [[deployment-architecture]], [[integration-config]], [[2026-11-02-check-what-a-live-pipeline-reads-before-deleting-a-feature]]
 ---
 
@@ -42,7 +42,7 @@ Merging ships code and never schema, so PROD ran the new code on the old tables 
 
 1. Done. Merged and deployed (the previous release still read these tables).
 2. Done. `pg_dump` of PROD to `~/archos_prod_backup_20261102_pre0044.dump` (44.6 MB, `pg_restore --list` reads it), `__drizzle_applied` checked (PROD was at 0043, only 0044 and 0045 pending), then `DATABASE_URL="<PROD>" node scripts/db-apply.mjs` applied 0044 and [[2026-11-02-remove-model-studio]]'s 0045 in one pass. All 14 tables are gone; `skill` was kept (10 rows, the four news prompts present) and the draft and radar tables are untouched. **Rows lost, counted just before the run:** `skill_input` 35, `skill_output` 10, `skill_version` 17, `workflow` 1 (with 5 fields, 5 steps, 22 runs, 99 log rows), `social_account` 3 (encrypted tokens), `publish_log` 17, `scheduled_social_post` 7; `skill_execution`, `workflow_pending_approval` and `workflow_exec_token` were empty. The dump is the only copy.
-3. **Still open: delete the Render cron `process-scheduled-social`** (`crn-d8n925urnols73df41v0`, https://dashboard.render.com/cron/crn-d8n925urnols73df41v0). It POSTs the removed route every minute and gets a 404. An earlier version of this page called it `social-publisher`; that is the id of its `cron_heartbeat` row (still on PROD, last written 2026-07-10, nothing reads it), not the cron's name. **Do not delete its neighbour `process-scheduled-posts`** (`crn-d86ltiegvqtc73drc2og`): that is the blog scheduler, and its route is alive (401 without the secret). The Render CLI and MCP can list services but not delete them, so this is a dashboard click.
+3. Done 2026-11-03. Rob deleted the Render cron `process-scheduled-social` (`crn-d8n925urnols73df41v0`) in the dashboard; it had POSTed the removed route every minute and got a 404. Checked afterwards with `render services`: five crons remain and `process-scheduled-posts` still answers 401. The Render CLI and MCP can list services but not delete them, so this was a dashboard click. An earlier version of this page called it `social-publisher`; that is the id of its `cron_heartbeat` row (still on PROD, last written 2026-07-10, nothing reads it), not the cron's name. **Do not delete its neighbour `process-scheduled-posts`** (`crn-d86ltiegvqtc73drc2og`): that is the blog scheduler, and its route is alive (401 without the secret).
 4. Optional hygiene, not done: strip the seven stale social keys from PROD's `integration_secrets` blob (two of them are encrypted client secrets).
 
 ## Not done
