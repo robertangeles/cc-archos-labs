@@ -3057,3 +3057,9 @@ Touched: [[2026-11-02-remove-skills-workflows-social]], [[2026-11-02-remove-mode
 Rob deleted it in the Render dashboard. Verified with `render services`: it is gone, five crons remain, and `process-scheduled-posts` (the blog scheduler) still answers 401 on PROD. That closes the PROD side of [[2026-11-02-remove-skills-workflows-social]]; the only leftover is the optional strip of seven stale social keys from PROD's `integration_secrets` blob.
 
 Touched: [[2026-11-02-remove-skills-workflows-social]], [[deployment-architecture]], `log.md`.
+
+## 2026-11-03 (UTC) — Stale social keys stripped from the integration blob; cron section corrected
+
+Rob asked to close the two leftovers from the Skills/Workflows/Social removal. (1) Stripped the seven dead social keys from the `integration_secrets` row on DEV and PROD with one atomic, self-asserting `UPDATE` (19 keys remain, hash unchanged), after saving the PROD row to `~/archos_prod_integration_secrets_20261103.json`. The app's loader decrypts the PROD row before and after; a key-by-key diff shows only the seven removed. (2) Rewrote the Render cron section of [[deployment-architecture]] from `render services` output: it said three crons and `news-radar` "not created yet"; there are five, `news-radar` has run since 2026-11-01 and is live on PROD (its tick also calls `kickDrafting()`), the first column now uses the dashboard service names (`archos-booking-cron`, not `process-scheduled`), and new crons should use `curl -fsS` so a 404 fails the run. The decision page's "Not done" list became "Decided, not pending".
+
+Touched: [[2026-11-02-remove-skills-workflows-social]], [[deployment-architecture]], `log.md`.
