@@ -27,7 +27,7 @@ Merging ships code to PROD and never schema. Until migration 0043 is applied the
    `DATABASE_URL="<PROD>" node --env-file=.env.local --no-warnings --conditions=react-server --import tsx scripts/seed-news-draft-skills.mts --dry-run`, then again without `--dry-run`. It creates `archos-news-research-brief`, `archos-slop-judge`, `archos-editorial-photo` and derives `archos-ai-news-factcheck` from PROD's own `archos-paul-graham-essays`. It never overwrites a skill that exists, so Rob's later edits win. `archos-thesis-builder` and `archos-steelman-checkpoint` already exist on PROD.
 6. **Check the references exist on PROD:** category `ai-news` (with its description), author `Metis`, the OpenRouter key in Integrations (check the second page of the environment list; the default page shows 20 variables).
 7. **Switch on:** insert `site_setting` `news_draft_enabled` = `{"enabled": true}` on PROD.
-8. **Supervised first run:** Rob presses Keep on one story with a clear primary source. Watch the draft line on the Radar page and `select status, attention_reason from news_draft_job`. Open the draft, read it, click "Mark human-reviewed" only if it is right.
+8. **Supervised first run:** Rob presses Keep on one story with a clear primary source. Watch the draft line on the Radar page and `select status, attention_reason from news_draft_job`. Open the draft, read it, click **Approve** only if it is right. One click clears the needs-review flag, so the post publishes at its slot, and adds the "Reviewed by" credit to the byline.
 
 ## What the Radar line says
 
@@ -35,7 +35,7 @@ Merging ships code to PROD and never schema. Until migration 0043 is applied the
 |---|---|---|
 | Draft queued | waiting its turn (one story at a time) | nothing |
 | Drafting now | a run is working, about six minutes | nothing |
-| Draft ready. Review it before Mon 01:00 AEDT | a scheduled, needs-review post exists | open it, edit, mark human-reviewed |
+| Draft ready. Review it before Mon 01:00 AEDT | a scheduled, needs-review post exists | **Preview** (the reader view, new tab) to read it as a visitor would; **Review draft** opens the editor, where **Approve** releases it to its slot and adds the "Reviewed by" credit in one click. The Posts list has the same Preview link on every row, and shows "needs review" until it is approved |
 | Published | it went live | none |
 | Needs you: no primary source found | no fetched document came from the primary source (the story's real source is often paywalled) | write it by hand or skip it |
 | Needs you: the research quoted words the sources do not say | a quotation could not be found in any fetched page, after two corrected attempts | the story can be re-queued by deleting its failed job row; or write it by hand |

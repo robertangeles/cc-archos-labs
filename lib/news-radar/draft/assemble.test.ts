@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_DRAFT_CONFIG } from "./config";
 import { parseEssay, type ParsedEssay } from "./essay";
-import { assembleDraft, relatedSection, sourcesSection, type AssembleDeps } from "./assemble";
+import { assembleDraft, sourcesSection, type AssembleDeps } from "./assemble";
 import type { FetchedPage, StoryItem } from "./research";
 
 const ITEM: StoryItem = {
@@ -59,21 +59,6 @@ describe("sourcesSection", () => {
   });
 });
 
-describe("relatedSection", () => {
-  it("lists up to three internal links", () => {
-    const s = relatedSection([1, 2, 3, 4].map((i) => ({ title: `Post ${i}`, slug: `post-${i}` })));
-    expect(s).toBe("## Related reading\n\n- [Post 1](/blog/post-1)\n- [Post 2](/blog/post-2)\n- [Post 3](/blog/post-3)");
-  });
-
-  it("is empty when there is nothing related", () => {
-    expect(relatedSection([])).toBe("");
-  });
-
-  it("cannot be broken by a title with brackets", () => {
-    expect(relatedSection([{ title: "A [b] c", slug: "s" }])).toContain("- [A b c](/blog/s)");
-  });
-});
-
 describe("assembleDraft", () => {
   const SLOT = new Date("2026-11-03T14:00:00Z");
   const build = (over: Partial<AssembleDeps> = {}) => {
@@ -81,7 +66,6 @@ describe("assembleDraft", () => {
     const deps: AssembleDeps = {
       refs: async () => ({ categoryId: "cat-1", authorId: "auth-1" }),
       nextSlot: async () => SLOT,
-      related: async () => [{ title: "AI readiness", slug: "ai-readiness" }],
       slugTaken: async () => false,
       createDraftPost: vi.fn(async (input) => {
         created.push(input);
@@ -122,15 +106,15 @@ describe("assembleDraft", () => {
     expect((created[0] as { tags: string[] }).tags).toHaveLength(6);
   });
 
-  it("puts the essay, then related reading, then sources, in the body", async () => {
+  it("puts the essay, then sources, in the body, with no related-reading list (the blog page's Read next does that)", async () => {
     const { deps, created } = build();
     await assembleDraft(deps, DEFAULT_DRAFT_CONFIG, input());
     const body = (created[0] as { contentMd: string }).contentMd;
-    expect(body.indexOf("Body text.")).toBeLessThan(body.indexOf("## Related reading"));
-    expect(body.indexOf("## Related reading")).toBeLessThan(body.indexOf("## Sources"));
+    expect(body.indexOf("Body text.")).toBeLessThan(body.indexOf("## Sources"));
     expect(body.startsWith("The hook paragraph.")).toBe(true);
     expect(body).not.toContain("SEO Package");
-    expect(body).not.toMatch(/\n---\s*\n+## Related/); // the writer's trailing rule is gone
+    expect(body).not.toMatch(/Related reading/i);
+    expect(body).not.toMatch(/\n---\s*\n+## Sources/); // the writer's trailing rule is gone
   });
 
   it("attaches the photo with its alt text", async () => {
@@ -151,12 +135,6 @@ describe("assembleDraft", () => {
     const r = await assembleDraft(deps, DEFAULT_DRAFT_CONFIG, input());
     expect(r).toMatchObject({ ok: true, imageAttached: false });
     if (r.ok) expect(r.notes.join()).toMatch(/picture|image/i);
-  });
-
-  it("keeps going when related posts cannot be found", async () => {
-    const { deps, created } = build({ related: async () => { throw new Error("embeddings down"); } });
-    expect((await assembleDraft(deps, DEFAULT_DRAFT_CONFIG, input())).ok).toBe(true);
-    expect((created[0] as { contentMd: string }).contentMd).not.toContain("## Related reading");
   });
 
   it("stops with missing_setup when the category or author is not there", async () => {

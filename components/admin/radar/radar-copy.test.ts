@@ -140,7 +140,14 @@ describe("draftLine", () => {
       text: "Draft ready. Review it before Wed 00:00 AEDT",
       tone: "ok",
       link: { href: "/admin/blog/posts/p1", label: "Review draft" },
+      preview: "/admin/blog/posts/p1/preview",
     });
+  });
+
+  it("offers the reader-view preview for a draft that is not live yet, and not for a live post or a deleted one", () => {
+    expect(draftLine(d("succeeded", { postId: "p1", postStatus: "draft" }), "AEDT").preview).toBe("/admin/blog/posts/p1/preview");
+    expect(draftLine(d("succeeded", { postId: "p1", postStatus: "published" }), "AEDT").preview).toBeUndefined();
+    expect(draftLine(d("succeeded"), "AEDT").preview).toBeUndefined();
   });
 
   it("says Published for a live post, and Draft ready for any other state of the post", () => {

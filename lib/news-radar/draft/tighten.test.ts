@@ -189,6 +189,39 @@ describe("tightenEssay", () => {
     expect(rw.model).toBe(DEFAULT_DRAFT_CONFIG.models.writer);
   });
 
+  it("tells the judge what it said before when it reads a revision, and nothing on the first read", async () => {
+    const { llm, calls } = seq({ judge_1: [chat(NOTES)], rewrite_1: [chat(essay("A shorter closing line."))], judge_2: [chat(CLEAN)] });
+    await run(llm, GOOD);
+    const j1 = calls.find((c) => c.label === "judge_1")!;
+    const j2 = calls.find((c) => c.label === "judge_2")!;
+    expect(j1.user).not.toContain("FOLLOW-UP READ");
+    expect(j2.user).toContain("FOLLOW-UP READ");
+    expect(j2.user).toContain("Round 1:");
+    expect(j2.user).toContain("Density."); // its own earlier note
+    expect(j2.user).not.toContain("Verify before publication"); // a chore the code dropped is not carried forward
+    expect(j2.user).toContain("A shorter closing line"); // it reads the revision, not the old draft
+    expect(j2.user.match(/<<<UNTRUSTED_/g)).toHaveLength(2); // the article and the earlier notes, both fenced
+    const marker = /<<<(UNTRUSTED_[0-9a-f-]+)\n/.exec(j2.user)![1];
+    expect(j2.system).toContain(marker);
+  });
+
+  it("gives a third read the notes of both earlier rounds, oldest first", async () => {
+    const SECOND = 'Verdict: not slop\n\nWhat works:\n- x\n\nWhat to tighten:\n1. STILL OPEN: Density. The sentence "had no route out" is still compressed.\n2. Filler. The phrase "less than one call in 100,000" repeats the table.';
+    const { llm, calls } = seq({
+      judge_1: [chat(NOTES)],
+      rewrite_1: [chat(essay("One."))],
+      judge_2: [chat(SECOND)],
+      rewrite_2: [chat(essay("Two."))],
+      judge_3: [chat(CLEAN)],
+    });
+    const r = await run(llm, GOOD);
+    expect(r).toMatchObject({ ok: true, rewrites: 2 });
+    const j3 = calls.find((c) => c.label === "judge_3")!;
+    expect(j3.user.indexOf("Round 1:")).toBeGreaterThan(-1);
+    expect(j3.user.indexOf("Round 1:")).toBeLessThan(j3.user.indexOf("Round 2:"));
+    expect(j3.user.indexOf("Density.")).toBeLessThan(j3.user.indexOf("Filler."));
+  });
+
   it("rewrites for a failed check BEFORE spending a judge call, and says what failed", async () => {
     const { llm, calls } = seq({ rewrite_1: [chat(GOOD)], judge_1: [chat(CLEAN)] });
     const r = await run(llm, FABRICATED);
@@ -207,23 +240,35 @@ describe("tightenEssay", () => {
   });
 
   it("stops with failed_gates when the checks still fail after the allowed rewrites", async () => {
-    const { llm, calls } = seq({ rewrite_1: [chat(FABRICATED)], rewrite_2: [chat(FABRICATED)] });
+    const { llm, calls } = seq({ rewrite_1: [chat(FABRICATED)], rewrite_2: [chat(FABRICATED)], rewrite_3: [chat(FABRICATED)] });
     const r = await run(llm, FABRICATED);
     expect(r).toMatchObject({ ok: false, reason: "failed_gates" });
     if (!r.ok) expect(r.detail).toContain("deliberately targeted");
-    expect(calls.map((c) => c.label)).toEqual(["rewrite_1", "rewrite_2"]);
+    expect(calls.map((c) => c.label)).toEqual(["rewrite_1", "rewrite_2", "rewrite_3"]);
   });
 
   it("stops with slop_verdict when the judge still says slop after the allowed rewrites", async () => {
     const { llm } = seq({ judge_1: [chat(SLOP)], rewrite_1: [chat(GOOD)], judge_2: [chat(SLOP)], rewrite_2: [chat(GOOD)], judge_3: [chat(SLOP)] });
-    expect(await run(llm, GOOD)).toMatchObject({ ok: false, reason: "slop_verdict" });
+    expect(await run(llm, GOOD, { maxRewrites: 2 })).toMatchObject({ ok: false, reason: "slop_verdict" });
   });
 
   it("accepts a draft the judge calls not slop even if advisory notes remain after the allowed rewrites", async () => {
     const { llm } = seq({ judge_1: [chat(NOTES)], rewrite_1: [chat(GOOD)], judge_2: [chat(NOTES)], rewrite_2: [chat(GOOD)], judge_3: [chat(NOTES)] });
-    const r = await run(llm, GOOD);
+    const r = await run(llm, GOOD, { maxRewrites: 2 });
     expect(r).toMatchObject({ ok: true, rewrites: 2 });
     if (r.ok) expect(r.unresolvedNotes.length).toBeGreaterThan(0);
+  });
+
+  it("by default gives the judge three rounds of rewriting, then stops at the cap", async () => {
+    const { llm, calls } = seq({
+      judge_1: [chat(NOTES)], rewrite_1: [chat(essay("One."))],
+      judge_2: [chat(NOTES)], rewrite_2: [chat(essay("Two."))],
+      judge_3: [chat(NOTES)], rewrite_3: [chat(essay("Three."))],
+      judge_4: [chat(NOTES)],
+    });
+    const r = await run(llm, GOOD);
+    expect(r).toMatchObject({ ok: true, rewrites: 3 });
+    expect(calls.map((c) => c.label)).toEqual(["judge_1", "rewrite_1", "judge_2", "rewrite_2", "judge_3", "rewrite_3", "judge_4"]);
   });
 
   it("never rewrites when the allowance is zero: clean passes, a failure stops", async () => {
@@ -245,7 +290,7 @@ describe("tightenEssay", () => {
   });
 
   it("treats a rewrite that cannot be read as a failed check, not a crash", async () => {
-    const { llm } = seq({ judge_1: [chat(NOTES)], rewrite_1: [chat("I could not do that.")], rewrite_2: [chat("Still no.")] });
+    const { llm } = seq({ judge_1: [chat(NOTES)], rewrite_1: [chat("I could not do that.")], rewrite_2: [chat("Still no.")], rewrite_3: [chat("No.")] });
     expect(await run(llm, GOOD)).toMatchObject({ ok: false, reason: "failed_gates" });
   });
 

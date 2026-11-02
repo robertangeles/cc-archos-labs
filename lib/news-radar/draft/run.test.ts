@@ -82,7 +82,6 @@ const harness = (over: { replies?: Record<string, ChatResult | Error | (ChatResu
   const assemble: AssembleDeps = {
     refs: async () => ({ categoryId: "cat", authorId: "auth" }),
     nextSlot: async () => new Date("2026-11-03T14:00:00Z"),
-    related: async () => [],
     slugTaken: async () => false,
     createDraftPost: vi.fn(async (input) => {
       created.push(input);
@@ -197,7 +196,7 @@ describe("runJob: the whole way through", () => {
   it("never lets an unread claim through: the essay's quotes are checked against the pages fetched in THIS run", async () => {
     const job = await startJob();
     const fabricated = ESSAY.replace("The unprompted rate is", 'Cohere also admitted "the model deliberately targeted Beijing servers" and the unprompted rate is');
-    const { deps, created } = harness({ replies: { essay: chat(fabricated), rewrite_1: chat(fabricated), rewrite_2: chat(fabricated) } });
+    const { deps, created } = harness({ replies: { essay: chat(fabricated), rewrite_1: chat(fabricated), rewrite_2: chat(fabricated), rewrite_3: chat(fabricated) } });
     const r = await runJob(deps, cfg, job);
     expect(r).toMatchObject({ outcome: "needs_attention", reason: "failed_gates" });
     expect(created).toHaveLength(0);

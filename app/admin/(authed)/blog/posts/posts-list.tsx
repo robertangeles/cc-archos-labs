@@ -273,6 +273,20 @@ function PostsTable({
               </td>
               <td className="py-3 text-right">
                 <div className="flex items-center justify-end gap-x-2 text-xs">
+                  {p.archivedAt === null ? (
+                    <>
+                      {/* Same reader view as the editor's Preview button, one click from the list. */}
+                      <a
+                        href={`/admin/blog/posts/${p.id}/preview`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        Preview
+                      </a>
+                      <span className="text-ink-subtle/50">·</span>
+                    </>
+                  ) : null}
                   <Link
                     href={`/admin/blog/posts/${p.id}`}
                     className="text-primary hover:underline"

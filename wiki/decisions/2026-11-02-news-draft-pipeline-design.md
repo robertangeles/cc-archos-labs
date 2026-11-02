@@ -8,7 +8,7 @@ related: [[news-draft-pipeline]], [[news-draft-runbook]], [[news-radar]], [[2026
 
 ## Decision
 
-Pressing Keep on the Radar starts a background job that researches the story against its primary source, writes a Behind the AI Headline fact-check, tightens it with a slop judge, photographs it and leaves a **scheduled, needs-review** draft. Rob reads and approves every post; nothing publishes without his "Mark human-reviewed".
+Pressing Keep on the Radar starts a background job that researches the story against its primary source, writes a Behind the AI Headline fact-check, tightens it with a slop judge, photographs it and leaves a **scheduled, needs-review** draft. Rob reads and approves every post; nothing publishes until he clicks the editor's **Approve** button, which clears `needs_review` and adds the "Reviewed by" byline credit in one click. (An earlier version of this page named "Mark human-reviewed" as the release by mistake; that button only adds the credit.)
 
 ## Decided by Rob (2026-11-02, this build session)
 
@@ -19,6 +19,7 @@ Pressing Keep on the Radar starts a background job that researches the story aga
 - **Sources is a links-only section built by code.** The "every direct quotation above was checked" sentence was removed ("so amateur").
 - **SEC contact for fetching filings:** `rob.angeles@archoslabs.xyz`.
 - AI News is the category; the byline is Metis.
+- **One click to approve** (2026-11-02): an agent draft that needs review gets a single **Approve** button that releases it and adds the public "Reviewed by <founder>" credit together. The columns stay separate in the code (`needs_review`, `reviewed_by_human_at`); only the button combines them.
 - **A Keep starts the entire process** (confirmed 2026-11-02: "Yes Keep should start the entire process"). The cap of 3 drafts per Melbourne day is the 3 posts a day he asked for, kept as `news_draft_config.dailyCap`; the on/off switch is `news_draft_enabled`.
 
 ## Assumed, not confirmed

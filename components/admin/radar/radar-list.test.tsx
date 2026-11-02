@@ -224,6 +224,13 @@ describe("RadarList: the draft line", () => {
     expect(out).toContain("Review draft");
   });
 
+  it("offers a Preview that opens the reader view in a new tab", () => {
+    const out = kept({ status: "succeeded", postId: "p1", postStatus: "scheduled", publishAt: "2026-10-27T13:00:00Z", reason: null });
+    expect(out).toMatch(/<a [^>]*href="\/admin\/blog\/posts\/p1\/preview"[^>]*>Preview<\/a>/);
+    expect(out).toMatch(/<a [^>]*href="\/admin\/blog\/posts\/p1\/preview"[^>]*target="_blank"/);
+    expect(out).toMatch(/<a [^>]*href="\/admin\/blog\/posts\/p1\/preview"[^>]*rel="noopener noreferrer"/);
+  });
+
   it("says what needs Rob, in words", () => {
     expect(kept({ ...NONE, status: "needs_attention", reason: "no_primary_source" })).toContain("Needs you: no primary source found");
     expect(kept({ ...NONE, status: "failed", reason: "crashed" })).toContain("Drafting failed: drafting crashed");

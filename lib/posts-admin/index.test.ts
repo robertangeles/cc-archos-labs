@@ -223,6 +223,25 @@ describe("updatePost — human-review stamp decays with the content", () => {
     expect(new Date(got!).toISOString()).toBe(stamp.toISOString());
   });
 
+  it("lets one save release a post and stamp the credit together (the Approve action)", async () => {
+    const due = new Date("2030-01-01T00:00:00.000Z");
+    const id = await harness.createPost({ status: "scheduled", scheduledPublishAt: due, needsReview: true, isAgentGenerated: true });
+    const before = await readPost(id);
+    const stamp = new Date("2026-11-02T06:00:00.000Z");
+    await updatePost(
+      id,
+      formBody({ status: "scheduled", scheduledPublishAt: due, needsReview: false, reviewedByHumanAt: stamp }),
+      before.updated_at,
+    );
+    const res = await harness.client.query<{ needs_review: boolean; reviewed_by_human_at: Date | null; status: string }>(
+      `SELECT needs_review, reviewed_by_human_at, status FROM "post" WHERE id = $1`,
+      [id],
+    );
+    expect(res.rows[0].needs_review).toBe(false);
+    expect(res.rows[0].status).toBe("scheduled");
+    expect(new Date(res.rows[0].reviewed_by_human_at!).toISOString()).toBe(stamp.toISOString());
+  });
+
   it("does not resurrect a credit that was never set", async () => {
     const id = await harness.createPost({ status: "draft", scheduledPublishAt: null });
     const before = await readPost(id);
