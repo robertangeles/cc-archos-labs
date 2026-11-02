@@ -19,7 +19,8 @@ import type { fetchSource as FetchSource } from "../source";
 import type { DraftConfig } from "./config";
 import { findUnverifiedQuotes, normalizeTexts, quoteFault } from "./essay";
 import { LlmError, type Llm } from "./llm";
-import { buildPrompt, type SkillPrompt } from "./skills";
+import { fenceValue, newFenceMarker, untrustedFenceInstruction } from "../../workflows/fence";
+import { buildPrompt, clean, type SkillPrompt } from "./skills";
 import { stepFromChat, stop, type Stop, type StepLog } from "./types";
 
 export const BRIEF_SKILL = "archos-news-research-brief";
@@ -114,12 +115,14 @@ const SEARCH_SYSTEM =
   "Use only URLs you actually found while searching. Never construct, guess or invent a URL. Reply with only JSON.";
 
 export async function discoverSources(llm: Llm, cfg: DraftConfig, item: StoryItem): Promise<DiscoveredSource[]> {
+  // The headline and summary come from a third-party feed: data, never instructions.
+  const marker = newFenceMarker();
   const res = await llm({
     label: "discover",
     model: cfg.models.search,
-    system: SEARCH_SYSTEM,
+    system: `${SEARCH_SYSTEM} ${untrustedFenceInstruction(marker)}`,
     user:
-      `Headline: ${item.title}\nSummary: ${item.summary}\nPublished: ${item.publishedAt.toISOString().slice(0, 10)}\n\n` +
+      `Headline: ${fenceValue(clean(item.title), marker)}\nSummary: ${fenceValue(clean(item.summary), marker)}\nPublished: ${item.publishedAt.toISOString().slice(0, 10)}\n\n` +
       `Find up to 6 primary documents behind the claims in this headline, and up to 2 reputable secondary sources that give the other side. Do not return the HuggingNews page.\n\n` +
       `Reply with JSON only, exactly this shape:\n{"sources":[{"url":"https://...","kind":"primary or secondary","what":"one short line on what this page is"}]}`,
     maxTokens: 3000,

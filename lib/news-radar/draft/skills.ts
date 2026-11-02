@@ -59,7 +59,7 @@ export interface PromptInputs {
 }
 
 const PLACEHOLDER = /\{\{\s*(\w+)\s*\}\}/g;
-const clean = (v: string) => v.replace(/[^\P{Cc}\t\n\r]/gu, "");
+export const clean = (v: string) => v.replace(/[^\P{Cc}\t\n\r]/gu, "");
 
 export function buildPrompt(s: SkillPrompt, inputs: PromptInputs): { system: string | undefined; user: string } {
   const marker = newFenceMarker();
