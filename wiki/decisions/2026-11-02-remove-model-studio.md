@@ -30,6 +30,6 @@ The lesson from [[2026-11-02-check-what-a-live-pipeline-reads-before-deleting-a-
 
 `pnpm tsc` clean; `vitest` 2521 passed in 171 files (145 fewer than before, all from the deleted Model Studio tests); `pnpm lint` 0 errors; `pnpm build` ok; `workspace-removed-features.spec.ts` now also asserts the Model Studio nav link is gone and its pages and APIs are 404. On DEV, a dump of the five (empty) tables was taken, then migration 0045 applied: 0 `data_model*` tables and no `model_studio` row left.
 
-## PROD: still to do
+## PROD: applied 2026-11-02
 
-Merging ships code and never schema. After the deploy, in order: `pg_dump` PROD, check `__drizzle_applied` (it was behind on 0027/0028 once, see [[deployment-architecture]]; on a PROD that never applied them, 0045's `IF EXISTS` drops are no-ops), then `DATABASE_URL="<PROD>" node scripts/db-apply.mjs`. If PROD ever held models, they are lost; count rows first.
+Applied by hand after the deploy, in the same `db-apply.mjs` pass as 0044 ([[2026-11-02-remove-skills-workflows-social]] has the backup path and the full row counts). `__drizzle_applied` was at 0043 beforehand. Rows counted just before the run: all five `data_model*` tables held 0 and there was no `model_studio` `site_setting` row, so nothing was lost. Afterwards no `data_model*` table exists on PROD and `/workspace/model-studio` is 404.

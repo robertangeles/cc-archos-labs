@@ -36,14 +36,14 @@ Rob: "In the Metis Workspace I want you to remove Skills, Workflows, Social post
 
 `pnpm tsc` clean; `vitest` 2666 passed (185 files, 4 workers — full parallelism was OOM-killed with swap full); `pnpm lint` 0 errors; `pnpm build` ok; a new Playwright spec (`tests/e2e/workspace-removed-features.spec.ts`) proves the nav, pages and APIs are gone and `/api/models` is 200 signed in and 401 anonymous; `brain-isolation`, `brain-no-fabrication` and `chat-attach-files` still pass. On DEV: migration 0044 applied (14 tables gone, `skill` kept with its 10 rows, the draft tables untouched), the real stored integration blob with all seven stale keys loads, the four pipeline skills load and build with nothing unfilled, and the rewritten seed insert ran inside a rolled-back transaction.
 
-## PROD: what is still to do
+## PROD: applied 2026-11-02
 
-Merging ships code and never schema, so after the merge PROD runs the new code on the old tables, which is harmless. In this order:
+Merging ships code and never schema, so PROD ran the new code on the old tables until the migration was applied by hand, after the deploy.
 
-1. Merge and let Render deploy (the previous release still reads these tables).
-2. `pg_dump` PROD, check `__drizzle_applied`, then `DATABASE_URL="<PROD>" node scripts/db-apply.mjs` for 0044. **Destructive**: PROD skills' version history, all workflows and run history, connected social accounts (encrypted tokens), scheduled and published social posts.
-3. Delete the Render cron job `social-publisher`. Until then it POSTs the removed route every minute and gets a 404.
-4. Optional hygiene: strip the seven stale social keys from PROD's `integration_secrets` blob (two of them are encrypted client secrets).
+1. Done. Merged and deployed (the previous release still read these tables).
+2. Done. `pg_dump` of PROD to `~/archos_prod_backup_20261102_pre0044.dump` (44.6 MB, `pg_restore --list` reads it), `__drizzle_applied` checked (PROD was at 0043, only 0044 and 0045 pending), then `DATABASE_URL="<PROD>" node scripts/db-apply.mjs` applied 0044 and [[2026-11-02-remove-model-studio]]'s 0045 in one pass. All 14 tables are gone; `skill` was kept (10 rows, the four news prompts present) and the draft and radar tables are untouched. **Rows lost, counted just before the run:** `skill_input` 35, `skill_output` 10, `skill_version` 17, `workflow` 1 (with 5 fields, 5 steps, 22 runs, 99 log rows), `social_account` 3 (encrypted tokens), `publish_log` 17, `scheduled_social_post` 7; `skill_execution`, `workflow_pending_approval` and `workflow_exec_token` were empty. The dump is the only copy.
+3. **Still open: delete the Render cron `process-scheduled-social`** (`crn-d8n925urnols73df41v0`, https://dashboard.render.com/cron/crn-d8n925urnols73df41v0). It POSTs the removed route every minute and gets a 404. An earlier version of this page called it `social-publisher`; that is the id of its `cron_heartbeat` row (still on PROD, last written 2026-07-10, nothing reads it), not the cron's name. **Do not delete its neighbour `process-scheduled-posts`** (`crn-d86ltiegvqtc73drc2og`): that is the blog scheduler, and its route is alive (401 without the secret). The Render CLI and MCP can list services but not delete them, so this is a dashboard click.
+4. Optional hygiene, not done: strip the seven stale social keys from PROD's `integration_secrets` blob (two of them are encrypted client secrets).
 
 ## Not done
 

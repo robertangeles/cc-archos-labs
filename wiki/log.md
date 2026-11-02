@@ -3045,3 +3045,9 @@ Touched: [[2026-11-02-remove-skills-workflows-social]], [[2026-11-02-check-what-
 Rob asked for `/workspace/model-studio` to go too. Readers listed first (none outside the feature; DEV held zero rows and no flag row), then removed the pages, `/api/model-studio`, six hooks, the components, `lib/model-studio`, their tests, `@xyflow/react`, the nav entry and five tables (migration 0045, with the `model_studio` flag row; applied to DEV only). The org test helper stopped applying migrations 0027/0028. The removal e2e spec now covers Model Studio. PROD migration is waiting on Rob's go.
 
 Touched: [[2026-11-02-remove-model-studio]], [[model-studio-canvas]], `backlog/backlog.md`, `index.md`, `state.md`, `log.md`.
+
+## 2026-11-02 (UTC) — PROD: migrations 0044 and 0045 applied
+
+Rob gave the go. `pg_dump` of PROD first (`~/archos_prod_backup_20261102_pre0044.dump`, 44.6 MB, readable by `pg_restore --list`), `__drizzle_applied` checked (PROD at 0043, only 0044 and 0045 pending), then `db-apply.mjs` applied both in one pass. The 19 tables from the Skills/Workflows/Social and Model Studio removals are gone from PROD; `skill` kept with its four news-pipeline prompts, draft and radar tables untouched, `/` and `/blog` 200, removed routes 404. Rows lost are counted in [[2026-11-02-remove-skills-workflows-social]]. Correction: the Render cron to delete is `process-scheduled-social` (`crn-d8n925urnols73df41v0`), not `social-publisher` (that is its heartbeat row id); `process-scheduled-posts` is the live blog scheduler and stays. The cron deletion is still open: the Render CLI and MCP cannot delete services.
+
+Touched: [[2026-11-02-remove-skills-workflows-social]], [[2026-11-02-remove-model-studio]], [[deployment-architecture]], `log.md`.
