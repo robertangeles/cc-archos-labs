@@ -2979,3 +2979,45 @@ Touched: [[news-draft-pipeline]] (new), [[news-draft-runbook]] (new), [[2026-11-
 CI on the draft pipeline PR cancelled the job at 10 m 16 s, during the build, after lint, typecheck and tests had passed. The Test step took 506 s against 240 s to 319 s on recent green runs. Cause: four draft test files booted a fresh pglite database per test (85 boots); they now boot once per file and reset between tests (54.6 s to 1.9 s locally, full serial suite about 247 s to 195 s). The pr-reviewer approved and found one real gap: `discoverSources` put the feed's headline and summary into the search prompt without the fence the other stages use. Fixed with a test that failed first. Also corrected the reviewer's note that this was a flake; step timings said otherwise.
 
 Touched: [[2026-11-02-ci-ten-minute-cap-and-per-test-database-boots]] (new), [[news-draft-pipeline]], `index.md`, `log.md`.
+
+## 2026-11-02 (UTC) — Preview link on the Posts list and the Radar draft line
+
+Rob wanted to read a draft without opening the editor first. The reader-view preview already existed (`/admin/blog/posts/[id]/preview`, reached only from inside the editor). Added a Preview link, opening that page in a new tab, to every non-archived row of the Posts list and to the Radar's "Draft ready" line. Verified in a headless browser against the DEV drafts: both links open the draft preview with its "scheduled, not yet live" banner and leave the opener page alone.
+
+Touched: [[news-draft-runbook]], `log.md`.
+
+## 2026-11-02 (UTC) — Removed the pipeline's own "Related reading" section
+
+Rob asked why a draft carried a "Related reading" list when the blog page already has Read next. No good reason: assemble.ts appended up to three site posts, picked by embedding similarity, to the body, without my checking that `/blog/[slug]` already renders `ReadNext` from the same embeddings. The baked-in list is also static, where Read next stays current as posts are added. Removed the section, its wiring in wire.ts and its tests; assemble now adds only Sources and the schedule. Only the GMO DEV draft had the block (the other three had no close enough post); removed it from that draft's text. Lesson for the next feature: read what the page already renders before adding to the body.
+
+Touched: [[news-draft-pipeline]], [[2026-11-02-check-what-the-page-already-renders]] (new), `index.md`, `log.md`.
+
+## 2026-11-02 (UTC) — Correction: the release button is "Mark reviewed", not "Mark human-reviewed"
+
+Rob clicked "Mark human-reviewed" on the GMO DEV draft, as the runbook told him, and the list still showed "needs review". The editor has two buttons: **Mark reviewed** clears `needs_review` (what the publish cron checks) and **Mark human-reviewed** only adds the "Reviewed by" byline credit. My instruction named the wrong one. Verified on a DEV draft in a headless browser (flag cleared, schedule unchanged, badge gone; draft then restored, including the test's audit revision). Corrected the entity page, the design decision and the runbook; the byline credit is recorded as Rob's open call. The merged PR #259 description and its squash commit message still carry the wrong wording and are not editable.
+
+Touched: [[2026-11-02-mark-reviewed-releases-mark-human-reviewed-does-not]] (new), [[news-draft-pipeline]], [[news-draft-runbook]], [[2026-11-02-news-draft-pipeline-design]], `index.md`, `log.md`.
+
+## 2026-11-02 (UTC) — One-click Approve for pipeline drafts
+
+Rob chose one click over two. An agent draft that needs review now shows a single **Approve** button in the editor: one PUT that clears `needs_review` (so the publisher takes it) and stamps `reviewed_by_human_at` (the "Reviewed by" byline credit), saving any edits on the page. The columns stay separate in the code; "Mark reviewed" remains for human-written posts and "Mark human-reviewed" for an agent post that is already released. Tests: form render cases for each state (written first, two failed) and a service test that one save does both. Verified in a headless browser on a DEV draft (flag cleared, credit stamped, schedule unchanged, list badge gone, "Reviewed by" in the preview byline), then the draft was restored. Wiki and runbook say Approve.
+
+Touched: [[news-draft-pipeline]], [[news-draft-runbook]], [[2026-11-02-news-draft-pipeline-design]], [[2026-11-02-mark-reviewed-releases-mark-human-reviewed-does-not]], `log.md`.
+
+## 2026-11-02 (UTC) — "← All posts" at the bottom of the post editor
+
+The admin post editor (and the new-post page) had its only way back at the top of a long form. Added the same "← All posts" link under the form on both pages. Tests render both pages and check the link appears twice, the second after the Save button. Checked in a headless browser: it sits under the Save row and returns to the posts list.
+
+Touched: `log.md`.
+
+## 2026-11-02 (UTC) — The slop judge now remembers its earlier notes
+
+Rob pointed out that a judge which starts fresh on every read is pointless in a loop. Confirmed in the code: the writer got the judge's notes, but each judge read saw only the article, so it never learned whether its notes were fixed. From the second read on, the judge now receives its earlier notes (oldest round first, fenced) and is told to close what was fixed and list only what is still open or a real new slop tell. Tests first (two failed). Real DeepSeek check on the GMO essay: a fresh judge reading the revised text produced notes in 4 of 4 runs, a different nitpick each time; the judge with its memory said "Nothing to tighten" on the same revision in 2 of 2 runs (small sample). The number of rounds (Rob asked for at least 3) is still to be settled: three of four DEV drafts got "Nothing to tighten" on the first read.
+
+Touched: [[news-draft-pipeline]], `log.md`.
+
+## 2026-11-02 (UTC) — Before PROD: three rounds, and inferences in words
+
+Rob asked for at least three rounds with the judge and said the scheduled DEV drafts need no changes; what matters is tight, slop-free writing once PROD is on. Two changes, both made before PROD is seeded because the skill seed never overwrites an existing skill. (1) `maxRewrites` default 2 to 3: with the judge now remembering, the loop stops as soon as it has nothing left, and three rewrites is the maximum the config allows. (2) The derived news essay skill now says to write "I infer" or "my reading is" in words and never use an `[Inference]` tag: all four first drafts used the tag, which the checks reject, so every post wasted its first rewrite (about 28 s and $0.08). The DEV skill row got the same wording by hand. The four scheduled DEV drafts were not touched. Three older tests that assumed a cap of two were updated.
+
+Touched: [[news-draft-pipeline]], `log.md`.
