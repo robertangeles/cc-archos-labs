@@ -27,13 +27,36 @@ queued -> working -> drafted -> publishing -> published        (terminal)
  a `publishing` row whose lease expires ALWAYS becomes needs_attention (publish may have been sent)
 ```
 
+## Live spike, 2026-11-03 (private drafts only, nothing published)
+
+Run from a scratchpad script against the real API with the brand account's keys (`@archoslabsxyz`, access level `read-write-directmessages`, project on Pay Per Use). Ten draft calls in all, five accepted and five refused.
+
+**Confirmed**
+- `GET /2/users/me` 200. Limit 75 per 15 minutes.
+- `POST /2/media/upload` 200 with the JSON base64 body. Response `data`: `id`, `media_key`, `expires_after_secs: 86400`, `image: {h, w, image_type}`, `size`. The client's `data.id` read is right. A 3168 x 1092 JPEG (a real post cover, 156 KB) is accepted. **An uploaded cover expires after 24 hours.** Limit 500 per 15 minutes.
+- `POST /2/articles/draft` answers **201** with `data: {id, title}`. The OAuth 1.0a signature with a JSON body (body not signed) is accepted, so that premise holds.
+- **The draft endpoint has a per-user limit of 10 calls per 24 hours** (`x-user-limit-24hour-limit: 10`, with `-remaining` and `-reset` headers). It is not on any X docs page. A refused call (503) uses a slot like an accepted one. The 24 hour window opened at the first call, 2026-11-03 06:59 UTC.
+- Accepted drafts: a single plain paragraph; bold, italic and strikethrough ranges plus a link entity; a divider (atomic block with a divider entity); accents, curly quotes, an em dash and an emoji in plain text; a `header-two` followed by a paragraph.
+
+**Refused: HTTP 503 `Service Unavailable` with a bare body, every time, never a 4xx**
+- The same payload fails again on a re-send, so it is deterministic and not an outage. Removing the cover does not help. Adding a cover is not the cause.
+- Failing payloads contain `header-three`, `unordered-list-item`, `ordered-list-item` or `blockquote` (one or more of the four; `header-one` was only ever sent together with them). `header-two` is fine, and non-ASCII text is fine.
+- **Not yet isolated** which of the four triggers it. 2026-11-04 after 06:59 UTC: one draft per suspect, then a draft with the cover and a bold range after an emoji.
+
+**What this changes in PR2**
+- A 503 on a draft is not a harmless transient: it can repeat forever and each try burns one of ten daily slots. The retry rule "transient failures do not touch attempts" must not apply to a 503 from the draft call. Count it as an attempt (cap 3) so one bad post cannot empty the day.
+- Read `x-user-limit-24hour-remaining` from every draft answer and stop draining when it reaches 2, so a manual check or a re-draft is always possible. Three posts a day at three attempts each is nine slots, so a converter that sends content X refuses can starve the queue.
+- Re-upload the cover on every draft attempt that follows a failure more than a few hours later (the media id lives 24 hours).
+- The converter must not send the block types X refuses until the failing one is known (bullets, numbered items, quotes, `header-three`). A refusal there is `unsupported_markup` and lands in needs-attention.
+- **Not verified:** the price of any call (read it in the X console usage page), the publish endpoint's own limit, how the cover is cropped, how bold ranges land after an emoji (offset units), and how any of it looks on x.com.
+
 ## Rules that bite
 
 - **X has no edit, delete, get or schedule endpoint for Articles.** A wrong Article is deleted by hand on x.com. That is why Draft mode comes first and why an ambiguous publish is never retried.
 - **Publish is treated as Draft unless `RENDER` is the string `"true"`.** DEV holds a clone of PROD data and must never post to the brand account.
 - **The migration is hand-written** (`drizzle/0046_x_article_publication.sql`). Never run `pnpm db:generate`: the drizzle snapshot stops at 0030 and would emit a huge migration.
 - **The sweep looks back 24 hours.** Posts that go live while Mode is Off are picked up if Mode is switched on within 24 hours; older ones are not.
-- **Unverified until the live spike:** the price and rate limits of the Articles endpoints (X's pricing page does not list them), whether JSON bodies are excluded from the OAuth signature, X's offset units in `content_state`, and how the cover image is cropped.
+- **Still unverified after the first spike day:** the price of the Articles endpoints (X's pricing page does not list them), the publish endpoint's rate limit, X's offset units in `content_state`, and how the cover image is cropped. See the spike section above for what is settled.
 
 ## Follow-ups
 
