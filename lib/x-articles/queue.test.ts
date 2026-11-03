@@ -4,6 +4,7 @@ import { makeXQueueTestDb, type XQueueTestDb } from "../../tests/helpers/x-queue
 import {
   beginPublishing,
   claimBatch,
+  countNeedsAttention,
   enqueueDue,
   markAttention,
   markDraftOnly,
@@ -494,6 +495,19 @@ describe("recoverStale", () => {
     }
     expect(await recoverStale(h.db, NOW)).toMatchObject({ requeued: 0, ambiguous: 0, exhausted: 0, stale: 0 });
     expect((await Promise.all(ids.map(row))).map((r) => r.status)).toEqual(["draft_only", "published", "needs_attention", "skipped"]);
+  });
+});
+
+describe("countNeedsAttention", () => {
+  it("is zero on an empty table", async () => {
+    expect(await countNeedsAttention(h.db)).toBe(0);
+  });
+
+  it("counts only the rows a person must look at", async () => {
+    await seed({ status: "needs_attention", reason: "x_auth" });
+    await seed({ status: "needs_attention", reason: "publish_ambiguous" });
+    for (const status of ["queued", "working", "drafted", "publishing", "draft_only", "published", "skipped"]) await seed({ status });
+    expect(await countNeedsAttention(h.db)).toBe(2);
   });
 });
 

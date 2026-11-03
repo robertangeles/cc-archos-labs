@@ -700,7 +700,7 @@ describe("publish confirmation", () => {
     expect(await rowOf(postId)).toMatchObject({
       status: "needs_attention",
       attention_reason: "publish_ambiguous",
-      attention_detail: "publish answered ok but the post could not be found",
+      attention_detail: "publish answered ok; the post could not be read back, check x.com",
       x_post_id: null,
     });
     expect(x.count("/2/articles/2117000000000000001/publish")).toBe(1);
@@ -728,8 +728,11 @@ describe("publish confirmation", () => {
     await tick(x, "publish", {}, new Date(NOW.getTime() + 3 * HOUR));
 
     expect(s.published).toBe(0);
-    expect(await rowOf(postId)).toMatchObject({ status: "needs_attention", attention_reason: "publish_ambiguous", x_post_id: null });
+    const r = await rowOf(postId);
+    expect(r).toMatchObject({ status: "needs_attention", attention_reason: "publish_ambiguous", x_post_id: null });
+    expect(r.attention_detail).toMatch(/^publish answered ok; the post could not be read back .*check x\.com$/);
     expect(x.count("/2/articles/2117000000000000001/publish")).toBe(1);
+    expect(x.count(CONFIRM)).toBe(1); // one read, never a waiting loop
   });
 
   it("with no time left for the lookup the publish is not recorded either", async () => {
@@ -746,7 +749,12 @@ describe("publish confirmation", () => {
     await tick(x, "publish", { now: () => new Date(t) });
 
     expect(x.count(CONFIRM)).toBe(0);
-    expect(await rowOf(postId)).toMatchObject({ status: "needs_attention", attention_reason: "publish_ambiguous", x_post_id: null });
+    expect(await rowOf(postId)).toMatchObject({
+      status: "needs_attention",
+      attention_reason: "publish_ambiguous",
+      attention_detail: "publish answered ok; there was no time to read the post back, check x.com",
+      x_post_id: null,
+    });
   });
 
   it("gives the lookup a timeout within the 15 s call budget", async () => {

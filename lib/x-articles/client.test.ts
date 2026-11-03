@@ -377,6 +377,14 @@ describe("getPost", () => {
     });
   });
 
+  it("found: the shape X returns for a live published Article", async () => {
+    const live = { data: { article: { title: "TEST probe B: ignore" }, edit_history_tweet_ids: [ID], id: ID } };
+    expect(await getPost(CREDS, ID, { fetchImpl: fakeFetch(reply(200, live)) })).toMatchObject({
+      ok: true,
+      value: { postId: ID },
+    });
+  });
+
   it("not_found: a 200 body with a Not Found Error and no data", async () => {
     const r = await getPost(CREDS, ID, { fetchImpl: fakeFetch(reply(200, notFoundBody)) });
     expect(r).toMatchObject({ ok: false, kind: "not_found" });

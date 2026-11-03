@@ -8,6 +8,7 @@ import { getSiteUrl } from "../site-config";
 import { createDraft, getPost, publishDraft, uploadMedia, type XFailure, type XMeta } from "./client";
 import { markdownToContentState } from "./content-state";
 import { cropCoverTo52 } from "./cover";
+import { effectiveXMode, type XMode } from "./mode";
 import type { XCredentials } from "./oauth1";
 import {
   beginPublishing,
@@ -66,7 +67,6 @@ const PUBLISH_RESERVE = 1;
 const HOLD_MS = 60 * 60_000;
 const MAX_COVER_BYTES = 5 * 1024 * 1024;
 
-export type XMode = "off" | "draft" | "publish";
 export type XRunConfig = Pick<
   IntegrationConfig,
   "xApiKey" | "xApiSecret" | "xAccessToken" | "xAccessTokenSecret" | "xArticlesMode"
@@ -130,7 +130,7 @@ export async function runXArticlesPhase(deps: XRunDeps = {}): Promise<XRunSummar
   const { xApiKey, xApiSecret, xAccessToken, xAccessTokenSecret } = config;
   if (!xApiKey || !xApiSecret || !xAccessToken || !xAccessTokenSecret) throw new Error("X keys incomplete");
 
-  const effectiveMode = mode === "publish" && process.env.RENDER !== "true" ? "draft" : mode;
+  const effectiveMode = effectiveXMode(mode);
   summary.effectiveMode = effectiveMode;
   if (effectiveMode !== mode) console.warn("[x-articles] Publish mode is running as Draft: RENDER is not set");
 
@@ -256,16 +256,18 @@ async function publish(c: Ctx, claim: Claim, articleId: string): Promise<Stop | 
   return low;
 }
 
-// Null when X finds the post; otherwise why the publish cannot be believed. Whatever the
-// reason, the publish was sent and is never sent again.
+// Null when X finds the post; otherwise why the publish cannot be recorded. One read, no
+// waiting loop. A post that is not found is not proof that nothing was posted (X may be
+// slow to show it), so the answer is always "a person checks x.com", and the publish,
+// which was sent, is never sent again.
 async function lookupProblem(c: Ctx, postId: string): Promise<string | null> {
   const timeoutMs = budget(c);
-  if (timeoutMs === null) return "publish answered ok but there was no time left to find the post";
+  if (timeoutMs === null) return "publish answered ok; there was no time to read the post back, check x.com";
   const found = await getPost(c.creds, postId, { fetchImpl: c.fetchImpl, timeoutMs });
   if (found.ok) return null;
   return found.kind === "not_found"
-    ? "publish answered ok but the post could not be found"
-    : `publish answered ok but the post lookup failed: ${found.detail}`;
+    ? "publish answered ok; the post could not be read back, check x.com"
+    : `publish answered ok; the post could not be read back (${found.detail}), check x.com`;
 }
 
 async function prepareCover(c: Ctx, p: PostRow): Promise<{ status: CoverStatus; mediaId?: string }> {

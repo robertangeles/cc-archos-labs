@@ -35,7 +35,7 @@
 // Fence races are proven sequentially in queue.test.ts (pglite is one
 // connection) and concurrently in tests/real-pg/x-article-queue.real-pg.test.ts.
 
-import { and, asc, eq, inArray, lt, lte, not, or, sql } from "drizzle-orm";
+import { and, asc, count, eq, inArray, lt, lte, not, or, sql } from "drizzle-orm";
 import type { DB } from "../db";
 import { xArticlePublication as xap } from "../db/schema";
 import { PUBLIC_LISTED_FILTER } from "../posts";
@@ -324,4 +324,10 @@ export async function recoverStale(
       stale: stale.length,
     };
   });
+}
+
+/** Rows a person must look at. The health check turns any of them into a 503. */
+export async function countNeedsAttention(db: DB): Promise<number> {
+  const [row] = await db.select({ n: count() }).from(xap).where(eq(xap.status, "needs_attention"));
+  return row?.n ?? 0;
 }

@@ -1,8 +1,9 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { drizzle } from "drizzle-orm/pglite";
 import * as schema from "../../../../lib/db/schema";
 import type { DB } from "../../../../lib/db";
 import { makeRadarTestDb, type RadarTestDb } from "../../../../tests/helpers/radar-test-db";
+import { makeXQueueTestDb, type XQueueTestDb } from "../../../../tests/helpers/x-queue-test-db";
 
 // GET /api/health/cron
 //
@@ -10,9 +11,17 @@ import { makeRadarTestDb, type RadarTestDb } from "../../../../tests/helpers/rad
 //    status codes must not change. UptimeRobot's check depends on them.
 // 2. The news-radar id: heartbeat age, a frozen feed behind green ticks, and the
 //    last tick's outcome. Unknown ids are rejected before any query runs.
+// 3. The x-articles id: heartbeat age, a failed last run, any row that needs a
+//    person, and the configured and effective mode.
 
-const holder = vi.hoisted(() => ({ db: null as unknown }));
+const holder = vi.hoisted(() => ({ db: null as unknown, mode: "off" as string, configFails: false }));
 vi.mock("../../../../lib/db", () => ({ getDb: () => holder.db }));
+vi.mock("../../../../lib/integration-config", () => ({
+  getIntegrationConfig: async () => {
+    if (holder.configFails) throw new Error("master key missing");
+    return { xArticlesMode: holder.mode };
+  },
+}));
 
 const { GET } = await import("./route");
 
@@ -189,6 +198,144 @@ describe("id=news-radar", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     const res = await call("news-radar");
     holder.db = real;
+    spy.mockRestore();
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ ok: false, error: "Could not read heartbeat." });
+  });
+});
+
+describe("id=x-articles", () => {
+  let x: XQueueTestDb;
+  let radarDb: unknown;
+
+  beforeAll(async () => {
+    x = await makeXQueueTestDb(new Date());
+    await x.client.exec(`
+      CREATE TABLE cron_heartbeat (
+        id text PRIMARY KEY,
+        last_run_at timestamptz NOT NULL,
+        last_run_jobs_processed integer NOT NULL DEFAULT 0,
+        last_run_jobs_failed integer NOT NULL DEFAULT 0,
+        last_run_duration_ms integer,
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )`);
+  });
+  afterAll(async () => {
+    await x.close();
+  });
+  beforeEach(async () => {
+    await x.reset();
+    await x.client.exec("DELETE FROM cron_heartbeat");
+    radarDb = holder.db;
+    holder.db = x.db;
+    holder.mode = "draft";
+    holder.configFails = false;
+  });
+  afterEach(() => {
+    holder.db = radarDb;
+    vi.unstubAllEnvs();
+  });
+
+  const beat = (lastRunAt: string, processed = 2, failed = 0) =>
+    x.client.query(
+      `INSERT INTO cron_heartbeat (id, last_run_at, last_run_jobs_processed, last_run_jobs_failed, last_run_duration_ms) VALUES ('x-articles', $1, $2, $3, 900)`,
+      [lastRunAt, processed, failed],
+    );
+  const attentionRow = async (reason = "x_auth") => {
+    const postId = await x.addPost();
+    await x.client.query(`INSERT INTO x_article_publication (post_id, status, attention_reason) VALUES ($1, 'needs_attention', $2)`, [postId, reason]);
+  };
+
+  it("503 and never-run when no heartbeat exists", async () => {
+    const res = await call("x-articles");
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({
+      ok: true, id: "x-articles", mode: "draft", effectiveMode: "draft", needsAttention: 0,
+      lastRunAt: null, lastRunJobsProcessed: 0, lastRunJobsFailed: 0, stale: true, staleAfterMinutes: 10,
+    });
+  });
+
+  it("200 when the heartbeat is fresh, the last run did not fail and nothing needs a person", async () => {
+    const at = ago(2 * MIN);
+    await beat(at);
+    const res = await call("x-articles");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      ok: true, id: "x-articles", mode: "draft", effectiveMode: "draft", needsAttention: 0,
+      lastRunAt: at, lastRunJobsProcessed: 2, lastRunJobsFailed: 0, stale: false, staleAfterMinutes: 10,
+    });
+  });
+
+  it("200 when the mode is off and the cron is alive", async () => {
+    holder.mode = "off";
+    await beat(ago(MIN));
+    const res = await call("x-articles");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ mode: "off", effectiveMode: "off" });
+  });
+
+  it("503 and stale when the heartbeat is older than 10 minutes", async () => {
+    await beat(ago(11 * MIN));
+    const res = await call("x-articles");
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ stale: true });
+  });
+
+  it("503 when the last run failed", async () => {
+    await beat(ago(MIN), 0, 1);
+    const res = await call("x-articles");
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ stale: false, lastRunJobsFailed: 1 });
+  });
+
+  it("503 while any row needs a person, and says how many", async () => {
+    await beat(ago(MIN));
+    await attentionRow("x_auth");
+    await attentionRow("publish_ambiguous");
+    const res = await call("x-articles");
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ needsAttention: 2, stale: false });
+  });
+
+  it("rows in any other state do not alarm", async () => {
+    await beat(ago(MIN));
+    for (const status of ["queued", "drafted", "draft_only", "skipped"]) {
+      const postId = await x.addPost();
+      await x.client.query(
+        `INSERT INTO x_article_publication (post_id, status, article_id, attention_reason) VALUES ($1, $2, $3, $4)`,
+        [postId, status, status === "drafted" || status === "draft_only" ? "2117000000000000001" : null, status === "skipped" ? "post_not_public" : null],
+      );
+    }
+    expect((await call("x-articles")).status).toBe(200);
+  });
+
+  it.each([
+    ["publish", undefined, "draft"],
+    ["publish", "true", "publish"],
+    ["publish", "1", "draft"],
+    ["draft", "true", "draft"],
+    ["off", "true", "off"],
+  ])("mode %s with RENDER=%s reports effectiveMode %s", async (mode, render, effective) => {
+    holder.mode = mode;
+    vi.stubEnv("RENDER", render);
+    await beat(ago(MIN));
+    expect(await (await call("x-articles")).json()).toMatchObject({ mode, effectiveMode: effective });
+  });
+
+  it("500 with a plain message when the database read fails", async () => {
+    holder.db = { select: () => { throw new Error("db down"); } };
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = await call("x-articles");
+    spy.mockRestore();
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ ok: false, error: "Could not read heartbeat." });
+  });
+
+  it("500 with the same plain message when the configuration cannot be read", async () => {
+    holder.configFails = true;
+    await beat(ago(MIN));
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = await call("x-articles");
     spy.mockRestore();
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ ok: false, error: "Could not read heartbeat." });
