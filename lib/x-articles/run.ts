@@ -104,7 +104,7 @@ interface Ctx {
   fetchImpl: typeof fetch;
   creds: XCredentials;
   siteUrl: string;
-  effectiveMode: "draft" | "publish";
+  effectiveMode: XMode;
   deadline: number;
   summary: XRunSummary;
 }

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createDraft, getMe, getPost, publishDraft, uploadMedia, type XResult } from "./client";
+import { createDraft, getMe, getPost, publishDraft, uploadMedia, type XNotFound, type XResult } from "./client";
 import type { XCredentials } from "./oauth1";
 
 // The client never throws: every HTTP or network outcome is an XResult. The
@@ -30,7 +30,7 @@ function fakeFetch(outcome: Response | Error): Fetch {
 const abortError = () => Object.assign(new Error("The operation was aborted"), { name: "AbortError" });
 
 // Everything a failure may say, checked against the fake secrets and the header.
-function expectNoLeak(result: XResult<unknown>, fetchImpl: Fetch) {
+function expectNoLeak(result: XResult<unknown> | XNotFound, fetchImpl: Fetch) {
   const auth = (fetchImpl.mock.calls[0]?.[1] as RequestInit | undefined)?.headers as
     | Record<string, string>
     | undefined;
