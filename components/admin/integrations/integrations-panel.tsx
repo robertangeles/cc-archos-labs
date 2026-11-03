@@ -38,6 +38,13 @@ export interface RedactedConfig {
   r2ChatBucketName: string | null;
   // TypeSafe (Jev) API key for the news radar; always redacted.
   typesafeApiKey: string;
+  // X (Articles) OAuth 1.0a keys. The API key is the app's public identifier
+  // (plaintext); the secret and the access token pair are always redacted.
+  xApiKey: string | null;
+  xApiSecret: string;
+  xAccessToken: string;
+  xAccessTokenSecret: string;
+  xArticlesMode: "off" | "draft" | "publish";
 }
 
 export interface AuditRow {
@@ -59,6 +66,9 @@ const ENCRYPTED_FIELDS: ReadonlyArray<FieldKey> = [
   "cloudinaryApiSecret",
   "r2ChatSecretAccessKey",
   "typesafeApiKey",
+  "xApiSecret",
+  "xAccessToken",
+  "xAccessTokenSecret",
 ];
 
 // Fields that accept null (empty string in the form clears them).
@@ -78,6 +88,10 @@ const NULLABLE_FIELDS: ReadonlyArray<FieldKey> = [
   "r2ChatSecretAccessKey",
   "r2ChatBucketName",
   "typesafeApiKey",
+  "xApiKey",
+  "xApiSecret",
+  "xAccessToken",
+  "xAccessTokenSecret",
 ];
 
 function isEncrypted(field: FieldKey): boolean {
@@ -121,7 +135,8 @@ export type IntegrationSlug =
   | "anti-spam"
   | "media-storage"
   | "chat-documents"
-  | "typesafe";
+  | "typesafe"
+  | "x";
 
 // Google-specific extras passed in only when view === 'google-calendar'.
 // Coming from the page server component which reads the consultant row.
@@ -173,6 +188,7 @@ export function IntegrationsPanel({
   const [testTypesafe, setTestTypesafe] = useState<TestStatus>({
     kind: "idle",
   });
+  const [testX, setTestX] = useState<TestStatus>({ kind: "idle" });
 
   // Rotate-master-key modal state.
   const [showRotate, setShowRotate] = useState(false);
@@ -298,7 +314,7 @@ export function IntegrationsPanel({
   }
 
   async function handleTest(
-    provider: "resend" | "openrouter" | "r2-chat" | "typesafe",
+    provider: "resend" | "openrouter" | "r2-chat" | "typesafe" | "x",
   ) {
     const setter =
       provider === "resend"
@@ -307,7 +323,9 @@ export function IntegrationsPanel({
           ? setTestOpenrouter
           : provider === "typesafe"
             ? setTestTypesafe
-            : setTestR2Chat;
+            : provider === "x"
+              ? setTestX
+              : setTestR2Chat;
     setter({ kind: "testing" });
     try {
       const resp = await fetch(
@@ -751,6 +769,79 @@ export function IntegrationsPanel({
         </Section>
       )}
 
+      {view === "x" && (
+        <Section title="X (Articles)">
+          <p className="text-[12px] text-ink-subtle">
+            Paste the four OAuth 1.0a values from your app&apos;s Keys and tokens
+            page in the X developer portal. The access token pair must belong to
+            the account that will own the Articles. The secrets are encrypted at
+            rest and never reach the browser.
+          </p>
+          <ConfigField
+            field="xApiKey"
+            label="API key"
+            hint="The app's public identifier. Stored as plain text."
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus["xApiKey"]}
+            onEdit={(v) => setEditing((e) => ({ ...e, xApiKey: v }))}
+            onSave={() => handleSave("xApiKey")}
+          />
+          <ConfigField
+            field="xApiSecret"
+            label="API secret"
+            hint="Encrypted at rest. Saving an empty value clears it."
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus["xApiSecret"]}
+            onEdit={(v) => setEditing((e) => ({ ...e, xApiSecret: v }))}
+            onSave={() => handleSave("xApiSecret")}
+            onReveal={() => handleReveal("xApiSecret")}
+            onHide={() => handleHide("xApiSecret")}
+          />
+          <ConfigField
+            field="xAccessToken"
+            label="Access token"
+            hint="Encrypted at rest. Saving an empty value clears it."
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus["xAccessToken"]}
+            onEdit={(v) => setEditing((e) => ({ ...e, xAccessToken: v }))}
+            onSave={() => handleSave("xAccessToken")}
+            onReveal={() => handleReveal("xAccessToken")}
+            onHide={() => handleHide("xAccessToken")}
+          />
+          <ConfigField
+            field="xAccessTokenSecret"
+            label="Access token secret"
+            hint="Encrypted at rest. Saving an empty value clears it."
+            config={config}
+            editing={editing}
+            revealed={revealed}
+            saveStatus={saveStatus["xAccessTokenSecret"]}
+            onEdit={(v) => setEditing((e) => ({ ...e, xAccessTokenSecret: v }))}
+            onSave={() => handleSave("xAccessTokenSecret")}
+            onReveal={() => handleReveal("xAccessTokenSecret")}
+            onHide={() => handleHide("xAccessTokenSecret")}
+          />
+          <XModeField
+            config={config}
+            editing={editing}
+            saveStatus={saveStatus["xArticlesMode"]}
+            onEdit={(v) => setEditing((e) => ({ ...e, xArticlesMode: v }))}
+            onSave={() => handleSave("xArticlesMode")}
+          />
+          <TestRow
+            provider="x"
+            status={testX}
+            onClick={() => handleTest("x")}
+          />
+        </Section>
+      )}
+
       {revealError && (
         <div className="rounded-md border border-hairline bg-surface-1/40 p-3 text-sm text-ink-subtle">
           {revealError}
@@ -948,6 +1039,81 @@ function ConfigField({
   );
 }
 
+const X_MODES = [
+  { value: "off", label: "Off" },
+  {
+    value: "draft",
+    label: "Draft only (saved to your X drafts, nothing public)",
+  },
+  {
+    value: "publish",
+    label: "Publish automatically (public, cannot be edited through the API)",
+  },
+] as const;
+
+function XModeField({
+  config,
+  editing,
+  saveStatus,
+  onEdit,
+  onSave,
+}: {
+  config: RedactedConfig;
+  editing: Partial<Record<FieldKey, string | null>>;
+  saveStatus?: SaveStatus;
+  onEdit: (v: string) => void;
+  onSave: () => void;
+}) {
+  const draft = editing.xArticlesMode;
+  const selected = draft ?? config.xArticlesMode;
+  const dirty = selected !== config.xArticlesMode;
+  return (
+    <div className="flex flex-col gap-2">
+      <label htmlFor="x-articles-mode" className={labelClass}>
+        Mode
+      </label>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <select
+          id="x-articles-mode"
+          className={inputClass}
+          value={selected}
+          onChange={(e) => onEdit(e.target.value)}
+        >
+          {X_MODES.map((m) => (
+            <option key={m.value} value={m.value}>
+              {m.label}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={onSave}
+          className={primaryButtonClass}
+          disabled={!dirty || saveStatus?.kind === "saving"}
+        >
+          {saveStatus?.kind === "saving" ? "Saving…" : "Save"}
+        </button>
+      </div>
+      {selected === "publish" && (
+        <p
+          role="note"
+          className="rounded-md border border-semantic-warning/40 bg-semantic-warning/5 px-3 py-2 text-xs text-semantic-warning"
+        >
+          Publish makes every new blog post public on X as soon as it is sent,
+          and a published Article cannot be edited through the API. Use Draft
+          only until you have checked a few drafts on X.
+        </p>
+      )}
+      {saveStatus?.kind === "saved" && (
+        <p className="text-xs text-primary">Saved.</p>
+      )}
+      {saveStatus?.kind === "error" && (
+        <p className="text-xs text-semantic-error">{saveStatus.message}</p>
+      )}
+    </div>
+  );
+}
+
 function ReadOnlyEnvRow({
   label,
   hint,
@@ -982,7 +1148,7 @@ function TestRow({
   status,
   onClick,
 }: {
-  provider: "resend" | "openrouter" | "r2-chat" | "typesafe";
+  provider: "resend" | "openrouter" | "r2-chat" | "typesafe" | "x";
   status: TestStatus;
   onClick: () => void;
 }) {
@@ -993,7 +1159,9 @@ function TestRow({
         ? "OpenRouter"
         : provider === "typesafe"
           ? "TypeSafe"
-          : "R2 storage";
+          : provider === "x"
+            ? "X"
+            : "R2 storage";
   return (
     <div className="border-t border-hairline pt-4">
       <div className="flex items-center justify-between gap-3">
@@ -1055,6 +1223,11 @@ function RevealAuthModal({
     r2ChatSecretAccessKey: "R2 Chat Secret Access Key",
     r2ChatBucketName: "",
     typesafeApiKey: "TypeSafe (Jev) API key",
+    xApiKey: "",
+    xApiSecret: "X API secret",
+    xAccessToken: "X access token",
+    xAccessTokenSecret: "X access token secret",
+    xArticlesMode: "",
   };
 
   return (

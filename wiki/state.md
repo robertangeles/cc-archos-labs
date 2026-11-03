@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-11-03T01:14:59.724Z
+generated: 2026-11-03T01:15:11.574Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -94,7 +94,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | `/api/admin/integrations/test/r2-chat` | [app/api/admin/integrations/test/r2-chat/route.ts](../app/api/admin/integrations/test/r2-chat/route.ts) | 2026-07-07 |
 | `/api/admin/integrations/test/resend` | [app/api/admin/integrations/test/resend/route.ts](../app/api/admin/integrations/test/resend/route.ts) | 2026-05-15 |
 | `/api/admin/integrations/test/typesafe` | [app/api/admin/integrations/test/typesafe/route.ts](../app/api/admin/integrations/test/typesafe/route.ts) | 2026-10-26 |
-| `/api/admin/integrations/test/x` | [app/api/admin/integrations/test/x/route.ts](../app/api/admin/integrations/test/x/route.ts) | unknown |
+| `/api/admin/integrations/test/x` | [app/api/admin/integrations/test/x/route.ts](../app/api/admin/integrations/test/x/route.ts) | 2026-11-03 |
 | `/api/admin/knowledge` | [app/api/admin/knowledge/route.ts](../app/api/admin/knowledge/route.ts) | 2026-06-03 |
 | `/api/admin/knowledge/upload` | [app/api/admin/knowledge/upload/route.ts](../app/api/admin/knowledge/upload/route.ts) | 2026-06-23 |
 | `/api/admin/login` | [app/api/admin/login/route.ts](../app/api/admin/login/route.ts) | 2026-05-15 |
