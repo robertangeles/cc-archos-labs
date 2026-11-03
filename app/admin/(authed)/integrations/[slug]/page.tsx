@@ -27,6 +27,7 @@ const VALID_SLUGS: ReadonlyArray<IntegrationSlug> = [
   "media-storage",
   "chat-documents",
   "typesafe",
+  "x",
 ];
 
 const TITLES: Record<IntegrationSlug, string> = {
@@ -38,6 +39,7 @@ const TITLES: Record<IntegrationSlug, string> = {
   "media-storage": "Media Storage (Cloudinary)",
   "chat-documents": "Chat Documents (Cloudflare R2)",
   typesafe: "Jev (TypeSafe)",
+  x: "X (Articles)",
 };
 
 const SUBTITLES: Record<IntegrationSlug, string> = {
@@ -57,6 +59,7 @@ const SUBTITLES: Record<IntegrationSlug, string> = {
     "Private Cloudflare R2 bucket for chat file attachments. Confidential client documents are served only through an authz'd proxy — never a public URL.",
   typesafe:
     "TypeSafe API key for Jev, the model that ranks incoming news for the blog radar. Without it the radar does not run.",
+  x: "OAuth 1.0a keys for posting blog posts as X Articles. Mode decides what happens: Off, Draft only (saved to your X drafts, nothing public) or Publish automatically (public, cannot be edited through the API).",
 };
 
 interface PageProps {

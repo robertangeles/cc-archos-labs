@@ -87,6 +87,13 @@ export function IntegrationsGrid({
         "API key for Jev, which ranks incoming news for the blog radar.",
       status: redactedSecretToStatus(config.typesafeApiKey),
     },
+    {
+      slug: "x",
+      title: "X (Articles)",
+      description:
+        "OAuth 1.0a keys for posting blog posts as X Articles, with an Off / Draft / Publish mode.",
+      status: xStatus(config),
+    },
   ];
 
   return (
@@ -146,6 +153,20 @@ function redactedSecretToStatus(redacted: string): Status {
   if (redacted && redacted.length > 0) {
     return { tone: "success", label: "Configured" };
   }
+  return { tone: "neutral", label: "Not configured" };
+}
+
+// X needs all four keys; a partial set posts nothing, so it must not read as
+// "Configured".
+function xStatus(config: RedactedConfig): Status {
+  const set = [
+    config.xApiKey,
+    config.xApiSecret,
+    config.xAccessToken,
+    config.xAccessTokenSecret,
+  ].filter(Boolean).length;
+  if (set === 4) return { tone: "success", label: "Configured" };
+  if (set > 0) return { tone: "warning", label: "Incomplete" };
   return { tone: "neutral", label: "Not configured" };
 }
 

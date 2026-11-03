@@ -85,6 +85,9 @@ describe("integration-config-shared", () => {
         "cloudinaryApiSecret",
         "r2ChatSecretAccessKey",
         "typesafeApiKey",
+        "xApiSecret",
+        "xAccessToken",
+        "xAccessTokenSecret",
       ]);
     });
 
@@ -124,6 +127,11 @@ describe("integration-config-shared", () => {
         r2ChatSecretAccessKey: null,
         r2ChatBucketName: null,
         typesafeApiKey: null,
+        xApiKey: null,
+        xApiSecret: null,
+        xAccessToken: null,
+        xAccessTokenSecret: null,
+        xArticlesMode: "off",
       };
       expect(IntegrationConfigSchema.safeParse(valid).success).toBe(true);
     });
@@ -176,6 +184,11 @@ describe("integration-config-shared", () => {
         r2ChatSecretAccessKey: null,
         r2ChatBucketName: null,
         typesafeApiKey: null,
+        xApiKey: null,
+        xApiSecret: null,
+        xAccessToken: null,
+        xAccessTokenSecret: null,
+        xArticlesMode: "off",
       };
       const parsed = IntegrationConfigSchema.safeParse(valid);
       expect(parsed.success).toBe(true);
@@ -205,6 +218,11 @@ describe("integration-config-shared", () => {
         r2ChatSecretAccessKey: null,
         r2ChatBucketName: null,
         typesafeApiKey: null,
+        xApiKey: null,
+        xApiSecret: null,
+        xAccessToken: null,
+        xAccessTokenSecret: null,
+        xArticlesMode: "off",
       };
       const parsed = IntegrationConfigSchema.safeParse(valid);
       expect(parsed.success).toBe(true);
@@ -290,6 +308,50 @@ describe("decryptAndValidate", () => {
 
   it("returns a null TypeSafe key for a blob written before the field existed", () => {
     expect(_decryptAndValidate(buildStored()).typesafeApiKey).toBeNull();
+  });
+
+  it("decrypts the three X secrets and keeps the X API key and mode as stored", () => {
+    const config = _decryptAndValidate(
+      buildStored({
+        xApiKey: "x_api_key_public",
+        xApiSecret: encrypt("x_api_secret", TEST_KEY),
+        xAccessToken: encrypt("x_access_token", TEST_KEY),
+        xAccessTokenSecret: encrypt("x_access_secret", TEST_KEY),
+        xArticlesMode: "draft",
+      }),
+    );
+    expect(config.xApiKey).toBe("x_api_key_public");
+    expect(config.xApiSecret).toBe("x_api_secret");
+    expect(config.xAccessToken).toBe("x_access_token");
+    expect(config.xAccessTokenSecret).toBe("x_access_secret");
+    expect(config.xArticlesMode).toBe("draft");
+  });
+
+  it("loads a blob written before the X fields existed: keys null, mode off", () => {
+    const config = _decryptAndValidate(buildStored());
+    expect([
+      config.xApiKey,
+      config.xApiSecret,
+      config.xAccessToken,
+      config.xAccessTokenSecret,
+    ]).toEqual([null, null, null, null]);
+    expect(config.xArticlesMode).toBe("off");
+  });
+
+  it("rejects an unknown X mode instead of defaulting it", () => {
+    expect(() =>
+      _decryptAndValidate(buildStored({ xArticlesMode: "autopilot" })),
+    ).toThrow(IntegrationConfigValidationError);
+  });
+
+  it("throws IntegrationConfigDecryptError when an X secret is tampered with", () => {
+    const stored = buildStored({
+      xAccessTokenSecret:
+        encrypt("x_access_secret", TEST_KEY).slice(0, -4) + "AAAA",
+    });
+    expect(() => _decryptAndValidate(stored)).toThrow(
+      IntegrationConfigDecryptError,
+    );
   });
 
   it("throws IntegrationConfigDecryptError when the TypeSafe key is tampered with", () => {
@@ -403,6 +465,16 @@ describe("env-fallback grace window", () => {
     expect(config.llmApiKey).toBe("sk-or-real");
     expect(config.contactRecipientEmail).toBe("rob@example.com");
     expect(config.resendFromEmail).toBe("hello@example.com");
+  });
+
+  it("readFromEnv never supplies X keys and leaves the X mode off", () => {
+    process.env.ADMIN_PASSWORD = "real-admin-password";
+    process.env.RESEND_API_KEY = "re_real";
+    process.env.OPENROUTER_API_KEY = "sk-or-real";
+    const config = _readFromEnv();
+    expect(config.xApiKey).toBeNull();
+    expect(config.xAccessTokenSecret).toBeNull();
+    expect(config.xArticlesMode).toBe("off");
   });
 
   it("readFromEnv reads TYPESAFE_API_KEY and leaves it null when unset", () => {
