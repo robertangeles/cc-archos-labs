@@ -49,6 +49,11 @@ const PATCH_FIELDS = [
   "r2ChatSecretAccessKey",
   "r2ChatBucketName",
   "typesafeApiKey",
+  "xApiKey",
+  "xApiSecret",
+  "xAccessToken",
+  "xAccessTokenSecret",
+  "xArticlesMode",
 ] as const;
 
 const PatchSchema = z.object({

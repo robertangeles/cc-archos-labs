@@ -195,6 +195,15 @@ function decryptAndValidate(rawValue: unknown): IntegrationConfig {
   if (decrypted.r2ChatBucketName === undefined) {
     decrypted.r2ChatBucketName = null;
   }
+  // X Articles: the three secrets are normalised in the encrypted loop above.
+  // A blob written before these fields existed has no key and no mode; the
+  // mode defaults to off so nothing posts until an admin opts in.
+  if (decrypted.xApiKey === undefined) {
+    decrypted.xApiKey = null;
+  }
+  if (decrypted.xArticlesMode === undefined || decrypted.xArticlesMode === null) {
+    decrypted.xArticlesMode = "off";
+  }
 
   const parsed = IntegrationConfigSchema.safeParse(decrypted);
   if (!parsed.success) {
@@ -251,6 +260,12 @@ function readFromEnv(): IntegrationConfig {
     r2ChatSecretAccessKey: process.env.R2_CHAT_SECRET_ACCESS_KEY || null,
     r2ChatBucketName: process.env.R2_CHAT_BUCKET || null,
     typesafeApiKey: process.env.TYPESAFE_API_KEY || null,
+    // X keys never live in env: the Integrations card is the only place.
+    xApiKey: null,
+    xApiSecret: null,
+    xAccessToken: null,
+    xAccessTokenSecret: null,
+    xArticlesMode: "off",
   };
 
   const parsed = IntegrationConfigSchema.safeParse(config);
@@ -309,12 +324,16 @@ export async function updateIntegrationSecret<
 
   const db = getDb();
   await db.transaction(async (tx) => {
-    // Read current row (or initialise if missing).
+    // Read current row (or initialise if missing). FOR UPDATE makes an
+    // overlapping save wait for this transaction: without it two saves both
+    // read the old blob and the second write silently drops the first (it
+    // could restore an old X mode after an admin switched it Off).
     const existing = await tx
       .select({ value: siteSetting.value })
       .from(siteSetting)
       .where(eq(siteSetting.key, INTEGRATION_SECRETS_KEY))
-      .limit(1);
+      .limit(1)
+      .for("update");
 
     const currentStored = existing[0]?.value as Record<string, unknown> | undefined;
 
@@ -408,6 +427,11 @@ export async function migrateEnvToDB(): Promise<{
     r2ChatSecretAccessKey: process.env.R2_CHAT_SECRET_ACCESS_KEY ?? null,
     r2ChatBucketName: process.env.R2_CHAT_BUCKET ?? null,
     typesafeApiKey: process.env.TYPESAFE_API_KEY ?? null,
+    xApiKey: null,
+    xApiSecret: null,
+    xAccessToken: null,
+    xAccessTokenSecret: null,
+    xArticlesMode: null,
   };
 
   const written: Array<keyof IntegrationConfig> = [];
@@ -603,6 +627,11 @@ export async function getIntegrationConfigRedacted(): Promise<{
   r2ChatSecretAccessKey: string;
   r2ChatBucketName: string | null;
   typesafeApiKey: string;
+  xApiKey: string | null;
+  xApiSecret: string;
+  xAccessToken: string;
+  xAccessTokenSecret: string;
+  xArticlesMode: "off" | "draft" | "publish";
 }> {
   const config = await getIntegrationConfig();
   return {
@@ -627,6 +656,11 @@ export async function getIntegrationConfigRedacted(): Promise<{
     r2ChatSecretAccessKey: redactSecret(config.r2ChatSecretAccessKey ?? ""),
     r2ChatBucketName: config.r2ChatBucketName,
     typesafeApiKey: redactSecret(config.typesafeApiKey ?? ""),
+    xApiKey: config.xApiKey,
+    xApiSecret: redactSecret(config.xApiSecret ?? ""),
+    xAccessToken: redactSecret(config.xAccessToken ?? ""),
+    xAccessTokenSecret: redactSecret(config.xAccessTokenSecret ?? ""),
+    xArticlesMode: config.xArticlesMode,
   };
 }
 

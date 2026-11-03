@@ -102,6 +102,17 @@ export const IntegrationConfigSchema = z.object({
   // TypeSafe (Jev) API key, used by the news radar curator. Nullable so the
   // radar fails closed with a plain message until the admin adds the key.
   typesafeApiKey: z.string().min(1).nullable(),
+
+  // X (Twitter) OAuth 1.0a user keys for posting blog posts as X Articles.
+  // The API key is the app's public identifier (plaintext); the API secret
+  // and the user access token pair are credentials (ENCRYPTED_FIELDS). All
+  // nullable: lib/x-articles treats a partial set as Off. The mode is plain
+  // config: off | draft (create the X draft, nothing public) | publish.
+  xApiKey: z.string().min(1).nullable(),
+  xApiSecret: z.string().min(1).nullable(),
+  xAccessToken: z.string().min(1).nullable(),
+  xAccessTokenSecret: z.string().min(1).nullable(),
+  xArticlesMode: z.enum(["off", "draft", "publish"]),
 });
 
 export type IntegrationConfig = z.infer<typeof IntegrationConfigSchema>;
@@ -118,6 +129,9 @@ export const ENCRYPTED_FIELDS = [
   "cloudinaryApiSecret",
   "r2ChatSecretAccessKey",
   "typesafeApiKey",
+  "xApiSecret",
+  "xAccessToken",
+  "xAccessTokenSecret",
 ] as const satisfies ReadonlyArray<keyof IntegrationConfig>;
 
 export type EncryptedField = (typeof ENCRYPTED_FIELDS)[number];
@@ -211,6 +225,14 @@ export const StoredIntegrationConfigSchema = z.object({
   // TypeSafe (Jev). `.nullish()` so a blob written before this field existed
   // still parses (missing → undefined → null).
   typesafeApiKey: z.string().min(1).nullish(),
+
+  // X OAuth 1.0a keys and mode. `.nullish()` so a blob written before these
+  // fields existed still parses (missing → null; the mode normalises to off).
+  xApiKey: z.string().min(1).nullish(),
+  xApiSecret: z.string().min(1).nullish(),
+  xAccessToken: z.string().min(1).nullish(),
+  xAccessTokenSecret: z.string().min(1).nullish(),
+  xArticlesMode: z.enum(["off", "draft", "publish"]).nullish(),
 });
 
 export type StoredIntegrationConfig = z.infer<
