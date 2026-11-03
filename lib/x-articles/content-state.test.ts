@@ -1,9 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { markdownToContentState, type ContentState } from "./content-state";
+import {
+  markdownToContentState,
+  NATIVE_BLOCK_TYPES,
+  type Block,
+  type ContentState,
+} from "./content-state";
 
 const SITE = "https://archoslabs.xyz";
 
-type Extra = { byline?: string | null; backlink?: { url: string } | null };
+type Extra = {
+  byline?: string | null;
+  backlink?: { url: string } | null;
+  nativeBlocks?: ReadonlySet<Block["type"]>;
+};
+
+// What the converter would send once X accepts every block type.
+const ALL_NATIVE: ReadonlySet<Block["type"]> = new Set([
+  "unstyled",
+  "header-one",
+  "header-two",
+  "header-three",
+  "unordered-list-item",
+  "ordered-list-item",
+  "blockquote",
+  "atomic",
+]);
+const NATIVE = { nativeBlocks: ALL_NATIVE };
 
 function ok(contentMd: string, extra: Extra = {}): ContentState {
   const r = markdownToContentState({ contentMd, siteUrl: SITE, ...extra });
@@ -30,7 +52,7 @@ describe("allowed nodes", () => {
     ["##", "header-two"],
     ["###", "header-three"],
   ])("converts %s headings to %s", (hashes, type) => {
-    expect(ok(`${hashes} Title`).blocks).toEqual([{ text: "Title", type }]);
+    expect(ok(`${hashes} Title`, NATIVE).blocks).toEqual([{ text: "Title", type }]);
   });
 
   it("converts bold, italic and strikethrough to inline style ranges", () => {
@@ -54,7 +76,7 @@ describe("allowed nodes", () => {
   });
 
   it("converts flat unordered and ordered lists, one block per item", () => {
-    expect(ok("- one\n- **two**\n\n1. a\n2. b").blocks).toEqual([
+    expect(ok("- one\n- **two**\n\n1. a\n2. b", NATIVE).blocks).toEqual([
       { text: "one", type: "unordered-list-item" },
       {
         text: "two",
@@ -67,7 +89,7 @@ describe("allowed nodes", () => {
   });
 
   it("converts a multi-paragraph blockquote to one blockquote block per paragraph", () => {
-    expect(ok("> first\n>\n> second *b*").blocks).toEqual([
+    expect(ok("> first\n>\n> second *b*", NATIVE).blocks).toEqual([
       { text: "first", type: "blockquote" },
       {
         text: "second b",
@@ -121,6 +143,105 @@ describe("allowed nodes", () => {
 
   it("strips control characters but keeps text around them", () => {
     expect(ok("a\u0000b\u0007c\td").blocks).toEqual([{ text: "abc d", type: "unstyled" }]);
+  });
+});
+
+describe("blocks X refuses (fallback while only proven types are native)", () => {
+  it("sends only unstyled, header-two and atomic natively until the 503 is isolated", () => {
+    expect([...NATIVE_BLOCK_TYPES].sort()).toEqual(["atomic", "header-two", "unstyled"]);
+  });
+
+  it("writes bullets as paragraphs with a bullet prefix", () => {
+    expect(ok("- one\n- **two**").blocks).toEqual([
+      { text: "\u2022 one", type: "unstyled" },
+      {
+        text: "\u2022 two",
+        type: "unstyled",
+        inline_style_ranges: [{ offset: 2, length: 3, style: "bold" }],
+      },
+    ]);
+  });
+
+  it("numbers ordered items from the list's start and restarts for each list", () => {
+    expect(ok("1. a\n2. b\n\ntext\n\n3. c\n4. d").blocks.map((b) => b.text)).toEqual([
+      "1. a",
+      "2. b",
+      "text",
+      "3. c",
+      "4. d",
+    ]);
+    expect(ok("- x\n\n1. a\n2. b").blocks.map((b) => b.text)).toEqual(["\u2022 x", "1. a", "2. b"]);
+  });
+
+  it("writes a blockquote paragraph as italic text, replacing the italics inside it", () => {
+    expect(ok("> first\n>\n> second *b* **c**").blocks).toEqual([
+      {
+        text: "first",
+        type: "unstyled",
+        inline_style_ranges: [{ offset: 0, length: 5, style: "italic" }],
+      },
+      {
+        text: "second b c",
+        type: "unstyled",
+        inline_style_ranges: [
+          { offset: 0, length: 10, style: "italic" },
+          { offset: 9, length: 1, style: "bold" },
+        ],
+      },
+    ]);
+  });
+
+  it("gives an empty blockquote paragraph no zero-length range", () => {
+    expect(ok("> a\n>\n> [](https://a.example/)").blocks[1]).toEqual({ text: "", type: "unstyled" });
+  });
+
+  it.each([
+    ["#", "header-two"],
+    ["###", "header-two"],
+  ])("writes a %s heading as header-two", (hashes, type) => {
+    expect(ok(`${hashes} Title`).blocks).toEqual([{ text: "Title", type }]);
+  });
+
+  it("moves bold and link ranges past the bullet prefix, with an emoji before them", () => {
+    const [block] = ok("- \u{1F600} a **bold** [link](https://a.example/) end").blocks;
+    expect(block.text).toBe("\u2022 \u{1F600} a bold link end");
+    const bold = block.inline_style_ranges![0];
+    expect(block.text.slice(bold.offset, bold.offset + bold.length)).toBe("bold");
+    const link = block.entity_ranges![0];
+    expect(block.text.slice(link.offset, link.offset + link.length)).toBe("link");
+    // "\u2022 " = 2 units, emoji = 2, " a " = 3
+    expect(bold).toEqual({ offset: 7, length: 4, style: "bold" });
+  });
+
+  it("moves ranges past a two-digit number prefix", () => {
+    const md = Array.from({ length: 10 }, (_, i) => `${i + 1}. item **b${i + 1}**`).join("\n");
+    const last = ok(md).blocks[9];
+    expect(last.text).toBe("10. item b10");
+    const bold = last.inline_style_ranges![0];
+    expect(last.text.slice(bold.offset, bold.offset + bold.length)).toBe("b10");
+  });
+
+  it("keeps a link range exact inside an italicised blockquote", () => {
+    const [block] = ok("> see [the post](https://a.example/) now").blocks;
+    const link = block.entity_ranges![0];
+    expect(block.text.slice(link.offset, link.offset + link.length)).toBe("the post");
+    expect(block.inline_style_ranges).toEqual([{ offset: 0, length: 16, style: "italic" }]);
+  });
+
+  it("lets one type go native without touching the others", () => {
+    const bulletsNative = new Set([...NATIVE_BLOCK_TYPES, "unordered-list-item" as const]);
+    const { blocks } = ok("- a\n\n1. b\n\n> c", { nativeBlocks: bulletsNative });
+    expect(blocks.map((b) => `${b.type}:${b.text}`)).toEqual([
+      "unordered-list-item:a",
+      "unstyled:1. b",
+      "unstyled:c",
+    ]);
+  });
+
+  it("emits only native block types for a post that uses every type", () => {
+    const md = "# H1\n\n## H2\n\n### H3\n\n- a\n\n1. b\n\n> q\n\n---\n\ntext";
+    const { blocks } = ok(md, { byline: "By Rob", backlink: { url: "https://archoslabs.xyz/blog/x" } });
+    for (const b of blocks) expect(NATIVE_BLOCK_TYPES.has(b.type)).toBe(true);
   });
 });
 
@@ -344,7 +465,7 @@ describe("a realistic post", () => {
   ].join("\n");
 
   it("converts end to end with consistent offsets", () => {
-    const { blocks, entities } = ok(md, { byline: "By Rob Angeles" });
+    const { blocks, entities } = ok(md, { byline: "By Rob Angeles", ...NATIVE });
     expect(blocks.map((b) => b.type)).toEqual([
       "unstyled",
       "header-two",

@@ -150,6 +150,53 @@ describe.each(Object.entries(calls))("%s error contract", (_name, c) => {
   });
 });
 
+// X's per-user daily draft limit is only visible in this header; a refused call uses a slot too.
+describe.each(Object.entries(calls))("%s daily-limit header", (_name, c) => {
+  const LIMIT = "x-user-limit-24hour-remaining";
+
+  it("reports the remaining slots on success and on every failure status", async () => {
+    expect(await c.run(fakeFetch(reply(200, c.okBody, { [LIMIT]: "7" })))).toEqual({
+      ok: true,
+      value: c.value,
+      meta: { userLimit24hRemaining: 7 },
+    });
+    for (const status of [401, 429, 400, 503]) {
+      const r = await c.run(fakeFetch(reply(status, {}, { [LIMIT]: "3" })));
+      expect(r.ok === false && r.status).toBe(status);
+      expect(r.meta).toEqual({ userLimit24hRemaining: 3 });
+    }
+    const malformed = await c.run(fakeFetch(reply(200, c.noIdBody, { [LIMIT]: "2" })));
+    expect(malformed).toMatchObject({ ok: false, detail: "malformed response", meta: { userLimit24hRemaining: 2 } });
+  });
+
+  it("keeps zero, which is the case that matters most", async () => {
+    const r = await c.run(fakeFetch(reply(200, c.okBody, { [LIMIT]: "0" })));
+    expect(r.meta).toEqual({ userLimit24hRemaining: 0 });
+  });
+
+  it("leaves meta off when the header is absent or not a whole number", async () => {
+    expect((await c.run(fakeFetch(reply(200, c.okBody)))).meta).toBeUndefined();
+    expect((await c.run(fakeFetch(reply(503)))).meta).toBeUndefined();
+    for (const junk of ["abc", "", "-1", "1.5", "0x10", "7 left", "1e3"]) {
+      expect((await c.run(fakeFetch(reply(200, c.okBody, { [LIMIT]: junk })))).meta).toBeUndefined();
+    }
+  });
+
+  it("has nothing to report after a network error", async () => {
+    expect((await c.run(fakeFetch(abortError()))).meta).toBeUndefined();
+  });
+
+  it("exposes no other header", async () => {
+    const r = await c.run(
+      fakeFetch(
+        reply(503, {}, { [LIMIT]: "4", "x-rate-limit-limit": "40000", "x-transaction-id": "txn-abc", "retry-after": "5" }),
+      ),
+    );
+    expect(Object.keys(r.meta ?? {})).toEqual(["userLimit24hRemaining"]);
+    expect(JSON.stringify(r)).not.toMatch(/40000|txn-abc/);
+  });
+});
+
 describe("request shape", () => {
   function sent(f: Fetch) {
     const [url, init] = f.mock.calls[0] as [string, RequestInit];
@@ -260,6 +307,19 @@ describe("publishDraft error contract", () => {
       kind: "rate_limited",
       status: 429,
       retryAfterMs: 60_000,
+    });
+  });
+
+  it("reports the remaining daily slots, including on an ambiguous failure", async () => {
+    const limit = { "x-user-limit-24hour-remaining": "5" };
+    expect(await run(fakeFetch(reply(200, { data: { post_id: "1" } }, limit)))).toEqual({
+      ok: true,
+      value: { postId: "1" },
+      meta: { userLimit24hRemaining: 5 },
+    });
+    expect(await run(fakeFetch(reply(503, {}, limit)))).toMatchObject({
+      kind: "ambiguous",
+      meta: { userLimit24hRemaining: 5 },
     });
   });
 
