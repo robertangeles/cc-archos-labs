@@ -12,7 +12,8 @@ import type { DB } from "../../lib/db";
 // the same CHECK, UNIQUE and FK constraints production has. 0046 references the
 // post table, whose real definition carries a pgvector column pglite does not
 // load, so a stub with only the columns the queue reads stands in for it: the
-// ones PUBLIC_LISTED_FILTER filters on, plus published_at for the sweep window.
+// ones PUBLIC_LISTED_FILTER filters on, published_at for the sweep window, and the
+// four the runner reads to build an Article (slug, title, content_md, the cover).
 //
 // Caveat inherited from pglite: single-connection, so FOR UPDATE SKIP LOCKED
 // concurrency is not exercised here. Lease races are proven sequentially; the
@@ -24,7 +25,12 @@ const POST_STUB = `
     "status" text NOT NULL DEFAULT 'draft',
     "visibility" text NOT NULL DEFAULT 'listed',
     "archived_at" timestamp with time zone,
-    "published_at" timestamp with time zone
+    "published_at" timestamp with time zone,
+    "slug" text NOT NULL DEFAULT gen_random_uuid()::text,
+    "title" text NOT NULL DEFAULT 'A post',
+    "content_md" text NOT NULL DEFAULT 'Some body text.',
+    "og_image_path" text,
+    "og_image_deleted_at" timestamp with time zone
   )`;
 
 export interface XQueueTestDb {
@@ -36,6 +42,11 @@ export interface XQueueTestDb {
     visibility?: string;
     archivedAt?: Date | null;
     publishedAt?: Date | null;
+    slug?: string;
+    title?: string;
+    contentMd?: string;
+    ogImagePath?: string | null;
+    ogImageDeletedAt?: Date | null;
   }) => Promise<string>;
   /** Back to a freshly migrated, empty database (one boot per file, as in draft-test-db.ts). */
   reset: () => Promise<void>;
@@ -57,12 +68,18 @@ export async function makeXQueueTestDb(publishedAt: Date): Promise<XQueueTestDb>
     addPost: async (over = {}) =>
       (
         await client.query<{ id: string }>(
-          `INSERT INTO "post" ("status","visibility","archived_at","published_at") VALUES ($1,$2,$3,$4) RETURNING id`,
+          `INSERT INTO "post" ("status","visibility","archived_at","published_at","slug","title","content_md","og_image_path","og_image_deleted_at")
+           VALUES ($1,$2,$3,$4,COALESCE($5, gen_random_uuid()::text),COALESCE($6,'A post'),COALESCE($7,'Some body text.'),$8,$9) RETURNING id`,
           [
             over.status ?? "published",
             over.visibility ?? "listed",
             over.archivedAt ?? null,
             over.publishedAt === undefined ? publishedAt : over.publishedAt,
+            over.slug ?? null,
+            over.title ?? null,
+            over.contentMd ?? null,
+            over.ogImagePath ?? null,
+            over.ogImageDeletedAt ?? null,
           ],
         )
       ).rows[0].id,
