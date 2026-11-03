@@ -342,6 +342,8 @@ Not surfaced in the (future "Metis") workspace until the platform scope lands. T
 See [[x-article-publishing]] and [[2026-11-03-x-articles-autopost]].
 
 - **Make the blog scheduler's own failure visible (P2).** `/api/health/cron` allows only `singleton` and `news-radar`, so the `posts-publisher` heartbeat that the `process-scheduled-posts` cron writes is not monitored, and that Render cron predates `curl -fsS`, so a 5xx does not fail the run. Allow `posts-publisher` in the health route (503 when the heartbeat is older than 10 minutes) and move the cron command to `curl -fsS`. The X phase gets its own health id and does not depend on this.
+- **Remember X's daily limit across cron ticks (P3).** The run phase stops draining at 2 drafts or 1 publish left, but it keeps that only for rows it already claimed; a backlog of more than three queued rows is still drained by later ticks and could spend the day's 10 drafts. Fix by storing the reset time from `x-user-limit-24hour-reset` or by a column on `x_article_publication`. Not needed at 3 posts a day.
+- **Find what makes X refuse some Article blocks (P1, in progress).** Bullets, numbered items, quotes and `header-three` made the draft endpoint answer 503, and the first test post (bold, italic, strikethrough, a link) was deleted minutes after publishing. One feature per draft after the draft limit resets; see [[open-followups]].
 - **Decide whether X Articles bring readers back (P2).** After 20 Articles are public, compare the views X shows with the visits GA4 records from `utm_source=x`, then keep the full-text Articles, move to a short teaser with a link, or stop. Checkpoint in [[open-followups]].
 
 ## What's deliberately not on this list

@@ -3,10 +3,10 @@ title: X Article publishing
 category: entity
 created: 2026-11-03
 updated: 2026-11-03
-related: [[2026-11-03-x-articles-autopost]], [[integration-config]], [[news-draft-pipeline]], [[deployment-architecture]], [[2026-11-02-remove-skills-workflows-social]]
+related: [[2026-11-03-x-articles-autopost]], [[x-articles-runbook]], [[integration-config]], [[news-draft-pipeline]], [[deployment-architecture]], [[2026-11-02-remove-skills-workflows-social]]
 ---
 
-Every blog post that goes live is also posted to X as an Article on the brand account. **Status 2026-11-03: PR1 (the spike wave) is built and dormant.** Mode is Off, there is no table and the cron route is unchanged. PR2 (the queue) has not started and needs Rob's explicit database go.
+Every blog post that goes live is also posted to X as an Article on the brand account. **Status 2026-11-03: the whole pipeline is built and dormant.** Mode is Off by default. The table `x_article_publication` (migration 0046) exists on DEV only, never on PROD. Publishing was proven live with two test Articles. Still to do before it can post: find which block types or features X refuses (see the live spike), apply 0046 to PROD by hand, set the keys and Mode on PROD, and run Draft mode on real posts first. Steps in [[x-articles-runbook]].
 
 ## What PR1 ships
 
@@ -15,9 +15,15 @@ Every blog post that goes live is also posted to X as an Article on the brand ac
 - **A row lock** in `updateIntegrationSecret`: the read is `FOR UPDATE`, so two overlapping saves can no longer drop one another (it could have restored an old mode after an admin switched it Off). The proof needs a real Postgres: `tests/real-pg/integration-lock.real-pg.test.ts`, skipped unless `REAL_PG_URL` is set and the host is local.
 - **`app/api/cron/process-scheduled-posts/route.test.ts`**: pins the five behaviors of the blog scheduler route against the unedited route. The route had no test before.
 
-## What PR2 will add (not built)
+## What the queue and run phase add (built, dormant)
 
-The queue, planned in [[2026-11-03-x-articles-autopost]]: after the publish step in the same cron route each tick, a second phase sweeps `post` for rows published in the last 24 hours with no X record, queues them in `x_article_publication`, and drains up to three. One module owns every write (`queue.ts`), each state change is one conditional update fenced by `claimed_by` and the expected status.
+Decided in [[2026-11-03-x-articles-autopost]]. After the publish step in the same cron route each tick (`app/api/cron/process-scheduled-posts/route.ts`, its own try/catch and its own `x-articles` heartbeat, no X fields in the response), `lib/x-articles/run.ts` sweeps `post` for posts published in the last 24 hours with no X record, queues them in `x_article_publication`, and drains up to three within a 55 second wall. `queue.ts` is the only writer, and each state change is one conditional update fenced by `claimed_by` and the expected status. A drafted row is claimed for publishing only if its post is still public (a withdrawn post is skipped), because X cannot unpublish an Article once published.
+
+- **Modes:** Off does nothing. Draft saves the Article to the X drafts and ends the row as `draft_only`. Publish drafts, publishes, then reads the post back once; a post that cannot be read back is `needs_attention` (`publish_ambiguous`) and never retried. Publish runs as Draft unless `RENDER` is exactly `"true"` (`lib/x-articles/mode.ts`).
+- **Converter:** until X's refusal is pinned down, only unstyled, `header-two` and divider blocks are sent natively (`NATIVE_BLOCK_TYPES`); bullets and numbered items become `• ` and `1. ` paragraphs, quotes become italic paragraphs, `header-one` and `header-three` become `header-two`. Flipping one type native is one line. No byline block: X prints the author itself.
+- **Cover:** cropped to 5:2 (`cover.ts`, `sharp`), 1500 x 600, uploaded before the draft; any cover failure sends the Article without one.
+- **Limits it respects:** it stops at 2 drafts or 1 publish left of X's daily caps and counts an X 503 on a draft as an attempt. A backlog of more than three queued rows can still spend the daily slots, because the stop is remembered only for the rows already claimed (backlog item).
+- **Health:** `/api/health/cron?id=x-articles` reports stale, failed or any `needs_attention` row, with `mode` and `effectiveMode`.
 
 ```
 queued -> working -> drafted -> publishing -> published        (terminal)
