@@ -38,6 +38,9 @@ Run from a scratchpad script against the real API with the brand account's keys 
 - **The draft endpoint has a per-user limit of 10 calls per 24 hours** (`x-user-limit-24hour-limit: 10`, with `-remaining` and `-reset` headers). It is not on any X docs page. A refused call (503) uses a slot like an accepted one. The 24 hour window opened at the first call, 2026-11-03 06:59 UTC.
 - Accepted drafts: a single plain paragraph; bold, italic and strikethrough ranges plus a link entity; a divider (atomic block with a divider entity); accents, curly quotes, an em dash and an emoji in plain text; a `header-two` followed by a paragraph.
 
+- **Drafts made through the API do appear in the X editor**, under Articles, Drafts tab, on the brand account, titled as sent, with the first lines as the preview. Seen by Rob 25 minutes after creation: all five, with accents, curly quotes, em dash and emoji intact. X has no call to list or read a draft, so this screen is the only way to see one. Draft mode is therefore a real place to look before anything is public. (An earlier guess in this session that API drafts might be hidden was wrong.)
+- The brand account `@archoslabsxyz` is X Premium and verified (`GET /2/users/me?user.fields=subscription_type` returns `Premium`), so the account needed for Articles is the right one.
+
 **Refused: HTTP 503 `Service Unavailable` with a bare body, every time, never a 4xx**
 - The same payload fails again on a re-send, so it is deterministic and not an outage. Removing the cover does not help. Adding a cover is not the cause.
 - Failing payloads contain `header-three`, `unordered-list-item`, `ordered-list-item` or `blockquote` (one or more of the four; `header-one` was only ever sent together with them). `header-two` is fine, and non-ASCII text is fine.
@@ -48,7 +51,7 @@ Run from a scratchpad script against the real API with the brand account's keys 
 - Read `x-user-limit-24hour-remaining` from every draft answer and stop draining when it reaches 2, so a manual check or a re-draft is always possible. Three posts a day at three attempts each is nine slots, so a converter that sends content X refuses can starve the queue.
 - Re-upload the cover on every draft attempt that follows a failure more than a few hours later (the media id lives 24 hours).
 - The converter must not send the block types X refuses until the failing one is known (bullets, numbered items, quotes, `header-three`). A refusal there is `unsupported_markup` and lands in needs-attention.
-- **Not verified:** the price of any call (read it in the X console usage page), the publish endpoint's own limit, how the cover is cropped, how bold ranges land after an emoji (offset units), and how any of it looks on x.com.
+- **Not verified:** the price of any call (read it in the X console usage page), the publish endpoint's own limit, how the cover is cropped, and how bold ranges land after an emoji (offset units). Rob opens the drafts in the editor to check bold, italic, strikethrough, the link and the divider.
 
 ## Rules that bite
 
