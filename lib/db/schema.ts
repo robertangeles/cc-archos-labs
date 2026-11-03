@@ -3444,3 +3444,88 @@ export const newsDraftStep = pgTable(
 
 export type NewsDraftJob = typeof newsDraftJob.$inferSelect;
 export type NewsDraftStep = typeof newsDraftStep.$inferSelect;
+
+// ============================================================================
+// X Article publishing queue — migration 0046
+// ============================================================================
+// One row follows one blog post from "queued" to a public X Article, a draft
+// left in X, or "needs_attention" with the reason a person must look. X has no
+// edit, delete or get call for Articles, so this row is the only record of what
+// was posted. lib/x-articles/queue.ts is the only writer.
+// ============================================================================
+
+export const xArticlePublication = pgTable(
+  "x_article_publication",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // One row per post. RESTRICT: this is the record of what went out publicly.
+    postId: uuid("post_id")
+      .notNull()
+      .unique()
+      .references(() => post.id, { onDelete: "restrict" }),
+    // queued | working | drafted | publishing | draft_only | published | needs_attention | skipped
+    status: text("status").notNull().default("queued"),
+    // Random uuid minted per claim; the lease exists exactly while working or publishing.
+    claimedBy: uuid("claimed_by"),
+    claimedUntil: timestamp("claimed_until", { withTimezone: true }),
+    // Runs that died holding the row, plus drafts X refused with a 503.
+    attempts: integer("attempts").notNull().default(0),
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    // X ids are 19-digit strings that overflow a JavaScript number.
+    articleId: text("article_id"),
+    xPostId: text("x_post_id"),
+    // none | uploaded | failed
+    coverStatus: text("cover_status").notNull().default("none"),
+    // Machine-readable reason and a short detail (never article text).
+    attentionReason: text("attention_reason"),
+    attentionDetail: text("attention_detail"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    check(
+      "x_article_publication_status_check",
+      sql`${table.status} IN ('queued', 'working', 'drafted', 'publishing', 'draft_only', 'published', 'needs_attention', 'skipped')`,
+    ),
+    check(
+      "x_article_publication_lease_check",
+      sql`(${table.status} IN ('working', 'publishing')) = (${table.claimedBy} IS NOT NULL AND ${table.claimedUntil} IS NOT NULL)`,
+    ),
+    check(
+      "x_article_publication_article_check",
+      sql`${table.status} NOT IN ('drafted', 'publishing', 'draft_only', 'published') OR ${table.articleId} IS NOT NULL`,
+    ),
+    check(
+      "x_article_publication_published_check",
+      sql`(${table.status} = 'published') = (${table.xPostId} IS NOT NULL)`,
+    ),
+    check(
+      "x_article_publication_reason_check",
+      sql`(${table.status} IN ('needs_attention', 'skipped')) = (${table.attentionReason} IS NOT NULL)`,
+    ),
+    check(
+      "x_article_publication_cover_status_check",
+      sql`${table.coverStatus} IN ('none', 'uploaded', 'failed')`,
+    ),
+    // claimBatch every tick: "queued or drafted rows due now, oldest first".
+    index("x_article_publication_due_idx")
+      .on(table.nextAttemptAt)
+      .where(sql`${table.status} IN ('queued', 'drafted')`),
+    // recoverStale every tick: "working or publishing rows whose lease expired".
+    index("x_article_publication_lease_idx")
+      .on(table.claimedUntil)
+      .where(sql`${table.status} IN ('working', 'publishing')`),
+    // The health check: "how many rows need a person, and since when".
+    index("x_article_publication_attention_idx")
+      .on(table.updatedAt)
+      .where(sql`${table.status} = 'needs_attention'`),
+  ],
+);
+
+export type XArticlePublication = typeof xArticlePublication.$inferSelect;
