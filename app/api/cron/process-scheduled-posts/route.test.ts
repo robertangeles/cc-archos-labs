@@ -304,9 +304,12 @@ describe("heartbeat write failure is swallowed", () => {
     publishScheduledPosts.mockResolvedValue(result());
     holder.db = {
       select: () => ({ from: () => ({ where: () => ({ limit: async () => [] }) }) }),
+      // Lazy, so nothing rejects until a caller awaits it: the publisher's own write awaits
+      // values(), the shared heartbeat helper chains onConflictDoUpdate() onto it.
       insert: () => ({
-        values: async () => {
-          throw new Error("insert failed");
+        values: () => {
+          const fail = () => Promise.reject(new Error("insert failed"));
+          return { then: (ok: never, no: never) => fail().then(ok, no), onConflictDoUpdate: fail };
         },
       }),
     } as unknown as DB;
