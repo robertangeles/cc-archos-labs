@@ -37,6 +37,16 @@ export type EntityEntry = {
 
 export type ContentState = { blocks: Block[]; entities: EntityEntry[] };
 
+// Block types sent as themselves. X answers a bare 503 to a body with header-three,
+// bullets, numbered items or a quote (live spike 2026-11-03) and the culprit is not
+// isolated yet, so each of those is written with proven blocks (see textBlock).
+// Add a type here once X is known to accept it.
+export const NATIVE_BLOCK_TYPES: ReadonlySet<Block["type"]> = new Set<Block["type"]>([
+  "unstyled",
+  "header-two",
+  "atomic",
+]);
+
 export type ConvertResult =
   | { ok: true; contentState: ContentState }
   | {
@@ -47,7 +57,7 @@ export type ConvertResult =
 
 type Failure = Extract<ConvertResult, { ok: false }>;
 type MdNode = ReturnType<typeof fromMarkdown>["children"][number];
-type Ctx = { siteUrl: string; entities: EntityEntry[] };
+type Ctx = { siteUrl: string; entities: EntityEntry[]; native: ReadonlySet<Block["type"]> };
 type Acc = {
   text: string;
   styles: NonNullable<Block["inline_style_ranges"]>;
@@ -68,6 +78,13 @@ function refuse(reason: Failure["reason"], detail: string): never {
 
 const STYLE = { strong: "bold", emphasis: "italic", delete: "strikethrough" } as const;
 const HEADER = { 1: "header-one", 2: "header-two", 3: "header-three" } as const;
+const FALLBACK_TYPE: Partial<Record<BlockType, BlockType>> = {
+  "header-one": "header-two",
+  "header-three": "header-two",
+  "unordered-list-item": "unstyled",
+  "ordered-list-item": "unstyled",
+  blockquote: "unstyled",
+};
 // Control characters except tab, LF and CR (markdown needs those). Stripped before
 // parsing because micromark would turn a NUL into U+FFFD.
  
@@ -138,12 +155,32 @@ function inline(node: MdNode, acc: Acc, ctx: Ctx): void {
   }
 }
 
-function textBlock(type: BlockType, children: MdNode[], ctx: Ctx): Block {
+// A type outside ctx.native is written with proven blocks: bullets and numbers as a
+// text prefix (ranges move past it), a quote as italic text, h1 and h3 as header-two.
+function textBlock(type: BlockType, children: MdNode[], ctx: Ctx, ordinal = 0): Block {
   const acc: Acc = { text: "", styles: [], links: [] };
   for (const child of children) inline(child, acc, ctx);
-  const block: Block = { text: acc.text, type };
-  if (acc.styles.length) block.inline_style_ranges = acc.styles;
-  if (acc.links.length) block.entity_ranges = acc.links;
+  const native = ctx.native.has(type);
+  const prefix = native
+    ? ""
+    : type === "unordered-list-item"
+      ? "\u2022 "
+      : type === "ordered-list-item"
+        ? `${ordinal}. `
+        : "";
+  const shift = <T extends { offset: number }>(r: T) => ({ ...r, offset: r.offset + prefix.length });
+  const text = prefix + acc.text;
+  let styles = acc.styles.map(shift);
+  if (!native && type === "blockquote" && text) {
+    // One italic range over the whole text; italics inside it would only overlap.
+    styles = [
+      { offset: 0, length: text.length, style: "italic" },
+      ...styles.filter((r) => r.style !== "italic"),
+    ];
+  }
+  const block: Block = { text, type: native ? type : (FALLBACK_TYPE[type] ?? type) };
+  if (styles.length) block.inline_style_ranges = styles;
+  if (acc.links.length) block.entity_ranges = acc.links.map(shift);
   return block;
 }
 
@@ -162,7 +199,7 @@ function convertNode(node: MdNode, ctx: Ctx, out: Block[]): void {
       out.push(textBlock(HEADER[node.depth as 1 | 2 | 3], node.children, ctx));
       return;
     case "list":
-      for (const item of node.children) {
+      for (const [i, item] of node.children.entries()) {
         const [only] = item.children;
         if (item.checked != null || item.children.length !== 1 || only.type !== "paragraph") {
           refuse(
@@ -171,7 +208,12 @@ function convertNode(node: MdNode, ctx: Ctx, out: Block[]): void {
           );
         }
         out.push(
-          textBlock(node.ordered ? "ordered-list-item" : "unordered-list-item", only.children, ctx),
+          textBlock(
+            node.ordered ? "ordered-list-item" : "unordered-list-item",
+            only.children,
+            ctx,
+            (node.start ?? 1) + i,
+          ),
         );
       }
       return;
@@ -203,12 +245,17 @@ export function markdownToContentState(input: {
   siteUrl: string;
   byline?: string | null;
   backlink?: { url: string } | null;
+  nativeBlocks?: ReadonlySet<Block["type"]>;
 }): ConvertResult {
   const markdown = input.contentMd.replace(CONTROL, "");
   if (!markdown.trim()) {
     return { ok: false, reason: "empty_body", detail: "body is empty" };
   }
-  const ctx: Ctx = { siteUrl: input.siteUrl, entities: [] };
+  const ctx: Ctx = {
+    siteUrl: input.siteUrl,
+    entities: [],
+    native: input.nativeBlocks ?? NATIVE_BLOCK_TYPES,
+  };
   const blocks: Block[] = [];
   try {
     const tree = fromMarkdown(markdown, {

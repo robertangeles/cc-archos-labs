@@ -3,10 +3,10 @@ title: X Article publishing
 category: entity
 created: 2026-11-03
 updated: 2026-11-03
-related: [[2026-11-03-x-articles-autopost]], [[integration-config]], [[news-draft-pipeline]], [[deployment-architecture]], [[2026-11-02-remove-skills-workflows-social]]
+related: [[2026-11-03-x-articles-autopost]], [[x-articles-runbook]], [[integration-config]], [[news-draft-pipeline]], [[deployment-architecture]], [[2026-11-02-remove-skills-workflows-social]]
 ---
 
-Every blog post that goes live is also posted to X as an Article on the brand account. **Status 2026-11-03: PR1 (the spike wave) is built and dormant.** Mode is Off, there is no table and the cron route is unchanged. PR2 (the queue) has not started and needs Rob's explicit database go.
+Every blog post that goes live is also posted to X as an Article on the brand account. **Status 2026-11-03: the whole pipeline is built and dormant.** Mode is Off by default. The table `x_article_publication` (migration 0046) exists on DEV only, never on PROD. Publishing was proven live with two test Articles. Still to do before it can post: find which block types or features X refuses (see the live spike), apply 0046 to PROD by hand, set the keys and Mode on PROD, and run Draft mode on real posts first. Steps in [[x-articles-runbook]].
 
 ## What PR1 ships
 
@@ -15,9 +15,15 @@ Every blog post that goes live is also posted to X as an Article on the brand ac
 - **A row lock** in `updateIntegrationSecret`: the read is `FOR UPDATE`, so two overlapping saves can no longer drop one another (it could have restored an old mode after an admin switched it Off). The proof needs a real Postgres: `tests/real-pg/integration-lock.real-pg.test.ts`, skipped unless `REAL_PG_URL` is set and the host is local.
 - **`app/api/cron/process-scheduled-posts/route.test.ts`**: pins the five behaviors of the blog scheduler route against the unedited route. The route had no test before.
 
-## What PR2 will add (not built)
+## What the queue and run phase add (built, dormant)
 
-The queue, planned in [[2026-11-03-x-articles-autopost]]: after the publish step in the same cron route each tick, a second phase sweeps `post` for rows published in the last 24 hours with no X record, queues them in `x_article_publication`, and drains up to three. One module owns every write (`queue.ts`), each state change is one conditional update fenced by `claimed_by` and the expected status.
+Decided in [[2026-11-03-x-articles-autopost]]. After the publish step in the same cron route each tick (`app/api/cron/process-scheduled-posts/route.ts`, its own try/catch and its own `x-articles` heartbeat, no X fields in the response), `lib/x-articles/run.ts` sweeps `post` for posts published in the last 24 hours with no X record, queues them in `x_article_publication`, and drains up to three within a 55 second wall. `queue.ts` is the only writer, and each state change is one conditional update fenced by `claimed_by` and the expected status. A drafted row is claimed for publishing only if its post is still public (a withdrawn post is skipped), because X cannot unpublish an Article once published.
+
+- **Modes:** Off does nothing. Draft saves the Article to the X drafts and ends the row as `draft_only`. Publish drafts, publishes, then reads the post back once; a post that cannot be read back is `needs_attention` (`publish_ambiguous`) and never retried. Publish runs as Draft unless `RENDER` is exactly `"true"` (`lib/x-articles/mode.ts`).
+- **Converter:** until X's refusal is pinned down, only unstyled, `header-two` and divider blocks are sent natively (`NATIVE_BLOCK_TYPES`); bullets and numbered items become `• ` and `1. ` paragraphs, quotes become italic paragraphs, `header-one` and `header-three` become `header-two`. Flipping one type native is one line. No byline block: X prints the author itself.
+- **Cover:** cropped to 5:2 (`cover.ts`, `sharp`), 1500 x 600, uploaded before the draft; any cover failure sends the Article without one.
+- **Limits it respects:** it stops at 2 drafts or 1 publish left of X's daily caps and counts an X 503 on a draft as an attempt. A backlog of more than three queued rows can still spend the daily slots, because the stop is remembered only for the rows already claimed (backlog item).
+- **Health:** `/api/health/cron?id=x-articles` reports stale, failed or any `needs_attention` row, with `mode` and `effectiveMode`.
 
 ```
 queued -> working -> drafted -> publishing -> published        (terminal)
@@ -27,13 +33,47 @@ queued -> working -> drafted -> publishing -> published        (terminal)
  a `publishing` row whose lease expires ALWAYS becomes needs_attention (publish may have been sent)
 ```
 
+## Live spike, 2026-11-03 (private drafts only, nothing published)
+
+Run from a scratchpad script against the real API with the brand account's keys (`@archoslabsxyz`, access level `read-write-directmessages`, project on Pay Per Use). Ten draft calls in all, five accepted and five refused.
+
+**Confirmed**
+- `GET /2/users/me` 200. Limit 75 per 15 minutes.
+- `POST /2/media/upload` 200 with the JSON base64 body. Response `data`: `id`, `media_key`, `expires_after_secs: 86400`, `image: {h, w, image_type}`, `size`. The client's `data.id` read is right. A 3168 x 1092 JPEG (a real post cover, 156 KB) is accepted. **An uploaded cover expires after 24 hours.** Limit 500 per 15 minutes.
+- `POST /2/articles/draft` answers **201** with `data: {id, title}`. The OAuth 1.0a signature with a JSON body (body not signed) is accepted, so that premise holds.
+- **The draft endpoint has a per-user limit of 10 calls per 24 hours** (`x-user-limit-24hour-limit: 10`, with `-remaining` and `-reset` headers). It is not on any X docs page. A refused call (503) uses a slot like an accepted one. The 24 hour window opened at the first call, 2026-11-03 06:59 UTC.
+- Accepted drafts: a single plain paragraph; bold, italic and strikethrough ranges plus a link entity; a divider (atomic block with a divider entity); accents, curly quotes, an em dash and an emoji in plain text; a `header-two` followed by a paragraph.
+
+- **Drafts made through the API do appear in the X editor**, under Articles, Drafts tab, on the brand account, titled as sent, with the first lines as the preview. Seen by Rob 25 minutes after creation: all five, with accents, curly quotes, em dash and emoji intact. X has no call to list or read a draft, so this screen is the only way to see one. Draft mode is therefore a real place to look before anything is public. (An earlier guess in this session that API drafts might be hidden was wrong.)
+- **Checked by Rob in the editor, 2026-11-03:** bold, italic, strikethrough and a link render correctly (probe B), and a divider renders as a line between "Before" and "After" (probe C). The empty cover slot says "We recommend an image with a 5:2 aspect ratio for best results", so 5:2 is a recommendation, not a hard rule. **X prints the author's name and handle under the title itself**, so PR2 must not add a byline block (the converter's optional `byline` stays unused).
+- **Publish works:** `POST /2/articles/{id}/publish` answered 200 in 0.6 s with `data.post_id`, with no body sent and the OAuth 1.0a signature accepted. **Publish has its own per-user limit of 5 per 24 hours** (`x-user-limit-24hour-limit: 5`), separate from the draft limit of 10. The test Article (probe B) is at `https://x.com/archoslabsxyz/status/2117523613310234800` until Rob deletes it by hand.
+- **The test publish did create a post, and then it was deleted.** `POST .../publish` answered 200 with post id `2117523613310234800` (stamped 07:45:45 UTC, the publish time). Within 9 minutes the post was gone: `GET /2/tweets/{id}` says "Could not find post", the timeline and recent search show nothing, and X's public syndication endpoint (`cdn.syndication.twimg.com/tweet-result?id=...&token=a`) returns a `TweetTombstone` reading "This Post was deleted by the Post author". Controls: a real post returns the post; ids one digit away that never existed return an HTML error page, so the tombstone proves the post existed. **Who deleted it is not established** (Rob may have; nothing in the API says). A second `publish` of the same draft answered **400 "The specified article could not be found or is not owned by the authenticated user"**, so a publish consumes the draft and cannot be repeated (a retry cannot make a duplicate). Rob's Drafts tab still listed the draft afterwards. The post's look on x.com was never seen. Reading a post back through the API is unreliable for deleted posts, and the public syndication endpoint is the way to tell "deleted" from "never existed".
+- **A second test publish worked and stayed up.** Draft `TEST minimal: ignore` (one plain paragraph): 200 with post id `2117528174389281180` at 08:03:53 UTC. Watched every 2 s for 2 minutes through the syndication endpoint (always a normal post, never a tombstone), and `GET /2/tweets/{id}` returns `{"data":{"article":{"title":"..."},"edit_history_tweet_ids":[...],"id":"..."}}`, so a published Article is recognisable by the `article` object. Rob saw it under Published. **Publish works.** It cost one more of the 5 daily publishes (2 left on 2026-11-03).
+- **A published Article's post can be removed through the API.** `DELETE /2/tweets/{post_id}` (OAuth 1.0a, same keys) answered 200 `{"data":{"deleted":true}}` for the minimal test post; afterwards `GET /2/tweets/{id}` says not found and the syndication endpoint returns a tombstone. This corrects the earlier "no delete" assumption for the takedown runbook: the post goes, and `deleted: true` plus a not-found lookup confirm it. Whether the entry also leaves the Published list in the Articles screen was not checked.
+- **Unexplained: why the first test post (draft B) was deleted.** B was the only draft with inline styles (bold, italic, strikethrough) and a link (to /blog), and its draft kept showing in Rob's Drafts tab, while the minimal draft moved to Published. Nothing in our code or Render jobs deletes on X, and Rob did not delete it. Untested hypotheses: X removes the post of an Article whose body has a link or a style range, or an asynchronous step after publish failed. Test one feature per draft (link only, bold only, italic only, strikethrough only) after the draft limit resets, publishing each and watching it for 2 minutes with the syndication endpoint.
+- The brand account `@archoslabsxyz` is X Premium and verified (`GET /2/users/me?user.fields=subscription_type` returns `Premium`), so the account needed for Articles is the right one.
+
+**Refused: HTTP 503 `Service Unavailable` with a bare body, every time, never a 4xx**
+- The same payload fails again on a re-send, so it is deterministic and not an outage. Removing the cover does not help. Adding a cover is not the cause.
+- Failing payloads contain `header-three`, `unordered-list-item`, `ordered-list-item` or `blockquote` (one or more of the four; `header-one` was only ever sent together with them). `header-two` is fine, and non-ASCII text is fine.
+- **Not yet isolated** which of the four triggers it. 2026-11-04 after 06:59 UTC: one draft per suspect, then a draft with the cover and a bold range after an emoji.
+
+**What this changes in PR2**
+- A 503 on a draft is not a harmless transient: it can repeat forever and each try burns one of ten daily slots. The retry rule "transient failures do not touch attempts" must not apply to a 503 from the draft call. Count it as an attempt (cap 3) so one bad post cannot empty the day.
+- Read `x-user-limit-24hour-remaining` from every draft answer and stop draining when it reaches 2, so a manual check or a re-draft is always possible. Three posts a day at three attempts each is nine slots, so a converter that sends content X refuses can starve the queue.
+- **At most 5 Articles a day can be published** (publish limit), and a failed publish is never retried, so 5 is a hard ceiling on the posting rate. Read `x-user-limit-24hour-remaining` from publish answers too and stop publishing when it reaches 1.
+- Re-upload the cover on every draft attempt that follows a failure more than a few hours later (the media id lives 24 hours).
+- **Crop every cover to exactly 5:2 ourselves before upload** (Rob: X Article covers are 5:2, target 1500 x 600). All 342 published posts have a cover, and every cover with recorded dimensions is about 2.9:1 (3168 x 1092, 1856 x 640, 1600 x 552, 1200 x 414), so a centered crop removes about 7% from each side. Checked by eye on two real covers: the subject stays in frame. 253 posts have no dimensions recorded, so read them from the image bytes. `sharp` is already a dependency (`lib/image-pipeline.ts`), so no new package. The first spike sent the uncropped 3168 x 1092 JPEG and never saw how X treats it, because that draft was refused for another reason.
+- The converter must not send the block types X refuses until the failing one is known (bullets, numbered items, quotes, `header-three`). A refusal there is `unsupported_markup` and lands in needs-attention.
+- **Not verified:** the price of any call (read it in the X console usage page), how the cover is cropped, and how bold ranges land after an emoji (offset units). Rob opens the drafts in the editor to check bold, italic, strikethrough, the link and the divider.
+
 ## Rules that bite
 
 - **X has no edit, delete, get or schedule endpoint for Articles.** A wrong Article is deleted by hand on x.com. That is why Draft mode comes first and why an ambiguous publish is never retried.
 - **Publish is treated as Draft unless `RENDER` is the string `"true"`.** DEV holds a clone of PROD data and must never post to the brand account.
 - **The migration is hand-written** (`drizzle/0046_x_article_publication.sql`). Never run `pnpm db:generate`: the drizzle snapshot stops at 0030 and would emit a huge migration.
 - **The sweep looks back 24 hours.** Posts that go live while Mode is Off are picked up if Mode is switched on within 24 hours; older ones are not.
-- **Unverified until the live spike:** the price and rate limits of the Articles endpoints (X's pricing page does not list them), whether JSON bodies are excluded from the OAuth signature, X's offset units in `content_state`, and how the cover image is cropped.
+- **Still unverified after the first spike day:** the price of the Articles endpoints (X's pricing page does not list them), the publish endpoint's rate limit, X's offset units in `content_state`, and how the cover image is cropped. See the spike section above for what is settled.
 
 ## Follow-ups
 

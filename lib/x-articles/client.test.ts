@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createDraft, getMe, publishDraft, uploadMedia, type XResult } from "./client";
+import { createDraft, getMe, getPost, publishDraft, uploadMedia, type XNotFound, type XResult } from "./client";
 import type { XCredentials } from "./oauth1";
 
 // The client never throws: every HTTP or network outcome is an XResult. The
@@ -30,7 +30,7 @@ function fakeFetch(outcome: Response | Error): Fetch {
 const abortError = () => Object.assign(new Error("The operation was aborted"), { name: "AbortError" });
 
 // Everything a failure may say, checked against the fake secrets and the header.
-function expectNoLeak(result: XResult<unknown>, fetchImpl: Fetch) {
+function expectNoLeak(result: XResult<unknown> | XNotFound, fetchImpl: Fetch) {
   const auth = (fetchImpl.mock.calls[0]?.[1] as RequestInit | undefined)?.headers as
     | Record<string, string>
     | undefined;
@@ -150,6 +150,53 @@ describe.each(Object.entries(calls))("%s error contract", (_name, c) => {
   });
 });
 
+// X's per-user daily draft limit is only visible in this header; a refused call uses a slot too.
+describe.each(Object.entries(calls))("%s daily-limit header", (_name, c) => {
+  const LIMIT = "x-user-limit-24hour-remaining";
+
+  it("reports the remaining slots on success and on every failure status", async () => {
+    expect(await c.run(fakeFetch(reply(200, c.okBody, { [LIMIT]: "7" })))).toEqual({
+      ok: true,
+      value: c.value,
+      meta: { userLimit24hRemaining: 7 },
+    });
+    for (const status of [401, 429, 400, 503]) {
+      const r = await c.run(fakeFetch(reply(status, {}, { [LIMIT]: "3" })));
+      expect(r.ok === false && r.status).toBe(status);
+      expect(r.meta).toEqual({ userLimit24hRemaining: 3 });
+    }
+    const malformed = await c.run(fakeFetch(reply(200, c.noIdBody, { [LIMIT]: "2" })));
+    expect(malformed).toMatchObject({ ok: false, detail: "malformed response", meta: { userLimit24hRemaining: 2 } });
+  });
+
+  it("keeps zero, which is the case that matters most", async () => {
+    const r = await c.run(fakeFetch(reply(200, c.okBody, { [LIMIT]: "0" })));
+    expect(r.meta).toEqual({ userLimit24hRemaining: 0 });
+  });
+
+  it("leaves meta off when the header is absent or not a whole number", async () => {
+    expect((await c.run(fakeFetch(reply(200, c.okBody)))).meta).toBeUndefined();
+    expect((await c.run(fakeFetch(reply(503)))).meta).toBeUndefined();
+    for (const junk of ["abc", "", "-1", "1.5", "0x10", "7 left", "1e3"]) {
+      expect((await c.run(fakeFetch(reply(200, c.okBody, { [LIMIT]: junk })))).meta).toBeUndefined();
+    }
+  });
+
+  it("has nothing to report after a network error", async () => {
+    expect((await c.run(fakeFetch(abortError()))).meta).toBeUndefined();
+  });
+
+  it("exposes no other header", async () => {
+    const r = await c.run(
+      fakeFetch(
+        reply(503, {}, { [LIMIT]: "4", "x-rate-limit-limit": "40000", "x-transaction-id": "txn-abc", "retry-after": "5" }),
+      ),
+    );
+    expect(Object.keys(r.meta ?? {})).toEqual(["userLimit24hRemaining"]);
+    expect(JSON.stringify(r)).not.toMatch(/40000|txn-abc/);
+  });
+});
+
 describe("request shape", () => {
   function sent(f: Fetch) {
     const [url, init] = f.mock.calls[0] as [string, RequestInit];
@@ -263,6 +310,19 @@ describe("publishDraft error contract", () => {
     });
   });
 
+  it("reports the remaining daily slots, including on an ambiguous failure", async () => {
+    const limit = { "x-user-limit-24hour-remaining": "5" };
+    expect(await run(fakeFetch(reply(200, { data: { post_id: "1" } }, limit)))).toEqual({
+      ok: true,
+      value: { postId: "1" },
+      meta: { userLimit24hRemaining: 5 },
+    });
+    expect(await run(fakeFetch(reply(503, {}, limit)))).toMatchObject({
+      kind: "ambiguous",
+      meta: { userLimit24hRemaining: 5 },
+    });
+  });
+
   it("maps other 4xx to rejected", async () => {
     const f = fakeFetch(reply(422, ECHO_BODY));
     const r = await run(f);
@@ -297,4 +357,90 @@ describe("publishDraft error contract", () => {
       expect(f).not.toHaveBeenCalled();
     },
   );
+});
+
+// X can answer a publish with 200 and a post id that never existed, and it reports a
+// missing post inside a 200 body ("Not Found Error"), not as a 404. getPost is how the
+// runner finds out; "not_found" is its own kind, never confused with a transient failure.
+describe("getPost", () => {
+  const ID = "2118000000000000001";
+  const notFoundBody = {
+    errors: [{ title: "Not Found Error", type: "https://api.twitter.com/2/problems/resource-not-found", detail: "gone" }],
+  };
+
+  it("found: a 200 body whose data.id is the post", async () => {
+    const f = fakeFetch(reply(200, { data: { id: ID, text: "t" } }, { "x-user-limit-24hour-remaining": "4" }));
+    expect(await getPost(CREDS, ID, { fetchImpl: f })).toEqual({
+      ok: true,
+      value: { postId: ID },
+      meta: { userLimit24hRemaining: 4 },
+    });
+  });
+
+  it("found: the shape X returns for a live published Article", async () => {
+    const live = { data: { article: { title: "TEST probe B: ignore" }, edit_history_tweet_ids: [ID], id: ID } };
+    expect(await getPost(CREDS, ID, { fetchImpl: fakeFetch(reply(200, live)) })).toMatchObject({
+      ok: true,
+      value: { postId: ID },
+    });
+  });
+
+  it("not_found: a 200 body with a Not Found Error and no data", async () => {
+    const r = await getPost(CREDS, ID, { fetchImpl: fakeFetch(reply(200, notFoundBody)) });
+    expect(r).toMatchObject({ ok: false, kind: "not_found" });
+  });
+
+  it.each([
+    ["an empty 200 body", {}],
+    ["errors about something else", { errors: [{ title: "Authorization Error" }] }],
+    ["data about another post", { data: { id: "2118000000000000002" } }],
+    ["data with no id", { data: { text: "t" } }],
+  ])("a malformed answer is a rejection, not a find or a not_found: %s", async (_label, body) => {
+    expect(await getPost(CREDS, ID, { fetchImpl: fakeFetch(reply(200, body)) })).toMatchObject({
+      ok: false,
+      kind: "rejected",
+      detail: "malformed response",
+    });
+  });
+
+  it.each([
+    [401, "auth"],
+    [403, "auth"],
+    [429, "rate_limited"],
+    [400, "rejected"],
+    [500, "transient"],
+    [503, "transient"],
+  ])("HTTP %i is %s, never not_found", async (status, kind) => {
+    expect(await getPost(CREDS, ID, { fetchImpl: fakeFetch(reply(status, {})) })).toMatchObject({ ok: false, kind });
+  });
+
+  it("a timeout or network error is transient", async () => {
+    expect(await getPost(CREDS, ID, { fetchImpl: fakeFetch(abortError()) })).toMatchObject({ ok: false, kind: "transient" });
+    expect(await getPost(CREDS, ID, { fetchImpl: fakeFetch(new TypeError("fetch failed")) })).toMatchObject({
+      ok: false,
+      kind: "transient",
+    });
+  });
+
+  it.each(["", "abc", "12/../34", "1".repeat(20), "12 34", "1.5"])("refuses the id %j without a call", async (id) => {
+    const f = fakeFetch(reply(200, {}));
+    expect(await getPost(CREDS, id, { fetchImpl: f })).toMatchObject({ ok: false, kind: "rejected", detail: "invalid post id" });
+    expect(f).not.toHaveBeenCalled();
+  });
+
+  it("sends a signed GET to /2/tweets/{id} with no body", async () => {
+    const f = fakeFetch(reply(200, { data: { id: ID } }));
+    await getPost(CREDS, ID, { fetchImpl: f });
+    const [url, init] = f.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`https://api.x.com/2/tweets/${ID}`);
+    expect(init.method).toBe("GET");
+    expect(init.body).toBeUndefined();
+    expect((init.headers as Record<string, string>).Authorization).toMatch(/^OAuth /);
+  });
+
+  it("never carries a secret, a header or X's echoed body in a failure", async () => {
+    const f = fakeFetch(reply(500, ECHO_BODY));
+    const r = await getPost(CREDS, ID, { fetchImpl: f });
+    expectNoLeak(r, f);
+  });
 });

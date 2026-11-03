@@ -83,7 +83,7 @@ export interface ReadNextItem {
   ogImageHeight: number | null;
 }
 
-const PUBLIC_LISTED_FILTER = and(
+export const PUBLIC_LISTED_FILTER = and(
   eq(post.status, "published"),
   eq(post.visibility, "listed"),
   isNull(post.archivedAt),

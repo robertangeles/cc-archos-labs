@@ -2,7 +2,9 @@ import { type NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { getDb } from "../../../../lib/db";
 import { cronHeartbeat } from "../../../../lib/db/schema";
+import { touchHeartbeat as touchSharedHeartbeat } from "../../../../lib/cron-heartbeat";
 import { publishScheduledPosts } from "../../../../lib/posts-admin/scheduled-publisher";
+import { runXArticlesPhase } from "../../../../lib/x-articles/run";
 
 // POST /api/cron/process-scheduled-posts
 //
@@ -17,7 +19,11 @@ import { publishScheduledPosts } from "../../../../lib/posts-admin/scheduled-pub
 //   2. publishScheduledPosts(now) — atomically flip any rows whose
 //      scheduled_publish_at <= now and status='scheduled'.
 //   3. Update cron_heartbeat id='posts-publisher' with run stats.
-//   4. Return JSON summary.
+//   4. Run the X Article phase (lib/x-articles/run.ts), whether the publisher
+//      succeeded or threw: it posts what is already public. It has its own
+//      try/catch and its own heartbeat id='x-articles', and nothing it does
+//      changes the response, the status or the posts-publisher heartbeat.
+//   5. Return JSON summary.
 //
 // Heartbeat is the single source of monitoring truth. UptimeRobot polls
 // /api/health/cron (when that route lands; presently only the booking
@@ -27,6 +33,7 @@ import { publishScheduledPosts } from "../../../../lib/posts-admin/scheduled-pub
 export const runtime = "nodejs";
 
 const HEARTBEAT_ID = "posts-publisher";
+const X_HEARTBEAT_ID = "x-articles";
 
 export async function POST(request: NextRequest) {
   // 1. Auth -----------------------------------------------------------------
@@ -68,6 +75,7 @@ export async function POST(request: NextRequest) {
       failed: 1,
       durationMs: Date.now() - runStart,
     });
+    await runXPhase();
     return NextResponse.json(
       { ok: false, error: "Publisher failed.", detail: message },
       { status: 503 },
@@ -80,6 +88,7 @@ export async function POST(request: NextRequest) {
     failed: result.failed,
     durationMs: Date.now() - runStart,
   });
+  await runXPhase();
 
   return NextResponse.json({
     ok: result.ok,
@@ -88,6 +97,30 @@ export async function POST(request: NextRequest) {
     raced: result.raced,
     failed: result.failed,
     details: result.details,
+  });
+}
+
+// Never throws and never reaches the response: a failure is the x-articles
+// heartbeat's failed=1, which /api/health/cron?id=x-articles turns into a 503.
+// Only the message is logged: an error object here could carry configuration.
+async function runXPhase(): Promise<void> {
+  const started = Date.now();
+  let processed = 0;
+  let failed = 0;
+  try {
+    const summary = await runXArticlesPhase();
+    processed = summary.drafted + summary.published;
+  } catch (err) {
+    failed = 1;
+    console.error(
+      "[cron/process-scheduled-posts] x-articles phase threw:",
+      err instanceof Error ? err.message : String(err),
+    );
+  }
+  await touchSharedHeartbeat(X_HEARTBEAT_ID, {
+    processed,
+    failed,
+    durationMs: Date.now() - started,
   });
 }
 

@@ -7,6 +7,9 @@ import {
   newsRadarTick,
 } from "../../../../lib/db/schema";
 import { readHeartbeat } from "../../../../lib/cron-heartbeat";
+import { getIntegrationConfig } from "../../../../lib/integration-config";
+import { effectiveXMode } from "../../../../lib/x-articles/mode";
+import { countNeedsAttention } from "../../../../lib/x-articles/queue";
 
 // GET /api/health/cron[?id=<cron id>]
 //
@@ -19,6 +22,9 @@ import { readHeartbeat } from "../../../../lib/cron-heartbeat";
 //   (none) or singleton  the booking cron's heartbeat, shape below, UNCHANGED
 //   news-radar           heartbeat age, a feed frozen behind green ticks, and
 //                        the last tick's outcome (see newsRadarHealth)
+//   x-articles           heartbeat age, a failed last run, and any X Article
+//                        row that needs a person; reports the configured and
+//                        the effective mode (see xArticlesHealth)
 // Any other id is a 400. The posts-publisher heartbeat is
 // written but not monitored here yet.
 //
@@ -37,7 +43,10 @@ export const runtime = "nodejs";
 
 const STALE_AFTER_MINUTES = 10;
 
-const ALLOWED_IDS = ["singleton", "news-radar"];
+const ALLOWED_IDS = ["singleton", "news-radar", "x-articles"];
+
+// The X phase rides the posts cron, which runs every minute.
+const X_ARTICLES_STALE_AFTER_MINUTES = 10;
 
 // A tick runs every 2 hours; one missed tick is tolerated, two are not.
 const NEWS_RADAR_STALE_AFTER_MINUTES = 300;
@@ -56,6 +65,7 @@ export async function GET(request: Request) {
 
   try {
     if (id === "news-radar") return await newsRadarHealth();
+    if (id === "x-articles") return await xArticlesHealth();
 
     const db = getDb();
     const rows = await db
@@ -111,6 +121,41 @@ export async function GET(request: Request) {
       { status: 500 },
     );
   }
+}
+
+async function xArticlesHealth() {
+  // The config first: if it cannot be read, no query is left running behind the 500.
+  const config = await getIntegrationConfig();
+  const db = getDb();
+  const [heartbeat, needsAttention] = await Promise.all([readHeartbeat("x-articles", db), countNeedsAttention(db)]);
+  const base = {
+    ok: true,
+    id: "x-articles",
+    mode: config.xArticlesMode,
+    effectiveMode: effectiveXMode(config.xArticlesMode),
+    needsAttention,
+    staleAfterMinutes: X_ARTICLES_STALE_AFTER_MINUTES,
+  };
+
+  if (!heartbeat) {
+    return NextResponse.json(
+      { ...base, lastRunAt: null, lastRunJobsProcessed: 0, lastRunJobsFailed: 0, stale: true },
+      { status: 503 },
+    );
+  }
+
+  const stale = Date.now() - heartbeat.lastRunAt.getTime() > X_ARTICLES_STALE_AFTER_MINUTES * 60_000;
+  const healthy = !stale && heartbeat.failed === 0 && needsAttention === 0;
+  return NextResponse.json(
+    {
+      ...base,
+      lastRunAt: heartbeat.lastRunAt.toISOString(),
+      lastRunJobsProcessed: heartbeat.processed,
+      lastRunJobsFailed: heartbeat.failed,
+      stale,
+    },
+    { status: healthy ? 200 : 503 },
+  );
 }
 
 async function newsRadarHealth() {

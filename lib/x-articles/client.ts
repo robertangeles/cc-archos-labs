@@ -11,14 +11,21 @@ import { oauth1Header, type XCredentials } from "./oauth1";
 
 const BASE_URL = "https://api.x.com";
 
+// The one response header we report. X limits drafts per user per day, a refused
+// call uses a slot too, and this header is the only place the count is visible.
+export type XMeta = { userLimit24hRemaining?: number };
+
 export type XFailure = {
   ok: false;
   kind: "auth" | "rate_limited" | "rejected" | "transient" | "ambiguous";
   status?: number;
   retryAfterMs?: number;
   detail: string;
+  meta?: XMeta;
 };
-export type XResult<T> = { ok: true; value: T } | XFailure;
+export type XResult<T> = { ok: true; value: T; meta?: XMeta } | XFailure;
+// A post X says does not exist. Not an XFailure: nothing is wrong with the call.
+export type XNotFound = { ok: false; kind: "not_found"; detail: string; meta?: XMeta };
 export interface XOptions {
   timeoutMs?: number;
   fetchImpl?: typeof fetch;
@@ -32,6 +39,10 @@ function parseRetryAfter(value: string | null): number | undefined {
   const ms = /^\d+$/.test(v) ? Number(v) * 1000 : Date.parse(v) - Date.now();
   if (Number.isNaN(ms)) return undefined;
   return Math.min(Math.max(ms, 0), MAX_RETRY_AFTER_MS);
+}
+
+function parseMeta(value: string | null): XMeta | undefined {
+  return value !== null && /^\d+$/.test(value) ? { userLimit24hRemaining: Number(value) } : undefined;
 }
 
 function parseJson(text: string): unknown {
@@ -74,6 +85,7 @@ async function send(
 
   let status: number;
   let retryAfter: string | null;
+  let meta: XMeta | undefined;
   let text: string;
   try {
     const resp = await (opts.fetchImpl ?? fetch)(url, {
@@ -87,6 +99,7 @@ async function send(
     });
     status = resp.status;
     retryAfter = resp.headers.get("retry-after");
+    meta = parseMeta(resp.headers.get("x-user-limit-24hour-remaining"));
     text = await resp.text();
   } catch (err) {
     // The error name only: an error object can carry the request.
@@ -97,15 +110,15 @@ async function send(
     };
   }
 
-  if (status >= 200 && status < 300) return { ok: true, value: parseJson(text) };
+  if (status >= 200 && status < 300) return { ok: true, value: parseJson(text), meta };
 
   const detail = errorDetail(status, text);
-  if (status === 401 || status === 403) return { ok: false, kind: "auth", status, detail };
+  if (status === 401 || status === 403) return { ok: false, kind: "auth", status, detail, meta };
   if (status === 429) {
-    return { ok: false, kind: "rate_limited", status, retryAfterMs: parseRetryAfter(retryAfter), detail };
+    return { ok: false, kind: "rate_limited", status, retryAfterMs: parseRetryAfter(retryAfter), detail, meta };
   }
-  if (status >= 400 && status < 500) return { ok: false, kind: "rejected", status, detail };
-  return { ok: false, kind: unsure, status, detail };
+  if (status >= 400 && status < 500) return { ok: false, kind: "rejected", status, detail, meta };
+  return { ok: false, kind: unsure, status, detail, meta };
 }
 
 // Run a request and pull one value out of a 2xx body; a body without it is malformed.
@@ -118,11 +131,12 @@ async function sendAndPick<T>(
   const res = await send(creds, req, opts);
   if (!res.ok) return res;
   const value = pick(isRecord(res.value) ? res.value : {});
-  if (value !== undefined) return { ok: true, value };
+  if (value !== undefined) return { ok: true, value, meta: res.meta };
   return {
     ok: false,
     kind: req.isPublish ? "ambiguous" : "rejected",
     detail: "malformed response",
+    meta: res.meta,
   };
 }
 
@@ -207,4 +221,24 @@ export async function publishDraft(
     },
     opts,
   );
+}
+
+// X reports a missing post inside a 200 body ("Not Found Error"), not as a 404, and a
+// publish has answered 200 with a post id that never existed. So the id from
+// publishDraft is believed only once this finds the post.
+export async function getPost(
+  creds: XCredentials,
+  postId: string,
+  opts?: XOptions,
+): Promise<XResult<{ postId: string }> | XNotFound> {
+  // The id goes into the URL path: refuse anything that is not a plain number.
+  if (!/^[0-9]{1,19}$/.test(postId)) return { ok: false, kind: "rejected", detail: "invalid post id" };
+  const res = await send(creds, { method: "GET", path: `/2/tweets/${postId}` }, opts);
+  if (!res.ok) return res;
+  const body = isRecord(res.value) ? res.value : {};
+  if (idOf(dataOf(body).id) === postId) return { ok: true, value: { postId }, meta: res.meta };
+  const gone = Array.isArray(body.errors) && body.errors.some((e) => isRecord(e) && e.title === "Not Found Error");
+  return gone
+    ? { ok: false, kind: "not_found", detail: "post not found", meta: res.meta }
+    : { ok: false, kind: "rejected", detail: "malformed response", meta: res.meta };
 }
