@@ -24,6 +24,8 @@ export type XFailure = {
   meta?: XMeta;
 };
 export type XResult<T> = { ok: true; value: T; meta?: XMeta } | XFailure;
+// A post X says does not exist. Not an XFailure: nothing is wrong with the call.
+export type XNotFound = { ok: false; kind: "not_found"; detail: string; meta?: XMeta };
 export interface XOptions {
   timeoutMs?: number;
   fetchImpl?: typeof fetch;
@@ -219,4 +221,24 @@ export async function publishDraft(
     },
     opts,
   );
+}
+
+// X reports a missing post inside a 200 body ("Not Found Error"), not as a 404, and a
+// publish has answered 200 with a post id that never existed. So the id from
+// publishDraft is believed only once this finds the post.
+export async function getPost(
+  creds: XCredentials,
+  postId: string,
+  opts?: XOptions,
+): Promise<XResult<{ postId: string }> | XNotFound> {
+  // The id goes into the URL path: refuse anything that is not a plain number.
+  if (!/^[0-9]{1,19}$/.test(postId)) return { ok: false, kind: "rejected", detail: "invalid post id" };
+  const res = await send(creds, { method: "GET", path: `/2/tweets/${postId}` }, opts);
+  if (!res.ok) return res;
+  const body = isRecord(res.value) ? res.value : {};
+  if (idOf(dataOf(body).id) === postId) return { ok: true, value: { postId }, meta: res.meta };
+  const gone = Array.isArray(body.errors) && body.errors.some((e) => isRecord(e) && e.title === "Not Found Error");
+  return gone
+    ? { ok: false, kind: "not_found", detail: "post not found", meta: res.meta }
+    : { ok: false, kind: "rejected", detail: "malformed response", meta: res.meta };
 }

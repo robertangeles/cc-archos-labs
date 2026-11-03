@@ -5,7 +5,7 @@ import { getIntegrationConfig } from "../integration-config";
 import type { IntegrationConfig } from "../integration-config-shared";
 import { PUBLIC_LISTED_FILTER } from "../posts";
 import { getSiteUrl } from "../site-config";
-import { createDraft, publishDraft, uploadMedia, type XFailure, type XMeta } from "./client";
+import { createDraft, getPost, publishDraft, uploadMedia, type XFailure, type XMeta } from "./client";
 import { markdownToContentState } from "./content-state";
 import { cropCoverTo52 } from "./cover";
 import type { XCredentials } from "./oauth1";
@@ -46,6 +46,9 @@ import {
 //   other transient    back to the queue, no attempt counted
 //   publish sent but   needs_attention publish_ambiguous, never sent again
 //   not confirmed
+//   publish answered   needs_attention publish_ambiguous too: X has answered 200
+//   ok, post not found with a post id that did not exist, so `published` is only
+//                      recorded once a lookup finds the post
 //
 // X allows 10 draft calls and 5 publishes per 24 h per user and reports what is
 // left on every answer; the tick stops draining at 2 drafts or 1 publish left.
@@ -243,9 +246,26 @@ async function publish(c: Ctx, claim: Claim, articleId: string): Promise<Stop | 
   const low = isLow(res.meta, PUBLISH_RESERVE) ? DAILY : null;
   if (!res.ok) return (await failed(c, claim, "publish", res)) ?? low;
 
+  const unconfirmed = await lookupProblem(c, res.value.postId);
+  if (unconfirmed) {
+    await attention(c, claim, "publish_ambiguous", unconfirmed);
+    return low;
+  }
   if (await markPublished(c.db, claim, res.value.postId, c.now())) c.summary.published++;
   else console.error(`[x-articles] X post ${res.value.postId} is live but row ${claim.id} was taken over`);
   return low;
+}
+
+// Null when X finds the post; otherwise why the publish cannot be believed. Whatever the
+// reason, the publish was sent and is never sent again.
+async function lookupProblem(c: Ctx, postId: string): Promise<string | null> {
+  const timeoutMs = budget(c);
+  if (timeoutMs === null) return "publish answered ok but there was no time left to find the post";
+  const found = await getPost(c.creds, postId, { fetchImpl: c.fetchImpl, timeoutMs });
+  if (found.ok) return null;
+  return found.kind === "not_found"
+    ? "publish answered ok but the post could not be found"
+    : `publish answered ok but the post lookup failed: ${found.detail}`;
 }
 
 async function prepareCover(c: Ctx, p: PostRow): Promise<{ status: CoverStatus; mediaId?: string }> {

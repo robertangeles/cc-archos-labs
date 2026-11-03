@@ -50,13 +50,15 @@ interface Fake {
   count: (path: string) => number;
 }
 
-function fakeX(over: Partial<Record<"media" | "draft" | "publish" | "cover", Route>> = {}): Fake {
+function fakeX(over: Partial<Record<"media" | "draft" | "publish" | "lookup" | "cover", Route>> = {}): Fake {
   const calls: Fake["calls"] = [];
   let drafts = 0;
   const routes: Record<string, Route> = {
     media: () => json(200, { data: { id: "9001", media_key: "3_9001" } }),
     draft: () => json(201, { data: { id: `2117${String(++drafts).padStart(15, "0")}`, title: "t" } }, { "x-user-limit-24hour-remaining": "8" }),
     publish: () => json(200, { data: { post_id: "2118000000000000001" } }, { "x-user-limit-24hour-remaining": "4" }),
+    // X finds the post it just published, unless a test says otherwise.
+    lookup: ({ url }) => json(200, { data: { id: url.pathname.split("/").pop() } }),
     cover: () => new Response(coverJpeg, { status: 200, headers: { "content-type": "image/jpeg" } }),
     ...over,
   };
@@ -68,6 +70,7 @@ function fakeX(over: Partial<Record<"media" | "draft" | "publish" | "cover", Rou
     if (url.pathname === "/2/media/upload") return routes.media({ url, body });
     if (url.pathname === "/2/articles/draft") return routes.draft({ url, body });
     if (/^\/2\/articles\/\d+\/publish$/.test(url.pathname)) return routes.publish({ url, body });
+    if (/^\/2\/tweets\/\d+$/.test(url.pathname)) return routes.lookup({ url, body });
     throw new Error(`unexpected call ${url}`);
   }) as typeof fetch;
   return { fetchImpl, calls, count: (path) => calls.filter((c) => c.host === "api.x.com" && c.path === path).length };
@@ -502,6 +505,7 @@ describe("Publish mode", () => {
       "/2/media/upload",
       "/2/articles/draft",
       "/2/articles/2117000000000000001/publish",
+      "/2/tweets/2118000000000000001",
     ]);
   });
 
@@ -601,7 +605,10 @@ describe("Publish mode", () => {
 
     await tick(x, "publish");
 
-    expect(x.calls.filter((c) => c.host === "api.x.com").map((c) => c.path)).toEqual(["/2/articles/2117000000000000042/publish"]);
+    expect(x.calls.filter((c) => c.host === "api.x.com").map((c) => c.path)).toEqual([
+      "/2/articles/2117000000000000042/publish",
+      "/2/tweets/2118000000000000001",
+    ]);
     expect((await rowOf(postId)).status).toBe("published");
   });
 
@@ -660,6 +667,102 @@ describe("Publish mode", () => {
     expect(s.stopped).toBe("tick_wall");
     expect(x.calls.some((c) => c.path.endsWith("/publish"))).toBe(false);
     expect(await rowOf(postId)).toMatchObject({ status: "drafted", article_id: "2117000000000000001" });
+  });
+});
+
+// ---- X answered the publish, but is the post really there? ---------------------
+
+describe("publish confirmation", () => {
+  const CONFIRM = "/2/tweets/2118000000000000001";
+  const gone = () => json(200, { errors: [{ title: "Not Found Error", detail: "Could not find tweet" }] });
+
+  it("records published only after the lookup finds the post", async () => {
+    vi.stubEnv("RENDER", "true");
+    const postId = await post();
+    const x = fakeX();
+
+    const s = await tick(x, "publish");
+
+    expect(s.published).toBe(1);
+    expect(x.count(CONFIRM)).toBe(1);
+    expect(await rowOf(postId)).toMatchObject({ status: "published", x_post_id: "2118000000000000001" });
+  });
+
+  it("a post X cannot find: needs_attention publish_ambiguous, nothing recorded as published, never published again", async () => {
+    vi.stubEnv("RENDER", "true");
+    const postId = await post();
+    const x = fakeX({ lookup: gone });
+
+    const s = await tick(x, "publish");
+    await tick(x, "publish", {}, new Date(NOW.getTime() + 3 * HOUR));
+
+    expect(s).toMatchObject({ published: 0, attention: 1 });
+    expect(await rowOf(postId)).toMatchObject({
+      status: "needs_attention",
+      attention_reason: "publish_ambiguous",
+      attention_detail: "publish answered ok but the post could not be found",
+      x_post_id: null,
+    });
+    expect(x.count("/2/articles/2117000000000000001/publish")).toBe(1);
+    expect(x.count(CONFIRM)).toBe(1);
+  });
+
+  it.each([
+    ["a 500", () => json(500, { title: "Internal" })],
+    ["a 503", () => json(503, { title: "Service Unavailable" })],
+    ["a 401", () => json(401, { title: "Unauthorized" })],
+    ["a 429", () => json(429, { title: "Too Many Requests" }, { "retry-after": "60" })],
+    ["a 200 body it cannot read", () => json(200, {})],
+    [
+      "a network error",
+      () => {
+        throw new TypeError("fetch failed");
+      },
+    ],
+  ] as const)("a lookup that fails with %s is publish_ambiguous too, and the publish is not retried", async (_label, lookup) => {
+    vi.stubEnv("RENDER", "true");
+    const postId = await post();
+    const x = fakeX({ lookup });
+
+    const s = await tick(x, "publish");
+    await tick(x, "publish", {}, new Date(NOW.getTime() + 3 * HOUR));
+
+    expect(s.published).toBe(0);
+    expect(await rowOf(postId)).toMatchObject({ status: "needs_attention", attention_reason: "publish_ambiguous", x_post_id: null });
+    expect(x.count("/2/articles/2117000000000000001/publish")).toBe(1);
+  });
+
+  it("with no time left for the lookup the publish is not recorded either", async () => {
+    vi.stubEnv("RENDER", "true");
+    const postId = await post();
+    let t = NOW.getTime();
+    const x = fakeX({
+      publish: () => {
+        t += 52_000; // a slow publish leaves 3 s of the 55 s tick
+        return json(200, { data: { post_id: "2118000000000000001" } }, { "x-user-limit-24hour-remaining": "4" });
+      },
+    });
+
+    await tick(x, "publish", { now: () => new Date(t) });
+
+    expect(x.count(CONFIRM)).toBe(0);
+    expect(await rowOf(postId)).toMatchObject({ status: "needs_attention", attention_reason: "publish_ambiguous", x_post_id: null });
+  });
+
+  it("gives the lookup a timeout within the 15 s call budget", async () => {
+    vi.stubEnv("RENDER", "true");
+    await post();
+    const seen: number[] = [];
+    const realSignal = AbortSignal.timeout;
+    vi.spyOn(AbortSignal, "timeout").mockImplementation((ms: number) => {
+      seen.push(ms);
+      return realSignal.call(AbortSignal, ms);
+    });
+
+    await tick(fakeX(), "publish");
+
+    expect(seen).toHaveLength(5); // cover fetch, cover upload, draft, publish, lookup
+    for (const ms of seen) expect(ms).toBeLessThanOrEqual(15_000);
   });
 });
 

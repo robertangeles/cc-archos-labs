@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createDraft, getMe, publishDraft, uploadMedia, type XResult } from "./client";
+import { createDraft, getMe, getPost, publishDraft, uploadMedia, type XResult } from "./client";
 import type { XCredentials } from "./oauth1";
 
 // The client never throws: every HTTP or network outcome is an XResult. The
@@ -357,4 +357,82 @@ describe("publishDraft error contract", () => {
       expect(f).not.toHaveBeenCalled();
     },
   );
+});
+
+// X can answer a publish with 200 and a post id that never existed, and it reports a
+// missing post inside a 200 body ("Not Found Error"), not as a 404. getPost is how the
+// runner finds out; "not_found" is its own kind, never confused with a transient failure.
+describe("getPost", () => {
+  const ID = "2118000000000000001";
+  const notFoundBody = {
+    errors: [{ title: "Not Found Error", type: "https://api.twitter.com/2/problems/resource-not-found", detail: "gone" }],
+  };
+
+  it("found: a 200 body whose data.id is the post", async () => {
+    const f = fakeFetch(reply(200, { data: { id: ID, text: "t" } }, { "x-user-limit-24hour-remaining": "4" }));
+    expect(await getPost(CREDS, ID, { fetchImpl: f })).toEqual({
+      ok: true,
+      value: { postId: ID },
+      meta: { userLimit24hRemaining: 4 },
+    });
+  });
+
+  it("not_found: a 200 body with a Not Found Error and no data", async () => {
+    const r = await getPost(CREDS, ID, { fetchImpl: fakeFetch(reply(200, notFoundBody)) });
+    expect(r).toMatchObject({ ok: false, kind: "not_found" });
+  });
+
+  it.each([
+    ["an empty 200 body", {}],
+    ["errors about something else", { errors: [{ title: "Authorization Error" }] }],
+    ["data about another post", { data: { id: "2118000000000000002" } }],
+    ["data with no id", { data: { text: "t" } }],
+  ])("a malformed answer is a rejection, not a find or a not_found: %s", async (_label, body) => {
+    expect(await getPost(CREDS, ID, { fetchImpl: fakeFetch(reply(200, body)) })).toMatchObject({
+      ok: false,
+      kind: "rejected",
+      detail: "malformed response",
+    });
+  });
+
+  it.each([
+    [401, "auth"],
+    [403, "auth"],
+    [429, "rate_limited"],
+    [400, "rejected"],
+    [500, "transient"],
+    [503, "transient"],
+  ])("HTTP %i is %s, never not_found", async (status, kind) => {
+    expect(await getPost(CREDS, ID, { fetchImpl: fakeFetch(reply(status, {})) })).toMatchObject({ ok: false, kind });
+  });
+
+  it("a timeout or network error is transient", async () => {
+    expect(await getPost(CREDS, ID, { fetchImpl: fakeFetch(abortError()) })).toMatchObject({ ok: false, kind: "transient" });
+    expect(await getPost(CREDS, ID, { fetchImpl: fakeFetch(new TypeError("fetch failed")) })).toMatchObject({
+      ok: false,
+      kind: "transient",
+    });
+  });
+
+  it.each(["", "abc", "12/../34", "1".repeat(20), "12 34", "1.5"])("refuses the id %j without a call", async (id) => {
+    const f = fakeFetch(reply(200, {}));
+    expect(await getPost(CREDS, id, { fetchImpl: f })).toMatchObject({ ok: false, kind: "rejected", detail: "invalid post id" });
+    expect(f).not.toHaveBeenCalled();
+  });
+
+  it("sends a signed GET to /2/tweets/{id} with no body", async () => {
+    const f = fakeFetch(reply(200, { data: { id: ID } }));
+    await getPost(CREDS, ID, { fetchImpl: f });
+    const [url, init] = f.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`https://api.x.com/2/tweets/${ID}`);
+    expect(init.method).toBe("GET");
+    expect(init.body).toBeUndefined();
+    expect((init.headers as Record<string, string>).Authorization).toMatch(/^OAuth /);
+  });
+
+  it("never carries a secret, a header or X's echoed body in a failure", async () => {
+    const f = fakeFetch(reply(500, ECHO_BODY));
+    const r = await getPost(CREDS, ID, { fetchImpl: f });
+    expectNoLeak(r, f);
+  });
 });
