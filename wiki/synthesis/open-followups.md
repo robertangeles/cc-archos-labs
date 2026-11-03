@@ -22,7 +22,7 @@ The `https://archoslabs.xyz/sitemap.xml?retry=1` entry shows **Success** (365 pa
 
 ## X Article spike: finish the bisect after 2026-11-04 06:59 UTC
 
-**Due:** after the X draft limit (10 per 24 hours) resets, 2026-11-04 06:59 UTC. All ten slots were used on 2026-11-03. Find which of `header-three`, bullet, numbered item or quote makes the draft endpoint answer 503 (one draft each), then send one draft with the cover and a bold range after an emoji, have Rob check the drafts on x.com, and only then run the one test publish. Rob deletes the test drafts and the test Article by hand. Findings so far in [[x-article-publishing]].
+**Due:** after the X draft limit (10 per 24 hours) resets, 2026-11-04 06:59 UTC. All ten slots were used on 2026-11-03. Find which of `header-three`, bullet, numbered item or quote makes the draft endpoint answer 503 (one draft each), then send one draft with a cover pre-cropped to 5:2 (1500 x 600, centered, via `sharp`) and a bold range after an emoji, have Rob check the drafts on x.com, and only then run the one test publish. Rob deletes the test drafts and the test Article by hand. Findings so far in [[x-article-publishing]].
 
 ---
 
