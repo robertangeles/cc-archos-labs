@@ -18,6 +18,25 @@ vi.mock("../../../../lib/posts-admin/scheduled-publisher", () => ({
   publishScheduledPosts: (...a: unknown[]) => publishScheduledPosts(...a),
 }));
 
+const runXArticlesPhase = vi.fn();
+vi.mock("../../../../lib/x-articles/run", () => ({
+  runXArticlesPhase: (...a: unknown[]) => runXArticlesPhase(...a),
+}));
+
+const xSummary = (over: Record<string, unknown> = {}) => ({
+  mode: "draft",
+  effectiveMode: "draft",
+  swept: 0,
+  claimed: 0,
+  drafted: 0,
+  published: 0,
+  skipped: 0,
+  attention: 0,
+  released: 0,
+  stopped: null,
+  ...over,
+});
+
 const { POST } = await import("./route");
 
 const SECRET = "a-long-enough-cron-secret-123";
@@ -47,6 +66,8 @@ beforeEach(async () => {
   await client.exec("DELETE FROM cron_heartbeat");
   holder.db = realDb;
   publishScheduledPosts.mockReset();
+  runXArticlesPhase.mockReset();
+  runXArticlesPhase.mockResolvedValue(xSummary());
   vi.stubEnv("CRON_SECRET", SECRET);
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -73,13 +94,13 @@ const result = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-async function heartbeatRows() {
+async function heartbeatRows(id = "posts-publisher") {
   const r = await client.query<{
     id: string;
     last_run_jobs_processed: number;
     last_run_jobs_failed: number;
     last_run_duration_ms: number | null;
-  }>("SELECT id, last_run_jobs_processed, last_run_jobs_failed, last_run_duration_ms FROM cron_heartbeat");
+  }>("SELECT id, last_run_jobs_processed, last_run_jobs_failed, last_run_duration_ms FROM cron_heartbeat WHERE id = $1", [id]);
   return r.rows;
 }
 
@@ -294,5 +315,120 @@ describe("heartbeat write failure is swallowed", () => {
 
     expect(res.status).toBe(200);
     expect((await res.json()).published).toBe(2);
+  });
+});
+
+// The X Article phase runs after the publisher, in its own try/catch, with its own
+// heartbeat. Publisher ok/fail x X ok/fail: nothing X does may change the
+// publisher's status, body or posts-publisher heartbeat.
+describe("the X Article phase", () => {
+  const okBody = (r: ReturnType<typeof result>) => ({
+    ok: r.ok,
+    processed: r.processed,
+    published: r.published,
+    raced: r.raced,
+    failed: r.failed,
+    details: r.details,
+  });
+  const failedBody = { ok: false, error: "Publisher failed.", detail: "publisher exploded" };
+
+  it("publisher ok, X ok: the response is the publisher's alone, and X gets its own heartbeat", async () => {
+    const r = result();
+    publishScheduledPosts.mockResolvedValue(r);
+    runXArticlesPhase.mockResolvedValue(xSummary({ drafted: 2, published: 1, attention: 1 }));
+
+    const res = await call();
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(okBody(r));
+    expect(runXArticlesPhase).toHaveBeenCalledTimes(1);
+    expect(publishScheduledPosts.mock.invocationCallOrder[0]).toBeLessThan(runXArticlesPhase.mock.invocationCallOrder[0]);
+    expect((await heartbeatRows())[0]).toMatchObject({ last_run_jobs_processed: 2, last_run_jobs_failed: 0 });
+    const x = await heartbeatRows("x-articles");
+    expect(x).toHaveLength(1);
+    expect(x[0]).toMatchObject({ last_run_jobs_processed: 3, last_run_jobs_failed: 0 });
+    expect(x[0].last_run_duration_ms).toBeGreaterThanOrEqual(0);
+  });
+
+  it("publisher ok, X throws: same 200 body, same publisher heartbeat, X heartbeat records the failure", async () => {
+    const r = result();
+    publishScheduledPosts.mockResolvedValue(r);
+    runXArticlesPhase.mockRejectedValue(Object.assign(new Error("x exploded"), { config: { xApiSecret: "TOPSECRET" } }));
+
+    const res = await call();
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(okBody(r));
+    expect((await heartbeatRows())[0]).toMatchObject({ last_run_jobs_processed: 2, last_run_jobs_failed: 0 });
+    expect((await heartbeatRows("x-articles"))[0]).toMatchObject({ last_run_jobs_processed: 0, last_run_jobs_failed: 1 });
+    const logged = vi.mocked(console.error).mock.calls.flat().map(String).join("\n");
+    expect(logged).toContain("x exploded");
+    expect(logged).not.toContain("TOPSECRET");
+  });
+
+  it("publisher throws, X ok: same 503 body and heartbeat, and the X phase still runs", async () => {
+    publishScheduledPosts.mockRejectedValue(new Error("publisher exploded"));
+    runXArticlesPhase.mockResolvedValue(xSummary({ drafted: 1 }));
+
+    const res = await call();
+
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual(failedBody);
+    expect(runXArticlesPhase).toHaveBeenCalledTimes(1);
+    expect((await heartbeatRows())[0]).toMatchObject({ last_run_jobs_processed: 0, last_run_jobs_failed: 1 });
+    expect((await heartbeatRows("x-articles"))[0]).toMatchObject({ last_run_jobs_processed: 1, last_run_jobs_failed: 0 });
+  });
+
+  it("publisher throws, X throws: same 503 body, both failures recorded in their own heartbeats", async () => {
+    publishScheduledPosts.mockRejectedValue(new Error("publisher exploded"));
+    runXArticlesPhase.mockRejectedValue(new Error("x exploded"));
+
+    const res = await call();
+
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual(failedBody);
+    expect((await heartbeatRows())[0]).toMatchObject({ last_run_jobs_processed: 0, last_run_jobs_failed: 1 });
+    expect((await heartbeatRows("x-articles"))[0]).toMatchObject({ last_run_jobs_processed: 0, last_run_jobs_failed: 1 });
+  });
+
+  it("the response body gains no X fields, whatever X did", async () => {
+    publishScheduledPosts.mockResolvedValue(result());
+    runXArticlesPhase.mockResolvedValue(xSummary({ drafted: 3, published: 2, attention: 4 }));
+
+    const body = await (await call()).json();
+
+    expect(Object.keys(body).sort()).toEqual(["details", "failed", "ok", "processed", "published", "raced"]);
+  });
+
+  it("is not reached when the request is refused", async () => {
+    await call({});
+    vi.stubEnv("CRON_SECRET", undefined);
+    await call();
+    expect(runXArticlesPhase).not.toHaveBeenCalled();
+    expect(await heartbeatRows("x-articles")).toEqual([]);
+  });
+
+  it("a second run updates the X heartbeat instead of adding a row", async () => {
+    publishScheduledPosts.mockResolvedValue(result());
+    runXArticlesPhase.mockResolvedValueOnce(xSummary({ drafted: 1 }));
+    runXArticlesPhase.mockResolvedValueOnce(xSummary({ drafted: 4 }));
+
+    await call();
+    await call();
+
+    const x = await heartbeatRows("x-articles");
+    expect(x).toHaveLength(1);
+    expect(x[0].last_run_jobs_processed).toBe(4);
+  });
+
+  it("a failure to write the X heartbeat is swallowed", async () => {
+    const r = result();
+    publishScheduledPosts.mockResolvedValue(r);
+    holder.db = explodingDb([]);
+
+    const res = await call();
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(okBody(r));
   });
 });
