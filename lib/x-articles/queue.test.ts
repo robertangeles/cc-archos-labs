@@ -192,6 +192,17 @@ describe("claimBatch", () => {
     expect(await row(id)).toMatchObject({ status: "publishing", claimed_by: c.claimedBy });
   });
 
+  it.each([
+    ["archived", `UPDATE post SET archived_at = now() WHERE id = $1`],
+    ["unlisted", `UPDATE post SET visibility = 'unlisted' WHERE id = $1`],
+    ["unpublished", `UPDATE post SET status = 'draft' WHERE id = $1`],
+  ])("does not claim a drafted row for publishing once its post was %s", async (_label, change) => {
+    const { id, postId } = await seed({ status: "drafted" });
+    await h.client.query(change, [postId]);
+    expect(await claim()).toEqual([]);
+    expect((await row(id)).status).toBe("drafted");
+  });
+
   it("leaves a drafted row alone when drafted rows are not allowed (Draft mode)", async () => {
     const { id } = await seed({ status: "drafted" });
     expect(await claim({ claimDrafted: false })).toEqual([]);
@@ -459,6 +470,21 @@ describe("recoverStale", () => {
     expect(await row(oldQueued.id)).toMatchObject({ status: "needs_attention", attention_reason: "stale" });
     expect((await row(oldDrafted.id)).status).toBe("needs_attention");
     expect((await row(young.id)).status).toBe("queued");
+  });
+
+  it("skips a drafted row whose post is no longer public, and keeps one whose post still is", async () => {
+    const withdrawn = await seed({ status: "drafted" });
+    const fine = await seed({ status: "drafted" });
+    await h.client.query(`UPDATE post SET archived_at = now() WHERE id = $1`, [withdrawn.postId]);
+    const res = await recoverStale(h.db, NOW);
+    expect(res.skipped).toBe(1);
+    expect(await row(withdrawn.id)).toMatchObject({
+      status: "skipped",
+      attention_reason: "post_not_public",
+      claimed_by: null,
+      claimed_until: null,
+    });
+    expect((await row(fine.id)).status).toBe("drafted");
   });
 
   it("does not touch finished rows", async () => {

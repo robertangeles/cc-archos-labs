@@ -35,7 +35,7 @@
 // Fence races are proven sequentially in queue.test.ts (pglite is one
 // connection) and concurrently in tests/real-pg/x-article-queue.real-pg.test.ts.
 
-import { and, asc, eq, inArray, lt, lte, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, lt, lte, not, or, sql } from "drizzle-orm";
 import type { DB } from "../db";
 import { xArticlePublication as xap } from "../db/schema";
 import { PUBLIC_LISTED_FILTER } from "../posts";
@@ -77,6 +77,10 @@ const MAX_DETAIL = 500;
 const WINDOW_MS = 24 * 60 * 60 * 1000;
 const NO_LEASE = { claimedBy: null, claimedUntil: null };
 
+// X cannot delete an Article, so a withdrawn post must never reach a publish call: every
+// statement that moves a row toward one checks that the post is still public, in the statement.
+const postIsPublic = sql`EXISTS (SELECT 1 FROM "post" WHERE "post"."id" = ${xap.postId} AND ${PUBLIC_LISTED_FILTER})`;
+
 /**
  * Queue every public, listed post published in the last 24 h that has no row.
  * Idempotent (ON CONFLICT on the unique post_id). Returns how many were added.
@@ -103,13 +107,15 @@ export async function claimBatch(
   opts: { now: Date; leaseMs: number; limit: number; claimDrafted: boolean },
 ): Promise<ClaimedRow[]> {
   const { now, leaseMs, limit, claimDrafted } = opts;
+  // A queued row is checked by the worker (markSkipped); a drafted row is about to publish, so it is checked here.
+  const claimable = claimDrafted
+    ? or(eq(xap.status, "queued"), and(eq(xap.status, "drafted"), postIsPublic))
+    : eq(xap.status, "queued");
   return db.transaction(async (tx) => {
     const due = await tx
       .select({ id: xap.id })
       .from(xap)
-      .where(
-        and(lte(xap.nextAttemptAt, now), inArray(xap.status, claimDrafted ? ["queued", "drafted"] : ["queued"])),
-      )
+      .where(and(lte(xap.nextAttemptAt, now), claimable))
       .orderBy(asc(xap.createdAt))
       .limit(limit)
       .for("update", { skipLocked: true });
@@ -124,9 +130,12 @@ export async function claimBatch(
         updatedAt: now,
       })
       .where(
-        inArray(
-          xap.id,
-          due.map((r) => r.id),
+        and(
+          inArray(
+            xap.id,
+            due.map((r) => r.id),
+          ),
+          claimable,
         ),
       )
       .returning({
@@ -194,9 +203,7 @@ export async function beginPublishing(
   const rows = await db
     .update(xap)
     .set({ status: "publishing", claimedUntil: new Date(now.getTime() + leaseMs), updatedAt: now })
-    .where(
-      and(holds, sql`EXISTS (SELECT 1 FROM "post" WHERE "post"."id" = ${xap.postId} AND ${PUBLIC_LISTED_FILTER})`),
-    )
+    .where(and(holds, postIsPublic))
     .returning({ id: xap.id });
   if (rows.length === 1) return "ok";
   // Zero rows is either a lost fence or a withdrawn post; the same fence read back tells which.
@@ -262,7 +269,7 @@ export async function release(
 export async function recoverStale(
   db: DB,
   now: Date,
-): Promise<{ requeued: number; ambiguous: number; exhausted: number; stale: number }> {
+): Promise<{ requeued: number; ambiguous: number; exhausted: number; skipped: number; stale: number }> {
   return db.transaction(async (tx) => {
     const expired = lt(xap.claimedUntil, now);
     const ambiguous = await tx
@@ -293,6 +300,12 @@ export async function recoverStale(
       .set({ status: "queued", attempts: sql`${xap.attempts} + 1`, ...NO_LEASE, updatedAt: now })
       .where(and(eq(xap.status, "working"), expired))
       .returning({ id: xap.id });
+    // A drafted row waiting to publish whose post was withdrawn: nobody holds it, so nobody else will end it.
+    const skipped = await tx
+      .update(xap)
+      .set({ status: "skipped", attentionReason: "post_not_public", updatedAt: now })
+      .where(and(eq(xap.status, "drafted"), not(postIsPublic)))
+      .returning({ id: xap.id });
     const stale = await tx
       .update(xap)
       .set({
@@ -307,6 +320,7 @@ export async function recoverStale(
       requeued: requeued.length,
       ambiguous: ambiguous.length,
       exhausted: exhausted.length,
+      skipped: skipped.length,
       stale: stale.length,
     };
   });
