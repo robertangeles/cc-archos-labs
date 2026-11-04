@@ -349,7 +349,7 @@ See [[x-article-publishing]] and [[2026-11-03-x-articles-autopost]].
 
 ## Blog landing follow-ups (added 2026-11-05)
 
-- **Align the `/blog` meta description and `llms.txt` with the new hero (P3, needs Rob's call).** The hero now leads with sourced AI headline checks (PR #270), but `generateMetadata` in `app/blog/page.tsx` and `buildLlmsTxt` in `lib/llms-txt.ts` still say "Essays on AI program risk, data architecture, and what actually breaks in transformation. Researched by Metis, reviewed by Rob Angeles." That text is the Google snippet and the LLM-facing summary, so changing it is an SEO decision. Both lines also claim "Researched by Metis" over the whole archive, which `lib/blog/byline.ts` refuses to do per post.
+- **Align the `/blog` meta description and `llms.txt` with the new hero (P3, needs Rob's call).** The hero now leads with sourced AI headline checks (PR #270), but `generateMetadata` in `app/blog/page.tsx` still says "Essays on AI program risk, data architecture, and what actually breaks in transformation. Researched by Metis, reviewed by Rob Angeles." and `buildLlmsTxt` in `lib/llms-txt.ts` says "Editorial essays on AI program risk, data architecture, and what actually breaks in transformation. Researched by Metis, reviewed by a practitioner." Both are the Google snippet and the LLM-facing summary respectively, so changing them is an SEO decision. Both also claim "Researched by Metis" over the whole archive, which `lib/blog/byline.ts` refuses to do per post.
 
 ## What's deliberately not on this list
 
