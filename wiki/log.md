@@ -3090,3 +3090,11 @@ Rob asked why no Article had been posted and said PROD, not DEV, must drive it. 
 
 Touched: [[x-article-publishing]], [[x-articles-runbook]], [[2026-11-04-prod-drives-and-the-real-flow-is-the-test]], `synthesis/open-followups.md`, `backlog/backlog.md` (recoverStale counts P3 item), `index.md`, `log.md`.
 
+---
+
+## 2026-11-05 (UTC) — Blog landing hero rewritten to lead with sourced headline checks (PR #270)
+
+Rob pasted the `/blog` hero and asked whether it was still relevant. Checked against the live system: the review claim is enforced by code (AI News posts are `needs_review` and the publisher withholds them until Approve; live posts show "Reviewed by"), but the line described the old essay blog while the page now leads with AI News (7 live posts, all from the last 30 days, newest 2026-11-04). About 330 archive posts predate Metis, which `lib/blog/byline.ts` already handles per post (the dual byline needs `is_agent_generated AND reviewed_by_human_at`). New sub-line says what a reader gets (each headline traced to its primary source: what it claims, what it left out, whether it holds) and names the checks the pipeline really runs (primary source fetched, every quote and number gated against it). Title, H1 and the closing hook kept. Merged `b10378c`; checked live on desktop and mobile. Left alone on purpose: the page's `<meta>` description and `lib/llms-txt.ts`, which still say "Essays on AI program risk..." (backlog).
+
+Touched: `backlog/backlog.md`, `log.md`.
+
