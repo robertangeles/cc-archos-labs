@@ -2,7 +2,7 @@
 title: Open follow-ups (dated checkpoints)
 category: synthesis
 created: 2026-05-24
-updated: 2026-11-03
+updated: 2026-11-04
 related: [[index]], [[log]], [[x-article-publishing]]
 ---
 
@@ -20,9 +20,11 @@ The `https://archoslabs.xyz/sitemap.xml?retry=1` entry shows **Success** (365 pa
 
 ---
 
-## X Article spike: finish the checks after 2026-11-04 06:59 UTC (5:59 pm Melbourne)
+## X Article spike: finish the checks (PROD went live 2026-11-04; the draft cap reset at 06:59 UTC)
 
-**Due:** after the X draft limit (10 per 24 hours) resets, 2026-11-04 06:59 UTC. All ten slots were used on 2026-11-03. Find which of `header-three`, bullet, numbered item or quote makes the draft endpoint answer 503 (one draft each), then send one draft with a cover pre-cropped to 5:2 (1500 x 600, centered, via `sharp`) and a bold range after an emoji, have Rob check the drafts on x.com, and only then run the one test publish. Rob deletes the test drafts and the test Article by hand. Findings so far in [[x-article-publishing]].
+**Update 2026-11-04:** PROD is live in Publish mode and posted its first three Articles (the AI News posts) at 09:55 UTC, so the real-post draft check below is overtaken by events. What is still open: which of `header-three`, bullet, numbered item or quote makes the draft endpoint answer 503 (the converter's fallback hides it), and why the first test post vanished. The one-feature-per-draft tests below still apply, best run on the next quiet day of the caps (10 drafts, 5 publishes per 24 h, shared with PROD's 3 a day).
+
+**Due (original note):** after the X draft limit (10 per 24 hours) resets, 2026-11-04 06:59 UTC. All ten slots were used on 2026-11-03. Find which of `header-three`, bullet, numbered item or quote makes the draft endpoint answer 503 (one draft each), then send one draft with a cover pre-cropped to 5:2 (1500 x 600, centered, via `sharp`) and a bold range after an emoji, have Rob check the drafts on x.com, and only then run the one test publish. Rob deletes the test drafts and the test Article by hand. Findings so far in [[x-article-publishing]].
 
 **Order after the reset (10 drafts, 2 publishes left until 07:45 UTC):** (1) the real post: a live post, "Why Your AI Pilot Never Ships", is already queued on DEV; run the run phase in Draft mode against it (the 2026-11-03 attempt reached X and got a 429 "remaining=0"; cover fetch, crop and upload had worked) and have Rob read the draft in Articles > Drafts: headings, three links, the cropped cover. (2) One feature per draft, published and watched for 2 minutes with the syndication endpoint: link only, bold only, italic only, strikethrough only, then bullets, numbered items, a quote, `header-three` (the first test post, with a link and styles, vanished minutes after publishing and nobody knows why). (3) Flip to native only what X accepts. Delete every test post afterwards through `DELETE /2/tweets/{id}`.
 

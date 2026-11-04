@@ -2,11 +2,11 @@
 title: X Article publishing
 category: entity
 created: 2026-11-03
-updated: 2026-11-03
-related: [[2026-11-03-x-articles-autopost]], [[x-articles-runbook]], [[integration-config]], [[news-draft-pipeline]], [[deployment-architecture]], [[2026-11-02-remove-skills-workflows-social]]
+updated: 2026-11-04
+related: [[2026-11-03-x-articles-autopost]], [[x-articles-runbook]], [[integration-config]], [[news-draft-pipeline]], [[deployment-architecture]], [[2026-11-02-remove-skills-workflows-social]], [[2026-11-04-prod-drives-and-the-real-flow-is-the-test]]
 ---
 
-Every blog post that goes live is also posted to X as an Article on the brand account. **Status 2026-11-03: the whole pipeline is built and dormant.** Mode is Off by default. The table `x_article_publication` (migration 0046) exists on DEV only, never on PROD. Publishing was proven live with two test Articles. Still to do before it can post: find which block types or features X refuses (see the live spike), apply 0046 to PROD by hand, set the keys and Mode on PROD, and run Draft mode on real posts first. Steps in [[x-articles-runbook]].
+Every blog post that goes live is also posted to X as an Article on the brand account. **Status 2026-11-04: LIVE on PROD, Publish mode.** PROD migration 0046 was applied by hand at 09:44 UTC (backup `~/archos_prod_backup_20261104_pre0046.dump`), the four keys were stored on PROD through `updateIntegrationSecret` (actor `activation-2026-11-04`, proven by `getMe`: connected as `@archoslabsxyz`), and Mode was set to Publish. The first tick at 09:55 UTC swept the three AI News posts of the previous 24 hours and published all three (`swept 3, published 3, attention 0`); X's public lookup showed each live under the right title. Draft mode on real posts was skipped on Rob's instruction. Which block types X refuses is still open: the converter's fallback sends only paragraphs, `header-two` and dividers natively. Steps and recovery in [[x-articles-runbook]]; what went wrong getting here in [[2026-11-04-prod-drives-and-the-real-flow-is-the-test]].
 
 ## What PR1 ships
 

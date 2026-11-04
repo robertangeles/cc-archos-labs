@@ -2,8 +2,8 @@
 title: X Article publishing runbook
 category: runbook
 created: 2026-11-03
-updated: 2026-11-03
-related: [[x-article-publishing]], [[2026-11-03-x-articles-autopost]], [[deployment-architecture]]
+updated: 2026-11-04
+related: [[x-article-publishing]], [[2026-11-03-x-articles-autopost]], [[deployment-architecture]], [[2026-11-04-prod-drives-and-the-real-flow-is-the-test]]
 ---
 
 Every blog post that goes live is also posted to X as an Article on `@archoslabsxyz`. This is how to read it, switch it on, and fix it. What it is and why: [[x-article-publishing]], [[2026-11-03-x-articles-autopost]].
@@ -103,6 +103,10 @@ WHERE id = '<row id>' AND status = 'needs_attention' AND article_id IS NOT NULL;
 A resolved row that is later re-opened by hand is the one case where the database and X can disagree. When in doubt, look at x.com.
 
 ## Switching it on (PROD)
+
+**Done 2026-11-04.** Steps 1 to 3, 5 and 9 ran that morning (the keys and Mode were written through `updateIntegrationSecret`, not the card; Draft mode was skipped on Rob's instruction). Keep the list for a rebuild or a second environment.
+
+**The service keeps its integration config in memory until it restarts.** A key or Mode written by a script, not by the admin card's save, is invisible to the running service: on 2026-11-04 the health check kept saying `mode: off` for 8 minutes after the database said `publish`, and nothing was swept. After any script write, run `render restart <service id>` (about 40 seconds) and read `mode` in the health body before trusting it. Saving on the card clears the cache by itself.
 
 Merging code never ships schema. Until Mode is on, the runner does not touch the table, so the order of merge and migration does not matter; the order below does.
 
