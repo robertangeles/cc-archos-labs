@@ -6,10 +6,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { isBlogEnabled } from "../../lib/blog/feature-flag";
 import { buildPageMetadata } from "../../lib/site-config";
-import {
-  listAllCategories,
-  listPosts,
-} from "../../lib/posts";
+import { listAllCategories, listPosts } from "../../lib/posts";
 import { CategoryChips } from "../../components/blog/category-chips";
 import { EditorialListRow } from "../../components/blog/editorial-list-row";
 import { Pagination } from "../../components/blog/pagination";
@@ -75,10 +72,12 @@ export default async function BlogIndexPage({
             Where AI programs break.
           </h1>
           <p className="max-w-[640px] text-body-lg leading-[1.6] text-ink-subtle">
-            Researched by Metis — an AI research agent I built — and reviewed
-            by me before anything ships, against 25 years of breaking these
-            programs from the inside. Most AI newsletters are prompted. This
-            one is engineered.
+            Each AI headline traced back to its primary source: what it claims,
+            what it left out, whether it holds. Researched by Metis, an AI
+            research agent I built, with every quote and number checked against
+            the source. I read each piece before it ships, after 25 years of
+            breaking these programs from the inside. Most AI newsletters are
+            prompted. This one is engineered.
           </p>
         </header>
 
