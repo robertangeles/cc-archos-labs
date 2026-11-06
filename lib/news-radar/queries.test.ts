@@ -318,11 +318,47 @@ describe("views", () => {
 
     const p = await page("to-label");
     expect(shape(p.days)).toEqual([
-      { day: "2026-10-26", rows: [4, 7, 2, 3, 1, 8], more: [] },
+      // 6 is labelled Keep but its day still has items to label, so it stays in place.
+      { day: "2026-10-26", rows: [4, 7, 2, 3, 6, 1, 8], more: [] },
       { day: "2026-10-25", rows: [5], more: [] },
     ]);
     expect(p.counts.toLabel).toBe(7);
     expect(p.page).toBeNull();
+  });
+
+  it("to-label keeps a day whole while it has something left to label, so a reload still shows what was labelled", async () => {
+    await rubric();
+    await seed(
+      { n: 1, fit: 2, pub: "2026-10-26T01:00:00Z" },
+      { n: 2, fit: 2, pub: "2026-10-26T02:00:00Z" },
+      { n: 3, fit: 2, pub: "2026-10-26T03:00:00Z" },
+      { n: 4, fit: 2, pub: "2026-10-25T10:00:00Z" }, // Sun 25 Oct: every item labelled, the day leaves
+      { n: 5, fit: 2, pub: "2026-10-25T11:00:00Z" },
+      { n: 6, fit: 2, pub: "2026-10-24T10:00:00Z" }, // Sat 24 Oct: one labelled, one open
+      { n: 7, fit: 2, pub: "2026-10-24T11:00:00Z" },
+    );
+    await labelMany([
+      [1, "keep"],
+      [2, "skip"],
+      [4, "keep"],
+      [5, "skip"],
+      [6, "keep"],
+    ]);
+
+    const p = await page("to-label");
+    expect(shape(p.days)).toEqual([
+      { day: "2026-10-26", rows: [3, 2, 1], more: [] },
+      { day: "2026-10-24", rows: [7, 6], more: [] },
+    ]);
+    const decisions = Object.fromEntries(
+      p.days.flatMap((d) => d.rows).map((r) => [numOf(r.id), r.label?.decision ?? null]),
+    );
+    expect(decisions).toEqual({ 1: "keep", 2: "skip", 3: null, 6: "keep", 7: null });
+    expect(p.counts.toLabel).toBe(2);
+
+    // The status line and the list agree: "Today 2 of 3 labelled" is the three rows under today.
+    const today = p.days.find((d) => d.day === "2026-10-26")!;
+    expect(p.progress).toMatchObject({ todayTotal: today.rows.length, todayLabelled: 2 });
   });
 
   it("shortlisted applies the daily cap through decide.shortlistView and counts every eligible item", async () => {
@@ -381,7 +417,9 @@ describe("views", () => {
     expect(shape(skipped.days)).toEqual([{ day: "2026-10-26", rows: [2, 3], more: [] }]);
 
     expect(skipped.counts).toEqual({ toLabel: 1, shortlisted: 7, kept: 4, skipped: 2, all: 8 });
-    expect(flat((await page("to-label")).days)).toEqual([4]);
+    // 26 Oct is still open (4 is unlabelled), so its labelled items stay beside it, newest first.
+    // 25 Oct is fully labelled (7), so that day has left the queue.
+    expect(flat((await page("to-label")).days)).toEqual([8, 4, 5, 3, 1, 2]);
     // The Kept item that is not eligible shows only in All, still carrying its label.
     const six = (await page("all")).days.flatMap((d) => d.rows).find((r) => numOf(r.id) === 6);
     expect(six).toMatchObject({ eligible: false, label: { decision: "keep" } });

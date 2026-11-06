@@ -2,8 +2,8 @@
 title: News radar
 category: entity
 created: 2026-10-26
-updated: 2026-11-02
-related: [[news-radar-runbook]], [[news-draft-pipeline]], [[2026-10-26-news-radar-design-amendments-confirmed]], [[2026-10-24-remove-blog-agent-pipeline]], [[integration-config]], [[deployment-architecture]]
+updated: 2026-11-06
+related: [[news-radar-runbook]], [[news-draft-pipeline]], [[2026-11-06-radar-to-label-keeps-open-days-whole]], [[2026-10-26-news-radar-design-amendments-confirmed]], [[2026-10-24-remove-blog-agent-pipeline]], [[integration-config]], [[deployment-architecture]]
 ---
 
 A feed reader plus a scorer, replacing the deleted AI blog writer's front end. It reads huggingnews.com every two hours, has TypeSafe Jev score each item against a frozen rubric, and keeps the scores so Rob can mark items Keep or Skip. Release 1 is a **shadow week**: it drafts, researches, illustrates and publishes nothing. The gate to Release 2 (drafting) is at least 7 valid days, at least 50 labelled eligible items, a Keep rate of at least 50%, and at least 5 Kept topics Rob would personally write. Thresholds are fixed before data. Plan: `~/.gstack/projects/robertangeles-cc-archos-labs/ceo-plans/2026-10-25-blog-pipeline-rebuild-plan.md` (outside the repo). Operating it: [[news-radar-runbook]].
@@ -52,7 +52,7 @@ One real tick: 33 live feed items, all scored by `jev-1.14.0` with real embeddin
 
 `/admin/blog/radar` (a tab beside Settings and Posts). Design: plan DES-D3 to DES-D14; confirmed by [[2026-10-26-news-radar-design-amendments-confirmed]].
 
-- **Blind labelling.** To label is the default view, newest first, with no scores shown. "Show scores" is off by default, page-wide, per browser, and starts off again for each cohort.
+- **Blind labelling.** To label is the default view, newest first, with no scores shown. A day stays whole while any story that day is unlabelled, so a reload still shows what you labelled (marked, and still changeable); a fully labelled day leaves the queue ([[2026-11-06-radar-to-label-keeps-open-days-whole]]). "Show scores" is off by default, page-wide, per browser, and starts off again for each cohort.
 - **Label control.** Keep and Skip carry equal weight. Press the other to switch, press the selected one to clear. The row updates instantly and reverts visibly if the save fails ("Couldn't save. Retry"); a 6 second Undo; after a conflict "Use mine". First labels can only be set in To label; the other views are read-only.
 - **Status area.** Level one is progress ("Today 3 of 8 labelled", the cohort's progress toward the gate); level two a quiet health line (Healthy, Stale after 3 hours, Failing with a plain cause, Radar is off, no Jev key). "N new . Refresh" appears when new items arrive; the list never reorders on its own.
 - **Files.** `app/admin/(authed)/blog/radar/` (server page, loading), `components/admin/radar/` (`radar-list.tsx` client module, `radar-copy.ts` every word, `radar-state.ts` pure label transitions), `lib/news-radar/queries.ts` (one read path for the page, the poll and the gate report), `lib/news-radar/labels.ts` (label rules), `lib/news-radar/gate-report.ts` and `scripts/radar-gate-report.mjs`, `GET /api/admin/radar`, `PATCH /api/admin/radar/[id]`.
