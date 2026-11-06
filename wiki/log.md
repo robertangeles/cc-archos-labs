@@ -3098,3 +3098,10 @@ Rob pasted the `/blog` hero and asked whether it was still relevant. Checked aga
 
 Touched: `backlog/backlog.md`, `log.md`.
 
+---
+
+## 2026-11-06 (UTC) — Radar: To label keeps a day whole while it has something left to label
+
+Rob: after labelling stories and leaving the page, coming back shows "Today 5 of 24 labelled" with no way to see which. Cause, confirmed in `loadRadarPage`: the To label view returned only unlabelled items, so labelled rows left the list on reload (the page kept them only until the next load, DES-D4); Kept and Skipped are read-only, all days, ordered by score. Fix: a day in To label shows every eligible story that day while at least one is unlabelled; a fully labelled day leaves the queue, so "Done for today" still shows. Labelled rows keep their buttons, so a label can be switched or cleared after coming back. Pill counts, eligibility, the gate and the other views are unchanged. Test first: new `queries.test.ts` case (red on the old code: rows 1, 2, 6 missing), two older expectations updated, e2e reload step rewritten. Real DEV data: 28 Oct had 8 eligible stories, 4 labelled; To label returned 4 before, 8 now. Full unit suite 2929 passed, `tsc` and eslint clean. Not run: the Playwright radar spec (needs `E2E_ADMIN_PASSWORD`, not set here; resetting the DEV admin password was not worth changing Rob's local login). `pnpm test:integration` named in CLAUDE.md is not a script in `package.json`.
+
+Touched: [[2026-11-06-radar-to-label-keeps-open-days-whole]], [[news-radar]], [[news-radar-runbook]], `index.md`, `log.md`.

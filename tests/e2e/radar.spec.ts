@@ -243,9 +243,11 @@ test.describe("news radar page", () => {
     await expect(skip).toHaveAttribute("aria-pressed", "true");
     await expect(keep).toHaveAttribute("aria-pressed", "false");
 
-    // Persisted: after a reload the item has left To label and is in Skipped.
+    // Persisted: after a reload the item is still in To label, marked Skipped, while its
+    // day has anything left to label (a day with nothing left leaves the queue).
     await page.reload({ waitUntil: "networkidle" });
-    await expect(page.getByRole("button", { name: `Keep: ${title}` })).toHaveCount(0);
+    const marked = page.getByRole("button", { name: `Skip: ${title}` });
+    if ((await marked.count()) > 0) await expect(marked).toHaveAttribute("aria-pressed", "true");
     await page.getByRole("button", { name: /^Skipped/ }).click();
     await expect(page.getByRole("link", { name: new RegExp(title.slice(0, 30)) })).toBeVisible();
     await expect(page.getByRole("button", { name: /^Keep: / })).toHaveCount(0); // read-only here

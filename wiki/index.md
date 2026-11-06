@@ -154,6 +154,7 @@ Master catalog of all wiki pages. Read this at the start of every session. For c
 
 ## runbooks
 - [Rotate the master encryption key](runbooks/rotate-master-key.md) — UI + CLI paths, half-fail recovery, post-compromise rotation of underlying secrets
+- [Radar To label keeps a day whole while it has something left to label](decisions/2026-11-06-radar-to-label-keeps-open-days-whole.md) — after a reload the day still shows what was labelled, marked and changeable; a fully labelled day leaves the queue. Fixes "Today 5 of 24 labelled" with nothing behind it; amends DES-D4.
 - [News radar design amendments confirmed](decisions/2026-10-26-news-radar-design-amendments-confirmed.md) — `clear`, "Use mine" and the newest-first queue confirmed; the stale check now compares against the newest label row, and the label route has a same-origin guard.
 - [News radar runbook](runbooks/news-radar-runbook.md) — activation checklist, warm-up versus evaluation rubric, smoke tests, health-check meanings, rollback
 - [X Articles runbook](runbooks/x-articles-runbook.md) — activation checklist (backup, migration 0046, keys, Draft then Publish), takedown, resolving a needs-attention row, mode versus effective mode, the daily X limits

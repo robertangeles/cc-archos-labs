@@ -88,7 +88,7 @@ It refuses to run without `--version`, so it never blends two cohorts. It report
 
 ## Using the Radar page
 
-Open Blog, then Radar. To label is the default and is blind: scores stay hidden unless "Show scores" is on. Press Keep (I would personally write about this) or Skip; press the selected one again to clear; Undo is offered for 6 seconds. "N new . Refresh" appears when the radar scores new items; the list never reorders by itself. The status line says whether the radar is healthy, stale (no good check for 3 hours), failing (with the cause), off, or missing its Jev key.
+Open Blog, then Radar. To label is the default and is blind: scores stay hidden unless "Show scores" is on. Press Keep (I would personally write about this) or Skip; press the selected one again to clear; Undo is offered for 6 seconds. A day stays whole in To label while any story that day is unlabelled, so after a reload you still see which stories you labelled (marked) and can change them; a day with everything labelled leaves the list, and Kept and Skipped hold it. "N new . Refresh" appears when the radar scores new items; the list never reorders by itself. The status line says whether the radar is healthy, stale (no good check for 3 hours), failing (with the cause), off, or missing its Jev key.
 
 ## Reading the health check
 

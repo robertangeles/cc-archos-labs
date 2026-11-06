@@ -40,8 +40,9 @@ function moveCounts(counts: RadarCounts, from: RadarLabel | null, to: RadarLabel
 
 /**
  * Set one item's label (and the id of its newest label row) and move the counts
- * and progress with it. The item keeps its place on the page: a just-labelled
- * row stays until reload (DES-D4). `today` is the current Melbourne day.
+ * and progress with it. The item keeps its place on the page, and after a reload
+ * it is still there while its day has anything left to label (loadRadarPage).
+ * `today` is the current Melbourne day.
  */
 export function applyLabelLocally(
   data: RadarPageData,

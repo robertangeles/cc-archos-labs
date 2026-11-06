@@ -405,9 +405,13 @@ export async function loadRadarPage(
   let days: RadarDay[] = [];
   let pageInfo: RadarPageData["page"] = null;
   if (params.view === "to-label") {
+    // A day stays whole while any of it is left to label, so a reload shows what was
+    // labelled there, not only what remains. A fully labelled day leaves the queue.
+    const openDays = new Set(withDecision(null).map((i) => rowOf(i.candidate).day));
     days = groupByDay(
-      withDecision(null)
+      eligible
         .map((i) => i.candidate)
+        .filter((c) => openDays.has(rowOf(c).day))
         .sort(byNewest)
         .map(rowOf),
     );
