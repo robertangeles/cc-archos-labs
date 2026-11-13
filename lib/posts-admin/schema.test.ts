@@ -197,13 +197,13 @@ describe("PostCreateSchema — scheduled invariants", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects status=scheduled with a past scheduledPublishAt", () => {
+  it("accepts status=scheduled with a past scheduledPublishAt (it publishes on the next cron run)", () => {
     const result = PostCreateSchema.safeParse({
       ...baseValidInput,
       status: "scheduled",
       scheduledPublishAt: pastDate().toISOString(),
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 
   it("accepts status=scheduled with a future scheduledPublishAt", () => {
@@ -275,6 +275,16 @@ describe("PostCreateSchema — tags", () => {
 });
 
 describe("PostUpdateSchema", () => {
+  it("accepts status=scheduled with a past scheduledPublishAt", () => {
+    const result = PostUpdateSchema.safeParse({
+      ...baseValidInput,
+      status: "scheduled",
+      scheduledPublishAt: pastDate().toISOString(),
+      expectedUpdatedAt: new Date().toISOString(),
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("requires expectedUpdatedAt", () => {
     const result = PostUpdateSchema.safeParse(baseValidInput);
     expect(result.success).toBe(false);

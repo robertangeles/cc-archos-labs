@@ -242,6 +242,22 @@ describe("updatePost — human-review stamp decays with the content", () => {
     expect(new Date(res.rows[0].reviewed_by_human_at!).toISOString()).toBe(stamp.toISOString());
   });
 
+  it("saves a scheduled post whose time has already passed (Approve after the slot)", async () => {
+    const past = new Date("2026-01-01T00:00:00.000Z");
+    const id = await harness.createPost({ status: "scheduled", scheduledPublishAt: past, needsReview: true, isAgentGenerated: true });
+    const before = await readPost(id);
+    await updatePost(
+      id,
+      formBody({ status: "scheduled", scheduledPublishAt: past, needsReview: false }),
+      before.updated_at,
+    );
+    const res = await harness.client.query<{ status: string; needs_review: boolean }>(
+      `SELECT status, needs_review FROM "post" WHERE id = $1`,
+      [id],
+    );
+    expect(res.rows[0]).toEqual({ status: "scheduled", needs_review: false });
+  });
+
   it("does not resurrect a credit that was never set", async () => {
     const id = await harness.createPost({ status: "draft", scheduledPublishAt: null });
     const before = await readPost(id);

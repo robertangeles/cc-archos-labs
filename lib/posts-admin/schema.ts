@@ -105,13 +105,9 @@ export const PostCreateSchema = z
           message:
             "Scheduled posts must include a scheduledPublishAt timestamp.",
         });
-      } else if (data.scheduledPublishAt.getTime() <= Date.now()) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["scheduledPublishAt"],
-          message: "scheduledPublishAt must be in the future.",
-        });
       }
+      // A past time is allowed: the cron publishes it on its next run, dated
+      // at that time.
     } else if (data.scheduledPublishAt != null) {
       ctx.addIssue({
         code: "custom",
@@ -170,13 +166,9 @@ export const PostUpdateSchema = z
           message:
             "Scheduled posts must include a scheduledPublishAt timestamp.",
         });
-      } else if (data.scheduledPublishAt.getTime() <= Date.now()) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["scheduledPublishAt"],
-          message: "scheduledPublishAt must be in the future.",
-        });
       }
+      // A past time is allowed: the cron publishes it on its next run, dated
+      // at that time.
     } else if (data.scheduledPublishAt != null) {
       ctx.addIssue({
         code: "custom",

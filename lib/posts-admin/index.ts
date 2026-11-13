@@ -382,8 +382,8 @@ export async function listRevisionsForPost(
  * actions (image upload, suggest-links) unlock immediately.
  *
  * @throws DuplicateSlugError on PG 23505 (slug already exists, after retries).
- * @throws InvalidScheduleError if status='scheduled' but the supplied
- *   scheduledPublishAt is not in the future at service time.
+ * @throws InvalidScheduleError if status='scheduled' without a
+ *   scheduledPublishAt.
  */
 export async function createPost(
   input: PostCreateInput,
@@ -1171,9 +1171,8 @@ function normaliseAltText(raw: string | null | undefined): string | null {
 }
 
 /**
- * Service-layer guard: status='scheduled' requires scheduledPublishAt to
- * still be in the future at save time. The Zod schema catches this at
- * submit time, but a slow client / queued retry could push it past.
+ * Service-layer guard: status='scheduled' requires a scheduledPublishAt. A past
+ * time is allowed (the cron publishes it on its next run, dated at that time).
  */
 function enforceScheduleInvariant(normalised: {
   status: PostStatus;
@@ -1183,11 +1182,6 @@ function enforceScheduleInvariant(normalised: {
   if (!normalised.scheduledPublishAt) {
     throw new InvalidScheduleError(
       "Scheduled posts require a scheduledPublishAt timestamp.",
-    );
-  }
-  if (normalised.scheduledPublishAt.getTime() <= Date.now()) {
-    throw new InvalidScheduleError(
-      "scheduledPublishAt must be in the future at save time.",
     );
   }
 }
