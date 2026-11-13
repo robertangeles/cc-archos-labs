@@ -127,7 +127,8 @@ export async function publishScheduledPosts(
           .update(post)
           .set({
             status: "published",
-            publishedAt: now,
+            // Dated at the scheduled time, so a time picked in the past posts as that time.
+            publishedAt: row.scheduledPublishAt ?? now,
             scheduledPublishAt: null,
             updatedAt: now,
           })

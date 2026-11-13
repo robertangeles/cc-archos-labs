@@ -2,7 +2,7 @@
 title: Posts Admin (Phase D) — backend slice
 category: decision
 created: 2026-05-20
-updated: 2026-05-20
+updated: 2026-11-14
 related: [[translation-layer]], [[2026-05-20-translation-layer-public-render]], [[2026-05-18-pages-cms-expansion]], [[deployment-architecture]], [[book-a-call-architecture]]
 ---
 
@@ -46,7 +46,7 @@ If the per-save cost ever becomes too high, the right move is a generic `lib/job
 
 ### Schema invariants in the app layer, not check constraints
 
-`status='scheduled' ↔ scheduledPublishAt IS NOT NULL AND > now()` could be a CHECK constraint, but the "in the future" half changes with every wall-clock tick and would block legitimate "publish now" backfills. Enforced in Zod + service instead. The "scheduledPublishAt MUST be null when status != 'scheduled'" half is structurally enforceable but adds noise — the service `normalisePostInput` clears it on save regardless.
+`status='scheduled' ↔ scheduledPublishAt IS NOT NULL AND > now()` could be a CHECK constraint, but the "in the future" half changes with every wall-clock tick and would block legitimate "publish now" backfills. Enforced in Zod + service instead. **Amended 2026-11-14:** the "in the future" half is dropped altogether, in Zod, the service and the editor's date picker. A past `scheduledPublishAt` is saved, the cron publishes it on its next run, and `published_at` is that scheduled time (it was `now()`). This also fixes Approve on an AI News post after its slot has passed, which failed with "scheduledPublishAt must be in the future". A post dated more than 24 hours back is not picked up by the X Articles sweep, which only takes posts published in the last 24 hours. The "scheduledPublishAt MUST be null when status != 'scheduled'" half is structurally enforceable but adds noise — the service `normalisePostInput` clears it on save regardless.
 
 ## What ships in Slice A
 

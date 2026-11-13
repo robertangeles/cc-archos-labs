@@ -6,7 +6,6 @@ import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { computeLinkInsertion } from "../../../../../lib/blog-editor/insert-link";
 import {
   formatMelbourneForHumans,
-  melbourneParts,
   melbourneTzAbbrev,
   melbourneWallToUtcIso,
   splitMelbourneDatetime,
@@ -646,25 +645,13 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
   const bytesUsed = new TextEncoder().encode(contentMd).length;
   const bytesOver = bytesUsed > CONTENT_MD_MAX_BYTES;
 
-  // Schedule validation surfaces field-presence inline; the past-vs-
-  // future check is enforced by the server (Zod + enforceScheduleInvariant
-  // in lib/posts-admin) — calling Date.now() during render would be
-  // impure and would re-compute on every render anyway. The HTML5 `min`
-  // attribute on the datetime-local input nudges users toward future
-  // times at pick time; the server is the source of truth.
+  // Schedule validation surfaces field-presence inline. Any time is allowed:
+  // a past one publishes on the next cron run, dated at that time.
   const scheduleMissing =
     status === "scheduled" && (scheduledDate === "" || scheduledTime === "");
   const canSubmit =
     !bytesOver && !scheduleMissing && saveStatus.kind !== "saving";
 
-  // Computed once at mount — anchors the date input's `min` attribute
-  // (today in Melbourne) so the calendar greys out past days. The
-  // server-side check (Zod + enforceScheduleInvariant) is the actual
-  // source of truth.
-  const [todayInMelbourne] = useState(() => {
-    const parts = melbourneParts(new Date());
-    return `${parts.year}-${parts.month}-${parts.day}`;
-  });
   // TZ label shown next to the picker (AEDT in summer, AEST in winter).
   // Recomputed on each render — cheap, ensures DST transitions don't lie.
   const tzAbbrev = melbourneTzAbbrev();
@@ -780,7 +767,6 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
               onChange={setScheduledDate}
               placeholder="DD/MM/YYYY"
               disabled={status !== "scheduled"}
-              min={todayInMelbourne}
             />
             <input
               type="time"
@@ -805,7 +791,7 @@ export function PostForm({ initial, authors, categories }: PostFormProps) {
             <p className="mt-2 text-[11px] text-ink-subtle">
               Cron auto-publishes around{" "}
               {formatMelbourneForHumans(`${scheduledDate}T${scheduledTime}`)}{" "}
-              ({tzAbbrev}). Server rejects past times at save.
+              ({tzAbbrev}). A past time publishes on the next cron run, dated at that time.
             </p>
           )}
         </div>

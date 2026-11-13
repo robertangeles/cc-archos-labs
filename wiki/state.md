@@ -1,7 +1,7 @@
 ---
 title: Project state — auto-generated
 category: synthesis
-generated: 2026-11-06T12:05:05.560Z
+generated: 2026-11-13T21:51:19.593Z
 generator: scripts/wiki-state.mjs
 ---
 
@@ -232,7 +232,7 @@ Do not hand-edit. Regenerate with `pnpm wiki:state` or stage any change under `a
 | [components/admin/radar/radar-list.test.tsx](../components/admin/radar/radar-list.test.tsx) | 2026-11-02 |
 | [components/admin/radar/radar-list.tsx](../components/admin/radar/radar-list.tsx) | 2026-11-02 |
 | [components/admin/radar/radar-state.test.ts](../components/admin/radar/radar-state.test.ts) | 2026-11-02 |
-| [components/admin/radar/radar-state.ts](../components/admin/radar/radar-state.ts) | 2026-11-02 |
+| [components/admin/radar/radar-state.ts](../components/admin/radar/radar-state.ts) | 2026-11-06 |
 | [components/analytics/analytics-client.tsx](../components/analytics/analytics-client.tsx) | 2026-05-18 |
 | [components/analytics/consent-banner.tsx](../components/analytics/consent-banner.tsx) | 2026-07-25 |
 | [components/analytics/consent.test.ts](../components/analytics/consent.test.ts) | 2026-07-25 |

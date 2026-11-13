@@ -148,6 +148,17 @@ describe("publishScheduledPosts — the agent publish gate", () => {
     expect(res.rows[0].published_at).not.toBeNull();
   });
 
+  it("dates a post at its scheduled time, so a past time posts as that past time", async () => {
+    const when = new Date("2026-11-01T22:00:00.000Z");
+    const id = await harness.createPost({ scheduledPublishAt: when });
+    await publishScheduledPosts(new Date("2026-11-14T01:00:00.000Z"));
+    const res = await harness.client.query<{ published_at: Date }>(
+      `SELECT published_at FROM "post" WHERE id = $1`,
+      [id],
+    );
+    expect(new Date(res.rows[0].published_at).toISOString()).toBe(when.toISOString());
+  });
+
   it("is idempotent — a second run publishes nothing further", async () => {
     await harness.createPost();
     expect((await publishScheduledPosts(new Date())).published).toBe(1);
