@@ -45,8 +45,8 @@ export interface RunDeps {
   skill: (slug: string) => Promise<SkillPrompt>;
   generateImage: PhotoDeps["generateImage"];
   assemble: AssembleDeps;
-  /** The photo subject rotates on this (posts made so far). */
-  photoSeed: () => Promise<number>;
+  /** The photo briefs behind the newest posts, so the next picture is a different subject. */
+  recentPhotoBriefs: () => Promise<string[]>;
 }
 
 export type JobOutcome =
@@ -123,7 +123,7 @@ export async function runJob(deps: RunDeps, cfg: DraftConfig, job: ClaimedJob): 
     t = Date.now();
     const photo = await runPhoto({ ...stageDeps, generateImage: deps.generateImage }, cfg, {
       article: `# ${tight.parsed.title}\n\n${tight.parsed.body}`,
-      seed: await deps.photoSeed(),
+      recentBriefs: await deps.recentPhotoBriefs(),
     });
     await record("photo", t, photo.steps);
 

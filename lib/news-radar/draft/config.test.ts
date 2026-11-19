@@ -20,6 +20,7 @@ describe("parseDraftConfig", () => {
     expect(DEFAULT_DRAFT_CONFIG.categorySlug).toBe("ai-news");
     expect(DEFAULT_DRAFT_CONFIG.models.judge).toBe("deepseek/deepseek-v4-flash-0731");
     expect(DEFAULT_DRAFT_CONFIG.models.image).toBe("bytedance-seed/seedream-5-0-pro");
+    expect(DEFAULT_DRAFT_CONFIG.models.photoBrief).toBe("anthropic/claude-sonnet-5.5"); // Haiku repeated one "identical things, one different" motif and failed 1 of 12 briefs
   });
 
   it("overrides one field and keeps the rest", () => {

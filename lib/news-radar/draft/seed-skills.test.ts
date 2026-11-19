@@ -111,6 +111,13 @@ describe("the seeded skills", () => {
     expect(photo.template).toMatch(/numerals/);
     expect(photo.template).toMatch(/Alt Text:/);
   });
+
+  it("the photo skill leaves the subject to the article and asks for a different one from the recent pictures", () => {
+    const photo = NEWS_SKILLS.find((s) => s.slug === "archos-editorial-photo")!;
+    expect(photo.template).toMatch(/Choose the subject yourself, from this article/);
+    expect(photo.template).toMatch(/already on the site/);
+    expect(photo.template).not.toMatch(/assigned|subject_family/);
+  });
 });
 
 describe("deriveFactcheckSkill", () => {

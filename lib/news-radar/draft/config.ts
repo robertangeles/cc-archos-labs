@@ -57,7 +57,7 @@ export const DEFAULT_DRAFT_CONFIG: DraftConfig = {
     search: "perplexity/sonar-pro",
     writer: "anthropic/claude-sonnet-5.5",
     judge: "deepseek/deepseek-v4-flash-0731",
-    photoBrief: "anthropic/claude-haiku-4.5",
+    photoBrief: "anthropic/claude-sonnet-5.5",
     image: "bytedance-seed/seedream-5-0-pro",
   },
 };

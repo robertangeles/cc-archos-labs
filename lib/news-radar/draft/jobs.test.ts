@@ -4,11 +4,11 @@ import { makeDraftTestDb, type DraftTestDb } from "../../../tests/helpers/draft-
 import {
   claimNext,
   countStartedToday,
-  countSucceeded,
   enqueueKept,
   finishFailed,
   finishNeedsAttention,
   finishSucceeded,
+  recentPhotoBriefs,
   recordStep,
   recoverStale,
   renewLease,
@@ -220,7 +220,7 @@ describe("renewLease and finishing", () => {
   });
 });
 
-describe("requeueJob and countSucceeded", () => {
+describe("requeueJob", () => {
   it("gives a running job back so it can be tried again, keeping its attempt count", async () => {
     const id = await kept();
     await enqueueKept(h.db);
@@ -237,16 +237,40 @@ describe("requeueJob and countSucceeded", () => {
     const c = (await claim())!;
     expect(await requeueJob(h.db, { ...c, claimedBy: randomUUID() }, NOW)).toBe(false);
   });
+});
 
-  it("counts only succeeded jobs", async () => {
-    await kept();
+describe("recentPhotoBriefs", () => {
+  const step = (stepKey: string, output: string, status: "ok" | "failed" = "ok") => ({ stepKey, output, status });
+  const finish = async (at: Date, steps: ReturnType<typeof step>[], outcome: "succeeded" | "needs_attention" = "succeeded") => {
     await kept();
     await enqueueKept(h.db);
-    const a = (await claim())!;
-    await finishSucceeded(h.db, a, await h.addPost(), NOW);
-    const b = (await claim())!;
-    await finishNeedsAttention(h.db, b, "failed_gates", "x", NOW);
-    expect(await countSucceeded(h.db)).toBe(1);
+    const c = (await claim(10, at))!;
+    for (const s of steps) {
+      await recordStep(h.db, c.id, { ...s, attempt: c.attempts, model: null, inputTokens: null, outputTokens: null, costUsd: null, durationMs: 1 });
+    }
+    if (outcome === "succeeded") await finishSucceeded(h.db, c, await h.addPost(), at);
+    else await finishNeedsAttention(h.db, c, "failed_gates", "x", at);
+  };
+  const at = (hours: number) => new Date(NOW.getTime() + hours * 60 * MIN);
+
+  it("returns the brief behind each picture, newest job first, and the retry's when the brief was redone", async () => {
+    await finish(at(0), [step("photo_brief", "A")]);
+    await finish(at(1), [step("photo_brief", "B first try"), step("photo_brief_retry", "B retry")]);
+    expect(await recentPhotoBriefs(h.db, 10)).toEqual(["B retry", "A"]);
+  });
+
+  it("leaves out jobs that made no post, other steps and failed steps", async () => {
+    await finish(at(0), [step("photo_brief", "held back")], "needs_attention");
+    await finish(at(1), [step("essay", "not a brief"), step("image", "x"), step("photo_brief", "broken", "failed")]);
+    await finish(at(2), [step("photo_brief", "kept")]);
+    expect(await recentPhotoBriefs(h.db, 10)).toEqual(["kept"]);
+  });
+
+  it("stops at the limit, keeping the newest", async () => {
+    await finish(at(0), [step("photo_brief", "old")]);
+    await finish(at(1), [step("photo_brief", "mid")]);
+    await finish(at(2), [step("photo_brief", "new")]);
+    expect(await recentPhotoBriefs(h.db, 2)).toEqual(["new", "mid"]);
   });
 });
 

@@ -183,10 +183,23 @@ export async function requeueJob(db: DB, job: ClaimedJob, now: Date): Promise<bo
   return rows.length === 1;
 }
 
-/** Posts the pipeline has made so far. The photo subject rotates on this. */
-export async function countSucceeded(db: Pick<DB, "execute">): Promise<number> {
-  const res = await db.execute(sql`SELECT count(*)::int AS n FROM news_draft_job WHERE status = 'succeeded'`);
-  return Number(rowsOf<{ n: number }>(res)[0]?.n ?? 0);
+/**
+ * The photo brief behind the picture of each of the newest `limit` posts the pipeline made:
+ * the retry's when the brief was redone, else the first. The writer is shown their alt texts
+ * so the next picture is a different subject.
+ */
+export async function recentPhotoBriefs(db: Pick<DB, "execute">, limit: number): Promise<string[]> {
+  const res = await db.execute(sql`
+    SELECT output FROM (
+      SELECT DISTINCT ON (s.job_id) s.output, j.finished_at, j.id
+      FROM news_draft_step s
+      JOIN news_draft_job j ON j.id = s.job_id
+      WHERE j.status = 'succeeded' AND s.status = 'ok' AND s.step_key IN ('photo_brief', 'photo_brief_retry')
+      ORDER BY s.job_id, s.attempt DESC, s.step_key DESC
+    ) latest
+    ORDER BY finished_at DESC, id
+    LIMIT ${limit}`);
+  return rowsOf<{ output: string }>(res).map((r) => r.output);
 }
 
 /**

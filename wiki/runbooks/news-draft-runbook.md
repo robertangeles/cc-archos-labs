@@ -2,8 +2,8 @@
 title: News draft pipeline — operational runbook
 category: runbook
 created: 2026-11-02
-updated: 2026-11-02
-related: [[news-draft-pipeline]], [[news-radar-runbook]], [[deployment-architecture]], [[2026-11-02-news-draft-pipeline-design]]
+updated: 2026-11-18
+related: [[news-draft-pipeline]], [[2026-11-18-fixed-photo-rotation-repeats-and-haiku-converges]], [[news-radar-runbook]], [[deployment-architecture]], [[2026-11-02-news-draft-pipeline-design]]
 ---
 
 How to turn the Keep-to-draft pipeline on, watch it, and turn it off. What it is: [[news-draft-pipeline]].
@@ -28,6 +28,10 @@ Merging ships code to PROD and never schema. Before migration 0043 is applied th
 6. **Check the references exist on PROD:** category `ai-news` (with its description), author `Metis`, the OpenRouter key in Integrations (check the second page of the environment list; the default page shows 20 variables).
 7. **Switch on:** insert `site_setting` `news_draft_enabled` = `{"enabled": true}` on PROD.
 8. **Supervised first run:** Rob presses Keep on one story with a clear primary source. Watch the draft line on the Radar page and `select status, attention_reason from news_draft_job`. Open the draft, read it, click **Approve** only if it is right. One click clears the needs-review flag, so the post publishes at its slot, and adds the "Reviewed by" credit to the byline.
+
+## Changing a skill on PROD (the seed never overwrites)
+
+A skill's text lives in the `skill` row, and `seed-news-draft-skills.mts` only creates missing rows, so a change to `seed-skills.ts` reaches PROD only when its row is edited by hand. Compare the row with the previous seed text first (an unchanged row can be overwritten; an edited one must be merged), then update `prompt_template`, `description` and `default_model`. The 2026-11-18 photo change (`archos-editorial-photo`, per-story subjects) needs this. **Update the row before the deploy.** Old code supplies `{{subject_family}}` as a plain input; the new template does not use it, so old code runs fine with the new row. New code does not supply `{{subject_family}}`, so if the old row (which still has `{{subject_family}}`) is in place when new code runs, every photo job fails immediately with `missing_setup` and stays in `needs_attention`. After the row is updated, new code (which supplies only `{{banned}}` and `{{article}}`) runs correctly. Also check `site_setting` `news_draft_config` on PROD for a `models.photoBrief` override, which would keep Haiku.
 
 ## What the Radar line says
 
