@@ -10,8 +10,9 @@ import { nextPublishSlot } from "../../posts-admin/publish-slots";
 import { fetchSource } from "../source";
 import type { AssembleDeps } from "./assemble";
 import type { DraftConfig } from "./config";
-import { countSucceeded } from "./jobs";
+import { recentPhotoBriefs } from "./jobs";
 import { makeOpenRouterLlm } from "./llm";
+import { RECENT_PICTURES } from "./photo";
 import type { RunDeps } from "./run";
 import { loadSkill } from "./skills";
 
@@ -46,6 +47,6 @@ export function makeRunDeps(db: DB, cfg: DraftConfig): RunDeps {
     skill: (slug) => loadSkill(db, slug),
     generateImage: (prompt, opts) => generateImage(prompt, opts),
     assemble,
-    photoSeed: () => countSucceeded(db),
+    recentPhotoBriefs: () => recentPhotoBriefs(db, RECENT_PICTURES),
   };
 }

@@ -3,7 +3,7 @@ import { makeDraftTestDb, type DraftTestDb } from "../../../tests/helpers/draft-
 import { SourceFetchError } from "../source";
 import type { AssembleDeps } from "./assemble";
 import { DEFAULT_DRAFT_CONFIG } from "./config";
-import { claimNext, enqueueKept, type ClaimedJob } from "./jobs";
+import { claimNext, enqueueKept, recentPhotoBriefs, type ClaimedJob } from "./jobs";
 import { LlmError, type ChatRequest, type ChatResult, type Llm } from "./llm";
 import type { SkillPrompt } from "./skills";
 import { SkillSetupError } from "./skills";
@@ -47,7 +47,7 @@ const SKILLS: Record<string, SkillPrompt> = Object.fromEntries(
     ["archos-steelman-checkpoint", "Steelman. {{thesis}} {{raw_research}}"],
     ["archos-ai-news-factcheck", "Essay. {{topic}} {{thesis}} {{raw_research}} {{steelman_checkpoint}} {{word_count}}"],
     ["archos-slop-judge", "Is this AI Slop? {{article}}"],
-    ["archos-editorial-photo", "Photo. {{subject_family}} {{banned}} {{article}}"],
+    ["archos-editorial-photo", "Photo. {{banned}} {{article}}"],
   ].map(([slug, template]) => [slug, { slug, system: null, template, temperature: null, maxTokens: null } as SkillPrompt]),
 );
 
@@ -109,7 +109,7 @@ const harness = (over: { replies?: Record<string, ChatResult | Error | (ChatResu
     }),
     generateImage: over.image ?? (async () => ({ imageUrl: PNG })),
     assemble,
-    photoSeed: async () => 0,
+    recentPhotoBriefs: async () => [],
   };
   return { deps, calls, assemble, created, fetchSource };
 };
@@ -180,6 +180,16 @@ describe("runJob: the whole way through", () => {
     const { deps, calls } = harness();
     await runJob(deps, cfg, job);
     expect(calls.map((c) => c.label)).toEqual(["discover", "brief", "thesis", "steelman", "essay", "judge_1", "photo_brief"]);
+  });
+
+  it("shows the photo writer the pictures of the newest posts, read from the database", async () => {
+    const earlier = await startJob();
+    await runJob(harness().deps, cfg, earlier); // its photo brief is now the newest stored one
+    const job = await startJob();
+    const { deps, calls } = harness();
+    deps.recentPhotoBriefs = () => recentPhotoBriefs(h.db, 30);
+    await runJob(deps, cfg, job);
+    expect(calls.find((c) => c.label === "photo_brief")!.user).toContain("- A surveyor's tripod and measuring staff on an empty road at dawn.");
   });
 
   it("attaches the photo and lists the pages that were really fetched in the Sources section", async () => {

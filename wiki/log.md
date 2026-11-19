@@ -3113,3 +3113,11 @@ Touched: [[2026-11-06-radar-to-label-keeps-open-days-whole]], [[news-radar]], [[
 Rob asked to allow a past date and time after the editor said "scheduledPublishAt must be in the future." Found in three places (both Zod schemas in `lib/posts-admin/schema.ts`, `enforceScheduleInvariant` in `lib/posts-admin/index.ts`) plus the date picker greying out past days and a hint saying the server rejects them. Removed all of them; the missing-time check stays. A past time is picked up by the next cron tick (every minute), and `publishScheduledPosts` now stamps `published_at` with the scheduled time instead of `now()`, so a past time posts as that past time. Side effect: Approve on an AI News post whose slot has already passed no longer errors. Tests first (four red: both schemas, the service save, the publisher date), full suite 2932 passed, `tsc` and eslint clean. Not seen in a browser. A post dated over 24 hours back is not posted to X (the sweep takes the last 24 hours).
 
 Touched: [[2026-05-20-posts-admin-phase-d-backend]], `log.md`.
+
+---
+
+## 2026-11-18 (UTC) — News photos: subject from the article, not a rotation of 12
+
+Readers said the blog images were getting sloppy and repeating. Confirmed from the live site: 26 AI News posts, 12 subjects (11 twice, the tripod three times, one banned stopwatch runner). Cause: `PHOTO_SUBJECTS` rotated by job count. Rob chose per-story subjects and Sonnet 5.5 if Haiku did badly. Changed `photo.ts` (no rotation; recent alt texts in a fenced appendix; `repeatsRecent` sends a repeat back once), `jobs.ts` (`recentPhotoBriefs` replaces `countSucceeded`, which only fed the rotation), `run.ts`, `wire.ts`, the skill text in `seed-skills.ts` and the photo model default. Tests: `repeatsRecent` is tested against the 26 real alt texts; three mutations (retry order, run.ts ignoring the list, threshold) each failed a test. Real runs: 12 live articles, Haiku vs Sonnet (see [[2026-11-18-fixed-photo-rotation-repeats-and-haiku-converges]]); six Sonnet scenes rendered and viewed. DEV skill row updated (it matched the old seed). Full suite 2941 passed, `tsc` and eslint clean. PROD skill row and config check not done: need Rob's go.
+
+Touched: [[news-draft-pipeline]], [[news-draft-runbook]], [[2026-11-18-fixed-photo-rotation-repeats-and-haiku-converges]], `index.md`, `log.md`.

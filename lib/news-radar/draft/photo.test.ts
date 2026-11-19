@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_DRAFT_CONFIG } from "./config";
 import { LlmError, type ChatRequest, type ChatResult, type Llm } from "./llm";
-import { checkBrief, parsePhotoBrief, pickSubject, PHOTO_BANNED, PHOTO_SUBJECTS, runPhoto, type PhotoDeps } from "./photo";
+import { checkBrief, parsePhotoBrief, PHOTO_BANNED, recentAlts, repeatsRecent, runPhoto, type PhotoDeps } from "./photo";
 import type { SkillPrompt } from "./skills";
 
-// Two facts shaped this module. The brief writer picked "a stopwatch and a sprinter"
-// twice in a row, so the subject is assigned by code. And it printed "9.87" on the
-// stopwatch face, so a brief that contains numerals is sent back.
+// Three facts shaped this module. The brief writer picked "a stopwatch and a sprinter"
+// twice in a row, and it printed "9.87" on the stopwatch face, so a brief that contains
+// numerals is sent back. A fixed rotation of 12 scenes fixed the first problem and made
+// readers notice the second thing: 26 posts showed 12 pictures, each twice. So the subject
+// now comes from the article, and a brief whose subject repeats a recent one is sent back.
 
 const SCENE =
   "A weathered surveyor's tripod stands at the edge of an empty gravel road at dawn, a measuring staff leaning against it, the road vanishing into low flat fog. " +
@@ -18,7 +20,7 @@ const chat = (text: string): ChatResult => ({ text, model: "m", inputTokens: 5, 
 const PHOTO_SKILL_ROW: SkillPrompt = {
   slug: "archos-editorial-photo",
   system: "You are a photo editor.",
-  template: "Subject: {{subject_family}}\nNever: {{banned}}\nArticle:\n{{article}}",
+  template: "Never: {{banned}}\nArticle:\n{{article}}",
   temperature: null,
   maxTokens: null,
 };
@@ -40,25 +42,79 @@ const build = (briefs: (string | Error)[], image: (() => Promise<{ imageUrl: str
   return { deps, calls, generateImage };
 };
 const ARTICLE = "A fact-check of a headline about Qwen and Cohere.";
-const run = (deps: PhotoDeps, seed = 0) => runPhoto(deps, DEFAULT_DRAFT_CONFIG, { article: ARTICLE, seed });
+const run = (deps: PhotoDeps, recentBriefs: string[] = []) => runPhoto(deps, DEFAULT_DRAFT_CONFIG, { article: ARTICLE, recentBriefs });
 
-describe("pickSubject", () => {
-  it("rotates through every subject before it repeats", () => {
-    const seen = new Set(Array.from({ length: PHOTO_SUBJECTS.length }, (_, i) => pickSubject(i)));
-    expect(seen.size).toBe(PHOTO_SUBJECTS.length);
-  });
+// The alt texts of the 26 pictures the pipeline really published, with the subject each one
+// shows (labelled by looking at the pictures). Twelve subjects, each used two or three times.
+const LIVE: [string, string][] = [
+  ["bridge", "A wooden footbridge stretches across still water at dawn, its planks ending abruptly in mid-air with no continuation"],
+  ["hall", "Empty lecture hall with single chair turned to face blank back wall, late afternoon light casting shadows across"],
+  ["weather", "Solitary weather station on exposed hilltop under flat grey cloud, single support cable, barren landscape, overcast sky"],
+  ["hall", "Empty lecture hall with single chair facing away from podium toward blank back wall, morning light through high windows"],
+  ["control", "Empty control-room desk with single lit paper and dark monitors behind, emphasizing incomplete information and silent"],
+  ["control", "Empty control-room desk and unlit monitor bank in gray institutional setting, office chair pushed back, fluorescent light on"],
+  ["cable", "Industrial cable bundle terminated against bare concrete wall at dusk, low angle, cool grey tones, tension between"],
+  ["tripod", "A surveyor's tripod and measuring staff stand abandoned on an empty, straight road beneath overcast sky, receding to an"],
+  ["balance", "Old beam balance on wooden bench, left pan weighted down with stone, right pan tilted high and empty, spare stone resting"],
+  ["weather", "Isolated weather station on bare hilltop under uniform grey cloud, its instruments reaching skyward into featureless"],
+  ["ruler", "Overhead view of a ruler and pencil on blank paper, with a sharp shadow dividing the composition, suggesting measurement"],
+  ["bridge", "A wooden footbridge extending across still water disappears into fog at dawn, its end obscured and unreachable."],
+  ["door", "Open door in blank concrete wall at dusk, casting a displaced shadow from a work light, interior darkness framed but empty."],
+  ["cable", "Industrial cables bundled and terminating at a bare concrete wall, worker's gloved hands reaching toward the incomplete"],
+  ["ruler", "Metal ruler and pencil on blank paper at a drawing table, casting shadows in natural window light. A parallel line implied"],
+  ["balance", "Antique beam balance on wooden bench with empty left pan and right pan weighted down by stones, morning light, empty"],
+  ["mailbox", "Rural mailbox row with one door hanging open, revealing nothing inside while others remain closed, overcast morning light."],
+  ["containers", "Dawn at a shipping container terminal; hundreds of identical stacked containers in neat rows, one standing open with doors"],
+  ["archive", "Filing corridor with identical boxes; one pulled halfway out, its interior dark and unreadable, disrupting perfect rows"],
+  ["runner", "A gloved hand stops a stopwatch as a runner's foot crosses a finish line on an indoor track."],
+  ["containers", "Dawn at a shipping container harbour; hundreds of identical sealed containers in neat rows, one standing open, a small"],
+  ["tripod", "Surveyor's tripod and measuring staff on empty asphalt road under grey sky, casting long shadow toward receding horizon."],
+  ["archive", "Long archive corridor of identical grey filing boxes with one box pulled halfway out, fluorescent light, symmetry broken by"],
+  ["mailbox", "Row of identical mailboxes along rural road, one hanging open in foreground while others remain closed, stretching into"],
+  ["door", "Open doorway in blank concrete wall at dusk, fluorescent light spilling outward, architectural geometry emphasizing"],
+  ["tripod", "Surveyor's tripod and staff on empty wet asphalt road under grey sky, positioned where perspective lines converge, casting"],
+];
 
-  it("is deterministic and survives negative and huge seeds", () => {
-    expect(pickSubject(7)).toBe(pickSubject(7));
-    expect(PHOTO_SUBJECTS).toContain(pickSubject(-3));
-    expect(PHOTO_SUBJECTS).toContain(pickSubject(10 ** 9 + 7));
-  });
+const TRIPOD_ALT = LIVE.find(([k]) => k === "tripod")![1];
+const RECENT_TRIPOD = `${SCENE}\nAlt Text: ${TRIPOD_ALT}`;
 
-  it("no subject contains a banned cliché, a person or a number", () => {
-    for (const s of PHOTO_SUBJECTS) {
-      expect(s).not.toMatch(/\d/);
-      expect(s.toLowerCase()).not.toMatch(new RegExp(PHOTO_BANNED.map((w) => w.replace(/\s+/g, "\\s+")).join("|")));
+describe("repeatsRecent", () => {
+  it("flags every live pair that shows the same subject, bar one the check is allowed to miss", () => {
+    let same = 0;
+    let caught = 0;
+    for (let i = 0; i < LIVE.length; i++) {
+      for (let j = i + 1; j < LIVE.length; j++) {
+        if (LIVE[i][0] !== LIVE[j][0]) continue;
+        same++;
+        if (repeatsRecent(LIVE[i][1], [LIVE[j][1]])) caught++;
+      }
     }
+    expect(same).toBe(14);
+    expect(caught).toBeGreaterThanOrEqual(13);
+  });
+
+  it("never flags two live pictures that show different subjects", () => {
+    for (let i = 0; i < LIVE.length; i++) {
+      for (let j = i + 1; j < LIVE.length; j++) {
+        if (LIVE[i][0] === LIVE[j][0]) continue;
+        expect(repeatsRecent(LIVE[i][1], [LIVE[j][1]]), `${LIVE[i][0]} vs ${LIVE[j][0]}`).toBeNull();
+      }
+    }
+  });
+
+  it("returns the recent alt text it matched, so the writer can be told which", () => {
+    const tripod = LIVE.filter(([k]) => k === "tripod").map(([, a]) => a);
+    expect(repeatsRecent(tripod[0], [LIVE[0][1], tripod[1]])).toBe(tripod[1]);
+  });
+
+  it("is null with nothing recent", () => {
+    expect(repeatsRecent(ALT, [])).toBeNull();
+  });
+});
+
+describe("recentAlts", () => {
+  it("reads the alt text from each stored brief, newest first, and skips what has none", () => {
+    expect(recentAlts([BRIEF, "no alt text in this one", `${SCENE}\nAlt Text: A harbour at dawn.`])).toEqual([ALT, "A harbour at dawn."]);
   });
 });
 
@@ -120,13 +176,42 @@ describe("runPhoto", () => {
     }
   });
 
-  it("assigns the subject and bans the clichés in the prompt, and fences the article", async () => {
+  it("leaves the subject to the article, bans the clichés, and fences the article", async () => {
     const { deps, calls } = build([BRIEF]);
-    await run(deps, 3);
-    expect(calls[0].user).toContain(pickSubject(3));
+    await run(deps);
+    expect(calls[0].user).not.toMatch(/assigned/i);
     expect(calls[0].user).toContain("stopwatch");
     expect(calls[0].user).toMatch(/<<<UNTRUSTED_[0-9a-f-]+\nA fact-check of a headline/);
     expect(calls[0].model).toBe(DEFAULT_DRAFT_CONFIG.models.photoBrief);
+  });
+
+  it("shows the model the pictures already on the site, as fenced data, and nothing when there are none", async () => {
+    const harbour = `${SCENE}\nAlt Text: A harbour at dawn with rows of shipping containers, one standing open.`;
+    const { deps, calls } = build([harbour, BRIEF]);
+    await run(deps, [RECENT_TRIPOD]);
+    expect(calls[0].user).toMatch(/already on the site/i);
+    expect(calls[0].user).toMatch(/<<<UNTRUSTED_[0-9a-f-]+\n- .*[Tt]ripod/);
+    await run(deps, []);
+    expect(calls[1].user).not.toMatch(/already on the site/i);
+  });
+
+  it("sends a brief whose subject repeats a recent picture back once, naming the picture, then uses the new one", async () => {
+    const other = `${SCENE}\nAlt Text: A harbour at dawn with rows of shipping containers, one standing open.`;
+    const { deps, calls } = build([BRIEF, other]);
+    const r = await run(deps, [RECENT_TRIPOD]);
+    expect(r).toMatchObject({ ok: true, alt: "A harbour at dawn with rows of shipping containers, one standing open." });
+    expect(calls.map((c) => c.label)).toEqual(["photo_brief", "photo_brief_retry"]);
+    expect(calls[1].user).toMatch(/repeats a picture already on the site/);
+    expect(calls[1].user).toContain(TRIPOD_ALT); // says which one
+    expect(calls[1].user).toMatch(/already on the site[^]*Tripod/i); // and the list is still there
+  });
+
+  it("makes the draft without a picture, not a repeat, when the subject keeps repeating", async () => {
+    const { deps, generateImage } = build([BRIEF, BRIEF]);
+    const r = await run(deps, [RECENT_TRIPOD]);
+    expect(r).toMatchObject({ ok: false });
+    if (!r.ok) expect(r.note).toMatch(/repeats/);
+    expect(generateImage).not.toHaveBeenCalled();
   });
 
   it("renders with the configured image model, wide, at 2K, allowing 3 minutes", async () => {

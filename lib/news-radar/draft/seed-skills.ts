@@ -24,7 +24,7 @@ export interface SkillSeed {
 export const SUPPLIED: Record<string, string[]> = {
   "archos-news-research-brief": ["topic", "target_audience", "industry", "published", "headline", "coverage", "documents"],
   "archos-slop-judge": ["article"],
-  "archos-editorial-photo": ["subject_family", "banned", "article"],
+  "archos-editorial-photo": ["banned", "article"],
   "archos-ai-news-factcheck": ["topic", "thesis", "raw_research", "steelman_checkpoint", "target_audience", "industry", "word_count"],
 };
 
@@ -171,15 +171,16 @@ Rules for What to tighten:
     slug: "archos-editorial-photo",
     name: "Archos Editorial Photo",
     description:
-      "Writes one editorial photograph brief for an article, on a subject assigned by the pipeline so the pictures do not all look alike. Realistic, no faces, no printed text or numbers.",
+      "Writes one editorial photograph brief for an article, on a subject taken from that article and different from every recent picture on the site. Realistic, no faces, no printed text or numbers.",
     category: "generate",
     system: "You are the photo editor of a serious business and technology magazine. You commission one photograph per feature. It must carry the article's central tension without a caption. You never ask questions; you execute.",
     template: `Read the article below and write ONE photograph brief for it.
 
-The subject of this photograph is assigned. Use it as the subject; do not substitute another: {{subject_family}}
+Choose the subject yourself, from this article and nothing else: the one physical thing or place, from the world the article is about, that carries its central tension. The pictures already on the site are listed after the article. Yours must show a different subject from every one of them, not the same subject lit or framed differently.
 
 RULES
 - Find the article's central tension and show it through that subject as a physical, plausible, real-world scene. A metaphor, not a literal scene from the article.
+- Vary the light, the time of day, the palette and the scale as well. The site's photographs must not look like one set.
 - 3 to 5 elements at most. Every element earns its place.
 - No faces. A person may appear only from behind, small in frame, or as hands. Preferably nobody.
 - No logos, brands, product names, readable text, numerals, charts, or screens with content. Do not describe anything that would show writing.
@@ -191,7 +192,7 @@ OUTPUT, nothing else: one paragraph, then a line "Alt Text:" followed by 125 cha
 
 Article:
 {{article}}`,
-    defaultModel: "anthropic/claude-haiku-4.5",
+    defaultModel: "anthropic/claude-sonnet-5.5",
     maxTokens: 4000,
   },
 ];

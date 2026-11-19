@@ -2,8 +2,8 @@
 title: News draft pipeline
 category: entity
 created: 2026-11-02
-updated: 2026-11-02
-related: [[2026-11-02-remove-skills-workflows-social]], [[news-radar]], [[news-draft-runbook]], [[2026-11-02-news-draft-pipeline-design]], [[2026-11-02-real-run-found-what-nine-hundred-tests-did-not]], [[news-radar-runbook]]
+updated: 2026-11-18
+related: [[2026-11-18-fixed-photo-rotation-repeats-and-haiku-converges]], [[2026-11-02-remove-skills-workflows-social]], [[news-radar]], [[news-draft-runbook]], [[2026-11-02-news-draft-pipeline-design]], [[2026-11-02-real-run-found-what-nine-hundred-tests-did-not]], [[news-radar-runbook]]
 ---
 
 Release 2 of the news radar. When Rob presses **Keep** on a story, the pipeline turns it into a scheduled, human-review-required blog draft in his Behind the AI Headline method: go to the primary source, say what the headline left out, give a verdict. It never publishes anything by itself.
@@ -24,8 +24,16 @@ Keep pressed (PATCH /api/admin/radar/[id])  or  the radar's 2-hourly tick
 | research | Sonar finds candidate URLs; the code fetches them itself (SSRF-guarded, `lib/news-radar/source.ts`) and classifies primary or secondary; Sonnet writes a brief from the fetched text only. Every quotation in the brief must exist in a fetched page or the headline coverage; two corrected attempts, then stop | `perplexity/sonar-pro`, `anthropic/claude-sonnet-5.5` |
 | write | Rob's thesis and steelman skills, then the news fact-check essay skill (`archos-ai-news-factcheck`, forked from his Paul Graham essay skill; inferences are written in words, "I infer", not with an `[Inference]` tag, and the SEO title limit is stated as the real 46 (his skill says 60, the site appends its own name) so the first draft passes the length check, which the checks reject and the old blog agent shipped as a defect) | `anthropic/claude-sonnet-5.5` |
 | tighten | Deterministic gates (quotes, numbers, verdict word, no links or Sources from the writer, SEO title and meta lengths, tags) plus Rob's slop judge. Its "What to tighten" notes feed up to three rewrites (`maxRewrites`, default 3; a failed check counts as a rewrite too). From its second read on, the judge is handed its own earlier notes and asked to close what was fixed (a fresh judge re-reviews from scratch and finds new nitpicks every time, so the loop never converges) | writer above; judge `deepseek/deepseek-v4-flash-0731` |
-| photo | A photo brief, then a realistic image (Rob rejected style imitation) | `anthropic/claude-haiku-4.5`, `bytedance-seed/seedream-5-0-pro` |
+| photo | A photo brief whose subject comes from the article, then a realistic image (Rob rejected style imitation). The writer is shown the alt texts of the last 30 pictures and a brief whose subject repeats one is sent back once (the post is made without a picture if it still does); see "Photo subjects" below | `anthropic/claude-sonnet-5.5`, `bytedance-seed/seedream-5-0-pro` |
 | assemble | Code builds the Sources section (links only; related posts are the blog page's own Read next block), creates the post `scheduled` + `needs_review` + agent-generated in category AI News, byline Metis, at the next free slot of 9:00, 15:00, 21:00 New York | none |
+
+## Photo subjects (changed 2026-11-18)
+
+The first version assigned each post one of 12 fixed scenes by code, because the brief writer had converged on a stopwatch and a sprinter. Readers noticed that 26 posts showed 12 pictures, each two or three times ([[2026-11-18-fixed-photo-rotation-repeats-and-haiku-converges]]). Now:
+
+- The skill (`archos-editorial-photo`) tells the writer to take the subject from the article. `runPhoto` appends the alt texts of the newest 30 posts' pictures (`recentPhotoBriefs` in `jobs.ts`: the retry's brief when one was redone, succeeded jobs only) as a fenced appendix, so the skill's own text needs no new variable.
+- `repeatsRecent` (`photo.ts`) rejects a brief whose alt text shares 3 or more content words with a recent one, after dropping words every scene shares ("empty", "grey", "dawn"). It catches 13 of the 14 same-subject pairs among the 26 live pictures and flags no different-subject pair. It is word overlap, not meaning: a repeat in different words gets through, which is why the list is also in the prompt.
+- Model: Sonnet 5.5, chosen over Haiku 4.5 by running both on 12 real articles from the 26 already-published pictures. Haiku: 11 of 12 briefs usable, 5 first time, one post lost its picture, and most scenes were "two identical things, one different". Sonnet: 12 of 12, 10 first time, scenes specific to the story (sediment cores, a sluice gate, fish crates against one tuna). About $0.026 a brief against $0.007.
 
 ## Outcomes of a job
 
